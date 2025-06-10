@@ -5,6 +5,7 @@ import Button from "./Button";
 const RetrievalResults = ({ currentPageData, page, setPage }) => {
   const navigate = useNavigate();
 
+  console.log("dd");
   return (
     <div className="RetrievalResults">
       <div className="header">
