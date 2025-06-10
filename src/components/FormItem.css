@@ -1,0 +1,17 @@
+.form-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 0;
+  flex: 1;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0 20px;
+}
+
+.form-item input {
+  width: 50%;
+  height: 40px;
+  border-radius: 5px;
+  padding: 0 10px;
+}

@@ -1,0 +1,62 @@
+.SearchMain {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 9;
+  min-height: 0;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 20px;
+}
+
+.SearchMain .button-container {
+  display: flex;
+  gap: 12px; /* 원하는 간격으로 조절 */
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+}
+
+.SearchMain .search-results {
+  width: 100%;
+  background-color: white;
+  border: white 1px solid;
+  border-radius: 10px;
+  padding: 20px;
+  min-height: 0;
+  overflow: auto;
+  flex: 5;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* 그림자 추가 */
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.SearchMain .form-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 24px;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.SearchMain .form-table th,
+.SearchMain .form-table td {
+  padding: 14px;
+  border: 1px solid #e0e0e0;
+  text-align: center;
+}
+
+.SearchMain .form-table th {
+  background-color: #495057; /* 짙은 회색 */
+  color: white;
+}
+
+.SearchMain .table-row:hover {
+  cursor: pointer;
+  background-color: #868e96; /* 중간 회색 */
+  color: white;
+}

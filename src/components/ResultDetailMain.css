@@ -1,0 +1,79 @@
+.ResultDetailMain {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 9;
+  gap: 20px;
+  box-sizing: border-box;
+  padding: 20px;
+}
+
+.ResultDetailMain .gt-shoes-images {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* 간격이 있으면 추가 */
+  min-height: 0; /* 자식이 부모 넘지 않도록 */
+  box-sizing: border-box;
+}
+
+.ResultDetailMain .gt-shoes-image {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+}
+
+.ResultDetailMain .partial-patterns {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* 자식이 부모 넘지 않도록 */
+}
+.ResultDetailMain .header-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: white;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.ResultDetailMain .patterns-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0; /* 자식이 부모 넘지 않도록 */
+  gap: 20px;
+}
+
+.ResultDetailMain .partial-kind {
+  background-color: #ccc;
+  width: 100%;
+  justify-content: center;
+  display: flex;
+  font-size: 24px;
+}
+
+.ResultDetailMain .detail-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  min-height: 0; /* 자식이 부모 넘지 않도록 */
+}
+
+.ResultDetailMain .button-items {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px; /* 버튼 간격 */
+  min-height: 0; /* 자식이 부모 넘지 않도록 */
+}

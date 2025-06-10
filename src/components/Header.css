@@ -1,0 +1,15 @@
+.Header {
+  display: flex;
+  justify-content: space-between;
+  background-color: #343a40;
+  border-bottom: 3px solid #dee2e6;
+  color: white;
+  padding: 10px;
+  flex: 1;
+  font-size: 24px;
+}
+
+.Header .button-group {
+  display: flex;
+  gap: 10px;
+}

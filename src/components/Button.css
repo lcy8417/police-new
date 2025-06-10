@@ -1,0 +1,32 @@
+.btn {
+  display: inline-block;
+  padding: 20px 20px;
+  font-size: 25px;
+  background-color: #6c757d;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #f8f9fa; /* 약간 어두운 흰색 */
+  text-decoration: none;
+  text-align: center;
+  margin: 10px 0;
+}
+
+.btn:hover {
+  background-color: #868e96;
+  color: #e9ecef; /* hover 시 더 밝은 색상 */
+}
+
+.btn.nav {
+  background-color: #343a40; /* Green */
+  color: white;
+  text-decoration: none;
+}
+
+.btn.nav:hover {
+  background-color: #495057; /* 밝은 회색 */
+}
+
+.full-width {
+  width: 100%;
+}

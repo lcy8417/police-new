@@ -1,0 +1,28 @@
+.detail-main {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  min-height: 0;
+  gap: 20px;
+  flex: 9;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.detail-main .image-swapper {
+  flex: 1;
+  flex-direction: column;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.detail-main .form-container {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+}

@@ -1,0 +1,19 @@
+.ShoesRegisterMain {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  box-sizing: border-box;
+  min-height: 0;
+  gap: 20px;
+  flex: 9;
+  padding: 20px;
+  padding: 20px;
+  min-width: 0;
+}
+
+.ShoesRegisterMain .main-body-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* 👈 전체 높이 비율 분배 */
+  gap: 20px;
+}

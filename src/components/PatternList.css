@@ -1,0 +1,48 @@
+.PatternList {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  min-height: 0;
+  padding: 20px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* 그림자 추가 */
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.flex-3 {
+  flex: 3;
+}
+
+.PatternList .button-items {
+  /* 고정 높이 또는 최소 높이 설정 */
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 반복 사용으로 간략화 */
+  justify-content: center;
+  width: 100%;
+  gap: 5px;
+}
+
+.PatternList .total-pattern-items {
+  flex: 1;
+  overflow-y: auto;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 10px;
+  justify-items: center;
+  background-color: rgba(238, 236, 236, 0.8); /* 약간 투명한 배경 */
+}
+
+.PatternList .total-pattern-items img {
+  width: 80px;
+  height: 80px;
+}
+.PatternList .total-pattern-items img:hover {
+  cursor: pointer;
+}

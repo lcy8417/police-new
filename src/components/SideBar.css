@@ -1,0 +1,32 @@
+.SideBar {
+  height: 100%;
+  background-color: #343a40;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.SideBar a {
+  width: 100%;
+}
+
+.SideBar .title {
+  display: flex;
+  font-size: 36px;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  margin-bottom: 10px;
+}
+
+.SideBar .divider {
+  flex: 9;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+}
