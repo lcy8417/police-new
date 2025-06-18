@@ -1,0 +1,42 @@
+.SearchResults {
+  width: 100%;
+  background-color: white;
+  border: white 1px solid;
+  border-radius: 10px;
+  padding: 20px;
+  min-height: 0;
+  overflow: auto;
+  flex: 5;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* 그림자 추가 */
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.SearchResults .form-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 24px;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.SearchResults .form-table th,
+.SearchResults .form-table td {
+  padding: 14px;
+  border: 1px solid #e0e0e0;
+  text-align: center;
+}
+
+.SearchResults .form-table th {
+  background-color: #495057; /* 짙은 회색 */
+  color: white;
+}
+
+.SearchResults .table-row:hover {
+  cursor: pointer;
+  background-color: #868e96; /* 중간 회색 */
+  color: white;
+}

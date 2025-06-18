@@ -1,17 +1,25 @@
-.pattern-extract-main {
+.PatternExtractMain {
   display: flex;
   height: 100%;
   width: 100%;
   align-items: center;
-  padding: 20px;
   min-height: 0;
   min-width: 0;
   box-sizing: border-box;
-  gap: 20px;
   flex: 9;
 }
 
-.pattern-extract-main .image-swapper {
+.PatternExtractMain .main {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 20px;
+  padding: 20px;
+  box-sizing: border-box;
+  min-height: 0;
+}
+
+.PatternExtractMain .image-swapper {
   flex: 1;
   flex-direction: column;
   display: flex;
@@ -19,4 +27,12 @@
   justify-content: center;
   width: 100%;
   height: 100%;
+}
+
+.PatternExtractMain .image-swapper-buttons {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }

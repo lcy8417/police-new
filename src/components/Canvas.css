@@ -1,10 +1,17 @@
 .Canvas {
-  flex: 3;
   display: flex;
   flex-direction: column;
   background-color: white;
   min-height: 0; /* 자식 요소가 부모 높이를 초과하지 않도록 설정 */
   overflow: auto; /* 전체 컨테이너에 스크롤 적용 */
+}
+
+.Canvas.flex-1 {
+  flex: 1;
+}
+
+.Canvas.flex-3 {
+  flex: 3;
 }
 
 .Canvas .canvas-overlay {
@@ -13,7 +20,6 @@
 
 .Canvas .image-edit-display {
   flex: 3;
-  display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;

@@ -1,4 +1,4 @@
-.ResultDetailMain {
+.BeforeResultMain {
   display: flex;
   width: 100%;
   height: 100%;
@@ -8,7 +8,7 @@
   box-sizing: border-box;
 }
 
-.ResultDetailMain .main {
+.BeforeResultMain .main {
   display: flex;
   width: 100%;
   height: 100%;
@@ -18,7 +18,7 @@
   min-height: 0; /* 자식이 부모 넘지 않도록 */
 }
 
-.ResultDetailMain .gt-shoes-images {
+.BeforeResultMain .images-container {
   flex: 1;
   width: 100%;
   height: 100%;
@@ -29,26 +29,10 @@
   box-sizing: border-box;
 }
 
-.ResultDetailMain .gt-shoes-image {
+.BeforeResultMain .shoes-image {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   background-color: white;
-}
-
-.ResultDetailMain .detail-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background-color: white;
-  min-height: 0; /* 자식이 부모 넘지 않도록 */
-}
-
-.ResultDetailMain .button-items {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px; /* 버튼 간격 */
-  min-height: 0; /* 자식이 부모 넘지 않도록 */
 }

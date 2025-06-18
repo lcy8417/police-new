@@ -4,8 +4,8 @@ import PatternItem from "./PatternItem";
 const PatternInfo = ({
   selected,
   setSelected,
-  formData,
   deletePattern,
+  formData,
   essentialCheck = null,
 }) => {
   const kinds = ["상", "중", "하", "윤곽"];
@@ -23,9 +23,9 @@ const PatternInfo = ({
             title={kind}
             selected={selected}
             setSelected={setSelected}
-            formData={formData}
             deletePattern={deletePattern}
             essentialCheck={essentialCheck}
+            formData={formData}
           />
         ))}
       </div>

@@ -1,8 +1,11 @@
 import ShoesRegisterMain from "../components/ShoesRegisterMain";
 import Header from "../components/Header";
 import { useState } from "react";
+import { shoesDataContext } from "../App";
+import { useContext } from "react";
 
 const ShoesRegister = () => {
+  const { setShoesData } = useContext(shoesDataContext);
   const [formData, setFormData] = useState({
     image: null,
     top: [],
@@ -20,7 +23,20 @@ const ShoesRegister = () => {
     {
       value: "등록",
       event: () => {
-        console.log("폼 제출:", formData);
+        setShoesData((prev) => [...prev, { ...formData }]);
+        alert("신발 정보가 등록되었습니다.");
+        setFormData({
+          image: null,
+          top: [],
+          mid: [],
+          bottom: [],
+          outline: [],
+          수집장소: "",
+          제조사: "",
+          상표명: "",
+          모델번호: "",
+          수집년도: "",
+        });
       },
     },
   ];

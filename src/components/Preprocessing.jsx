@@ -1,3 +1,4 @@
+import "./Preprocessing.css";
 import DraggableSlider from "./DraggableSlider";
 import Button from "./Button";
 
@@ -10,8 +11,8 @@ const Preprocessing = ({
   returnClickHandler,
 }) => {
   return (
-    <div className="preprocess-container">
-      {["확대", "대비", "채도", "밝기"].map((title, index) => (
+    <div className="Preprocessing">
+      {["확대", "대비", "채도", "밝기", "회전"].map((title, index) => (
         <DraggableSlider
           key={index}
           title={title}

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import "./ShoesResultMain.css";
 import ImageLoader from "./ImageLoader";
 import RetrievalResults from "./RetrievalResults";
+import Sidebar from "./Sidebar"; // Assuming you have a Sidebar component for navigation
 
 const ShoesResultMain = () => {
   const [currentPageData, setCurrentPageData] = useState([]);
@@ -35,16 +36,19 @@ const ShoesResultMain = () => {
 
   return (
     <div className="ShoesResultMain">
-      <ImageLoader
-        formData={formData}
-        value="현장이미지"
-        propsImage={formData.image}
-      />
-      <RetrievalResults
-        currentPageData={currentPageData}
-        page={page}
-        setPage={setPage}
-      />
+      <Sidebar />
+      <div className="main">
+        <ImageLoader
+          formData={formData}
+          value="현장이미지"
+          propsImage={formData.image}
+        />
+        <RetrievalResults
+          currentPageData={currentPageData}
+          page={page}
+          setPage={setPage}
+        />
+      </div>
     </div>
   );
 };

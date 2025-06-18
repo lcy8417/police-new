@@ -4,11 +4,18 @@
   display: flex;
   box-sizing: border-box;
   min-height: 0;
-  gap: 20px;
   flex: 9;
-  padding: 20px;
-  padding: 20px;
   min-width: 0;
+}
+
+.ShoesRegisterMain .main {
+  padding: 20px;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 20px;
+  box-sizing: border-box;
+  min-height: 0; /* 자식이 부모 넘지 않도록 */
 }
 
 .ShoesRegisterMain .main-body-content {

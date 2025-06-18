@@ -2,10 +2,14 @@ import { useNavigate } from "react-router-dom";
 import "./RetrievalResults.css";
 import Button from "./Button";
 
-const RetrievalResults = ({ currentPageData, page, setPage }) => {
+const RetrievalResults = ({
+  currentPageData,
+  page,
+  setPage,
+  clickAct = true,
+}) => {
   const navigate = useNavigate();
 
-  console.log("dd");
   return (
     <div className="RetrievalResults">
       <div className="header">
@@ -18,7 +22,7 @@ const RetrievalResults = ({ currentPageData, page, setPage }) => {
           <div
             className="result-item"
             key={item.id}
-            onClick={() => navigate(`detail/${item.id}`)}
+            onClick={clickAct && (() => navigate(`detail/${item.id}`))}
           >
             <img src={item.image} alt={`신발 이미지 ${item.id}`} />
             <div className="item-similarity">

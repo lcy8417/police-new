@@ -6,6 +6,7 @@ const titleName = {
   대비: "contrast",
   채도: "saturation",
   밝기: "brightness",
+  회전: "rotate",
 };
 
 const DraggableSlider = ({

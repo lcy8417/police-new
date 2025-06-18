@@ -7,13 +7,13 @@ const ImageLoader = ({
   setFormData = null,
   value = "현장이미지",
   propsImage = null,
+  patternFunction = false,
   style = {},
   onLoad = null,
 }) => {
   const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
-    console.log(e.target.files);
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -31,25 +31,40 @@ const ImageLoader = ({
   };
   return (
     <div className="ImageLoader">
-      <div className="header">
+      <div className={`header ${value}`}>
         <h1>{value}</h1>
         {/* 업로드 활성화 될 때만 보이기 */}
-        {!propsImage && (
-          <>
+        <div className="button-container">
+          {!propsImage && (
             <Button
               value="+업로드"
               onClick={() => fileInputRef.current?.click()}
               type="button"
             />
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleChange}
-              accept="image/*"
-              style={{ display: "none" }}
-            />
-          </>
-        )}
+          )}
+          {patternFunction && (
+            <>
+              <Button
+                value="문양추출"
+                onClick={patternFunction[0]}
+                type="button"
+              />
+              <Button
+                value="문양초기화"
+                onClick={patternFunction[1]}
+                type="button"
+              />
+            </>
+          )}
+        </div>
+
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleChange}
+          accept="image/*"
+          style={{ display: "none" }}
+        />
       </div>
 
       <div className="image-container">

@@ -3,59 +3,35 @@ import "./Canvas.css";
 import ImageLoader from "./ImageLoader";
 
 const Canvas = ({
-  buttonState,
-  points,
-  scrollState,
-  setPoints,
-  canvasRef,
-  overlayRef,
+  formData,
+  setFormData = null,
+  points = [],
+  scrollState = null, // 전처리 상태
+  canvasRef, // 캔버스 참조
+  handleClick = null, // 왼쪽 클릭 이벤트 처리
+  handleRightClick = null, // 오른쪽 클릭 이벤트 처리
+  patternFunction = null, // 문양 추출, 문양 초기화 기능 추가
+  propsImage = null, // props로 이미지 전달
+  value = "hide", // 캔버스의 헤더로 표시할 값(hide면 무시)
+  flex = 1,
+  lineState = null, // 캔버스의 선 상태
+  setLineState = null, // 캔버스의 선 상태를 설정하는 함수
 }) => {
-  const formData = {
-    image: "/src/assets/00001-23-0360_1.png",
-  };
-
-  const [imageSize, setImageSize] = useState({
-    width: 0,
-    height: 0,
-  });
-
-  // 첫 렌더링 될 때, 이미지의 크기 설정
-  // useEffect(() => {
-  //   setImageSize({
-  //     width: document.querySelector(".image-edit-display > img").offsetWidth,
-  //     height: document.querySelector(".image-edit-display > img").offsetHeight,
-  //   });
-  // }, []);
-
-  const filterStyle = {
-    filter: `
+  const filterStyle = scrollState
+    ? {
+        filter: `
       contrast(${100 + scrollState.contrast}%)
       saturate(${100 + scrollState.saturation}%)
       brightness(${100 + scrollState.brightness}%)
     `,
-    transform: `scale(${1 + scrollState.zoom / 100})`,
-    transition: "all 0.3s ease",
-  };
-
-  const handleClick = (e) => {
-    if (buttonState === null || ![0, 3].includes(buttonState)) {
-      if (overlayRef.current) {
-        overlayRef.current.style.cursor = "default";
+        transform: `scale(${1 + scrollState.zoom / 100})
+              rotate(${(scrollState.rotate / 100) * 360}deg)
+`,
+        transition: "all 0.3s ease",
       }
-      return;
-    }
+    : {};
 
-    if (overlayRef.current) {
-      overlayRef.current.style.cursor = "crosshair";
-    }
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    setPoints((prev) => [...prev, { x, y }]);
-  };
-
+  const [imageSize, setImageSize] = useState({});
   // 캔버스에 점을 그리는 useEffect
   useEffect(() => {
     if (points.length === 0) return;
@@ -87,52 +63,135 @@ const Canvas = ({
     });
   }, [points]);
 
-  // 배경제거 및 접합장애물제거를 위한 오른쪽 클릭 핸들러
-  const handleRightClick = (event) => {
-    event.preventDefault(); // 브라우저 기본 컨텍스트 메뉴 막기
-    console.log("오른쪽 클릭 이벤트 발생");
-    if (points.length <= 2) {
-      alert("점이 3개 이상이어야 합니다.");
-      return;
-    }
-  };
+  // 이미지가 변경될 때 캔버스 크기 조정
+  useEffect(() => {
+    const updateCanvasPosition = () => {
+      const $img = document.querySelector(
+        ".image-edit-display .ImageLoader .image-container"
+      );
+      if (!$img) return;
+
+      const rect = $img.getBoundingClientRect();
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      canvas.style.position = "fixed";
+      canvas.style.left = `${rect.left}px`;
+      canvas.style.top = `${rect.top}px`;
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      canvas.style.pointerEvents = "auto";
+      canvas.style.zIndex = 999;
+
+      setImageSize({
+        width: rect.width,
+        height: rect.height,
+      });
+    };
+
+    updateCanvasPosition(); // 초기 실행
+
+    window.addEventListener("resize", updateCanvasPosition);
+    return () => {
+      window.removeEventListener("resize", updateCanvasPosition);
+    };
+  }, [formData.image]);
+
+  useEffect(() => {
+    if (!formData.image || !lineState) return;
+    const { lineYs } = lineState;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "rgba(255, 0, 0, 0.7)"; // 반투명 레드
+    ctx.lineWidth = 7;
+    ctx.setLineDash([5, 3]); // 점선 스타일
+
+    lineYs.forEach((y) => {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    });
+  }, [lineState, formData.image, imageSize]);
+
+  useEffect(() => {
+    if (!formData.image || !lineState) return;
+    const { lineYs, draggingLine } = lineState;
+
+    const canvas = canvasRef.current;
+
+    const handleMouseDown = (e) => {
+      const y = e.offsetY;
+      lineYs.forEach((lineY, idx) => {
+        if (Math.abs(y - lineY) < 5) {
+          setLineState((prev) => ({
+            ...prev,
+            draggingLine: idx,
+            offsetY: lineY - y,
+          }));
+        }
+      });
+    };
+
+    const handleMouseMove = (e) => {
+      const y = e.offsetY;
+
+      if (draggingLine !== null) {
+        setLineState((prev) => {
+          const newLines = [...prev["lineYs"]];
+          newLines[prev["draggingLine"]] = y + prev["offsetY"];
+
+          return {
+            ...prev,
+            lineYs: newLines,
+            offsetY: prev.offsetY,
+          };
+        });
+      }
+
+      const isNearLine = lineYs.some((lineY) => Math.abs(y - lineY) < 5);
+      canvas.style.cursor = isNearLine ? "pointer" : "default";
+    };
+
+    const stopDragging = () => {
+      setLineState((prev) => ({
+        ...prev,
+        draggingLine: null,
+      }));
+    };
+
+    canvas.addEventListener("mousedown", handleMouseDown);
+    canvas.addEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener("mouseup", stopDragging);
+    canvas.addEventListener("mouseleave", stopDragging);
+
+    return () => {
+      canvas.removeEventListener("mousedown", handleMouseDown);
+      canvas.removeEventListener("mousemove", handleMouseMove);
+      canvas.removeEventListener("mouseup", stopDragging);
+      canvas.removeEventListener("mouseleave", stopDragging);
+    };
+  }, [formData.image, lineState, setLineState]);
 
   return (
-    <div className="Canvas">
+    <div className={`Canvas flex-${flex}`}>
       <div className="image-edit-display">
         <ImageLoader
           formData={formData}
-          value="편집이미지"
-          propsImage={"/src/assets/00001-23-0360_1.png"}
-          style={filterStyle}
-          setImageSize={setImageSize}
-          onLoad={() => {
-            const display = document.querySelector(".image-edit-display");
-
-            const canvas = canvasRef.current;
-            const overlay = overlayRef.current;
-
-            const width = display.offsetWidth;
-            const height = display.offsetHeight;
-
-            canvas.width = width;
-            canvas.height = height;
-
-            console.log(width, height);
-            overlay.style.width = `${width}px`;
-            overlay.style.height = `${height}px`;
-          }}
+          setFormData={setFormData}
+          value={value}
+          propsImage={propsImage}
+          style={scrollState && filterStyle}
+          // setImageSize={setImageSize}
+          patternFunction={patternFunction}
         />
         <canvas
           ref={canvasRef}
-          style={{
-            position: "absolute",
-            pointerEvents: "none", // 클릭을 통과시킴
-          }}
-        />
-        <div
-          className="canvas-overlay"
-          ref={overlayRef}
           onClick={handleClick}
           onContextMenu={handleRightClick}
         />

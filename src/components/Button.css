@@ -23,6 +23,11 @@
   text-decoration: none;
 }
 
+.btn.nav.click {
+  background-color: #495057; /* 밝은 회색 */
+  color: white;
+}
+
 .btn.nav:hover {
   background-color: #495057; /* 밝은 회색 */
 }

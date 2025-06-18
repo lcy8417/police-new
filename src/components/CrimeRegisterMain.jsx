@@ -4,20 +4,20 @@ import FormItem from "./FormItem";
 import "./CrimeRegisterMain.css";
 import React from "react";
 import FormList from "./FormList";
+import Sidebar from "./Sidebar";
+import { handleChange } from "../utils/get-input-change";
 
 const CrimeRegisterMain = ({ formData, setFormData }) => {
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
   return (
     <div className="CrimeRegisterMain">
-      <ImageLoader formData={formData} setFormData={setFormData} />
-      <FormList formData={formData} handleChange={handleChange} />
+      <Sidebar />
+      <div className="main">
+        <ImageLoader formData={formData} setFormData={setFormData} />
+        <FormList
+          formData={formData}
+          handleChange={(e) => handleChange(e, setFormData)}
+        />
+      </div>
     </div>
   );
 };
