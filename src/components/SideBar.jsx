@@ -7,6 +7,7 @@ const Sidebar = () => {
   const [clickIndex, setClickIndex] = useState(null);
 
   const removeCanvas = () => {
+    return;
     const canvas = document.querySelector("canvas");
     if (canvas) {
       canvas.remove();
@@ -23,7 +24,7 @@ const Sidebar = () => {
           <Button
             value="사건 등록"
             type="nav"
-            onClick={removeCanvas}
+            // onClick={removeCanvas}
             size={`nav full-width ${clickIndex === 0 ? "click" : ""}`}
           />
         </Link>
@@ -33,7 +34,7 @@ const Sidebar = () => {
             type="nav"
             target="_blank"
             size={`nav full-width ${clickIndex === 1 ? "click" : ""}`}
-            onClick={removeCanvas}
+            // onClick={removeCanvas}
           />
         </Link>
         <Link to="/shoesRegister">
@@ -41,7 +42,7 @@ const Sidebar = () => {
             value="신발 등록"
             type="nav"
             size={`nav full-width ${clickIndex === 2 ? "click" : ""}`}
-            onClick={removeCanvas}
+            // onClick={removeCanvas}
           />
         </Link>
         <Link to="/shoesRepository/0">
@@ -49,7 +50,7 @@ const Sidebar = () => {
             value="신발 조회"
             type="nav"
             size={`nav full-width ${clickIndex === 3 ? "click" : ""}`}
-            onClick={removeCanvas}
+            // onClick={removeCanvas}
           />
         </Link>
       </div>

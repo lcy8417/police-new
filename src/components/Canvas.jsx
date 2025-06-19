@@ -25,7 +25,7 @@ const Canvas = ({
       brightness(${100 + scrollState.brightness}%)
     `,
         transform: `scale(${1 + scrollState.zoom / 100})
-              rotate(${(scrollState.rotate / 100) * 360}deg)
+              rotate(${(scrollState.rotate / 100) * 180}deg)
 `,
         transition: "all 0.3s ease",
       }
@@ -47,9 +47,9 @@ const Canvas = ({
     ctx.beginPath();
     points.forEach((point, i) => {
       if (i === 0) {
-        ctx.moveTo(point.x, point.y);
+        ctx.moveTo(point[0], point[1]);
       } else {
-        ctx.lineTo(point.x, point.y);
+        ctx.lineTo(point[0], point[1]);
       }
     });
     ctx.stroke();
@@ -57,7 +57,7 @@ const Canvas = ({
     // Draw dots
     points.forEach((point) => {
       ctx.beginPath();
-      ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+      ctx.arc(point[0], point[1], 4, 0, 2 * Math.PI);
       ctx.fillStyle = "blue";
       ctx.fill();
     });
@@ -67,28 +67,43 @@ const Canvas = ({
   useEffect(() => {
     const updateCanvasPosition = () => {
       const $img = document.querySelector(
-        ".image-edit-display .ImageLoader .image-container"
+        ".image-edit-display .ImageLoader .image-container > img"
       );
-      if (!$img) return;
+
+      const $imageLoader = document.querySelector(
+        ".image-edit-display .ImageLoader"
+      );
+      if (!$img || !$imageLoader) return;
+
+      const [maxLeft, maxTop, maxWidth, maxHeight] = [
+        $imageLoader.offsetLeft,
+        $imageLoader.offsetTop,
+        $imageLoader.offsetWidth,
+        $imageLoader.offsetHeight,
+      ];
 
       const rect = $img.getBoundingClientRect();
+
+      console.log(rect.left, $img.offsetLeft);
+
+      const [left, top, width, height] = [
+        Math.max(rect.left, maxLeft),
+        Math.max(rect.top, maxTop),
+        Math.min(rect.width, maxWidth),
+        Math.min(rect.height, maxHeight),
+      ];
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      canvas.width = rect.width;
-      canvas.height = rect.height;
+      canvas.width = width;
+      canvas.height = height;
       canvas.style.position = "fixed";
-      canvas.style.left = `${rect.left}px`;
-      canvas.style.top = `${rect.top}px`;
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
+      canvas.style.left = `${left}px`;
+      canvas.style.top = `${top}px`;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
       canvas.style.pointerEvents = "auto";
       canvas.style.zIndex = 999;
-
-      setImageSize({
-        width: rect.width,
-        height: rect.height,
-      });
     };
 
     updateCanvasPosition(); // 초기 실행
@@ -97,7 +112,7 @@ const Canvas = ({
     return () => {
       window.removeEventListener("resize", updateCanvasPosition);
     };
-  }, [formData.image]);
+  }, [formData.image, scrollState, canvasRef]);
 
   useEffect(() => {
     if (!formData.image || !lineState) return;

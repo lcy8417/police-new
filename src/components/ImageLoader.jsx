@@ -15,11 +15,12 @@ const ImageLoader = ({
 
   const handleChange = (e) => {
     const file = e.target.files[0];
+    console.log(file);
     if (file) {
       const reader = new FileReader();
 
       reader.onloadend = () => {
-        const base64data = reader.result; // 여기서 base64 인코딩된 이미지
+        const base64data = reader.result;
         setFormData((prev) => ({
           ...prev,
           image: base64data,

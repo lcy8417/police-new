@@ -12,19 +12,34 @@ const EditMain = ({ scrollState, setScrollState, editImage, setEditImage }) => {
   const canvasRef = useRef(null);
 
   const { crimeData } = useContext(crimeDataContext); // Accessing crime data from context
-  const { id } = useParams(); // Assuming you have a route parameter for the crime ID
+  const { crimeNumber } = useParams(); // Assuming you have a route parameter for the crime ID
 
   // 되돌리기 메모
-  const [returnMemo, setReturnMemo] = useState([
-    {
-      image: crimeData[id].image,
-      zoom: 0,
-      contrast: 0,
-      saturation: 0,
-      brightness: 0,
-      rotate: 0,
-    },
-  ]);
+  const [returnMemo, setReturnMemo] = useState([]);
+
+  const crimeItem = crimeData.find(
+    (item) => String(item.crimeNumber) === String(crimeNumber)
+  );
+
+  useEffect(() => {
+    const currentCrime = crimeData.find(
+      (data) => String(data.crimeNumber) === String(crimeNumber)
+    );
+
+    if (currentCrime) {
+      setReturnMemo([
+        {
+          image: currentCrime.image,
+          zoom: currentCrime.zoom || 0,
+          contrast: currentCrime.contrast || 0,
+          saturation: currentCrime.saturation || 0,
+          brightness: currentCrime.brightness || 0,
+          rotate: currentCrime.rotate || 0,
+        },
+      ]);
+    }
+  }, [crimeData, crimeNumber]);
+
   const [buttonState, setButtenState] = useState(null);
   const [points, setPoints] = useState([]);
 
@@ -37,15 +52,60 @@ const EditMain = ({ scrollState, setScrollState, editImage, setEditImage }) => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    setPoints((prev) => [...prev, { x, y }]);
+    console.log(x, y);
+
+    setPoints((prev) => [...prev, [x, y]]);
   };
 
   // 배경제거 및 접합장애물제거를 위한 오른쪽 클릭 핸들러
-  const handleRightClick = (event) => {
+  const handleRightClick = async (event) => {
+    if (buttonState !== 0 && buttonState !== 3) {
+      return; // 배경제거 또는 접합장애물제거 버튼이 눌리지 않았을 때는 아무 작업도 하지 않음
+    }
+
     event.preventDefault(); // 브라우저 기본 컨텍스트 메뉴 막기
     if (points.length <= 2) {
       alert("점이 3개 이상이어야 합니다.");
       return;
+    }
+
+    try {
+      const $editImage = document.querySelectorAll(".image-container > img")[1];
+      const render_size = $editImage.getBoundingClientRect();
+
+      const params = new URLSearchParams();
+      params.append("render_size", render_size.width);
+      params.append("render_size", render_size.height);
+
+      const res = await fetch(
+        `http://localhost:8000/crime/${crimeNumber}/segmentation?${params.toString()}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            polygon: points,
+            image: scrollState.image,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const data = await res.json();
+      setScrollState((prev) => ({
+        ...prev,
+        image: data.image,
+      }));
+      setReturnMemo((prev) => [...prev, { ...scrollState, image: data.image }]);
+      setEditImage(data.image);
+      alert("요청이 성공적으로 처리되었습니다.");
+    } catch (error) {
+      console.error("요청 중 오류 발생:", error);
+      alert("요청 처리 중 오류가 발생했습니다. 콘솔을 확인하세요.");
     }
   };
 
@@ -83,7 +143,7 @@ const EditMain = ({ scrollState, setScrollState, editImage, setEditImage }) => {
   const imageChangeHandler = (kind) => {
     const changeImage = document.querySelector(".image-container > img");
     if (kind === "origin") {
-      changeImage.src = crimeData[id].image;
+      changeImage.src = crimeData[crimeNumber].image;
     } else if (kind === "edit") {
       console.log("editImage", editImage);
       changeImage.src = editImage ? editImage : null;
@@ -97,7 +157,7 @@ const EditMain = ({ scrollState, setScrollState, editImage, setEditImage }) => {
         <div className="image-swapper">
           <ImageLoader
             value="현장이미지"
-            formData={scrollState}
+            formData={crimeItem || {}}
             setFormData={setScrollState}
             propsImage={scrollState.image}
           />
@@ -130,7 +190,7 @@ const EditMain = ({ scrollState, setScrollState, editImage, setEditImage }) => {
           canvasRef={canvasRef}
           handleClick={handleClick}
           handleRightClick={handleRightClick}
-          formData={crimeData[id]}
+          formData={crimeItem || {}} // fallback for robustness
           flex={3}
         />
       </div>

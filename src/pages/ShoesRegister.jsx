@@ -5,7 +5,7 @@ import { shoesDataContext } from "../App";
 import { useContext } from "react";
 
 const ShoesRegister = () => {
-  const { setShoesData } = useContext(shoesDataContext);
+  const { shoesData, setShoesData } = useContext(shoesDataContext);
   const [formData, setFormData] = useState({
     image: null,
     top: [],
@@ -23,7 +23,10 @@ const ShoesRegister = () => {
     {
       value: "등록",
       event: () => {
-        setShoesData((prev) => [...prev, { ...formData }]);
+        setShoesData((prev) => [
+          ...prev,
+          { ...formData, id: shoesData.length },
+        ]);
         alert("신발 정보가 등록되었습니다.");
         setFormData({
           image: null,

@@ -23,7 +23,7 @@ const SearchResults = ({
             {filteredData.map((item, rowIndex) => (
               <tr
                 key={rowIndex}
-                onClick={() => tableClick(item.id)}
+                onClick={() => tableClick(item.crimeNumber)}
                 onDoubleClick={() => doubleClick && doubleClick(item.id)}
                 className="table-row"
               >

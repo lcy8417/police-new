@@ -14,68 +14,13 @@ import BeforeResult from "./pages/BeforeResult";
 
 import { useState, createContext, useEffect } from "react";
 
+const url = "http://localhost:8000";
+
 export const crimeDataContext = createContext();
 export const shoesDataContext = createContext();
 export const historyDataContext = createContext();
 
-const handleOpenNewTab = (url) => {
-  window.open(url, "_blank", "noopener, noreferrer");
-};
-
 function App() {
-  const formDemoItems = [
-    {
-      id: 0,
-      image: "/src/assets/raw/1.png",
-      사건등록번호: "2023-001",
-      이미지번호: "IMG-2023-001",
-      사건명: "강도 사건",
-      채취일시: "2023-10-01 12:00",
-      채취장소: "서울 강남구",
-      의뢰관서: "서울지방경찰청",
-      채취방법: "현장 채취",
-      진행상태: "진행 중",
-      순위: "1",
-      top: [],
-      mid: [],
-      bottom: [],
-      outline: [],
-    },
-    {
-      id: 1,
-      image: "/src/assets/raw/2.png",
-      사건등록번호: "2023-002",
-      이미지번호: "IMG-2023-002",
-      사건명: "절도 사건",
-      채취일시: "2023-10-02 14:30",
-      채취장소: "서울 마포구",
-      의뢰관서: "서울지방경찰청",
-      채취방법: "현장 채취",
-      진행상태: "완료",
-      순위: "2",
-      top: [],
-      mid: [],
-      bottom: [],
-      outline: [],
-    },
-    {
-      id: 2,
-      image: "/src/assets/raw/3.png",
-      사건등록번호: "2023-003",
-      이미지번호: "IMG-2023-003",
-      사건명: "폭행 사건",
-      채취일시: "2023-10-03 16:45",
-      채취장소: "서울 용산구",
-      의뢰관서: "서울지방경찰청",
-      채취방법: "현장 채취",
-      진행상태: "진행 중",
-      순위: "3",
-      top: [],
-      mid: [],
-      bottom: [],
-      outline: [],
-    },
-  ];
   const shoesDemoItems = [
     {
       id: 0,
@@ -118,28 +63,29 @@ function App() {
     },
   ];
 
-  const historyItems = [
-    {
-      id: 0,
-      등록일시: "2023-10-01",
-      순위: "1",
-    },
-    {
-      id: 1,
-      등록일시: "2023-10-02",
-      순위: "2",
-    },
-    {
-      id: 2,
-      등록일시: "2023-10-03",
-      순위: "3",
-    },
-  ];
-
-  const [crimeData, setCrimeData] = useState([...formDemoItems]);
+  const [crimeData, setCrimeData] = useState([]);
   const [shoesData, setShoesData] = useState([...shoesDemoItems]);
-  const [historyData, setHistoryData] = useState([...historyItems]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // 범죄 데이터 초기화
+  useEffect(() => {
+    // 서버에서 범죄 데이터 가져오기
+    fetch(`${url}/crime`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        setCrimeData(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching crime data:", error);
+      });
+
+    // 서버에서 범죄 이력 데이터 가져오기
+  }, []);
 
   // TODO: 실제 검색 결과로 연동되게 수정 필요
   useEffect(() => {
@@ -173,58 +119,56 @@ function App() {
   }, []);
 
   return (
-    <historyDataContext.Provider value={{ historyData, setHistoryData }}>
-      <crimeDataContext.Provider value={{ crimeData, setCrimeData }}>
-        <shoesDataContext.Provider value={{ shoesData, setShoesData }}>
-          {isLoading ? (
-            <div>Loading...</div>
-          ) : (
-            <BrowserRouter>
-              <div className="app-layout">
-                <div className="page-content">
-                  <Routes>
-                    <Route
-                      path="/"
-                      element={<Navigate to="/crimeRegister" />}
-                    />
-                    <Route path="/crimeRegister" element={<CrimeRegister />} />
-                    <Route path="/search" element={<CrimeSearch />} />
-                    <Route path="/search/:id" element={<CrimeDetail />} />
-                    <Route
-                      path="/search/:id/beforeResult/:bid"
-                      element={<BeforeResult />}
-                    />
-                    <Route
-                      path="/search/:id/patternExtract"
-                      element={<PatternExtract />}
-                    />
-                    <Route
-                      path="/search/:id/shoesResult"
-                      element={<ShoesResult />}
-                    />
-                    <Route
-                      path="/search/:id/shoesResult/detail/:number"
-                      element={<ResultDetail />}
-                    />
-                    <Route path="/search/:id/edit" element={<CrimeEdit />} />
-                    <Route path="/shoesRegister" element={<ShoesRegister />} />
-                    <Route
-                      path="/shoesRepository"
-                      element={<ShoesRepository />}
-                    />
-                    <Route
-                      path="/shoesRepository/:shoesId"
-                      element={<ShoesRepository />}
-                    />
-                    <Route path="/shoesEdit/:shoesId" element={<ShoesEdit />} />
-                  </Routes>
-                </div>
+    <crimeDataContext.Provider value={{ crimeData, setCrimeData }}>
+      <shoesDataContext.Provider value={{ shoesData, setShoesData }}>
+        {isLoading ? (
+          <div>Loading...</div>
+        ) : (
+          <BrowserRouter>
+            <div className="app-layout">
+              <div className="page-content">
+                <Routes>
+                  <Route path="/" element={<Navigate to="/crimeRegister" />} />
+                  <Route path="/crimeRegister" element={<CrimeRegister />} />
+                  <Route path="/search" element={<CrimeSearch />} />
+                  <Route
+                    path="/search/:crimeNumber"
+                    element={<CrimeDetail />}
+                  />
+                  <Route
+                    path="/search/:id/beforeResult/:bid"
+                    element={<BeforeResult />}
+                  />
+                  <Route
+                    path="/search/:crimeNumber/patternExtract"
+                    element={<PatternExtract />}
+                  />
+                  <Route
+                    path="/search/:id/shoesResult"
+                    element={<ShoesResult />}
+                  />
+                  <Route
+                    path="/search/:id/shoesResult/detail/:number"
+                    element={<ResultDetail />}
+                  />
+                  <Route path="/edit/:crimeNumber" element={<CrimeEdit />} />
+                  <Route path="/shoesRegister" element={<ShoesRegister />} />
+                  <Route
+                    path="/shoesRepository"
+                    element={<ShoesRepository />}
+                  />
+                  <Route
+                    path="/shoesRepository/:shoesId"
+                    element={<ShoesRepository />}
+                  />
+                  <Route path="/shoesEdit/:shoesId" element={<ShoesEdit />} />
+                </Routes>
               </div>
-            </BrowserRouter>
-          )}
-        </shoesDataContext.Provider>
-      </crimeDataContext.Provider>
-    </historyDataContext.Provider>
+            </div>
+          </BrowserRouter>
+        )}
+      </shoesDataContext.Provider>
+    </crimeDataContext.Provider>
   );
 }
 

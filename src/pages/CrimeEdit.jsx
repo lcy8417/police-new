@@ -1,24 +1,45 @@
 import EditMain from "../components/EditMain";
 import Header from "../components/Header";
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useContext } from "react";
-import { crimeDataContext, historyDataContext } from "../App";
+import { useState, useContext, useEffect } from "react";
+import { crimeDataContext } from "../App";
+
+const url = "http://localhost:8000";
 
 const CrimeEdit = () => {
   const { crimeData } = useContext(crimeDataContext);
-  const { setHistoryData } = useContext(historyDataContext);
-  const { id } = useParams();
+  const { crimeNumber } = useParams();
   const [editImage, setEditImage] = useState(null);
 
   // 현재 스크롤 상태 메모
   const [scrollState, setScrollState] = useState({
-    image: crimeData[id].image,
+    image: null,
     zoom: 0,
     contrast: 0,
     saturation: 0,
     brightness: 0,
     rotate: 0,
   });
+
+  // 데이터가 준비되면 초기화
+  useEffect(() => {
+    if (!crimeData || crimeData.length === 0) return;
+
+    const match = crimeData.find(
+      (item) => String(item.crimeNumber) === String(crimeNumber)
+    );
+
+    if (match) {
+      setScrollState({
+        image: match.image || "",
+        zoom: match.zoom || 0,
+        contrast: match.contrast || 0,
+        saturation: match.saturation || 0,
+        brightness: match.brightness || 0,
+        rotate: match.rotate || 0,
+      });
+    }
+  }, [crimeNumber]);
 
   const navigate = useNavigate();
 
@@ -33,46 +54,25 @@ const CrimeEdit = () => {
       // 임시로 확대, 밝기 등의 상태만 저장
       value: "저장",
       event: () => {
-        const image = new Image();
-        image.crossOrigin = "anonymous"; // CORS 방지
-        image.src = scrollState.image;
-
-        image.onload = () => {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-
-          const zoom = 1 + scrollState.zoom / 100;
-          const width = image.width * zoom;
-          const height = image.height * zoom;
-
-          canvas.width = width;
-          canvas.height = height;
-
-          ctx.clearRect(0, 0, width, height);
-
-          ctx.filter = `
-            contrast(${100 + scrollState.contrast}%)
-            brightness(${100 + scrollState.brightness}%)
-            saturate(${100 + scrollState.saturation}%)
-          `;
-
-          ctx.translate(width / 2, height / 2);
-          ctx.rotate((scrollState.rotate * Math.PI) / 180);
-          ctx.translate(-width / 2, -height / 2);
-
-          ctx.drawImage(image, 0, 0, width, height);
-
-          const base64 = canvas.toDataURL("image/png");
-          setEditImage(base64);
-          setHistoryData((prev) => [
-            ...prev,
-            {
-              id: "3",
-              등록일시: new Date().toISOString().split("T")[0],
-              순위: prev.length + 1,
-            },
-          ]);
-        };
+        fetch(`${url}/crime/${crimeNumber}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...scrollState,
+            image: scrollState.image.split(",")[1],
+          }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            console.log("저장 성공:", data);
+            // 저장 후에는 CrimeDetail 페이지로 이동
+            navigate(`/search/${crimeNumber}`);
+          })
+          .catch((error) => {
+            console.error("저장 실패:", error);
+          });
       },
     },
   ];

@@ -3,16 +3,16 @@ import Button from "./Button";
 import { useNavigate, useParams } from "react-router-dom";
 import ImageLoader from "./ImageLoader"; // Assuming you have an ImageLoader component
 import FormList from "./FormList"; // Assuming you have a FormList component
-import { useContext, useState } from "react";
-import { crimeDataContext, historyDataContext } from "../App"; // Assuming you have a context for crime data
+import { useContext, useEffect, useState } from "react";
+import { crimeDataContext } from "../App"; // Assuming you have a context for crime data
 import Sidebar from "./Sidebar";
 import SearchResults from "./SearchResults"; // Assuming you have a SearchResults component
 
 const MockData = [
   {
-    id: 0,
-    등록일시: "2023-10-01",
-    순위: "1",
+    crimeNumber: 0,
+    등록일시: "2023-10-02",
+    ranking: "1",
   },
   {
     id: 1,
@@ -26,13 +26,43 @@ const MockData = [
   },
 ];
 
-const DetailMain = () => {
+const url = "http://localhost:8000"; // Base URL for API requests
+
+const DetailMain = ({ setCrimeNumber }) => {
   const navigate = useNavigate();
 
   const { crimeData } = useContext(crimeDataContext); // Accessing crime data from context
-  const { historyData } = useContext(historyDataContext); // Accessing crime data from context
-  const { id } = useParams(); // Assuming you have a route parameter for the crime ID
-  const [filteredData, setFilteredData] = useState(historyData);
+  const { crimeNumber } = useParams();
+  const [currentCrimeData, setCurrentCrimeData] = useState({});
+  const [historyData, setHistoryData] = useState([]);
+
+  useEffect(() => {
+    fetch(`${url}/crime/${crimeNumber}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Fetched crime data:", data);
+        setHistoryData(data || []);
+      })
+      .catch((error) => {
+        console.error("Error fetching crime data:", error);
+      });
+  }, [crimeNumber]);
+
+  useEffect(() => {
+    setCurrentCrimeData(
+      crimeData.find(
+        (data) => String(data.crimeNumber) === String(crimeNumber)
+      ) || {}
+    );
+
+    setCrimeNumber(crimeNumber);
+  }, [crimeData, crimeNumber, setCurrentCrimeData]);
+
   const columns = Object.keys(MockData[0]);
 
   return (
@@ -43,8 +73,8 @@ const DetailMain = () => {
         <div className="image-swapper">
           <ImageLoader
             value="현장이미지"
-            formData={crimeData[id]}
-            propsImage={crimeData[id].image}
+            formData={currentCrimeData}
+            propsImage={currentCrimeData.image}
           />
           <div className="image-swapper-buttons">
             <Button value="현장이미지" type="button" size="full-width" />
@@ -52,14 +82,14 @@ const DetailMain = () => {
           </div>
         </div>
         <div className="form-container">
-          <FormList formData={crimeData[id]} />
+          <FormList formData={currentCrimeData} />
           <div>
             <SearchResults
               title="검색 이력"
               columns={columns}
-              filteredData={filteredData}
+              filteredData={historyData || []}
               tableClick={(rowIndex) => {
-                const url = `${window.location.origin}/search/${id}/beforeResult/${rowIndex}`;
+                const url = `${window.location.origin}/search/${crimeNumber}/beforeResult/${rowIndex}`;
                 window.open(url, "_blank", "noopener,noreferrer");
               }}
             />

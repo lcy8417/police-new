@@ -1,7 +1,7 @@
 import Button from "./Button";
 import "./SearchMain.css"; // Assuming you have a CSS file for styling
 import { useNavigate } from "react-router-dom";
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import FormList from "./FormList"; // Assuming you have a FormList component
 import { crimeDataContext } from "../App"; // Assuming you have a context for crime data
 import Sidebar from "./Sidebar"; // Assuming you have a Sidebar component for navigation
@@ -20,9 +20,15 @@ const SearchMain = ({ searchForm, setSearchForm }) => {
 
   const { crimeData } = useContext(crimeDataContext); // Assuming you have a context for crime data
   const [filteredData, setFilteredData] = useState(crimeData);
-  const columns = Object.keys(crimeData[0]);
+  const [columns, setColumns] = useState([]);
 
-  console.log(columns);
+  useEffect(() => {
+    if (crimeData && crimeData.length > 0) {
+      setFilteredData(crimeData); // 처음 로딩 시 전체 데이터로 초기화
+      setColumns(Object.keys(crimeData[0]));
+    }
+  }, [crimeData]);
+
   const handleSearch = (e) => {
     e.preventDefault();
 
@@ -48,26 +54,28 @@ const SearchMain = ({ searchForm, setSearchForm }) => {
   };
 
   return (
-    <div className="SearchMain">
-      <Sidebar />
-      <div className="main">
-        <FormList
-          formData={searchForm}
-          handleChange={handleChange}
-          direction="grid"
-        />
-        <div className="button-container">
-          <Button value="조회" type="submit" onClick={handleSearch} />
-          <Button value="초기화" type="submit" onClick={handleClear} />
+    <>
+      <div className="SearchMain">
+        <Sidebar />
+        <div className="main">
+          <FormList
+            formData={searchForm}
+            handleChange={handleChange}
+            direction="grid"
+          />
+          <div className="button-container">
+            <Button value="조회" type="submit" onClick={handleSearch} />
+            <Button value="초기화" type="submit" onClick={handleClear} />
+          </div>
+          <SearchResults
+            filteredData={filteredData}
+            columns={columns}
+            searchForm={searchForm}
+            tableClick={(rowIndex) => navigate(`/search/${rowIndex}`)}
+          />
         </div>
-        <SearchResults
-          filteredData={filteredData}
-          columns={columns}
-          searchForm={searchForm}
-          tableClick={(rowIndex) => navigate(`/search/${rowIndex}`)}
-        />
       </div>
-    </div>
+    </>
   );
 };
 
