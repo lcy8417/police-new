@@ -7,11 +7,12 @@ import "./PartialPatterns.css"; // Assuming you have a CSS file for styling
 const PartialPatterns = ({ patternItems }) => {
   const { shoesData, setShoesData } = useContext(shoesDataContext);
   const [currentPartial, setCurrentParial] = useState("상");
-  const kinds = ["상", "중", "하"];
+  const kinds = ["상", "중", "하", "윤곽"];
   const kindMapping = {
     상: "top",
     중: "mid",
     하: "bottom",
+    윤곽: "outline",
   };
 
   const partialChange = (e) => {

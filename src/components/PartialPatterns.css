@@ -6,6 +6,8 @@
   flex-direction: column;
   min-height: 0; /* 자식이 부모 넘지 않도록 */
   box-sizing: border-box;
+  min-height: 0;
+  min-width: 0;
 }
 .PartialPatterns .header-buttons {
   display: flex;

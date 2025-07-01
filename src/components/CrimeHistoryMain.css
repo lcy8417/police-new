@@ -1,4 +1,4 @@
-.BeforeResultMain {
+.CrimeHistoryMain {
   display: flex;
   width: 100%;
   height: 100%;
@@ -8,7 +8,7 @@
   box-sizing: border-box;
 }
 
-.BeforeResultMain .main {
+.CrimeHistoryMain .main {
   display: flex;
   width: 100%;
   height: 100%;
@@ -18,7 +18,7 @@
   min-height: 0; /* 자식이 부모 넘지 않도록 */
 }
 
-.BeforeResultMain .images-container {
+.CrimeHistoryMain .images-container {
   flex: 1;
   width: 100%;
   height: 100%;
@@ -29,7 +29,7 @@
   box-sizing: border-box;
 }
 
-.BeforeResultMain .shoes-image {
+.CrimeHistoryMain .shoes-image {
   flex: 1;
   min-height: 0;
   display: flex;

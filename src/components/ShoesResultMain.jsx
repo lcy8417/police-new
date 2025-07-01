@@ -3,46 +3,40 @@ import "./ShoesResultMain.css";
 import ImageLoader from "./ImageLoader";
 import RetrievalResults from "./RetrievalResults";
 import Sidebar from "./Sidebar"; // Assuming you have a Sidebar component for navigation
+import { imageSearch } from "../services/api"; // Adjust the import path as necessary
+import { useParams } from "react-router-dom"; // For accessing route parameters
 
 const ShoesResultMain = () => {
+  const { crimeNumber } = useParams();
   const [currentPageData, setCurrentPageData] = useState([]);
   const formData = {
-    image: "/src/assets/00001-23-0360_1.png",
+    image: `http://localhost:8000/crime_images/${crimeNumber}.png`,
   };
   const [page, setPage] = useState(0);
 
-  // TODO: 실제 검색 결과로 연동되게 수정 필요
   useEffect(() => {
-    const temp = [];
+    const fetchData = async () => {
+      try {
+        const data = await imageSearch({
+          crimeNumber: crimeNumber,
+          body: { image: crimeNumber },
+          page: page,
+        });
 
-    const shoesFiles = import.meta.glob("/src/assets/Shoes/B/*", {
-      eager: true,
-    });
-    const imagePaths = Object.keys(shoesFiles);
-    const randomImages = imagePaths
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 50);
+        setCurrentPageData(data);
+      } catch (error) {
+        console.error("Error fetching image search data:", error);
+      }
+    };
 
-    for (let i = 0; i < 50; i++) {
-      temp.push({
-        id: i,
-        image: randomImages[i],
-        similarity: "95%",
-      });
-    }
-
-    setCurrentPageData(temp);
+    fetchData();
   }, [page]);
 
   return (
     <div className="ShoesResultMain">
       <Sidebar />
       <div className="main">
-        <ImageLoader
-          formData={formData}
-          value="현장이미지"
-          propsImage={formData.image}
-        />
+        <ImageLoader formData={formData} value="현장이미지" />
         <RetrievalResults
           currentPageData={currentPageData}
           page={page}

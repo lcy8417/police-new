@@ -1,79 +1,98 @@
 import "./ResultDetailMain.css";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import Button from "./Button";
 import ImageLoader from "./ImageLoader";
 import FormList from "./FormList";
-import Sidebar from "./Sidebar"; // Assuming you have a Sidebar component for navigation
-import PartialPatterns from "./PartialPatterns"; // Assuming you have a PartialPatterns component for displaying patterns
+import Sidebar from "./Sidebar";
+import PartialPatterns from "./PartialPatterns";
+import { useContext } from "react";
+import { crimeDataContext, shoesDataContext } from "../App";
+import { fetchHistorySave } from "../services/crud";
 
 const ShoesResultDetail = () => {
-  const [formData, setFormData] = useState({
-    image: "/src/assets/00001-23-0360_1.png",
-    사건등록번호: "2023-00001",
-    이미지번호: "1",
-    사건명: "신발 사건",
-    의뢰관서: "서울지방경찰청",
-    채취일시: "2023-10-01",
-    작성자: "홍길동",
-    채취장소: "서울시 강남구",
-    채취방법: "현장채취",
-    순위: "1",
-    처리구분: "",
-  });
+  const { modelNumber, crimeNumber } = useParams();
+  const [searchParams] = useSearchParams();
+  const ranking = searchParams.get("ranking");
+  const navigator = useNavigate();
 
-  const { number } = useParams();
+  const sideImage = {
+    image: `http://localhost:8000/shoes_images/S/${modelNumber}.png`,
+  };
+  const bottomImage = {
+    image: `http://localhost:8000/shoes_images/B/${modelNumber}.png`,
+  };
+
+  const { crimeData } = useContext(crimeDataContext);
+  const { shoesData } = useContext(shoesDataContext);
+
+  // Find the crime data for the given modelNumber
+  const currentCrimeData = crimeData.find(
+    (item) => String(item.crimeNumber) === String(crimeNumber)
+  );
+
+  const currentShoesData = shoesData.find(
+    (item) => String(item.modelNumber) === String(modelNumber)
+  );
+
+  const shoesDiscover = async (ranking = null, modelNumber = null) => {
+    try {
+      await fetchHistorySave({
+        crimeNumber,
+        currentCrimeData,
+        ranking,
+        modelNumber,
+      });
+      alert("신발 정보가 저장되었습니다.");
+      navigator(`/search/${crimeNumber}`);
+    } catch (err) {
+      console.error("저장 실패:", err);
+    }
+  };
 
   const [currentPageData, setCurrentPageData] = useState([]);
-  const [currentPartial, setCurrentParial] = useState("상");
+  const [currentPartial, _] = useState("상");
 
   // TODO: 실제 검색 결과로 연동되게 수정 필요
   useEffect(() => {
-    const temp = [];
-
-    const shoesFiles = import.meta.glob("/src/assets/Patterns/다각/*", {
-      eager: true,
-    });
-    const imagePaths = Object.keys(shoesFiles);
-    const randomImages = imagePaths.sort(() => 0.5 - Math.random()).slice(0, 8);
-
-    for (let i = 0; i < 8; i++) {
-      temp.push(randomImages[i]);
-    }
-
     setCurrentPageData([
       {
         title: "현장패턴",
-        top: temp.slice(0, 3),
-        mid: temp.slice(3, 6),
-        bottom: temp.slice(6, 8),
+        top: currentCrimeData?.top || [],
+        mid: currentCrimeData?.mid || [],
+        bottom: currentCrimeData?.bottom || [],
+        outline: currentCrimeData?.outline || [],
       },
       {
         title: "DB패턴",
-        top: temp.slice(0, 3),
-        mid: temp.slice(3, 6),
-        bottom: temp.slice(6, 8),
+        top: currentShoesData?.top || [],
+        mid: currentShoesData?.mid || [],
+        bottom: currentShoesData?.bottom || [],
+        outline: currentShoesData?.outline || [],
       },
     ]);
-  }, [number, currentPartial]);
+  }, [currentPartial, currentCrimeData]);
 
   return (
     <div className="ResultDetailMain">
       <Sidebar />
       <div className="main">
-        <ImageLoader formData={formData} propsImage={formData.image} />
+        <ImageLoader
+          formData={currentCrimeData}
+          propsImage={currentCrimeData?.image}
+        />
         <div className="gt-shoes-images">
           <div className="gt-shoes-image">
             <ImageLoader
-              formData={formData}
-              propsImage={formData.image}
+              formData={bottomImage}
+              propsImage={bottomImage?.image}
               value="바닥이미지"
             />
           </div>
           <div className="gt-shoes-image">
             <ImageLoader
-              formData={formData}
-              propsImage={formData.image}
+              formData={sideImage}
+              propsImage={sideImage?.image}
               value="측면이미지"
             />
           </div>
@@ -81,27 +100,17 @@ const ShoesResultDetail = () => {
         <PartialPatterns patternItems={currentPageData} />
 
         <div className="detail-info">
-          <FormList formData={formData} direction="flex" />
+          <FormList formData={currentCrimeData || {}} direction="flex" />
           <div className="button-items">
             <Button
               value="불발견"
               size="full-width"
-              onClick={() => {
-                setFormData({
-                  ...formData,
-                  처리구분: "불발견",
-                });
-              }}
+              onClick={() => shoesDiscover()}
             />
             <Button
               value="발견"
               size="full-width"
-              onClick={() => {
-                setFormData({
-                  ...formData,
-                  처리구분: "발견",
-                });
-              }}
+              onClick={() => shoesDiscover(ranking, modelNumber)}
             />
           </div>
         </div>

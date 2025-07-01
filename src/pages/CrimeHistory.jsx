@@ -1,7 +1,7 @@
-import BeforeResultMain from "../components/BeforeResultMain";
+import CrimeHistoryMain from "../components/CrimeHistoryMain";
 import Header from "../components/Header";
 
-const BeforeResult = () => {
+const CrimeHistory = () => {
   const buttonList = [
     {
       value: "발견 [5위]",
@@ -11,8 +11,8 @@ const BeforeResult = () => {
   return (
     <>
       <Header value="검색이력" buttonList={buttonList} />
-      <BeforeResultMain />
+      <CrimeHistoryMain />
     </>
   );
 };
-export default BeforeResult;
+export default CrimeHistory;

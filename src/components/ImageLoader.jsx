@@ -10,12 +10,12 @@ const ImageLoader = ({
   patternFunction = false,
   style = {},
   onLoad = null,
+  imgRef = null,
 }) => {
   const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
     const file = e.target.files[0];
-    console.log(file);
     if (file) {
       const reader = new FileReader();
 
@@ -36,7 +36,7 @@ const ImageLoader = ({
         <h1>{value}</h1>
         {/* 업로드 활성화 될 때만 보이기 */}
         <div className="button-container">
-          {!propsImage && (
+          {!formData?.image && (
             <Button
               value="+업로드"
               onClick={() => fileInputRef.current?.click()}
@@ -69,7 +69,12 @@ const ImageLoader = ({
       </div>
 
       <div className="image-container">
-        <img src={propsImage || formData.image} style={style} onLoad={onLoad} />
+        <img
+          src={propsImage || formData?.image || null}
+          style={style}
+          onLoad={onLoad}
+          ref={imgRef}
+        />
       </div>
     </div>
   );

@@ -1,9 +1,13 @@
 import filesLoad from "../hooks/useFileLoad";
 import { useEffect, useRef, useState, useContext } from "react";
 import { crimeDataContext } from "../App";
+import { patternsExtract } from "../services/api";
+
+const url = "http://localhost:8000";
 
 const usePatternManager = ({
   index = -1,
+  currentData = null,
   formData = null,
   setFormData = null,
 }) => {
@@ -18,8 +22,59 @@ const usePatternManager = ({
     offsetY: 0,
   });
 
-  const extractPattern = () => {
-    console.log("패턴 추출");
+  const extractPattern = async () => {
+    const patternsRoot = "/src/assets/Patterns/전체/";
+
+    // 패턴 이미지 경로를 생성하는 함수. 족적과 신발은 필수 문양 여부에 따라 다르게 처리
+    const format = (src) => {
+      const returnText = patternsRoot + src + ".png";
+      return formData ? returnText : [returnText, 0];
+    };
+
+    const requestType = formData ? "shoes" : "crime";
+
+    // 신발 정보 수정일 때는 png 파일 이름을 추출하여 사용
+    const shoesImage = formData?.image.includes(".png")
+      ? formData?.image.split("/").pop().split(".")[0]
+      : formData?.image;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const { top, mid, bottom, outline } = await patternsExtract({
+      crimeNumber: currentData?.crimeNumber || "shoes",
+      body: {
+        image: currentData?.crimeNumber || shoesImage,
+        line_ys: lineState.lineYs,
+        render_size: [rect.width, rect.height],
+        type: requestType,
+      },
+    });
+
+    if (currentData) {
+      setCrimeData((prev) =>
+        prev.map((item) => {
+          if (String(item.crimeNumber) !== String(currentData.crimeNumber)) {
+            return item;
+          }
+
+          return {
+            ...item,
+            top: top.map(format),
+            mid: mid.map(format),
+            bottom: bottom.map(format),
+            outline: outline.map(format),
+          };
+        })
+      );
+    } else {
+      // shoesRegister에서 호출되는 경우
+      setFormData((prev) => ({
+        ...prev,
+        top: top.map(format),
+        mid: mid.map(format),
+        bottom: bottom.map(format),
+        outline: outline.map(format),
+      }));
+    }
   };
 
   const clearPattern = () => {
@@ -75,7 +130,8 @@ const usePatternManager = ({
     // crimeExtract에서 호출되는 경우
     if (index === -1) return; // id가 없는 경우 함수 종료
 
-    const exists = crimeData[index][kind].some(
+    console.log("insertPattern", crimeData, kind, e.target.src);
+    const exists = crimeData[index][kind]?.some(
       (item) => item[0] === e.target.src
     );
 

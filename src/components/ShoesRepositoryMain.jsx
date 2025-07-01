@@ -6,56 +6,52 @@ import { shoesDataContext } from "../App";
 import ImageLoader from "./ImageLoader";
 import FormList from "./FormList";
 import PartialPatterns from "./PartialPatterns";
-import { useNavigate } from "react-router-dom";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
-const ShoesRepositoryMain = ({ selectedRow, setSelectedRow }) => {
-  const { shoesId } = useParams(); // Get the selected ID from the URL parameters
+const ShoesRepositoryMain = () => {
+  const { modelNumber } = useParams();
 
-  const navigate = useNavigate(); // Hook to navigate programmatically
-  const { shoesData } = useContext(shoesDataContext); // Using the context to get shoes data
+  const navigate = useNavigate();
+  const { shoesData, setShoesData } = useContext(shoesDataContext);
+  const currentShoesData = shoesData.find(
+    (item) => String(item.modelNumber) === String(modelNumber)
+  );
   const filteredData = shoesData.map((item) => {
     return {
-      id: item.id,
-      수집장소: item.수집장소,
-      제조사: item.제조사,
-      모델번호: item.모델번호,
-      수집년도: item.수집년도,
-      상표명: item.상표명,
+      modelNumber: item.modelNumber,
+      fineLocation: item.fineLocation,
+      manufacturer: item.manufacturer,
+      findYear: item.findYear,
+      emblem: item.emblem,
     };
   });
-  const columns = [
-    "id",
-    "수집장소",
-    "제조사",
-    "모델번호",
-    "수집년도",
-    "상표명",
-  ];
+
+  const columns = ["모델번호", "수집장소", "제조사", "수집년도", "상표명"];
 
   // 현장이미지 패턴, DB이미지 패턴을 보여주기 위한 상태
-  const [currentPageData, setCurrentPageData] = useState([]);
+  const [currentPatterns, setCurrentPatterns] = useState([]);
 
   // TODO: 실제 검색 결과로 연동되게 수정 필요
   useEffect(() => {
     const selectedData = {
-      ...shoesData.filter((item) => String(item.id) === String(shoesId))[0],
+      ...shoesData.find(
+        (item) => String(item.modelNumber) === String(modelNumber)
+      ),
     };
 
-    if (shoesId >= 0) {
+    if (selectedData) {
       // 선택 됐을때만
-      setCurrentPageData([
+      setCurrentPatterns([
         {
           title: "DB이미지",
-          top: selectedData.top,
-          mid: selectedData.mid,
-          bottom: selectedData.bottom,
+          top: currentShoesData?.top || [],
+          mid: currentShoesData?.mid || [],
+          bottom: currentShoesData?.bottom || [],
+          outline: currentShoesData?.outline || [],
         },
       ]);
     }
-
-    setSelectedRow({ ...shoesData[shoesId] });
-  }, [shoesData, shoesId, setSelectedRow]);
+  }, [shoesData, setShoesData, modelNumber, currentShoesData]);
 
   return (
     <div className="ShoesRepositoryMain">
@@ -64,26 +60,30 @@ const ShoesRepositoryMain = ({ selectedRow, setSelectedRow }) => {
         <SearchResults
           title="신발 리스트"
           columns={columns}
-          filteredData={filteredData}
-          tableClick={(id) => {
-            setSelectedRow({ ...shoesData[id] });
-            navigate(`/shoesRepository/${id}`);
+          filteredData={filteredData || {}}
+          tableClick={(crimeNumber) => {
+            navigate(`/shoesRepository/${crimeNumber}`);
           }}
-          doubleClick={(id) => {
-            const url = `${window.location.origin}/shoesEdit/${id}`;
+          doubleClick={() => {
+            const url = `${window.location.origin}/shoesEdit/${modelNumber}`;
             window.open(url, "_blank", "noopener,noreferrer");
           }}
         />
         <div className="search-form">
           <ImageLoader
-            formData={selectedRow}
-            propsImage={shoesId >= 0 ? selectedRow.image : "buttonRemove"}
+            formData={currentShoesData}
+            propsImage={
+              currentShoesData ? currentShoesData?.image : "buttonRemove"
+            }
             value="측면이미지"
           />
-          <PartialPatterns patternItems={currentPageData} />
-          {selectedRow && (
-            <FormList formData={{ ...selectedRow }} direction="flex" readOnly />
-          )}
+          <PartialPatterns patternItems={currentPatterns} />
+
+          <FormList
+            formData={currentShoesData || {}}
+            direction="flex"
+            readOnly
+          />
         </div>
       </div>
     </div>

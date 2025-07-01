@@ -24,8 +24,16 @@ const SearchMain = ({ searchForm, setSearchForm }) => {
 
   useEffect(() => {
     if (crimeData && crimeData.length > 0) {
-      setFilteredData(crimeData); // 처음 로딩 시 전체 데이터로 초기화
-      setColumns(Object.keys(crimeData[0]));
+      setFilteredData(
+        crimeData?.map((item) => ({
+          crimeNumber: item.crimeNumber,
+          state: item.state,
+          ranking: item.ranking,
+          matchingShoes: item.matchingShoes,
+        }))
+      );
+
+      setColumns(["사건번호", "상태(진행중/발견/불발견)", "순위", "매칭된 신발"]);
     }
   }, [crimeData]);
 

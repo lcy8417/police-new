@@ -27,7 +27,17 @@ const PatternsList = ({
       <div className="total-pattern-items">
         {patterns.map((src, index) => {
           return (
-            <img key={index} src={src} alt={src} onClick={insertPattern} />
+            <img
+              key={index}
+              src={typeof src === "string" ? src : src[0]}
+              style={
+                typeof src === "object" && src[1]
+                  ? { border: "2px solid red" }
+                  : undefined
+              }
+              alt={src}
+              onClick={insertPattern}
+            />
           );
         })}
       </div>

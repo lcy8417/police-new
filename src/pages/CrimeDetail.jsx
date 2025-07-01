@@ -7,7 +7,13 @@ const CrimeDetail = () => {
   const [crimeNumber, setCrimeNumber] = useState();
   const navigate = useNavigate();
   const buttonList = [
-    { value: "편집", event: () => navigate(`/edit/${crimeNumber}`) },
+    {
+      value: "편집",
+      event: () => {
+        const url = `${window.location.origin}/edit/${crimeNumber}`;
+        window.open(url, "_blank", "noopener,noreferrer");
+      },
+    },
     { value: "문양추출", event: () => navigate("./patternExtract") },
   ];
 

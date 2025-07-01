@@ -10,67 +10,48 @@ import ShoesResult from "./pages/ShoesResult";
 import ResultDetail from "./pages/ResultDetail";
 import ShoesRepository from "./pages/ShoesRepository";
 import ShoesEdit from "./pages/ShoesEdit";
-import BeforeResult from "./pages/BeforeResult";
+import CrimeHistory from "./pages/CrimeHistory";
 
 import { useState, createContext, useEffect } from "react";
+import { fetchCrimeData } from "./services/crud"; // 🧊 CRUD 서비스에서 함수 가져오기
 
 const url = "http://localhost:8000";
+const patternsRoot = "/src/assets/Patterns/전체/";
+const pathInsert = (item) => {
+  return [patternsRoot + item[0] + ".png", item[1]];
+};
 
 export const crimeDataContext = createContext();
 export const shoesDataContext = createContext();
 export const historyDataContext = createContext();
 
 function App() {
-  const shoesDemoItems = [
-    {
-      id: 0,
-      image: "/src/assets/Shoes/B/B203818.png",
-      top: [],
-      bottom: [],
-      mid: [],
-      outline: [],
-      수집장소: "서울",
-      제조사: "Nike",
-      상표명: "Air Max",
-      모델번호: "B203818",
-      수집년도: "2023",
-    },
-    {
-      id: 1,
-      image: "/src/assets/Shoes/B/B203838.png",
-      top: [],
-      bottom: [],
-      mid: [],
-      outline: [],
-      수집장소: "부산",
-      제조사: "Adidas",
-      상표명: "Ultra Boost",
-      모델번호: "B203819",
-      수집년도: "2022",
-    },
-    {
-      id: 2,
-      image: "/src/assets/Shoes/B/B203842.png",
-      top: [],
-      bottom: [],
-      mid: [],
-      outline: [],
-      수집장소: "대구",
-      제조사: "Puma",
-      상표명: "RS-X",
-      모델번호: "B203820",
-      수집년도: "2021",
-    },
-  ];
-
   const [crimeData, setCrimeData] = useState([]);
-  const [shoesData, setShoesData] = useState([...shoesDemoItems]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [shoesData, setShoesData] = useState([]);
 
   // 범죄 데이터 초기화
   useEffect(() => {
     // 서버에서 범죄 데이터 가져오기
-    fetch(`${url}/crime`, {
+    const readCrimeData = async () => {
+      try {
+        const data = await fetchCrimeData();
+        // 처음 불러올 때, top, mid, bottom, outline 필드가 없을 수 있으므로 초기화
+        // 또한 불러올 문양은 이름만 있으므로, 경로를 넣어줌
+        const updatedData = data.map((item) => ({
+          ...item,
+          top: item.top.map(pathInsert) || [],
+          mid: item.mid.map(pathInsert) || [],
+          bottom: item.bottom.map(pathInsert) || [],
+          outline: item.outline.map(pathInsert) || [],
+        }));
+        setCrimeData(updatedData);
+      } catch (error) {
+        console.error("Error fetching crime data:", error);
+      }
+    };
+    readCrimeData();
+
+    fetch(`${url}/shoes`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -78,95 +59,67 @@ function App() {
     })
       .then((response) => response.json())
       .then((data) => {
-        setCrimeData(data);
+        const updatedShoesData = data.map((item) => ({
+          ...item,
+          top: item.top
+            ? item.top.map((pattern) => `${patternsRoot}/${pattern}.png`)
+            : [],
+          mid: item.mid
+            ? item.mid.map((pattern) => `${patternsRoot}/${pattern}.png`)
+            : [],
+          bottom: item.bottom
+            ? item.bottom.map((pattern) => `${patternsRoot}/${pattern}.png`)
+            : [],
+          outline: item.outline
+            ? item.outline.map((pattern) => `${patternsRoot}/${pattern}.png`)
+            : [],
+        }));
+        setShoesData(updatedShoesData);
       })
       .catch((error) => {
-        console.error("Error fetching crime data:", error);
+        console.error("Error fetching shoes data:", error);
       });
-
-    // 서버에서 범죄 이력 데이터 가져오기
-  }, []);
-
-  // TODO: 실제 검색 결과로 연동되게 수정 필요
-  useEffect(() => {
-    const shoesFiles = import.meta.glob("/src/assets/Patterns/다각/*", {
-      eager: true,
-    });
-
-    setShoesData((prev) => {
-      if (!prev || prev.length === 0) return prev; // 초기값이 없으면 기존 상태 반환
-
-      const temp = [...prev];
-      const imagePaths = Object.keys(shoesFiles);
-      const randomImages = imagePaths
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 8);
-
-      return temp.map((item) => {
-        const patterns = [];
-        for (let i = 0; i < 8; i++) {
-          patterns.push(randomImages[i]);
-        }
-        return {
-          ...item,
-          top: patterns.slice(0, 3),
-          mid: patterns.slice(3, 6),
-          bottom: patterns.slice(6, 8),
-        };
-      });
-    });
-    setIsLoading(false);
   }, []);
 
   return (
     <crimeDataContext.Provider value={{ crimeData, setCrimeData }}>
       <shoesDataContext.Provider value={{ shoesData, setShoesData }}>
-        {isLoading ? (
-          <div>Loading...</div>
-        ) : (
-          <BrowserRouter>
-            <div className="app-layout">
-              <div className="page-content">
-                <Routes>
-                  <Route path="/" element={<Navigate to="/crimeRegister" />} />
-                  <Route path="/crimeRegister" element={<CrimeRegister />} />
-                  <Route path="/search" element={<CrimeSearch />} />
-                  <Route
-                    path="/search/:crimeNumber"
-                    element={<CrimeDetail />}
-                  />
-                  <Route
-                    path="/search/:id/beforeResult/:bid"
-                    element={<BeforeResult />}
-                  />
-                  <Route
-                    path="/search/:crimeNumber/patternExtract"
-                    element={<PatternExtract />}
-                  />
-                  <Route
-                    path="/search/:id/shoesResult"
-                    element={<ShoesResult />}
-                  />
-                  <Route
-                    path="/search/:id/shoesResult/detail/:number"
-                    element={<ResultDetail />}
-                  />
-                  <Route path="/edit/:crimeNumber" element={<CrimeEdit />} />
-                  <Route path="/shoesRegister" element={<ShoesRegister />} />
-                  <Route
-                    path="/shoesRepository"
-                    element={<ShoesRepository />}
-                  />
-                  <Route
-                    path="/shoesRepository/:shoesId"
-                    element={<ShoesRepository />}
-                  />
-                  <Route path="/shoesEdit/:shoesId" element={<ShoesEdit />} />
-                </Routes>
-              </div>
+        <BrowserRouter>
+          <div className="app-layout">
+            <div className="page-content">
+              <Routes>
+                <Route path="/" element={<Navigate to="/crimeRegister" />} />
+                <Route path="/crimeRegister" element={<CrimeRegister />} />
+                <Route path="/search" element={<CrimeSearch />} />
+                <Route path="/search/:crimeNumber" element={<CrimeDetail />} />
+                <Route
+                  path="/search/:crimeNumber/crimeHistory/:historyId"
+                  element={<CrimeHistory />}
+                />
+                <Route
+                  path="/search/:crimeNumber/patternExtract"
+                  element={<PatternExtract />}
+                />
+                <Route
+                  path="/search/:crimeNumber/shoesResult"
+                  element={<ShoesResult />}
+                />
+                <Route
+                  path="/search/:crimeNumber/shoesResult/detail/:modelNumber"
+                  element={<ResultDetail />}
+                />
+                <Route path="/edit/:crimeNumber" element={<CrimeEdit />} />
+                <Route path="/shoesRegister" element={<ShoesRegister />} />
+                <Route path="/shoesRepository" element={<ShoesRepository />} />
+                <Route
+                  path="/shoesRepository/:modelNumber"
+                  element={<ShoesRepository />}
+                />
+                <Route path="/shoesEdit/:modelNumber" element={<ShoesEdit />} />
+              </Routes>
             </div>
-          </BrowserRouter>
-        )}
+          </div>
+        </BrowserRouter>
       </shoesDataContext.Provider>
     </crimeDataContext.Provider>
   );

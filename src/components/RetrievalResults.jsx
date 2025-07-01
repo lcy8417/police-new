@@ -18,13 +18,19 @@ const RetrievalResults = ({
         <p>총 76400건</p>
       </div>
       <div className="result-items">
-        {currentPageData.map((item) => (
+        {currentPageData?.map((item, i) => (
           <div
             className="result-item"
-            key={item.id}
-            onClick={clickAct && (() => navigate(`detail/${item.id}`))}
+            key={i}
+            onClick={
+              clickAct &&
+              (() =>
+                navigate(
+                  `detail/${item.shoesName}?ranking=${50 * page + i + 1}`
+                ))
+            }
           >
-            <img src={item.image} alt={`신발 이미지 ${item.id}`} />
+            <img src={item.image} alt={`신발 이미지 ${i}`} />
             <div className="item-similarity">
               <p>유사도: {item.similarity}</p>
             </div>

@@ -16,6 +16,7 @@ const Canvas = ({
   flex = 1,
   lineState = null, // 캔버스의 선 상태
   setLineState = null, // 캔버스의 선 상태를 설정하는 함수
+  imgRef = null,
 }) => {
   const filterStyle = scrollState
     ? {
@@ -83,8 +84,6 @@ const Canvas = ({
       ];
 
       const rect = $img.getBoundingClientRect();
-
-      console.log(rect.left, $img.offsetLeft);
 
       const [left, top, width, height] = [
         Math.max(rect.left, maxLeft),
@@ -197,13 +196,13 @@ const Canvas = ({
     <div className={`Canvas flex-${flex}`}>
       <div className="image-edit-display">
         <ImageLoader
-          formData={formData}
+          formData={scrollState || formData}
           setFormData={setFormData}
           value={value}
           propsImage={propsImage}
           style={scrollState && filterStyle}
-          // setImageSize={setImageSize}
           patternFunction={patternFunction}
+          imgRef={imgRef}
         />
         <canvas
           ref={canvasRef}

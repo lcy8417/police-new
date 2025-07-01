@@ -7,12 +7,34 @@ import Canvas from "./Canvas";
 import { crimeDataContext } from "../App"; // Assuming you have a context for crime data
 import { useParams } from "react-router-dom"; // Import useParams to access route parameters
 import Sidebar from "./Sidebar"; // Assuming you have a Sidebar component for navigation
+import useImageProcessing from "../hooks/useImageProcessing"; // Custom hook for image processing
 
-const EditMain = ({ scrollState, setScrollState, editImage, setEditImage }) => {
+const prepareImage = (image, crimeNumber) => {
+  // base64 인코딩된 이미지라면 쉼표 이후만 추출
+  if (image.startsWith("data:image")) {
+    return image;
+  } else {
+    return crimeNumber;
+  }
+};
+
+const resetScrollState = {
+  zoom: 0,
+  contrast: 0,
+  saturation: 0,
+  brightness: 0,
+  rotate: 0,
+  binarization: 127,
+};
+
+const EditMain = ({ scrollState, setScrollState }) => {
   const canvasRef = useRef(null);
 
   const { crimeData } = useContext(crimeDataContext); // Accessing crime data from context
   const { crimeNumber } = useParams(); // Assuming you have a route parameter for the crime ID
+
+  const [buttonState, setButtonState] = useState(null);
+  const [points, setPoints] = useState([]);
 
   // 되돌리기 메모
   const [returnMemo, setReturnMemo] = useState([]);
@@ -21,30 +43,34 @@ const EditMain = ({ scrollState, setScrollState, editImage, setEditImage }) => {
     (item) => String(item.crimeNumber) === String(crimeNumber)
   );
 
-  useEffect(() => {
-    const currentCrime = crimeData.find(
-      (data) => String(data.crimeNumber) === String(crimeNumber)
-    );
+  const handleProcessing = useImageProcessing({
+    crimeNumber,
+    scrollState,
+    setScrollState,
+    setReturnMemo,
+  });
 
-    if (currentCrime) {
+  useEffect(() => {
+    if (crimeItem) {
       setReturnMemo([
         {
-          image: currentCrime.image,
-          zoom: currentCrime.zoom || 0,
-          contrast: currentCrime.contrast || 0,
-          saturation: currentCrime.saturation || 0,
-          brightness: currentCrime.brightness || 0,
-          rotate: currentCrime.rotate || 0,
+          image: crimeItem.image,
+          zoom: crimeItem.zoom || 0,
+          contrast: crimeItem.contrast || 0,
+          saturation: crimeItem.saturation || 0,
+          brightness: crimeItem.brightness || 0,
+          rotate: crimeItem.rotate || 0,
+          binarization: 127,
         },
       ]);
     }
-  }, [crimeData, crimeNumber]);
-
-  const [buttonState, setButtenState] = useState(null);
-  const [points, setPoints] = useState([]);
+  }, [crimeItem]);
 
   const handleClick = (e) => {
-    if (buttonState === null || ![0, 3].includes(buttonState)) {
+    if (
+      buttonState === null ||
+      !["배경제거", "접합장애물제거"].includes(buttonState)
+    ) {
       return;
     }
 
@@ -52,18 +78,16 @@ const EditMain = ({ scrollState, setScrollState, editImage, setEditImage }) => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    console.log(x, y);
-
     setPoints((prev) => [...prev, [x, y]]);
   };
 
   // 배경제거 및 접합장애물제거를 위한 오른쪽 클릭 핸들러
   const handleRightClick = async (event) => {
-    if (buttonState !== 0 && buttonState !== 3) {
+    event.preventDefault(); // 브라우저 기본 컨텍스트 메뉴 막기
+    if (buttonState !== "배경제거" && buttonState !== "접합장애물제거") {
       return; // 배경제거 또는 접합장애물제거 버튼이 눌리지 않았을 때는 아무 작업도 하지 않음
     }
 
-    event.preventDefault(); // 브라우저 기본 컨텍스트 메뉴 막기
     if (points.length <= 2) {
       alert("점이 3개 이상이어야 합니다.");
       return;
@@ -77,36 +101,33 @@ const EditMain = ({ scrollState, setScrollState, editImage, setEditImage }) => {
       params.append("render_size", render_size.width);
       params.append("render_size", render_size.height);
 
-      const res = await fetch(
-        `http://localhost:8000/crime/${crimeNumber}/segmentation?${params.toString()}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+      if (buttonState === "배경제거") {
+        handleProcessing({
+          endpoint: "segmentation",
+          body: {
             polygon: points,
-            image: scrollState.image,
-          }),
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+            image: prepareImage(scrollState.image, crimeNumber),
+          },
+          params: params,
+        });
+      } else if (buttonState === "접합장애물제거") {
+        handleProcessing({
+          endpoint: "inpainting",
+          body: {
+            polygon: points,
+            image: prepareImage(scrollState.image, crimeNumber),
+          },
+          params: params,
+        });
       }
 
-      const data = await res.json();
-      setScrollState((prev) => ({
-        ...prev,
-        image: data.image,
-      }));
-      setReturnMemo((prev) => [...prev, { ...scrollState, image: data.image }]);
-      setEditImage(data.image);
-      alert("요청이 성공적으로 처리되었습니다.");
+      setButtonState(null);
     } catch (error) {
       console.error("요청 중 오류 발생:", error);
       alert("요청 처리 중 오류가 발생했습니다. 콘솔을 확인하세요.");
     }
+
+    setPoints([]); // 점 목록 초기화
   };
 
   // 배경 제거, 이진화, 노이즈제거 등 버튼 클릭 시 상태 변경
@@ -119,18 +140,88 @@ const EditMain = ({ scrollState, setScrollState, editImage, setEditImage }) => {
 
     setPoints([]);
 
-    // 배경제거, 접합장애물제거외 다른 버튼이 눌렸을 시 오버레이의 커서 스타일 설정
-    if (buttonState === null || ![0, 3].includes(buttonState)) {
-      if (canvasRef.current) {
-        canvasRef.current.style.cursor = "default";
-      }
-    }
+    const binarize = (type) => {
+      handleProcessing({
+        endpoint: "binarization",
+        body: {
+          image: prepareImage(
+            returnMemo[returnMemo.length - 1].image,
+            crimeNumber
+          ),
+          threshold: scrollState.binarization,
+          type,
+        },
+      });
+    };
 
-    // 배경제거, 접합장애물제거가 눌렸을 시, 오버레이의 커서 스타일 설정
-    else if (canvasRef.current) {
-      canvasRef.current.style.cursor = "crosshair";
+    switch (buttonState) {
+      case "배경제거": // 배경제거
+        setScrollState((prev) => ({
+          ...prev,
+          ...resetScrollState,
+        }));
+        canvasRef.current.style.cursor = "crosshair";
+        break;
+      case "이진화": // 이진화
+        canvasRef.current.style.cursor = "default";
+        break;
+      case "노이즈제거": // 노이즈제거
+        handleProcessing({
+          endpoint: "denoising",
+          body: prepareImage(scrollState.image, crimeNumber),
+        });
+        setButtonState(null);
+        canvasRef.current.style.cursor = "default";
+        break;
+      case "접합장애물제거": // 접합장애물제거
+        canvasRef.current.style.cursor = "crosshair";
+        break;
+      case "이진화(standard)":
+        binarize("standard");
+        break;
+
+      case "이진화(standard_inv)":
+        binarize("standard_inv");
+        break;
+
+      case "이진화(trunc)":
+        binarize("trunc");
+        break;
+
+      case "이진화(tozero)":
+        binarize("tozero");
+        break;
+
+      case "이진화(tozero_inv)":
+        binarize("tozero_inv");
+        break;
+      case "저장": // 이진화 저장
+        setReturnMemo((prev) => [
+          ...prev,
+          {
+            ...scrollState,
+            binarization: 127, // 이진화 상태 초기화
+          },
+        ]);
+        setScrollState((prev) => ({
+          ...prev,
+          binarization: 127, // 이진화 상태 초기화
+        }));
+        setButtonState(null);
+        break;
+      case "돌아가기": // 이진화 돌리기
+        setButtonState(null);
+        setScrollState((prev) => ({
+          ...prev,
+          binarization: 127, // 이진화 상태 초기화
+          image: returnMemo[returnMemo.length - 1].image, // 마지막 상태로 되돌리기
+        }));
+        break;
+
+      default:
+        console.log("끝?");
     }
-  }, [buttonState]);
+  }, [buttonState, scrollState.binarization]);
 
   // 되돌리기 버튼을 클릭헀을 때
   const returnClickHandler = () => {
@@ -138,16 +229,7 @@ const EditMain = ({ scrollState, setScrollState, editImage, setEditImage }) => {
       returnMemo.pop();
       setScrollState(returnMemo[returnMemo.length - 1]);
     }
-  };
-
-  const imageChangeHandler = (kind) => {
-    const changeImage = document.querySelector(".image-container > img");
-    if (kind === "origin") {
-      changeImage.src = crimeData[crimeNumber].image;
-    } else if (kind === "edit") {
-      console.log("editImage", editImage);
-      changeImage.src = editImage ? editImage : null;
-    }
+    setButtonState(null);
   };
 
   return (
@@ -158,30 +240,16 @@ const EditMain = ({ scrollState, setScrollState, editImage, setEditImage }) => {
           <ImageLoader
             value="현장이미지"
             formData={crimeItem || {}}
-            setFormData={setScrollState}
-            propsImage={scrollState.image}
+            propsImage={crimeItem && crimeItem.image}
           />
-          <div className="image-swapper-buttons">
-            <Button
-              value="현장이미지"
-              type="button"
-              size="full-width"
-              onClick={() => imageChangeHandler("origin")}
-            />
-            <Button
-              value="편집이미지"
-              type="button"
-              size="full-width"
-              onClick={() => imageChangeHandler("edit")}
-            />
-          </div>
         </div>
         <Preprocessing
           returnMemo={returnMemo}
           setReturnMemo={setReturnMemo}
           scrollState={scrollState}
           setScrollState={setScrollState}
-          setButtenState={setButtenState}
+          buttonState={buttonState}
+          setButtonState={setButtonState}
           returnClickHandler={returnClickHandler}
         />
         <Canvas

@@ -1,6 +1,6 @@
 import Button from "./Button";
 import "./PatternExtractMain.css";
-import { useState, useContext } from "react";
+import { useContext, useRef } from "react";
 import PatternList from "./PatternList";
 import PatternInfo from "./PatternInfo";
 import { crimeDataContext } from "../App";
@@ -8,13 +8,17 @@ import { useParams } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import usePatternManager from "../hooks/usePatternManager";
 import Canvas from "./Canvas";
+import { imageChangeHandler } from "../utils/get-input-change";
 
 const PatternExtractMain = () => {
+  const imgRef = useRef(null);
   const { crimeData } = useContext(crimeDataContext);
   const { crimeNumber } = useParams(); // Getting the id from the route parameters
   const index = crimeData.findIndex(
-    (item) => item.crimeNumber === parseInt(crimeNumber)
+    (item) => String(item.crimeNumber) === String(crimeNumber)
   );
+
+  const currentCrimeData = crimeData[index];
 
   console.log("PatternExtractMain index:", index, crimeNumber);
   const {
@@ -30,7 +34,7 @@ const PatternExtractMain = () => {
     insertPattern,
     deletePattern,
     essentialCheck,
-  } = usePatternManager({ index });
+  } = usePatternManager({ index, currentData: currentCrimeData });
 
   return (
     <div className="PatternExtractMain">
@@ -39,18 +43,30 @@ const PatternExtractMain = () => {
         <div className="image-swapper">
           <Canvas
             canvasRef={canvasRef}
-            formData={crimeData[crimeNumber] || {}}
+            formData={currentCrimeData || {}}
             value="신발이미지"
             patternFunction={[extractPattern, clearPattern]}
             lineState={lineState}
             setLineState={setLineState}
-            propsImage={
-              (crimeData[crimeNumber] && crimeData[crimeNumber].image) || null
-            }
+            propsImage={(currentCrimeData && currentCrimeData.image) || null}
           />
           <div className="image-swapper-buttons">
-            <Button value="현장이미지" type="button" size="full-width" />
-            <Button value="편집이미지" type="button" size="full-width" />
+            <Button
+              value="현장이미지"
+              type="button"
+              size="full-width"
+              onClick={() =>
+                imageChangeHandler("origin", imgRef, currentCrimeData)
+              }
+            />
+            <Button
+              value="편집이미지"
+              type="button"
+              size="full-width"
+              onClick={() =>
+                imageChangeHandler("edit", imgRef, currentCrimeData)
+              }
+            />
           </div>
         </div>
         <PatternInfo
@@ -58,6 +74,7 @@ const PatternExtractMain = () => {
           setSelected={setSelected}
           deletePattern={deletePattern}
           essentialCheck={essentialCheck}
+          formData={currentCrimeData}
         />
         <PatternList
           patterns={patterns}

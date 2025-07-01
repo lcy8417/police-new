@@ -7,7 +7,17 @@ const titleName = {
   채도: "saturation",
   밝기: "brightness",
   회전: "rotate",
+  이진화: "binarization",
 };
+
+const sliderActiveList = [
+  "이진화",
+  "이진화(standard)",
+  "이진화(standard_inv)",
+  "이진화(trunc)",
+  "이진화(tozero)",
+  "이진화(tozero_inv)",
+];
 
 const DraggableSlider = ({
   title,
@@ -17,34 +27,45 @@ const DraggableSlider = ({
   memSave,
   scrollState,
   setScrollState,
+  buttonState,
 }) => {
   const trackRef = useRef(null);
   const [dragging, setDragging] = useState(false);
 
   const startDrag = (e) => {
+    if (buttonState !== null && !sliderActiveList.includes(buttonState)) return;
     setDragging(true);
     e.preventDefault();
   };
 
-  const stopDrag = () => {
+  const stopDrag = async () => {
+    if (buttonState !== null && !sliderActiveList.includes(buttonState)) return;
     let prevScrollState = mem[mem.length - 1];
 
     if (
-      prevScrollState[titleName[title]] ===
+      prevScrollState[titleName[title]] !==
       Math.round(scrollState[titleName[title]])
-    )
-      return;
+    ) {
+      prevScrollState = {
+        ...prevScrollState,
+        [titleName[title]]: Math.round(scrollState[titleName[title]]),
+      };
 
-    prevScrollState = {
-      ...prevScrollState,
-      [titleName[title]]: Math.round(scrollState[titleName[title]]),
-    };
-    memSave([...mem, prevScrollState]);
+      if (title !== "이진화") {
+        memSave([...mem, prevScrollState]);
+      }
+    }
+
     setDragging(false);
   };
 
   const onDrag = (e) => {
-    if (!dragging || !trackRef.current) return;
+    if (
+      !dragging ||
+      !trackRef.current ||
+      (buttonState !== null && !sliderActiveList.includes(buttonState))
+    )
+      return;
 
     const track = trackRef.current;
     const rect = track.getBoundingClientRect();
