@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useContext } from "react";
 import { crimeDataContext } from "../App";
 import { patternsExtract } from "../services/api";
 
-const url = "http://localhost:8000";
+const url = "http://192.168.0.17:8000";
 
 const usePatternManager = ({
   index = -1,

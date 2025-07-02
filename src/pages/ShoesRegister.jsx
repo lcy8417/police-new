@@ -5,7 +5,7 @@ import { onlyPatternName } from "../utils/get-input-change";
 import { shoesDataContext } from "../App";
 import { useContext } from "react";
 
-const url = "http://localhost:8000";
+const url = "http://192.168.0.17:8000";
 
 const ShoesRegister = () => {
   const [formData, setFormData] = useState({

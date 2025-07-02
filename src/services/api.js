@@ -1,4 +1,4 @@
-const url = "http://localhost:8000";
+const url = "http://192.168.0.17:8000";
 
 export const imageProcessing = async (
   crimeNumber,

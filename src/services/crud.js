@@ -1,7 +1,7 @@
 import { onlyPatternName } from "../utils/get-input-change";
 import { convertKeysToCamelCase } from "../utils/get-convert-camelcase";
 
-const url = "http://localhost:8000";
+const url = "http://192.168.0.17:8000";
 
 // 서버에서 범죄 데이터 가져오기
 export const fetchCrimeData = async () => {

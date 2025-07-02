@@ -5,7 +5,7 @@ import { crimeDataContext } from "../App";
 import { useContext } from "react";
 import { fetchCrimeRegister } from "../services/crud"; // 🧊 CRUD 서비스에서 함수 가져오기
 
-const url = "http://localhost:8000";
+const url = "http://192.168.0.17:8000";
 
 const CrimeRegister = () => {
   const { setCrimeData } = useContext(crimeDataContext);
