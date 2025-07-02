@@ -24,7 +24,7 @@ const ShoesResultMain = () => {
   const formData = {
     image: edit
       ? currentImage
-      : `http://192.168.0.17:8000/crime_images/${crimeNumber}.png`,
+      : `http://localhost:8000/crime_images/${crimeNumber}.png`,
   };
 
   useEffect(() => {

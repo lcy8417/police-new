@@ -18,10 +18,10 @@ const ShoesResultDetail = () => {
   const navigator = useNavigate();
 
   const sideImage = {
-    image: `http://192.168.0.17:8000/shoes_images/S/${modelNumber}.png`,
+    image: `http://localhost:8000/shoes_images/S/${modelNumber}.png`,
   };
   const bottomImage = {
-    image: `http://192.168.0.17:8000/shoes_images/B/${modelNumber}.png`,
+    image: `http://localhost:8000/shoes_images/B/${modelNumber}.png`,
   };
 
   const { crimeData } = useContext(crimeDataContext);

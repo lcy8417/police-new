@@ -9,7 +9,7 @@ import { imageSearch } from "../services/api"; // Adjust the import path as nece
 import { toPatternPaths } from "../utils/path-utils"; // 🧊 경로 유틸리티 함수 가져오기
 import { fetchCurrentShoes } from "../services/crud"; // Import the function to fetch current shoes data
 
-const url = "http://192.168.0.17:8000";
+const url = "http://localhost:8000";
 
 const CrimeHistoryMain = () => {
   const [shoesData, setShoesData] = useState([]);

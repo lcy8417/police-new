@@ -5,7 +5,7 @@ import { useState, useContext, useEffect } from "react";
 import { crimeDataContext } from "../App";
 import { fetchEditImageSave } from "../services/crud";
 
-const url = "http://192.168.0.17:8000";
+const url = "http://localhost:8000";
 
 const CrimeEdit = () => {
   const { crimeData, setCrimeData } = useContext(crimeDataContext);
