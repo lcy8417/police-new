@@ -8,7 +8,8 @@ import Sidebar from "./Sidebar";
 import PartialPatterns from "./PartialPatterns";
 import { useContext } from "react";
 import { crimeDataContext, shoesDataContext } from "../App";
-import { fetchHistorySave } from "../services/crud";
+import { fetchHistorySave, fetchCurrentShoes } from "../services/crud";
+import { toPatternPaths } from "../utils/path-utils"; // 🧊 경로 유틸리티 함수 가져오기
 
 const ShoesResultDetail = () => {
   const { modelNumber, crimeNumber } = useParams();
@@ -24,16 +25,33 @@ const ShoesResultDetail = () => {
   };
 
   const { crimeData } = useContext(crimeDataContext);
-  const { shoesData } = useContext(shoesDataContext);
 
   // Find the crime data for the given modelNumber
   const currentCrimeData = crimeData.find(
     (item) => String(item.crimeNumber) === String(crimeNumber)
   );
 
-  const currentShoesData = shoesData.find(
-    (item) => String(item.modelNumber) === String(modelNumber)
-  );
+  const [shoesData, setShoesData] = useState([]);
+
+  useEffect(() => {
+    const getShoesInfo = async () => {
+      try {
+        const data = await fetchCurrentShoes(modelNumber);
+
+        setShoesData({
+          ...data,
+          top: toPatternPaths(data.top) || [],
+          mid: toPatternPaths(data.mid) || [],
+          bottom: toPatternPaths(data.bottom) || [],
+          outline: toPatternPaths(data.outline) || [],
+        });
+      } catch (error) {
+        console.error("Error fetching current shoes data:", error);
+      }
+    };
+
+    getShoesInfo();
+  }, [modelNumber]);
 
   const shoesDiscover = async (ranking = null, modelNumber = null) => {
     try {
@@ -65,13 +83,13 @@ const ShoesResultDetail = () => {
       },
       {
         title: "DB패턴",
-        top: currentShoesData?.top || [],
-        mid: currentShoesData?.mid || [],
-        bottom: currentShoesData?.bottom || [],
-        outline: currentShoesData?.outline || [],
+        top: shoesData?.top || [],
+        mid: shoesData?.mid || [],
+        bottom: shoesData?.bottom || [],
+        outline: shoesData?.outline || [],
       },
     ]);
-  }, [currentPartial, currentCrimeData]);
+  }, [currentPartial, currentCrimeData, shoesData]);
 
   return (
     <div className="ResultDetailMain">

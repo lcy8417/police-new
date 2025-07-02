@@ -20,6 +20,67 @@ export const fetchCrimeData = async () => {
   return convertKeysToCamelCase(data);
 };
 
+// 서버에서 현재 page에 해당되는 신발 데이터 가져오기
+export const fetchShoesData = async (page = 0) => {
+  const fullUrl = `${url}/shoes?page=${page}`;
+  const response = await fetch(fullUrl, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch shoes data");
+  }
+
+  const data = await response.json();
+  return convertKeysToCamelCase(data);
+};
+
+// 서버에서 현재 모델 번호에 해당되는 신발 데이터 가져오기
+export const fetchCurrentShoes = async (modelNumber) => {
+  const response = await fetch(`${url}/shoes/${modelNumber}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch shoes data");
+  }
+
+  const data = await response.json();
+  return convertKeysToCamelCase(data);
+};
+
+// 서버에서 현재 모델 번호에 해당되는 신발 데이터 수정하기
+export const fetchShoesEdit = async ({ modelNumber, body }) => {
+  const { image, ...restBody } = body; // 이미지 필드는 제외하고 나머지 필드만 전송
+
+  const response = await fetch(`${url}/shoes/${modelNumber}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      ...restBody,
+      top: onlyPatternName(restBody, "top"),
+      mid: onlyPatternName(restBody, "mid"),
+      bottom: onlyPatternName(restBody, "bottom"),
+      outline: onlyPatternName(restBody, "outline"),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch shoes data");
+  }
+
+  const data = await response.json();
+  return convertKeysToCamelCase(data);
+};
+
 // 서버에서 id와 매칭되는 범죄 데이터 가져오기
 export const fetchHistoryData = async (id) => {
   const response = await fetch(`${url}/crime/history/${id}`, {
@@ -42,12 +103,11 @@ export const fetchHistoryData = async (id) => {
   ["top", "mid", "bottom", "outline"].forEach((key) => {
     data[key] = data[key].map(urlInsert);
   });
-  
+
   return convertKeysToCamelCase(data);
 };
 
 export const fetchCrimeRegister = async (formData) => {
-  console.log(formData);
   const response = await fetch(`${url}/crime/register`, {
     method: "POST",
     headers: {
@@ -108,7 +168,7 @@ export const fetchHistorySave = async ({
         .replace("Z", "+09:00"),
       image: currentCrimeData.image,
       ranking: ranking ? parseInt(ranking) : 0,
-      editImage: currentCrimeData.editImage.startsWith("data:image/")
+      editImage: currentCrimeData.editImage?.startsWith("data:image/")
         ? currentCrimeData.editImage.split(",")[1]
         : null,
       matchingShoes: modelNumber,

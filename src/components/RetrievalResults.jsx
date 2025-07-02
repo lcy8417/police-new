@@ -7,6 +7,7 @@ const RetrievalResults = ({
   page,
   setPage,
   clickAct = true,
+  totalCount = 0,
 }) => {
   const navigate = useNavigate();
 
@@ -15,7 +16,7 @@ const RetrievalResults = ({
       <div className="header">
         <p />
         <h2>현재페이지: {page}</h2>
-        <p>총 76400건</p>
+        <p>총 {totalCount}건</p>
       </div>
       <div className="result-items">
         {currentPageData?.map((item, i) => (

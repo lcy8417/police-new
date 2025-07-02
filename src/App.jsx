@@ -13,13 +13,8 @@ import ShoesEdit from "./pages/ShoesEdit";
 import CrimeHistory from "./pages/CrimeHistory";
 
 import { useState, createContext, useEffect } from "react";
-import { fetchCrimeData } from "./services/crud"; // 🧊 CRUD 서비스에서 함수 가져오기
-
-const url = "http://localhost:8000";
-const patternsRoot = "/src/assets/Patterns/전체/";
-const pathInsert = (item) => {
-  return [patternsRoot + item[0] + ".png", item[1]];
-};
+import { fetchCrimeData, fetchShoesData } from "./services/crud"; // 🧊 CRUD 서비스에서 함수 가져오기
+import { toPatternPaths, pathInsert } from "./utils/path-utils"; // 🧊 경로 유틸리티 함수 가져오기
 
 export const crimeDataContext = createContext();
 export const shoesDataContext = createContext();
@@ -43,42 +38,15 @@ function App() {
           mid: item.mid.map(pathInsert) || [],
           bottom: item.bottom.map(pathInsert) || [],
           outline: item.outline.map(pathInsert) || [],
+          image: `${item.image}`, // 캐시 방지를 위해 현재 시간 추가
         }));
         setCrimeData(updatedData);
       } catch (error) {
         console.error("Error fetching crime data:", error);
       }
     };
-    readCrimeData();
 
-    fetch(`${url}/shoes`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        const updatedShoesData = data.map((item) => ({
-          ...item,
-          top: item.top
-            ? item.top.map((pattern) => `${patternsRoot}/${pattern}.png`)
-            : [],
-          mid: item.mid
-            ? item.mid.map((pattern) => `${patternsRoot}/${pattern}.png`)
-            : [],
-          bottom: item.bottom
-            ? item.bottom.map((pattern) => `${patternsRoot}/${pattern}.png`)
-            : [],
-          outline: item.outline
-            ? item.outline.map((pattern) => `${patternsRoot}/${pattern}.png`)
-            : [],
-        }));
-        setShoesData(updatedShoesData);
-      })
-      .catch((error) => {
-        console.error("Error fetching shoes data:", error);
-      });
+    readCrimeData();
   }, []);
 
   return (

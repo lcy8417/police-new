@@ -10,8 +10,7 @@ import usePatternManager from "../hooks/usePatternManager";
 import Canvas from "./Canvas";
 import { imageChangeHandler } from "../utils/get-input-change";
 
-const PatternExtractMain = () => {
-  const imgRef = useRef(null);
+const PatternExtractMain = ({ imgRef }) => {
   const { crimeData } = useContext(crimeDataContext);
   const { crimeNumber } = useParams(); // Getting the id from the route parameters
   const index = crimeData.findIndex(
@@ -20,7 +19,6 @@ const PatternExtractMain = () => {
 
   const currentCrimeData = crimeData[index];
 
-  console.log("PatternExtractMain index:", index, crimeNumber);
   const {
     canvasRef,
     patterns,
@@ -34,7 +32,11 @@ const PatternExtractMain = () => {
     insertPattern,
     deletePattern,
     essentialCheck,
-  } = usePatternManager({ index, currentData: currentCrimeData });
+  } = usePatternManager({
+    index,
+    currentData: currentCrimeData,
+    imgRef: imgRef,
+  });
 
   return (
     <div className="PatternExtractMain">
@@ -49,6 +51,7 @@ const PatternExtractMain = () => {
             lineState={lineState}
             setLineState={setLineState}
             propsImage={(currentCrimeData && currentCrimeData.image) || null}
+            imgRef={imgRef}
           />
           <div className="image-swapper-buttons">
             <Button

@@ -67,14 +67,22 @@ const Canvas = ({
   // 이미지가 변경될 때 캔버스 크기 조정
   useEffect(() => {
     const updateCanvasPosition = () => {
-      const $img = document.querySelector(
-        ".image-edit-display .ImageLoader .image-container > img"
-      );
+      let $img = null;
+      if (imgRef?.current) {
+        $img = imgRef.current;
+      } else {
+        $img = document.querySelector(
+          ".image-edit-display .ImageLoader .image-container > img"
+        );
+      }
 
       const $imageLoader = document.querySelector(
         ".image-edit-display .ImageLoader"
       );
       if (!$img || !$imageLoader) return;
+
+      // 이미지가 아직 로드되지 않았다면 리턴
+      if (!$img.complete || $img.naturalWidth === 0) return;
 
       const [maxLeft, maxTop, maxWidth, maxHeight] = [
         $imageLoader.offsetLeft,
@@ -94,6 +102,8 @@ const Canvas = ({
       const canvas = canvasRef.current;
       if (!canvas) return;
 
+      console.log(rect.width, maxWidth, rect.height, maxHeight);
+
       canvas.width = width;
       canvas.height = height;
       canvas.style.position = "fixed";
@@ -105,13 +115,22 @@ const Canvas = ({
       canvas.style.zIndex = 999;
     };
 
-    updateCanvasPosition(); // 초기 실행
+    const img = imgRef?.current;
+
+    if (img && !img.complete) {
+      console.log("실행됨1");
+      img.onload = updateCanvasPosition;
+    } else {
+      console.log("실행됨2");
+      updateCanvasPosition();
+    }
 
     window.addEventListener("resize", updateCanvasPosition);
     return () => {
       window.removeEventListener("resize", updateCanvasPosition);
+      if (img) img.onload = null;
     };
-  }, [formData.image, scrollState, canvasRef]);
+  }, [formData.image, scrollState]);
 
   useEffect(() => {
     if (!formData.image || !lineState) return;

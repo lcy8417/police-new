@@ -86,7 +86,10 @@ const DetailMain = ({ setCrimeNumber }) => {
             columns={columns}
             filteredData={historyData || []}
             tableClick={(rowIndex) => {
-              const url = `${window.location.origin}/search/${crimeNumber}/crimeHistory/${rowIndex}`;
+              const ranking = historyData.find(
+                (data) => data.id === rowIndex
+              )?.ranking;
+              const url = `${window.location.origin}/search/${crimeNumber}/crimeHistory/${rowIndex}?ranking=${ranking}`;
               window.open(url, "_blank", "noopener,noreferrer");
             }}
           />

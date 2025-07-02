@@ -2,24 +2,24 @@ import "./CrimeHistoryMain.css";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import ImageLoader from "./ImageLoader";
-import Sidebar from "./Sidebar";
 import PartialPatterns from "./PartialPatterns";
 import RetrievalResults from "./RetrievalResults";
 import { fetchHistoryData } from "../services/crud";
-import { useContext } from "react";
-import { crimeDataContext, shoesDataContext } from "../App";
 import { imageSearch } from "../services/api"; // Adjust the import path as necessary
+import { toPatternPaths } from "../utils/path-utils"; // 🧊 경로 유틸리티 함수 가져오기
+import { fetchCurrentShoes } from "../services/crud"; // Import the function to fetch current shoes data
 
 const url = "http://localhost:8000";
 
 const CrimeHistoryMain = () => {
-  const { shoesData } = useContext(shoesDataContext);
+  const [shoesData, setShoesData] = useState([]);
   const { crimeNumber, historyId } = useParams();
 
   const [currentPatterns, setCurrentPatterns] = useState([]);
   const [currentPageData, setCurrentPageData] = useState([]);
   const [page, setPage] = useState(0);
   const [historyData, setHistoryData] = useState({});
+  const [totalCount, setTotalCount] = useState(0);
 
   const crimeImage = {
     image: `${url}/crime_images/${crimeNumber}.png`,
@@ -48,13 +48,15 @@ const CrimeHistoryMain = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await imageSearch({
+        const { result, total } = await imageSearch({
           crimeNumber: crimeNumber,
           body: { image: crimeNumber },
           page: page,
         });
 
-        setCurrentPageData(data);
+        console.log(total);
+        setTotalCount(total);
+        setCurrentPageData(result);
       } catch (error) {
         console.error("Error fetching image search data:", error);
       }
@@ -66,44 +68,47 @@ const CrimeHistoryMain = () => {
   useEffect(() => {
     const getHistory = async () => {
       try {
-        const response = await fetchHistoryData(historyId);
-        setHistoryData(response);
+        const currentCrimeData = await fetchHistoryData(historyId);
+        setHistoryData(currentCrimeData);
 
-        const currentShoesData = response.matchingShoes
-          ? shoesData.find(
-              (shoe) =>
-                String(shoe.modelNumber) === String(response.matchingShoes)
-            )
-          : {
-              top: [],
-              mid: [],
-              bottom: [],
-              outline: [],
-            };
+        if (currentCrimeData) {
+          const shoesInfo = await fetchCurrentShoes(
+            currentCrimeData.matchingShoes
+          );
+          const shoesWithPath = {
+            ...shoesInfo,
+            top: toPatternPaths(shoesInfo.top) || [],
+            mid: toPatternPaths(shoesInfo.mid) || [],
+            bottom: toPatternPaths(shoesInfo.bottom) || [],
+            outline: toPatternPaths(shoesInfo.outline) || [],
+          };
 
-        setCurrentPatterns([
-          {
-            title: "현장패턴",
-            top: response.top || [],
-            mid: response.mid || [],
-            bottom: response.bottom || [],
-            outline: response.outline || [],
-          },
-          {
-            title: "DB패턴",
-            top: currentShoesData.top || [],
-            mid: currentShoesData.mid || [],
-            bottom: currentShoesData.bottom || [],
-            outline: currentShoesData.outline || [],
-          },
-        ]);
+          setShoesData(shoesWithPath);
+
+          setCurrentPatterns([
+            {
+              title: "현장패턴",
+              top: currentCrimeData?.top || [],
+              mid: currentCrimeData?.mid || [],
+              bottom: currentCrimeData?.bottom || [],
+              outline: currentCrimeData?.outline || [],
+            },
+            {
+              title: "DB패턴",
+              top: shoesWithPath.top,
+              mid: shoesWithPath.mid,
+              bottom: shoesWithPath.bottom,
+              outline: shoesWithPath.outline,
+            },
+          ]);
+        }
       } catch (error) {
         console.error("Error fetching history data:", error);
       }
     };
 
     getHistory();
-  }, [historyId, shoesData]);
+  }, [historyId]); 
 
   return (
     <div className="CrimeHistoryMain">
@@ -130,6 +135,7 @@ const CrimeHistoryMain = () => {
           page={page}
           setPage={setPage}
           clickAct={false}
+          totalCount={totalCount}
         />
       </div>
     </div>

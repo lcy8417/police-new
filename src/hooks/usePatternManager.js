@@ -10,6 +10,7 @@ const usePatternManager = ({
   currentData = null,
   formData = null,
   setFormData = null,
+  imgRef = null,
 }) => {
   const canvasRef = useRef(null);
 
@@ -38,11 +39,23 @@ const usePatternManager = ({
       ? formData?.image.split("/").pop().split(".")[0]
       : formData?.image;
 
+    let requestImage = null;
+    // imgRef(현장, 편집이미지 모달)가 있는 경우
+    if (imgRef && imgRef.current) {
+      // 편집 이미지의 경우
+      requestImage = imgRef.current.src.startsWith("data:image")
+        ? imgRef.current.src
+        : imgRef.current.src.split("/").pop().replace(".png", "");
+    } else {
+      // 현장 이미지의 경우
+      requestImage = currentData?.crimeNumber || shoesImage;
+    }
+
     const rect = canvasRef.current.getBoundingClientRect();
     const { top, mid, bottom, outline } = await patternsExtract({
       crimeNumber: currentData?.crimeNumber || "shoes",
       body: {
-        image: currentData?.crimeNumber || shoesImage,
+        image: requestImage,
         line_ys: lineState.lineYs,
         render_size: [rect.width, rect.height],
         type: requestType,
@@ -130,7 +143,6 @@ const usePatternManager = ({
     // crimeExtract에서 호출되는 경우
     if (index === -1) return; // id가 없는 경우 함수 종료
 
-    console.log("insertPattern", crimeData, kind, e.target.src);
     const exists = crimeData[index][kind]?.some(
       (item) => item[0] === e.target.src
     );
