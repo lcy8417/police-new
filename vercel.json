@@ -1,3 +1,3 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "http://141.223.107.72/$1" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
 }
