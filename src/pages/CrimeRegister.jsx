@@ -16,6 +16,11 @@ const CrimeRegister = () => {
 
   const handleSubmit = async () => {
     try {
+      if (!formData.image || !formData.crimeNumber) {
+        console.log(formData);
+        alert("이미지와 사건 번호는 필수 입력 사항입니다.");
+        return;
+      }
       await fetchCrimeRegister(formData);
       alert("사건이 등록되었습니다.");
       // 초기화

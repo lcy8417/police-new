@@ -36,7 +36,7 @@ const usePatternManager = ({
 
     // 신발 정보 수정일 때는 png 파일 이름을 추출하여 사용
     const shoesImage = formData?.image.includes(".png")
-      ? formData?.image.split("/").pop().split(".")[0]
+      ? formData?.image.split(/[/\\]/).pop().split(".")[0]
       : formData?.image;
 
     let requestImage = null;
@@ -45,7 +45,7 @@ const usePatternManager = ({
       // 편집 이미지의 경우
       requestImage = imgRef.current.src.startsWith("data:image")
         ? imgRef.current.src
-        : imgRef.current.src.split("/").pop().replace(".png", "");
+        : imgRef.current.src.split(/[/\\]/).pop().replace(".png", "");
     } else {
       // 현장 이미지의 경우
       requestImage = currentData?.crimeNumber || shoesImage;

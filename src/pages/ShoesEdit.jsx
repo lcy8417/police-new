@@ -15,6 +15,8 @@ const ShoesEdit = () => {
       try {
         const data = await fetchCurrentShoes(modelNumber);
 
+        console.log(data.image);
+
         setShoesData({
           ...data,
           top: toPatternPaths(data.top) || [],

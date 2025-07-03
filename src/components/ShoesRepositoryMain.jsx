@@ -105,8 +105,9 @@ const ShoesRepositoryMain = () => {
             navigate(`/shoesRepository/${crimeNumber}`);
           }}
           doubleClick={() => {
-            const url = `${window.location.origin}/shoesEdit/${modelNumber}`;
-            window.open(url, "_blank", "noopener,noreferrer");
+            navigate(`/shoesEdit/${modelNumber}`);
+            // const url = `${window.location.origin}/shoesEdit/${modelNumber}`;
+            // window.open(url, "_blank", "noopener,noreferrer");
           }}
         />
         <div className="search-form">

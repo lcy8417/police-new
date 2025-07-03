@@ -23,6 +23,10 @@ const ShoesRegister = () => {
     {
       value: "등록",
       event: () => {
+        if (!formData.image || !formData.modelNumber) {
+          alert("이미지와 모델 번호는 필수 입력 사항입니다.");
+          return;
+        }
         fetch(`${url}/shoes/register`, {
           method: "POST",
           headers: {
@@ -47,6 +51,8 @@ const ShoesRegister = () => {
           });
 
         alert("신발 정보가 등록되었습니다.");
+        window.location.reload();
+
         setFormData({
           image: null,
           top: [],

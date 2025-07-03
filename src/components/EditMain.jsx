@@ -220,7 +220,7 @@ const EditMain = ({ scrollState, setScrollState }) => {
         break;
 
       default:
-        console.log("끝?");
+        console.log("끝");
     }
   }, [buttonState, scrollState.binarization]);
 
