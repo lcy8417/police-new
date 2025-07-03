@@ -2,10 +2,8 @@ import ShoesRegisterMain from "../components/ShoesRegisterMain";
 import Header from "../components/Header";
 import { useState } from "react";
 import { onlyPatternName } from "../utils/get-input-change";
-import { shoesDataContext } from "../App";
-import { useContext } from "react";
 
-const url = "http://localhost:8000";
+const url = import.meta.env.VITE_API_URL; // Base URL for API requests
 
 const ShoesRegister = () => {
   const [formData, setFormData] = useState({
@@ -20,8 +18,6 @@ const ShoesRegister = () => {
     modelNumber: "",
     findYear: 0,
   });
-
-  const { shoesData, setShoesData } = useContext(shoesDataContext);
 
   const buttonList = [
     {
@@ -45,12 +41,6 @@ const ShoesRegister = () => {
             if (!res.ok) {
               throw new Error("Image upload failed");
             }
-            setShoesData((prevData) => [
-              ...prevData,
-              {
-                ...formData,
-              },
-            ]);
           })
           .catch((error) => {
             console.error("Error uploading image:", error);

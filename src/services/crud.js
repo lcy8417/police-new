@@ -1,7 +1,7 @@
 import { onlyPatternName } from "../utils/get-input-change";
 import { convertKeysToCamelCase } from "../utils/get-convert-camelcase";
 
-const url = "http://localhost:8000";
+const url = import.meta.env.VITE_API_URL;
 
 // 서버에서 범죄 데이터 가져오기
 export const fetchCrimeData = async () => {
@@ -99,6 +99,8 @@ export const fetchHistoryData = async (id) => {
   };
 
   const data = await response.json();
+
+  console.log(data);
 
   ["top", "mid", "bottom", "outline"].forEach((key) => {
     data[key] = data[key].map(urlInsert);

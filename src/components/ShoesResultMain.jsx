@@ -9,6 +9,8 @@ import { crimeDataContext } from "../App";
 import { useContext } from "react";
 import { filteredPatterns } from "../utils/get-input-change";
 
+const url = import.meta.env.VITE_API_URL;
+
 const ShoesResultMain = () => {
   const { crimeNumber } = useParams();
   const [currentPageData, setCurrentPageData] = useState([]);
@@ -22,9 +24,7 @@ const ShoesResultMain = () => {
     (item) => String(item.crimeNumber) === String(crimeNumber)
   );
   const formData = {
-    image: edit
-      ? currentImage
-      : `http://localhost:8000/crime_images/${crimeNumber}.png`,
+    image: edit ? currentImage : `${url}/crime_images/${crimeNumber}.png`,
   };
 
   useEffect(() => {

@@ -5,7 +5,7 @@ import { useState, useContext, useEffect } from "react";
 import { crimeDataContext } from "../App";
 import { fetchEditImageSave } from "../services/crud";
 
-const url = "http://localhost:8000";
+const url = import.meta.env.VITE_API_URL;
 
 const CrimeEdit = () => {
   const { crimeData, setCrimeData } = useContext(crimeDataContext);
@@ -21,10 +21,6 @@ const CrimeEdit = () => {
     rotate: 0,
     binarization: 127,
   });
-
-  const currentCrimeData = crimeData.find(
-    (item) => String(item.crimeNumber) === String(crimeNumber)
-  );
 
   // 데이터가 준비되면 초기화
   useEffect(() => {

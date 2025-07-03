@@ -3,11 +3,8 @@ import Header from "../components/Header";
 import { useState } from "react";
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { onlyPatternName } from "../utils/get-input-change";
 import { fetchCurrentShoes, fetchShoesEdit } from "../services/crud"; // 🧊 CRUD 서비스에서 함수 가져오기
 import { toPatternPaths } from "../utils/path-utils"; // 🧊 경로 유틸리티 함수 가져오기
-
-const url = "http://localhost:8000";
 
 const ShoesEdit = () => {
   const { modelNumber } = useParams();

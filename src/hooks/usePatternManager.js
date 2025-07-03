@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useContext } from "react";
 import { crimeDataContext } from "../App";
 import { patternsExtract } from "../services/api";
 
-const url = "http://localhost:8000";
+const url = import.meta.env.VITE_API_URL;
 
 const usePatternManager = ({
   index = -1,

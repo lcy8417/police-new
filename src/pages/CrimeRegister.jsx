@@ -1,15 +1,9 @@
 import CrimeRegisterMain from "../components/CrimeRegisterMain";
 import Header from "../components/Header";
 import { useState } from "react";
-import { crimeDataContext } from "../App";
-import { useContext } from "react";
 import { fetchCrimeRegister } from "../services/crud"; // 🧊 CRUD 서비스에서 함수 가져오기
 
-const url = "http://localhost:8000";
-
 const CrimeRegister = () => {
-  const { setCrimeData } = useContext(crimeDataContext);
-  const [editImage, setEditImage] = useState(null);
   const [formData, setFormData] = useState({
     image: null,
     crimeNumber: "",

@@ -9,7 +9,7 @@ import Sidebar from "./Sidebar";
 import SearchResults from "./SearchResults"; // Assuming you have a SearchResults component
 import { imageChangeHandler } from "../utils/get-input-change"; // Assuming you have a utility function for image handling
 
-const url = "http://localhost:8000"; // Base URL for API requests
+const url = import.meta.env.VITE_API_URL; // Base URL for API requests
 
 const DetailMain = ({ setCrimeNumber }) => {
   const navigate = useNavigate();

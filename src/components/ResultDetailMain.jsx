@@ -7,9 +7,11 @@ import FormList from "./FormList";
 import Sidebar from "./Sidebar";
 import PartialPatterns from "./PartialPatterns";
 import { useContext } from "react";
-import { crimeDataContext, shoesDataContext } from "../App";
+import { crimeDataContext } from "../App";
 import { fetchHistorySave, fetchCurrentShoes } from "../services/crud";
 import { toPatternPaths } from "../utils/path-utils"; // 🧊 경로 유틸리티 함수 가져오기
+
+const url = import.meta.env.VITE_API_URL;
 
 const ShoesResultDetail = () => {
   const { modelNumber, crimeNumber } = useParams();
@@ -18,10 +20,10 @@ const ShoesResultDetail = () => {
   const navigator = useNavigate();
 
   const sideImage = {
-    image: `http://localhost:8000/shoes_images/S/${modelNumber}.png`,
+    image: `${url}/shoes_images/S/${modelNumber}.png`,
   };
   const bottomImage = {
-    image: `http://localhost:8000/shoes_images/B/${modelNumber}.png`,
+    image: `${url}/shoes_images/B/${modelNumber}.png`,
   };
 
   const { crimeData } = useContext(crimeDataContext);

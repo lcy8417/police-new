@@ -13,16 +13,13 @@ import ShoesEdit from "./pages/ShoesEdit";
 import CrimeHistory from "./pages/CrimeHistory";
 
 import { useState, createContext, useEffect } from "react";
-import { fetchCrimeData, fetchShoesData } from "./services/crud"; // 🧊 CRUD 서비스에서 함수 가져오기
-import { toPatternPaths, pathInsert } from "./utils/path-utils"; // 🧊 경로 유틸리티 함수 가져오기
+import { fetchCrimeData } from "./services/crud"; // 🧊 CRUD 서비스에서 함수 가져오기
+import { pathInsert } from "./utils/path-utils"; // 🧊 경로 유틸리티 함수 가져오기
 
 export const crimeDataContext = createContext();
-export const shoesDataContext = createContext();
-export const historyDataContext = createContext();
 
 function App() {
   const [crimeData, setCrimeData] = useState([]);
-  const [shoesData, setShoesData] = useState([]);
 
   // 범죄 데이터 초기화
   useEffect(() => {
@@ -51,44 +48,42 @@ function App() {
 
   return (
     <crimeDataContext.Provider value={{ crimeData, setCrimeData }}>
-      <shoesDataContext.Provider value={{ shoesData, setShoesData }}>
-        <BrowserRouter>
-          <div className="app-layout">
-            <div className="page-content">
-              <Routes>
-                <Route path="/" element={<Navigate to="/crimeRegister" />} />
-                <Route path="/crimeRegister" element={<CrimeRegister />} />
-                <Route path="/search" element={<CrimeSearch />} />
-                <Route path="/search/:crimeNumber" element={<CrimeDetail />} />
-                <Route
-                  path="/search/:crimeNumber/crimeHistory/:historyId"
-                  element={<CrimeHistory />}
-                />
-                <Route
-                  path="/search/:crimeNumber/patternExtract"
-                  element={<PatternExtract />}
-                />
-                <Route
-                  path="/search/:crimeNumber/shoesResult"
-                  element={<ShoesResult />}
-                />
-                <Route
-                  path="/search/:crimeNumber/shoesResult/detail/:modelNumber"
-                  element={<ResultDetail />}
-                />
-                <Route path="/edit/:crimeNumber" element={<CrimeEdit />} />
-                <Route path="/shoesRegister" element={<ShoesRegister />} />
-                <Route path="/shoesRepository" element={<ShoesRepository />} />
-                <Route
-                  path="/shoesRepository/:modelNumber"
-                  element={<ShoesRepository />}
-                />
-                <Route path="/shoesEdit/:modelNumber" element={<ShoesEdit />} />
-              </Routes>
-            </div>
+      <BrowserRouter>
+        <div className="app-layout">
+          <div className="page-content">
+            <Routes>
+              <Route path="/" element={<Navigate to="/crimeRegister" />} />
+              <Route path="/crimeRegister" element={<CrimeRegister />} />
+              <Route path="/search" element={<CrimeSearch />} />
+              <Route path="/search/:crimeNumber" element={<CrimeDetail />} />
+              <Route
+                path="/search/:crimeNumber/crimeHistory/:historyId"
+                element={<CrimeHistory />}
+              />
+              <Route
+                path="/search/:crimeNumber/patternExtract"
+                element={<PatternExtract />}
+              />
+              <Route
+                path="/search/:crimeNumber/shoesResult"
+                element={<ShoesResult />}
+              />
+              <Route
+                path="/search/:crimeNumber/shoesResult/detail/:modelNumber"
+                element={<ResultDetail />}
+              />
+              <Route path="/edit/:crimeNumber" element={<CrimeEdit />} />
+              <Route path="/shoesRegister" element={<ShoesRegister />} />
+              <Route path="/shoesRepository" element={<ShoesRepository />} />
+              <Route
+                path="/shoesRepository/:modelNumber"
+                element={<ShoesRepository />}
+              />
+              <Route path="/shoesEdit/:modelNumber" element={<ShoesEdit />} />
+            </Routes>
           </div>
-        </BrowserRouter>
-      </shoesDataContext.Provider>
+        </div>
+      </BrowserRouter>
     </crimeDataContext.Provider>
   );
 }

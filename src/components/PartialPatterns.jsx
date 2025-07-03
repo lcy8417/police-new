@@ -1,11 +1,9 @@
 import PatternList from "./PatternList";
-import { useState, useContext } from "react";
+import { useState } from "react";
 import Button from "./Button";
-import { shoesDataContext } from "../App";
 import "./PartialPatterns.css"; // Assuming you have a CSS file for styling
 
 const PartialPatterns = ({ patternItems }) => {
-  const { shoesData, setShoesData } = useContext(shoesDataContext);
   const [currentPartial, setCurrentParial] = useState("상");
   const kinds = ["상", "중", "하", "윤곽"];
   const kindMapping = {

@@ -174,6 +174,7 @@ const EditMain = ({ scrollState, setScrollState }) => {
         canvasRef.current.style.cursor = "default";
         break;
       case "접합장애물제거": // 접합장애물제거
+        console.log("dd");
         canvasRef.current.style.cursor = "crosshair";
         break;
       case "이진화(standard)":

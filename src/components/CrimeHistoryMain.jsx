@@ -9,7 +9,7 @@ import { imageSearch } from "../services/api"; // Adjust the import path as nece
 import { toPatternPaths } from "../utils/path-utils"; // 🧊 경로 유틸리티 함수 가져오기
 import { fetchCurrentShoes } from "../services/crud"; // Import the function to fetch current shoes data
 
-const url = "http://localhost:8000";
+const url = import.meta.env.VITE_API_URL;
 
 const CrimeHistoryMain = () => {
   const [shoesData, setShoesData] = useState([]);
@@ -22,7 +22,7 @@ const CrimeHistoryMain = () => {
   const [totalCount, setTotalCount] = useState(0);
 
   const crimeImage = {
-    image: `${url}/crime_images/${crimeNumber}.png`,
+    image: `${import.meta.env.VITE_API_URL}/crime_images/${crimeNumber}.png`,
   };
 
   const editImage = {
