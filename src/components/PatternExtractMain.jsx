@@ -1,6 +1,6 @@
 import Button from "./Button";
 import "./PatternExtractMain.css";
-import { useContext, useRef } from "react";
+import { useContext, useState } from "react";
 import PatternList from "./PatternList";
 import PatternInfo from "./PatternInfo";
 import { crimeDataContext } from "../App";
@@ -9,6 +9,7 @@ import Sidebar from "./Sidebar";
 import usePatternManager from "../hooks/usePatternManager";
 import Canvas from "./Canvas";
 import { imageChangeHandler } from "../utils/get-input-change";
+import LoadingModal from "./LoadingModal";
 
 const PatternExtractMain = ({ imgRef }) => {
   const { crimeData } = useContext(crimeDataContext);
@@ -38,8 +39,23 @@ const PatternExtractMain = ({ imgRef }) => {
     imgRef: imgRef,
   });
 
+  const [isExtracting, setIsExtracting] = useState(false);
+
+  const handleExtractPattern = async () => {
+    try {
+      setIsExtracting(true);
+      await extractPattern().finally(() => {
+        setIsExtracting(false);
+      });
+    } catch (error) {
+      console.error("패턴 추출 중 오류:", error);
+      alert("패턴 추출 중 오류가 발생했습니다.");
+    }
+  };
+
   return (
     <div className="PatternExtractMain">
+      {isExtracting && <LoadingModal text="패턴 추출 중..." />}
       <Sidebar />
       <div className="main">
         <div className="image-swapper">
@@ -47,7 +63,7 @@ const PatternExtractMain = ({ imgRef }) => {
             canvasRef={canvasRef}
             formData={currentCrimeData || {}}
             value="신발이미지"
-            patternFunction={[extractPattern, clearPattern]}
+            patternFunction={[handleExtractPattern, clearPattern]}
             lineState={lineState}
             setLineState={setLineState}
             propsImage={(currentCrimeData && currentCrimeData.image) || null}

@@ -1,4 +1,3 @@
-import Button from "./Button";
 import { useState, useRef, useEffect, useContext } from "react";
 import "./EditMain.css";
 import ImageLoader from "./ImageLoader";
@@ -8,6 +7,7 @@ import { crimeDataContext } from "../App"; // Assuming you have a context for cr
 import { useParams } from "react-router-dom"; // Import useParams to access route parameters
 import Sidebar from "./Sidebar"; // Assuming you have a Sidebar component for navigation
 import useImageProcessing from "../hooks/useImageProcessing"; // Custom hook for image processing
+import LoadingModal from "./LoadingModal"; // Importing LoadingModal component
 
 const prepareImage = (image, crimeNumber) => {
   // base64 인코딩된 이미지라면 쉼표 이후만 추출
@@ -28,6 +28,8 @@ const resetScrollState = {
 };
 
 const EditMain = ({ scrollState, setScrollState }) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const canvasRef = useRef(null);
 
   const { crimeData } = useContext(crimeDataContext); // Accessing crime data from context
@@ -94,6 +96,8 @@ const EditMain = ({ scrollState, setScrollState }) => {
     }
 
     try {
+      setIsProcessing(true); // 로딩 상태 시작
+
       const $editImage = document.querySelectorAll(".image-container > img")[1];
       const render_size = $editImage.getBoundingClientRect();
 
@@ -109,6 +113,8 @@ const EditMain = ({ scrollState, setScrollState }) => {
             image: prepareImage(scrollState.image, crimeNumber),
           },
           params: params,
+        }).finally(() => {
+          setIsProcessing(false); // 로딩 상태 종료
         });
       } else if (buttonState === "접합장애물제거") {
         handleProcessing({
@@ -118,6 +124,8 @@ const EditMain = ({ scrollState, setScrollState }) => {
             image: prepareImage(scrollState.image, crimeNumber),
           },
           params: params,
+        }).finally(() => {
+          setIsProcessing(false); // 로딩 상태 종료
         });
       }
 
@@ -160,21 +168,29 @@ const EditMain = ({ scrollState, setScrollState }) => {
           ...prev,
           ...resetScrollState,
         }));
+
         canvasRef.current.style.cursor = "crosshair";
         break;
       case "이진화": // 이진화
         canvasRef.current.style.cursor = "default";
         break;
       case "노이즈제거": // 노이즈제거
+        setIsProcessing(true);
         handleProcessing({
           endpoint: "denoising",
           body: prepareImage(scrollState.image, crimeNumber),
+        }).finally(() => {
+          setIsProcessing(false); // 로딩 상태 종료
         });
         setButtonState(null);
         canvasRef.current.style.cursor = "default";
         break;
       case "접합장애물제거": // 접합장애물제거
-        console.log("dd");
+        setScrollState((prev) => ({
+          ...prev,
+          ...resetScrollState,
+        }));
+
         canvasRef.current.style.cursor = "crosshair";
         break;
       case "이진화(standard)":
@@ -235,6 +251,7 @@ const EditMain = ({ scrollState, setScrollState }) => {
 
   return (
     <div className="EditMain">
+      {isProcessing && <LoadingModal text="이미지를 처리 중입니다..." />}
       <Sidebar />
       <div className="main">
         <div className="image-swapper">
@@ -261,6 +278,7 @@ const EditMain = ({ scrollState, setScrollState }) => {
           handleRightClick={handleRightClick}
           formData={crimeItem || {}} // fallback for robustness
           flex={3}
+          mode="edit"
         />
       </div>
     </div>

@@ -1,0 +1,62 @@
+/* 전체 오버레이 배경 */
+.loading-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  font-family: "Segoe UI", "Pretendard", sans-serif;
+}
+
+/* 모달 내부 박스 */
+.modal-content {
+  background: #ffffffee;
+  padding: 2.5rem 3.5rem;
+  border-radius: 16px;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* 로딩 스피너 */
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 5px solid transparent;
+  border-top: 5px solid #4f46e5; /* indigo-600 */
+  border-right: 5px solid #6366f1; /* indigo-500 */
+  border-radius: 50%;
+  animation: spin 0.9s ease-in-out infinite;
+  margin: 0 auto 1.5rem;
+}
+
+/* 텍스트 */
+.modal-content p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+/* 애니메이션 */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

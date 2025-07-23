@@ -23,17 +23,31 @@ const SearchMain = ({ searchForm, setSearchForm }) => {
   const [columns, setColumns] = useState([]);
 
   useEffect(() => {
+    console.log("crimeData", crimeData);
     if (crimeData && crimeData.length > 0) {
       setFilteredData(
         crimeData?.map((item) => ({
           crimeNumber: item.crimeNumber,
+          imageNumber: item.imageNumber,
+          crimeName: item.crimeName,
+          findTime: item.findTime,
+          requestOffice: item.requestOffice,
+          findMethod: item.findMethod,
           state: item.state,
           ranking: item.ranking,
-          matchingShoes: item.matchingShoes,
         }))
       );
 
-      setColumns(["사건번호", "상태(진행중/발견/불발견)", "순위", "매칭된 신발"]);
+      setColumns([
+        "사건등록번호",
+        "이미지번호",
+        "사건명",
+        "채취일시",
+        "의뢰관서",
+        "채취방법",
+        "상태(진행중/발견/불발견)",
+        "순위",
+      ]);
     }
   }, [crimeData]);
 
@@ -41,12 +55,23 @@ const SearchMain = ({ searchForm, setSearchForm }) => {
     e.preventDefault();
 
     setFilteredData(() => {
-      return crimeData.filter((tableData) => {
-        return Object.keys(searchForm).every((key) => {
-          if (searchForm[key] === "") return true; // 필터링 조건이 비어있으면 통과
-          return tableData[key] && String(tableData[key]) === searchForm[key];
-        });
-      });
+      return crimeData
+        .filter((tableData) => {
+          return Object.keys(searchForm).every((key) => {
+            if (searchForm[key] === "") return true; // 필터링 조건이 비어있으면 통과
+            return tableData[key] && String(tableData[key]) === searchForm[key];
+          });
+        })
+        .map((filteredRow) => ({
+          crimeNumber: filteredRow.crimeNumber,
+          imageNumber: filteredRow.imageNumber,
+          crimeName: filteredRow.crimeName,
+          findTime: filteredRow.findTime,
+          requestOffice: filteredRow.requestOffice,
+          findMethod: filteredRow.findMethod,
+          state: filteredRow.state,
+          ranking: filteredRow.ranking,
+        }));
     });
   };
 

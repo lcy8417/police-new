@@ -7,15 +7,14 @@ const CrimeSearch = () => {
   const { crimeData } = useContext(crimeDataContext);
 
   const [searchForm, setSearchForm] = useState({
-    사건등록번호: "",
-    이미지번호: "",
-    사건명: "",
-    채취일시: "",
-    채취장소: "",
-    의뢰관서: "",
-    채취방법: "",
-    진행상태: "",
-    순위: "",
+    crimeNumber: "",
+    imageNumber: "",
+    crimeName: "",
+    findTime: "",
+    requestOffice: "",
+    findMethod: "",
+    state: "",
+    ranking: "",
   });
 
   return (

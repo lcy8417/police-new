@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import "./Canvas.css";
 import ImageLoader from "./ImageLoader";
+import { updateCanvasPosition } from "../utils/get-canvas-size.js";
 
 const Canvas = ({
   formData,
@@ -17,6 +18,7 @@ const Canvas = ({
   lineState = null, // 캔버스의 선 상태
   setLineState = null, // 캔버스의 선 상태를 설정하는 함수
   imgRef = null,
+  mode = "patterns",
 }) => {
   const filterStyle = scrollState
     ? {
@@ -66,68 +68,21 @@ const Canvas = ({
 
   // 이미지가 변경될 때 캔버스 크기 조정
   useEffect(() => {
-    const updateCanvasPosition = () => {
-      let $img = null;
-      if (imgRef?.current) {
-        $img = imgRef.current;
-      } else {
-        $img = document.querySelector(
-          ".image-edit-display .ImageLoader .image-container > img"
-        );
-      }
-
-      const $imageLoader = document.querySelector(
-        ".image-edit-display .ImageLoader"
-      );
-      if (!$img || !$imageLoader) return;
-
-      // 이미지가 아직 로드되지 않았다면 리턴
-      if (!$img.complete || $img.naturalWidth === 0) return;
-
-      const [maxLeft, maxTop, maxWidth, maxHeight] = [
-        $imageLoader.offsetLeft,
-        $imageLoader.offsetTop,
-        $imageLoader.offsetWidth,
-        $imageLoader.offsetHeight,
-      ];
-
-      const rect = $img.getBoundingClientRect();
-
-      const [left, top, width, height] = [
-        Math.max(rect.left, maxLeft),
-        Math.max(rect.top, maxTop),
-        Math.min(rect.width, maxWidth),
-        Math.min(rect.height, maxHeight),
-      ];
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      console.log(rect.width, maxWidth, rect.height, maxHeight);
-
-      canvas.width = width;
-      canvas.height = height;
-      canvas.style.position = "fixed";
-      canvas.style.left = `${left}px`;
-      canvas.style.top = `${top}px`;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      canvas.style.pointerEvents = "auto";
-      canvas.style.zIndex = 999;
-    };
+    const update = () => updateCanvasPosition({ imgRef, canvasRef, mode });
 
     const img = imgRef?.current;
 
     if (img && !img.complete) {
       console.log("실행됨1");
-      img.onload = updateCanvasPosition;
+      img.onload = update;
     } else {
       console.log("실행됨2");
-      updateCanvasPosition();
+      update();
     }
 
-    window.addEventListener("resize", updateCanvasPosition);
+    window.addEventListener("resize", update);
     return () => {
-      window.removeEventListener("resize", updateCanvasPosition);
+      window.removeEventListener("resize", update);
       if (img) img.onload = null;
     };
   }, [formData.image, scrollState]);

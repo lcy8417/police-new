@@ -8,6 +8,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { crimeDataContext } from "../App";
 import { useContext } from "react";
 import { filteredPatterns } from "../utils/get-input-change";
+import LoadingModal from "./LoadingModal";
 
 const url = import.meta.env.VITE_API_URL;
 
@@ -27,9 +28,12 @@ const ShoesResultMain = () => {
     image: edit ? currentImage : `${url}/crime_images/${crimeNumber}.png`,
   };
 
+  const [isSearching, setIsSearching] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsSearching(true);
         if (!currentImage) {
           const image = await imageLoad({ crimeNumber, edit });
           setCurrentImage(image);
@@ -42,6 +46,8 @@ const ShoesResultMain = () => {
             crimeNumber: crimeNumber,
             body: { image: currentImage, top, mid, bottom, outline },
             page: page,
+          }).finally(() => {
+            setIsSearching(false);
           });
           setTotalCount(total);
           setCurrentPageData(result);
@@ -56,6 +62,7 @@ const ShoesResultMain = () => {
 
   return (
     <div className="ShoesResultMain">
+      {isSearching && <LoadingModal text="신발 검색 중..." />}
       <Sidebar />
       <div className="main">
         <ImageLoader formData={formData} value="현장이미지" />
