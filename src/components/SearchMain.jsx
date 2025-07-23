@@ -33,8 +33,8 @@ const SearchMain = ({ searchForm, setSearchForm }) => {
           findTime: item.findTime,
           requestOffice: item.requestOffice,
           findMethod: item.findMethod,
-          state: item.state,
-          ranking: item.ranking,
+          // state: item.state,
+          // ranking: item.ranking,
         }))
       );
 
@@ -45,8 +45,8 @@ const SearchMain = ({ searchForm, setSearchForm }) => {
         "채취일시",
         "의뢰관서",
         "채취방법",
-        "상태(진행중/발견/불발견)",
-        "순위",
+        // "상태(진행중/발견/불발견)",
+        // "순위",
       ]);
     }
   }, [crimeData]);
@@ -69,8 +69,8 @@ const SearchMain = ({ searchForm, setSearchForm }) => {
           findTime: filteredRow.findTime,
           requestOffice: filteredRow.requestOffice,
           findMethod: filteredRow.findMethod,
-          state: filteredRow.state,
-          ranking: filteredRow.ranking,
+          // state: filteredRow.state,
+          // ranking: filteredRow.ranking,
         }));
     });
   };
@@ -92,8 +92,8 @@ const SearchMain = ({ searchForm, setSearchForm }) => {
           findTime: item.findTime,
           requestOffice: item.requestOffice,
           findMethod: item.findMethod,
-          state: item.state,
-          ranking: item.ranking,
+          // state: item.state,
+          // ranking: item.ranking,
         };
       })
     ); // 초기화 시 전체 데이터로 되돌리기

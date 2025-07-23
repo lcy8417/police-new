@@ -13,8 +13,8 @@ const CrimeSearch = () => {
     findTime: "",
     requestOffice: "",
     findMethod: "",
-    state: "",
-    ranking: "",
+    // state: "",
+    // ranking: "",
   });
 
   return (

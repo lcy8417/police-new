@@ -11,7 +11,7 @@ const mappingList = {
   imageNumber: "이미지 번호",
   crimeName: "사건 이름",
   findTime: "채취 일시",
-  requestOffice: "요청 사무소",
+  requestOffice: "의뢰관서",
   findMethod: "발견 방법",
   ranking: "순위",
   state: "진행상태",
