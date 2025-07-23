@@ -83,7 +83,20 @@ const SearchMain = ({ searchForm, setSearchForm }) => {
       });
       return resetData;
     });
-    setFilteredData(crimeData); // 초기화 시 전체 데이터로 되돌리기
+    setFilteredData(
+      crimeData.map((item) => {
+        return {
+          crimeNumber: item.crimeNumber,
+          imageNumber: item.imageNumber,
+          crimeName: item.crimeName,
+          findTime: item.findTime,
+          requestOffice: item.requestOffice,
+          findMethod: item.findMethod,
+          state: item.state,
+          ranking: item.ranking,
+        };
+      })
+    ); // 초기화 시 전체 데이터로 되돌리기
   };
 
   return (
