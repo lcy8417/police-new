@@ -31,6 +31,7 @@ const EditMain = ({ scrollState, setScrollState }) => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const canvasRef = useRef(null);
+  const imgRef = useRef(null);
 
   const { crimeData } = useContext(crimeDataContext); // Accessing crime data from context
   const { crimeNumber } = useParams(); // Assuming you have a route parameter for the crime ID
@@ -40,6 +41,7 @@ const EditMain = ({ scrollState, setScrollState }) => {
 
   // 되돌리기 메모
   const [returnMemo, setReturnMemo] = useState([]);
+  const [originSize, setOriginSize] = useState([0, 0]);
 
   const crimeItem = crimeData.find(
     (item) => String(item.crimeNumber) === String(crimeNumber)
@@ -279,6 +281,10 @@ const EditMain = ({ scrollState, setScrollState }) => {
           formData={crimeItem || {}} // fallback for robustness
           flex={3}
           mode="edit"
+          buttonState={buttonState}
+          setOriginSize={setOriginSize}
+          originSize={originSize}
+          imgRef={imgRef}
         />
       </div>
     </div>

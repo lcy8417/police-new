@@ -2,6 +2,7 @@ export const updateCanvasPosition = ({
   imgRef,
   canvasRef,
   mode = "patterns",
+  originSize = null,
 }) => {
   let $img = null;
   if (imgRef?.current) {
@@ -30,10 +31,15 @@ export const updateCanvasPosition = ({
   const rect = $img.getBoundingClientRect();
 
   // 이미지 편집에서는 중심점을 기준으로 캔버스 크기 조정
-  const imageWidth = $img.naturalWidth;
-  const imageHeight = $img.naturalHeight;
 
-  console.log("imageWidth, imageHeight", imageWidth, imageHeight);
+  let imageWidth = $img.offsetWidth;
+  let imageHeight = $img.offsetHeight;
+
+  // originSize의 정보가 있는 경우
+  if (originSize) {
+    imageWidth = originSize[0];
+    imageHeight = originSize[1];
+  }
 
   const loaderRect = $imageLoader.getBoundingClientRect();
 
@@ -48,8 +54,6 @@ export const updateCanvasPosition = ({
     Math.min(mode == "edit" ? imageWidth : rect.width, maxWidth),
     Math.min(mode == "edit" ? imageHeight : rect.height, maxHeight),
   ];
-
-  console.log("left, top, width, height", left, top, width, height, mode);
   const canvas = canvasRef.current;
   if (!canvas) return;
 

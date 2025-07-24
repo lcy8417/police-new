@@ -19,6 +19,9 @@ const Canvas = ({
   setLineState = null, // 캔버스의 선 상태를 설정하는 함수
   imgRef = null,
   mode = "patterns",
+  buttonState = null,
+  setOriginSize = null,
+  originSize = null,
 }) => {
   const filterStyle = scrollState
     ? {
@@ -68,7 +71,8 @@ const Canvas = ({
 
   // 이미지가 변경될 때 캔버스 크기 조정
   useEffect(() => {
-    const update = () => updateCanvasPosition({ imgRef, canvasRef, mode });
+    const update = () =>
+      updateCanvasPosition({ imgRef, canvasRef, mode, originSize });
 
     const img = imgRef?.current;
 
@@ -85,7 +89,7 @@ const Canvas = ({
       window.removeEventListener("resize", update);
       if (img) img.onload = null;
     };
-  }, [formData.image, scrollState]);
+  }, [formData.image, buttonState, originSize]);
 
   useEffect(() => {
     if (!formData.image || !lineState) return;
@@ -177,6 +181,7 @@ const Canvas = ({
           style={scrollState && filterStyle}
           patternFunction={patternFunction}
           imgRef={imgRef}
+          setOriginSize={setOriginSize}
         />
         <canvas
           ref={canvasRef}

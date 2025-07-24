@@ -11,6 +11,7 @@ const ImageLoader = ({
   style = {},
   onLoad = null,
   imgRef = null,
+  setOriginSize = null,
 }) => {
   const fileInputRef = useRef(null);
 
@@ -72,7 +73,14 @@ const ImageLoader = ({
         <img
           src={propsImage || formData?.image || null}
           style={style}
-          onLoad={onLoad}
+          onLoad={() => {
+            if (imgRef?.current) {
+              setOriginSize([
+                imgRef.current.offsetWidth,
+                imgRef.current.offsetHeight,
+              ]);
+            }
+          }}
           ref={imgRef}
         />
       </div>
