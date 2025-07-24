@@ -1,9 +1,12 @@
 import CrimeRegisterMain from "../components/CrimeRegisterMain";
 import Header from "../components/Header";
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { fetchCrimeRegister } from "../services/crud"; // 🧊 CRUD 서비스에서 함수 가져오기
+import { crimeDataContext } from "../App";
 
 const CrimeRegister = () => {
+  const { setRegisterFlag } = useContext(crimeDataContext);
+
   const [formData, setFormData] = useState({
     image: null,
     crimeNumber: "",
@@ -33,6 +36,8 @@ const CrimeRegister = () => {
         requestOffice: "",
         findMethod: "",
       });
+
+      setRegisterFlag((prev) => !prev);
     } catch (error) {
       console.error("사건 등록 중 오류 발생:", error);
       alert("사건 등록에 실패했습니다. 다시 시도해주세요.");

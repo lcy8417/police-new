@@ -20,6 +20,7 @@ export const crimeDataContext = createContext();
 
 function App() {
   const [crimeData, setCrimeData] = useState([]);
+  const [registerFlag, setRegisterFlag] = useState([]);
 
   // 범죄 데이터 초기화
   useEffect(() => {
@@ -44,10 +45,12 @@ function App() {
     };
 
     readCrimeData();
-  }, []);
+  }, [registerFlag]);
 
   return (
-    <crimeDataContext.Provider value={{ crimeData, setCrimeData }}>
+    <crimeDataContext.Provider
+      value={{ crimeData, setCrimeData, setRegisterFlag }}
+    >
       <BrowserRouter>
         <div className="app-layout">
           <div className="page-content">
