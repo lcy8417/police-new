@@ -46,7 +46,12 @@ export const patternsExtract = async ({ crimeNumber = "", body }) => {
   };
 };
 
-export const imageSearch = async ({ crimeNumber = "", body, page = 0 }) => {
+export const imageSearch = async ({
+  crimeNumber = "",
+  body,
+  page = 0,
+  binary = "원본",
+}) => {
   const queryString = new URLSearchParams({ page }).toString();
   const fullUrl = `${url}/crime/${crimeNumber}/search?${queryString}`;
   const response = await fetch(fullUrl, {
@@ -61,10 +66,12 @@ export const imageSearch = async ({ crimeNumber = "", body, page = 0 }) => {
 
   const data = await response.json();
 
+  const shoesDir = binary === "이진화보기" ? "B" : "Shoerin";
+
   const total = data.total;
   const result = data.result.map((item) => ({
     ...item,
-    image: `${url}/shoes_images/B/${item.image}.png`, // Adjust the path as needed
+    image: `${url}/shoes_images/${shoesDir}/${item.image}.png`, // Adjust the path as needed
     shoesName: item.image,
   }));
   return { result, total };

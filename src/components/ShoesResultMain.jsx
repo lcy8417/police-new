@@ -12,7 +12,7 @@ import LoadingModal from "./LoadingModal";
 
 const url = import.meta.env.VITE_API_URL;
 
-const ShoesResultMain = () => {
+const ShoesResultMain = ({ binary }) => {
   const { crimeNumber } = useParams();
   const [currentPageData, setCurrentPageData] = useState([]);
   const [page, setPage] = useState(0);
@@ -46,6 +46,7 @@ const ShoesResultMain = () => {
             crimeNumber: crimeNumber,
             body: { image: currentImage, top, mid, bottom, outline },
             page: page,
+            binary: binary,
           }).finally(() => {
             setIsSearching(false);
           });
@@ -58,7 +59,7 @@ const ShoesResultMain = () => {
     };
 
     fetchData();
-  }, [page, currentImage]);
+  }, [page, currentImage, binary]);
 
   return (
     <div className="ShoesResultMain">
