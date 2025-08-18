@@ -49,7 +49,12 @@ const CrimeRegister = () => {
     <>
       <Header
         value="신규 사건 등록"
-        buttonList={[{ value: "저장", event: handleSubmit }]}
+        buttonList={[
+          {
+            value: "저장",
+            event: handleSubmit,
+          },
+        ]}
       />
       <CrimeRegisterMain formData={formData} setFormData={setFormData} />
     </>

@@ -8,6 +8,7 @@ const ImageLoader = ({
   value = "현장이미지",
   propsImage = null,
   patternFunction = false,
+  rotateFunction = false,
   style = {},
   onLoad = null,
   imgRef = null,
@@ -54,6 +55,20 @@ const ImageLoader = ({
               <Button
                 value="문양초기화"
                 onClick={patternFunction[1]}
+                type="button"
+              />
+            </>
+          )}
+          {rotateFunction && (
+            <>
+              <Button
+                value="회전(<)"
+                onClick={rotateFunction[0]}
+                type="button"
+              />
+              <Button
+                value="회전(>)"
+                onClick={rotateFunction[1]}
                 type="button"
               />
             </>

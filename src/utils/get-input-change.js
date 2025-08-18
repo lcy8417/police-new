@@ -44,3 +44,32 @@ export const filteredPatterns = (currentCrimeData) => {
 
   return filtered;
 };
+
+export const rotateImage = (base64Image, degrees) => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      // 회전 각도에 따라 캔버스 크기 조정
+      const isVertical = Math.abs(degrees % 180) === 90;
+      canvas.width = isVertical ? img.height : img.width;
+      canvas.height = isVertical ? img.width : img.height;
+
+      // 캔버스 중앙으로 이동
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+
+      // 회전
+      ctx.rotate((degrees * Math.PI) / 180);
+
+      // 이미지 그리기 (중앙 기준)
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+      // Base64로 변환
+      const rotatedBase64 = canvas.toDataURL("image/png");
+      resolve(rotatedBase64);
+    };
+    img.src = base64Image;
+  });
+};
