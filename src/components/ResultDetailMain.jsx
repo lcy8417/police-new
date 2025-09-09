@@ -11,7 +11,7 @@ import { crimeDataContext } from "../App";
 import { fetchHistorySave, fetchCurrentShoes } from "../services/crud";
 import { toPatternPaths } from "../utils/path-utils"; // 🧊 경로 유틸리티 함수 가져오기
 import { fetchSimilarity } from "../services/api";
-
+import LoadingModal from "./LoadingModal";
 const url = import.meta.env.VITE_API_URL;
 
 const ShoesResultDetail = () => {
@@ -19,12 +19,10 @@ const ShoesResultDetail = () => {
   const [searchParams] = useSearchParams();
   const ranking = searchParams.get("ranking");
   const navigator = useNavigate();
+  const [isSearching, setIsSearching] = useState(false);
 
   const sideImage = {
     image: `${url}/shoes_images/S/${modelNumber}.png`,
-  };
-  const bottomImage = {
-    image: `${url}/shoes_images/B/${modelNumber}.png`,
   };
 
   const { crimeData } = useContext(crimeDataContext);
@@ -34,27 +32,40 @@ const ShoesResultDetail = () => {
     (item) => String(item.crimeNumber) === String(crimeNumber)
   );
 
+  const [queryData, setQueryData] = useState({ image: null });
   const [shoesData, setShoesData] = useState([]);
+  const [bottomImage, setBottomImage] = useState({
+    image: `${url}/shoes_images/B/${modelNumber}.png`,
+  });
 
   useEffect(() => {
     const getShoesInfo = async () => {
       try {
+        setIsSearching(true);
         const data = await fetchCurrentShoes(modelNumber);
-        const test = await fetchSimilarity({ crimeNumber, modelNumber });
+        const attns_map = await fetchSimilarity({ crimeNumber, modelNumber });
+
+        setBottomImage({
+          image: attns_map.ref_attn_map,
+        });
+
+        setQueryData({
+          image: attns_map.query_attn_map,
+        });
 
         setShoesData({
           ...data,
+          image: attns_map.ref_attn_map,
           top: toPatternPaths(data.top) || [],
           mid: toPatternPaths(data.mid) || [],
           bottom: toPatternPaths(data.bottom) || [],
           outline: toPatternPaths(data.outline) || [],
         });
+        setIsSearching(false);
       } catch (error) {
         console.error("Error fetching current shoes data:", error);
       }
     };
-
-    console.log(modelNumber, crimeNumber);
 
     getShoesInfo();
   }, [modelNumber]);
@@ -99,11 +110,12 @@ const ShoesResultDetail = () => {
 
   return (
     <div className="ResultDetailMain">
+      {isSearching && <LoadingModal text="신발 검색 중..." />}
       <Sidebar />
       <div className="main">
         <ImageLoader
-          formData={currentCrimeData}
-          propsImage={currentCrimeData?.image}
+          formData={queryData || currentCrimeData}
+          propsImage={queryData.image || currentCrimeData?.image}
         />
         <div className="gt-shoes-images">
           <div className="gt-shoes-image">

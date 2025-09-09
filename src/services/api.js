@@ -120,7 +120,8 @@ export const fetchSimilarity = async ({ crimeNumber, modelNumber }) => {
   const queryString = new URLSearchParams({
     model_number: modelNumber,
   }).toString();
-  const fullUrl = `${url}/crime/${crimeNumber}?${queryString}`;
+  
+  const fullUrl = `${url}/crime/${crimeNumber}/similarity?${queryString}`;
 
   const response = await fetch(fullUrl, {
     method: "POST",
@@ -128,7 +129,7 @@ export const fetchSimilarity = async ({ crimeNumber, modelNumber }) => {
   });
 
   if (!response.ok) {
-    throw new Error("Perspective correction failed");
+    throw new Error("Similarity correction failed");
   }
 
   const data = await response.json();
