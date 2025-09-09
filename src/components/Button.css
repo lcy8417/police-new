@@ -35,3 +35,15 @@
 .full-width {
   width: 100%;
 }
+
+.disabled {
+  background-color: #adb5bd;
+  color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.disabled:hover {
+  background-color: #adb5bd;
+  color: #6c757d;
+}

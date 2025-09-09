@@ -6,6 +6,7 @@ import { crimeDataContext } from "../App";
 
 const CrimeRegister = () => {
   const { setRegisterFlag } = useContext(crimeDataContext);
+  const [calibration, setCalibration] = useState("각도보정키기");
 
   const [formData, setFormData] = useState({
     image: null,
@@ -54,9 +55,27 @@ const CrimeRegister = () => {
             value: "저장",
             event: handleSubmit,
           },
+          {
+            value: calibration,
+            event: () => {
+              if (!formData.image) {
+                alert("이미지를 먼저 등록해주세요.");
+                return;
+              }
+
+              setCalibration((prev) =>
+                prev === "각도보정키기" ? "각도보정끄기" : "각도보정키기"
+              );
+            },
+          },
         ]}
       />
-      <CrimeRegisterMain formData={formData} setFormData={setFormData} />
+      <CrimeRegisterMain
+        formData={formData}
+        setFormData={setFormData}
+        calibration={calibration}
+        setCalibration={setCalibration}
+      />
     </>
   );
 };

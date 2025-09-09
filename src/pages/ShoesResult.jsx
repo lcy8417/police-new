@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 const ShoesResult = () => {
   const navigate = useNavigate();
   const [binary, setBinary] = useState("이진화보기");
+  const [similarity, setSimilarity] = useState("유사부위표출보기");
 
   const buttonList = [
     {
@@ -20,6 +21,15 @@ const ShoesResult = () => {
         setBinary((prev) =>
           prev === "이진화보기" ? "원본보기" : "이진화보기"
         );
+        setSimilarity(false);
+      },
+    },
+    {
+      value: similarity,
+      event: () => {
+        setSimilarity((prev) =>
+          prev === "유사부위표출보기" ? "유사부위표출끄기" : "유사부위표출보기"
+        );
       },
     },
   ];
@@ -27,7 +37,7 @@ const ShoesResult = () => {
   return (
     <>
       <Header value="사건검색결과조회" buttonList={buttonList} />
-      <ShoesResultMain binary={binary} />
+      <ShoesResultMain binary={binary} similarity={similarity} />
     </>
   );
 };

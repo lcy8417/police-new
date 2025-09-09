@@ -108,6 +108,7 @@ const EditMain = ({ scrollState, setScrollState }) => {
       params.append("render_size", render_size.height);
 
       if (buttonState === "배경제거") {
+        console.log(points);
         handleProcessing({
           endpoint: "segmentation",
           body: {

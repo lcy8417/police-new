@@ -51,8 +51,9 @@ export const imageSearch = async ({
   body,
   page = 0,
   binary = "원본",
+  similarity = false,
 }) => {
-  const queryString = new URLSearchParams({ page }).toString();
+  const queryString = new URLSearchParams({ page, similarity }).toString();
   const fullUrl = `${url}/crime/${crimeNumber}/search?${queryString}`;
   const response = await fetch(fullUrl, {
     method: "POST",
@@ -66,7 +67,8 @@ export const imageSearch = async ({
 
   const data = await response.json();
 
-  const shoesDir = binary === "이진화보기" ? "B" : "Shoerin";
+  let shoesDir = binary === "이진화보기" ? "B" : "Shoerin";
+  shoesDir = similarity === "유사부위표출보기" ? shoesDir : "Similarity";
 
   const total = data.total;
   const result = data.result.map((item) => ({
@@ -91,4 +93,44 @@ export const imageLoad = async ({ crimeNumber, edit }) => {
 
   const data = await response.json();
   return data.image;
+};
+
+export const fetchPerspective = async (image, points) => {
+  const body = {
+    polygon: points,
+    image: image,
+  };
+
+  const fullUrl = `${url}/crime/demo/perspective`;
+  const response = await fetch(fullUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    ...(body && { body: JSON.stringify(body) }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Perspective correction failed");
+  }
+
+  const data = await response.json();
+  return data;
+};
+
+export const fetchSimilarity = async ({ crimeNumber, modelNumber }) => {
+  const queryString = new URLSearchParams({
+    model_number: modelNumber,
+  }).toString();
+  const fullUrl = `${url}/crime/${crimeNumber}?${queryString}`;
+
+  const response = await fetch(fullUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!response.ok) {
+    throw new Error("Perspective correction failed");
+  }
+
+  const data = await response.json();
+  return data;
 };

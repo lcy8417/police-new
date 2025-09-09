@@ -1,6 +1,7 @@
 import "./ImageLoader.css";
 import Button from "./Button";
 import React, { useRef } from "react";
+import { resizeImage } from "../utils/get-input-change";
 
 const ImageLoader = ({
   formData,
@@ -13,6 +14,7 @@ const ImageLoader = ({
   onLoad = null,
   imgRef = null,
   setOriginSize = null,
+  calibrationCanvas = null,
 }) => {
   const fileInputRef = useRef(null);
 
@@ -23,56 +25,6 @@ const ImageLoader = ({
 
       reader.onloadend = async () => {
         const base64data = reader.result;
-
-        // 이미지 리사이즈 함수
-        const resizeImage = async (base64Image) => {
-          const img = new Image();
-
-          // 이미지 로드 완료 대기
-          await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-            img.src = base64Image;
-          });
-
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-
-          // 원본 이미지 크기
-          const originalWidth = img.width;
-          const originalHeight = img.height;
-
-          // 1000보다 큰 변이 있는지 확인
-          const maxSize = 1000;
-          let newWidth, newHeight;
-
-          if (originalWidth <= maxSize && originalHeight <= maxSize) {
-            // 양 변이 모두 1000 이하면 원본 크기 유지
-            newWidth = originalWidth;
-            newHeight = originalHeight;
-          } else {
-            // 1000보다 큰 변이 있으면 리사이즈
-            if (originalWidth > originalHeight) {
-              // 가로가 더 긴 경우
-              newWidth = maxSize;
-              newHeight = (originalHeight * maxSize) / originalWidth;
-            } else {
-              // 세로가 더 긴 경우
-              newHeight = maxSize;
-              newWidth = (originalWidth * maxSize) / originalHeight;
-            }
-          }
-
-          // 캔버스 크기 설정
-          canvas.width = newWidth;
-          canvas.height = newHeight;
-
-          // 이미지 그리기
-          ctx.drawImage(img, 0, 0, newWidth, newHeight);
-
-          // Base64로 변환
-          return canvas.toDataURL("image/png");
-        };
 
         // 이미지 리사이즈 후 formData 업데이트
         try {
@@ -160,6 +112,22 @@ const ImageLoader = ({
           }}
           ref={imgRef}
         />
+        {/* 각도보정 Canvas 오버랩 */}
+        {calibrationCanvas && imgRef?.current && (
+          <div
+            className="calibration-canvas-overlay"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              pointerEvents: "none",
+            }}
+          >
+            {calibrationCanvas}
+          </div>
+        )}
       </div>
     </div>
   );

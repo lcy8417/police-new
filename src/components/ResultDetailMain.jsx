@@ -10,6 +10,7 @@ import { useContext } from "react";
 import { crimeDataContext } from "../App";
 import { fetchHistorySave, fetchCurrentShoes } from "../services/crud";
 import { toPatternPaths } from "../utils/path-utils"; // 🧊 경로 유틸리티 함수 가져오기
+import { fetchSimilarity } from "../services/api";
 
 const url = import.meta.env.VITE_API_URL;
 
@@ -39,6 +40,7 @@ const ShoesResultDetail = () => {
     const getShoesInfo = async () => {
       try {
         const data = await fetchCurrentShoes(modelNumber);
+        const test = await fetchSimilarity({ crimeNumber, modelNumber });
 
         setShoesData({
           ...data,
@@ -51,6 +53,8 @@ const ShoesResultDetail = () => {
         console.error("Error fetching current shoes data:", error);
       }
     };
+
+    console.log(modelNumber, crimeNumber);
 
     getShoesInfo();
   }, [modelNumber]);

@@ -73,3 +73,37 @@ export const rotateImage = (base64Image, degrees) => {
     img.src = base64Image;
   });
 };
+
+export const resizeImage = async (base64Image) => {
+  const img = new Image();
+  img.src = base64Image;
+
+  // 이미지 로드 완료 대기 (브라우저가 지원할 경우)
+  await img.decode();
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  const originalWidth = img.width;
+  const originalHeight = img.height;
+
+  const maxSize = 1000;
+  let newWidth, newHeight;
+
+  if (originalWidth <= maxSize && originalHeight <= maxSize) {
+    newWidth = originalWidth;
+    newHeight = originalHeight;
+  } else if (originalWidth > originalHeight) {
+    newWidth = maxSize;
+    newHeight = (originalHeight * maxSize) / originalWidth;
+  } else {
+    newHeight = maxSize;
+    newWidth = (originalWidth * maxSize) / originalHeight;
+  }
+
+  canvas.width = newWidth;
+  canvas.height = newHeight;
+  ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+  return canvas.toDataURL("image/png");
+};
