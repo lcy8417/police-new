@@ -81,6 +81,8 @@ const Preprocessing = ({
           min={title === "이진화" ? 0 : -100}
           max={title === "이진화" ? 255 : 100}
           buttonState={buttonState}
+          returnMemo={returnMemo}
+          setReturnMemo={setReturnMemo}
         />
       ))}
 

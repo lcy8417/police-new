@@ -11,6 +11,7 @@ import ResultDetail from "./pages/ResultDetail";
 import ShoesRepository from "./pages/ShoesRepository";
 import ShoesEdit from "./pages/ShoesEdit";
 import CrimeHistory from "./pages/CrimeHistory";
+import EditorMode from "./pages/EditorMode";
 
 import { useState, createContext, useEffect } from "react";
 import { fetchCrimeData } from "./services/crud"; // 🧊 CRUD 서비스에서 함수 가져오기
@@ -76,6 +77,7 @@ function App() {
                 element={<ResultDetail />}
               />
               <Route path="/edit/:crimeNumber" element={<CrimeEdit />} />
+              <Route path="/editormode" element={<EditorMode />} />
               <Route path="/shoesRegister" element={<ShoesRegister />} />
               <Route path="/shoesRepository" element={<ShoesRepository />} />
               <Route

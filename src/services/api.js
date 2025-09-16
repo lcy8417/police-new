@@ -120,7 +120,7 @@ export const fetchSimilarity = async ({ crimeNumber, modelNumber }) => {
   const queryString = new URLSearchParams({
     model_number: modelNumber,
   }).toString();
-  
+
   const fullUrl = `${url}/crime/${crimeNumber}/similarity?${queryString}`;
 
   const response = await fetch(fullUrl, {
@@ -130,6 +130,23 @@ export const fetchSimilarity = async ({ crimeNumber, modelNumber }) => {
 
   if (!response.ok) {
     throw new Error("Similarity correction failed");
+  }
+
+  const data = await response.json();
+  return data;
+};
+
+export const saveEditImage = async ({ id, image, folder }) => {
+  const fullUrl = `${url}/crime/${id}/edit-save`;
+
+  const response = await fetch(fullUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image, save_name: `${folder}_${id}` }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Edit save failed");
   }
 
   const data = await response.json();

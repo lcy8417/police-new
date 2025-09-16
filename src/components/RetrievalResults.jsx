@@ -11,11 +11,22 @@ const RetrievalResults = ({
 }) => {
   const navigate = useNavigate();
 
+  const getSimilarityClass = (similarity) => {
+    const value =
+      typeof similarity === "number" ? similarity : parseFloat(similarity);
+    if (isNaN(value)) return "similarity-low";
+    if (value >= 0.8) return "similarity-high";
+    if (value >= 0.6) return "similarity-mid";
+    return "similarity-low";
+  };
+
   return (
     <div className="RetrievalResults">
       <div className="header">
         <p />
-        <h2>현재페이지: {page}</h2>
+        <h2>
+          현재페이지: {page + 1} / {Math.ceil(totalCount / 50)}
+        </h2>
         <p>총 {totalCount}건</p>
       </div>
       <div className="result-items">
@@ -33,7 +44,19 @@ const RetrievalResults = ({
           >
             <img src={item.image} alt={`신발 이미지 ${i}`} />
             <div className="item-similarity">
-              <p>유사도: {item.similarity}</p>
+              <div>
+                {50 * page + i + 1} / {50 * (page + 1)}
+              </div>
+              <div>
+                유사도:{" "}
+                <span
+                  className={`similarity-badge ${getSimilarityClass(
+                    item.similarity
+                  )}`}
+                >
+                  {item.similarity}
+                </span>
+              </div>
             </div>
           </div>
         ))}

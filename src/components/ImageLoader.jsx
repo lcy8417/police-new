@@ -2,6 +2,8 @@ import "./ImageLoader.css";
 import Button from "./Button";
 import React, { useRef } from "react";
 import { resizeImage } from "../utils/get-input-change";
+import { useNavigate } from "react-router-dom";
+import { saveEditImage } from "../services/api";
 
 const ImageLoader = ({
   formData,
@@ -13,10 +15,71 @@ const ImageLoader = ({
   style = {},
   onLoad = null,
   imgRef = null,
-  setOriginSize = null,
   calibrationCanvas = null,
+  originSize = null,
+  setOriginSize = null,
+  disableDoubleClick = false,
 }) => {
   const fileInputRef = useRef(null);
+
+  // 더블클릭 이벤트 핸들러 - 라우팅
+  const handleDoubleClick = async () => {
+    console.log(formData);
+    if (formData?.image) {
+      try {
+        let imageToSend = formData.image;
+
+        // 이미지가 정적 URL인 경우 base64로 변환
+        if (
+          formData.image.startsWith("http://") ||
+          formData.image.startsWith("https://")
+        ) {
+          const response = await fetch(formData.image);
+          const blob = await response.blob();
+
+          // blob을 base64로 변환
+          const base64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+
+          imageToSend = base64;
+        }
+
+        // 서버에 이미지 저장
+        const id = formData.modelNumber || formData.crimeNumber;
+        const folder = formData.modelNumber ? "shoes" : "crime";
+
+        try {
+          await saveEditImage({
+            id: id,
+            image: imageToSend,
+            folder: folder,
+          });
+
+          console.log("이미지가 서버에 저장되었습니다.");
+
+          // 쿼리 파라미터와 함께 라우팅
+          const params = new URLSearchParams({
+            folder: folder,
+            id: id,
+          });
+
+          const url = `${
+            window.location.origin
+          }/editormode?${params.toString()}`;
+          window.open(url, "_blank", "noopener,noreferrer");
+        } catch (saveError) {
+          console.error("서버 저장 중 오류:", saveError);
+          alert("이미지 저장 중 오류가 발생했습니다.");
+        }
+      } catch (error) {
+        console.error("이미지 인코딩 중 오류:", error);
+        alert("이미지를 불러오는 중 오류가 발생했습니다.");
+      }
+    }
+  };
 
   const handleChange = (e) => {
     const file = e.target.files[0];
@@ -103,13 +166,21 @@ const ImageLoader = ({
           src={propsImage || formData?.image || null}
           style={style}
           onLoad={() => {
-            if (imgRef?.current) {
+            if (imgRef?.current && setOriginSize) {
               setOriginSize([
                 imgRef.current.offsetWidth,
                 imgRef.current.offsetHeight,
               ]);
             }
+            if (onLoad) {
+              onLoad();
+            }
           }}
+          onDoubleClick={
+            formData?.image && !disableDoubleClick
+              ? handleDoubleClick
+              : undefined
+          }
           ref={imgRef}
         />
         {/* 각도보정 Canvas 오버랩 */}

@@ -20,9 +20,15 @@ const Canvas = ({
   imgRef = null,
   mode = "patterns",
   buttonState = null,
-  setOriginSize = null,
   originSize = null,
+  setOriginSize = null,
+  onWheel = null, // 마우스 휠 이벤트 핸들러
 }) => {
+  const [imageSize, setImageSize] = useState({});
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 });
+
   const filterStyle = scrollState
     ? {
         filter: `
@@ -32,12 +38,63 @@ const Canvas = ({
     `,
         transform: `scale(${1 + scrollState.zoom / 100})
               rotate(${(scrollState.rotate / 100) * 180}deg)
+              translate(${imageOffset.x}px, ${imageOffset.y}px)
 `,
-        transition: "all 0.3s ease",
+        transition: isDragging ? "none" : "all 0.3s ease",
       }
     : {};
 
-  const [imageSize, setImageSize] = useState({});
+  // 이미지 드래그 핸들러들
+  const handleImageMouseDown = (e) => {
+    // 확대된 상태에서만 드래그 가능
+    if (scrollState && scrollState.zoom > 0) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX, y: e.clientY });
+      e.preventDefault();
+    }
+  };
+
+  const handleImageMouseMove = (e) => {
+    if (isDragging && scrollState && scrollState.zoom > 0) {
+      const deltaX = e.clientX - dragStart.x;
+      const deltaY = e.clientY - dragStart.y;
+
+      setImageOffset((prev) => ({
+        x: prev.x + deltaX,
+        y: prev.y + deltaY,
+      }));
+
+      setDragStart({ x: e.clientX, y: e.clientY });
+    }
+  };
+
+  const handleImageMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // 전역 마우스 이벤트 처리
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener("mousemove", handleImageMouseMove);
+      document.addEventListener("mouseup", handleImageMouseUp);
+    } else {
+      document.removeEventListener("mousemove", handleImageMouseMove);
+      document.removeEventListener("mouseup", handleImageMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleImageMouseMove);
+      document.removeEventListener("mouseup", handleImageMouseUp);
+    };
+  }, [isDragging]);
+
+  // 확대/축소 시 이미지 오프셋 초기화
+  useEffect(() => {
+    if (scrollState && scrollState.zoom <= 0) {
+      setImageOffset({ x: 0, y: 0 });
+    }
+  }, [scrollState?.zoom]);
+
   // 캔버스에 점을 그리는 useEffect
   useEffect(() => {
     if (points.length === 0) return;
@@ -181,12 +238,18 @@ const Canvas = ({
           style={scrollState && filterStyle}
           patternFunction={patternFunction}
           imgRef={imgRef}
+          originSize={originSize}
           setOriginSize={setOriginSize}
+          onMouseDown={handleImageMouseDown}
+          scrollState={scrollState}
+          isDragging={isDragging}
+          disableDoubleClick={mode === "edit"}
         />
         <canvas
           ref={canvasRef}
           onClick={handleClick}
           onContextMenu={handleRightClick}
+          onWheel={onWheel}
         />
       </div>
     </div>

@@ -9,6 +9,15 @@ const useImageProcessing = ({
 }) => {
   const handleProcessing = async ({ endpoint, body = null, params = null }) => {
     try {
+      if (body?.image && body.image.includes(".png")) {
+        body.image = body.image.split("/").pop().split(".")[0];
+      }
+
+      if (endpoint == "denoising" && body?.image) {
+        body = body.image;
+      }
+
+      console.log("dd", body, "dd");
       const image = await imageProcessing(crimeNumber, endpoint, body, params);
 
       setScrollState((prev) => ({ ...prev, image }));

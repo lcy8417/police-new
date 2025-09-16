@@ -62,6 +62,12 @@
   pointer-events: none;
 }
 
+/* 이미지가 있을 때 더블클릭 가능하도록 커서 변경 */
+.ImageLoader .image-container img[src]:not([src=""]) {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
 /* 각도보정 Canvas 오버랩 스타일 */
 .ImageLoader .calibration-canvas-overlay {
   position: absolute;
@@ -77,4 +83,56 @@
   position: absolute;
   top: 0;
   left: 0;
+}
+
+/* 이미지 에디터 모달 스타일 */
+.image-editor-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: white;
+  border-bottom: 1px solid #ccc;
+}
+
+.editor-header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.editor-content {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  background-color: white;
+  margin: 20px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.editor-left {
+  flex: 1;
+  min-width: 300px;
+  max-width: 400px;
+  border-right: 1px solid #eee;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.editor-right {
+  flex: 3;
+  min-width: 0;
 }
