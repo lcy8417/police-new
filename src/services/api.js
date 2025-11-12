@@ -67,8 +67,7 @@ export const imageSearch = async ({
 
   const data = await response.json();
 
-  let shoesDir = binary === "이진화보기" ? "B" : "Shoerin";
-  shoesDir = similarity === "유사부위표출보기" ? shoesDir : "Similarity";
+  let shoesDir = binary === "이진화보기" ? "B" : "Shoerinsics";
 
   const total = data.total;
   const result = data.result.map((item) => ({

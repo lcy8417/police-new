@@ -15,11 +15,11 @@ const url = import.meta.env.VITE_API_URL;
 const ShoesResultMain = ({ binary, similarity }) => {
   const { crimeNumber } = useParams();
   const [currentPageData, setCurrentPageData] = useState([]);
-  const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [searchParams] = useSearchParams();
   const [currentImage, setCurrentImage] = useState(null);
   const edit = searchParams.get("edit") === "true";
+  const page = parseInt(searchParams.get("page") || "0");
   const { crimeData } = useContext(crimeDataContext);
   const currentCrimeData = crimeData.find(
     (item) => String(item.crimeNumber) === String(crimeNumber)
@@ -71,7 +71,6 @@ const ShoesResultMain = ({ binary, similarity }) => {
         <RetrievalResults
           currentPageData={currentPageData}
           page={page}
-          setPage={setPage}
           totalCount={totalCount}
         />
       </div>

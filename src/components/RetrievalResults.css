@@ -23,7 +23,7 @@
 .RetrievalResults .result-items {
   flex: 8;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr; /* 3열로 구성 */
+  grid-template-columns: repeat(5, 1fr); /* 3열로 구성 */
   gap: 20px;
   flex-direction: column;
   padding: 20px;
@@ -41,6 +41,15 @@
   transform: scale(1.05); /* 호버 시 확대 효과 */
   transition: transform 0.3s ease; /* 확대 효과에 부드러운 전환 추가 */
   cursor: pointer; /* 커서 모양 변경 */
+}
+
+.RetrievalResults .result-item-title {
+  background-color: #616060;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 5px;
 }
 
 .RetrievalResults .result-item img {

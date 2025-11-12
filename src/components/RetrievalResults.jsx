@@ -1,15 +1,23 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useRef, useState, useEffect } from "react";
 import "./RetrievalResults.css";
 import Button from "./Button";
 
 const RetrievalResults = ({
   currentPageData,
   page,
-  setPage,
   clickAct = true,
   totalCount = 0,
 }) => {
   const navigate = useNavigate();
+  const { crimeNumber } = useParams();
+  const [searchParams] = useSearchParams();
+  const resultItemsRef = useRef(null);
+  const [inputPage, setInputPage] = useState(page + 1);
+
+  useEffect(() => {
+    setInputPage(page + 1);
+  }, [page]);
 
   const getSimilarityClass = (similarity) => {
     const value =
@@ -20,16 +28,46 @@ const RetrievalResults = ({
     return "similarity-low";
   };
 
+  const handlePageMove = () => {
+    const targetPage = Math.max(
+      1,
+      Math.min(parseInt(inputPage) || 1, Math.ceil(totalCount / 50))
+    );
+    const newPage = targetPage - 1; // 0-based index
+    const newSearchParams = new URLSearchParams(searchParams);
+    newSearchParams.set("page", newPage);
+    resultItemsRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    navigate(
+      `/search/${crimeNumber}/shoesResult?${newSearchParams.toString()}`
+    );
+  };
+
   return (
     <div className="RetrievalResults">
       <div className="header">
         <p />
-        <h2>
-          현재페이지: {page + 1} / {Math.ceil(totalCount / 50)}
-        </h2>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <h2 style={{ margin: 0 }}>현재페이지:</h2>
+          <input
+            type="number"
+            value={inputPage}
+            onChange={(e) => setInputPage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handlePageMove()}
+            style={{
+              width: "60px",
+              padding: "5px",
+              fontSize: "16px",
+              textAlign: "center",
+            }}
+            min="1"
+            max={Math.ceil(totalCount / 50)}
+          />
+          <h2 style={{ margin: 0 }}>/ {Math.ceil(totalCount / 50)}</h2>
+          <Button value="이동" onClick={handlePageMove} />
+        </div>
         <p>총 {totalCount}건</p>
       </div>
-      <div className="result-items">
+      <div className="result-items" ref={resultItemsRef}>
         {currentPageData?.map((item, i) => (
           <div
             className="result-item"
@@ -42,6 +80,7 @@ const RetrievalResults = ({
                 ))
             }
           >
+            <div className="result-item-title">No. {item.shoesName}</div>
             <img src={item.image} alt={`신발 이미지 ${i}`} />
             <div className="item-similarity">
               <div>
@@ -64,9 +103,28 @@ const RetrievalResults = ({
       <div className="result-footer">
         <Button
           value="<"
-          onClick={() => setPage(Math.max(0, parseInt(page) - 1))}
+          onClick={() => {
+            const newPage = Math.max(0, parseInt(page) - 1);
+            const newSearchParams = new URLSearchParams(searchParams);
+            newSearchParams.set("page", newPage);
+            resultItemsRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+            navigate(
+              `/search/${crimeNumber}/shoesResult?${newSearchParams.toString()}`
+            );
+          }}
         />
-        <Button value=">" onClick={() => setPage(parseInt(page) + 1)} />
+        <Button
+          value=">"
+          onClick={() => {
+            const newPage = parseInt(page) + 1;
+            const newSearchParams = new URLSearchParams(searchParams);
+            newSearchParams.set("page", newPage);
+            resultItemsRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+            navigate(
+              `/search/${crimeNumber}/shoesResult?${newSearchParams.toString()}`
+            );
+          }}
+        />
       </div>
     </div>
   );

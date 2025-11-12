@@ -24,14 +24,6 @@ const ShoesResult = () => {
         setSimilarity(false);
       },
     },
-    {
-      value: similarity,
-      event: () => {
-        setSimilarity((prev) =>
-          prev === "유사부위표출보기" ? "유사부위표출끄기" : "유사부위표출보기"
-        );
-      },
-    },
   ];
 
   return (
