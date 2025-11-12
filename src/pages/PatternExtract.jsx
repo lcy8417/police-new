@@ -26,7 +26,7 @@ const PatternExtract = () => {
         try {
           const edit = imgRef.current?.src.startsWith("data:image");
           updatePatterns();
-          navigate(`/search/${crimeNumber}/shoesResult?edit=${edit}&page=1`);
+          navigate(`/search/${crimeNumber}/shoesResult?edit=${edit}&page=0`);
         } catch (error) {
           console.error("Error updating patterns:", error);
           alert("문양 업데이트 중 오류가 발생했습니다.");
