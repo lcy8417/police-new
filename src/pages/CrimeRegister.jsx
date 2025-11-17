@@ -1,12 +1,14 @@
 import CrimeRegisterMain from "../components/CrimeRegisterMain";
 import Header from "../components/Header";
-import { useState, useContext } from "react";
+import { useState, useContext, useRef } from "react";
 import { fetchCrimeRegister } from "../services/crud"; // 🧊 CRUD 서비스에서 함수 가져오기
 import { crimeDataContext } from "../App";
 
 const CrimeRegister = () => {
   const { setRegisterFlag } = useContext(crimeDataContext);
   const [calibration, setCalibration] = useState("각도보정키기");
+  const [cropping, setCropping] = useState(false);
+  const mainRef = useRef(null);
 
   const [formData, setFormData] = useState({
     image: null,
@@ -56,6 +58,24 @@ const CrimeRegister = () => {
             event: handleSubmit,
           },
           {
+            value: "회전(<)",
+            event: () => mainRef.current?.rotateLeft?.(),
+            disabled: !formData.image,
+          },
+          {
+            value: "회전(>)",
+            event: () => mainRef.current?.rotateRight?.(),
+            disabled: !formData.image,
+          },
+          {
+            value: cropping ? "크롭 완료" : "크롭 시작",
+            event: () => {
+              setCropping((prev) => !prev);
+              mainRef.current?.toggleCrop?.();
+            },
+            disabled: !formData.image,
+          },
+          {
             value: calibration,
             event: () => {
               if (!formData.image) {
@@ -71,6 +91,7 @@ const CrimeRegister = () => {
         ]}
       />
       <CrimeRegisterMain
+        ref={mainRef}
         formData={formData}
         setFormData={setFormData}
         calibration={calibration}

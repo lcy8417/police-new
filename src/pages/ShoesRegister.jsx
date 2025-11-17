@@ -1,11 +1,12 @@
-import ShoesRegisterMain from "../components/ShoesRegisterMain";
 import Header from "../components/Header";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import ShoesRegisterMain from "../components/ShoesRegisterMain";
 import { onlyPatternName } from "../utils/get-input-change";
 
 const url = import.meta.env.VITE_API_URL; // Base URL for API requests
 
 const ShoesRegister = () => {
+  const mainRef = useRef(null);
   const [formData, setFormData] = useState({
     image: null,
     top: [],
@@ -18,6 +19,8 @@ const ShoesRegister = () => {
     modelNumber: "",
     findYear: 0,
   });
+
+  const [cropping, setCropping] = useState(false);
 
   const buttonList = [
     {
@@ -67,12 +70,34 @@ const ShoesRegister = () => {
         });
       },
     },
+    {
+      value: "회전(<)",
+      event: () => mainRef.current?.rotateLeft?.(),
+      disabled: !formData.image,
+    },
+    {
+      value: "회전(>)",
+      event: () => mainRef.current?.rotateRight?.(),
+      disabled: !formData.image,
+    },
+    {
+      value: cropping ? "크롭 완료" : "크롭 시작",
+      event: () => {
+        setCropping((prev) => !prev);
+        mainRef.current?.toggleCrop?.();
+      },
+      disabled: !formData.image,
+    },
   ];
 
   return (
     <>
       <Header value={"신규 신발 등록"} buttonList={buttonList} />
-      <ShoesRegisterMain formData={formData} setFormData={setFormData} />
+      <ShoesRegisterMain
+        ref={mainRef}
+        formData={formData}
+        setFormData={setFormData}
+      />
     </>
   );
 };
