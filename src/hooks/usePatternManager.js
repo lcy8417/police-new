@@ -25,7 +25,7 @@ const usePatternManager = ({
 
   const extractPattern = async () => {
     //const patternsRoot = "/src/assets/Patterns/전체/";
-      const patternsRoot = `${import.meta.env.VITE_API_URL}/patterns`;
+      const patternsRoot = `${import.meta.env.VITE_API_URL}/patterns/`;
 
 
     // 패턴 이미지 경로를 생성하는 함수. 족적과 신발은 필수 문양 여부에 따라 다르게 처리
