@@ -5,7 +5,7 @@ import PatternList from "./PatternList";
 import PatternInfo from "./PatternInfo";
 import { crimeDataContext } from "../App";
 import { useParams } from "react-router-dom";
-import usePatternManager from "../hooks/usePatternManager";
+import { usePatternManager } from "@/features/patterns-extract";
 import Canvas from "./Canvas";
 import { imageChangeHandler } from "../utils/get-input-change";
 import LoadingModal from "./LoadingModal";
