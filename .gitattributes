@@ -1,0 +1,11 @@
+# Normalize line endings to LF in the repository; check out as-is.
+# Prevents CRLF churn on Windows during the TS/FSD migration.
+* text=auto eol=lf
+
+# Binary assets — never normalize.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
