@@ -1,5 +1,6 @@
 import { Crop, Crosshair, RefreshCw, RotateCcw, type LucideIcon } from "lucide-react"
 
+import type { EditorMode } from "@/features/crime-register"
 import { cn } from "@/shared/lib/utils"
 
 /** Title + subtitle published into `TopNav` via `usePageHeader({ title: <HeaderTitle /> })`. */
@@ -49,22 +50,42 @@ function ActionCard({ icon: Icon, label, active = false, disabled = false, onCli
 interface HeaderActionsProps {
   onRotate: (deg: number) => void
   onReset: () => void
-  disabled?: boolean
+  onCrop: () => void
+  onCalibrate: () => void
+  mode: EditorMode
+  hasImage: boolean
 }
 
 /**
  * The 4 toolbar action cards published into `TopNav` via
- * `usePageHeader({ actions: <HeaderActions /> })`. 회전/초기화 are wired;
- * 크롭 and 각도 보정 stay present but deferred to Slice 2.
+ * `usePageHeader({ actions: <HeaderActions /> })`. 회전/초기화 rotate + reset;
+ * 크롭 toggles crop mode (label flips to 크롭 완료 to apply); 각도 보정 toggles
+ * the 4-point perspective overlay. Crop/calibration stay enabled without an
+ * image so the handlers can surface the "이미지를 먼저 등록해주세요" toast.
  */
-export function HeaderActions({ onRotate, onReset, disabled = false }: HeaderActionsProps) {
+export function HeaderActions({
+  onRotate,
+  onReset,
+  onCrop,
+  onCalibrate,
+  mode,
+  hasImage,
+}: HeaderActionsProps) {
   return (
     <div className="flex items-center gap-2.5">
-      <ActionCard icon={RotateCcw} label="회전" disabled={disabled} onClick={() => onRotate(90)} />
-      {/* TODO(slice2): wire crop canvas — button intentionally inert for now. */}
-      <ActionCard icon={Crop} label="크롭" disabled={disabled} />
-      {/* TODO(slice2): wire 4-point calibration canvas — button intentionally inert for now. */}
-      <ActionCard icon={Crosshair} label="각도 보정" active disabled={disabled} />
+      <ActionCard icon={RotateCcw} label="회전" disabled={!hasImage} onClick={() => onRotate(90)} />
+      <ActionCard
+        icon={Crop}
+        label={mode === "crop" ? "크롭 완료" : "크롭"}
+        active={mode === "crop"}
+        onClick={onCrop}
+      />
+      <ActionCard
+        icon={Crosshair}
+        label="각도 보정"
+        active={mode === "calibration"}
+        onClick={onCalibrate}
+      />
       <ActionCard icon={RefreshCw} label="초기화" onClick={onReset} />
     </div>
   )

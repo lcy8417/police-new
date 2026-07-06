@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { registerCrime, useCrimeStore } from "@/entities/crime"
+import { useImageEditor } from "@/features/crime-register"
 import { usePageHeader } from "@/widgets/app-shell"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 import { rotateImage, resizeImage } from "@/utils/get-input-change"
@@ -57,6 +58,12 @@ export function CrimeRegisterRedesign() {
     setFormData(EMPTY_FORM)
   }, [])
 
+  const handleImageChange = useCallback((next: string) => {
+    setFormData((prev) => ({ ...prev, image: next }))
+  }, [])
+
+  const editor = useImageEditor(formData.image, handleImageChange)
+
   const registerMutation = useMutation({
     mutationFn: registerCrime,
     meta: { success: "사건이 등록되었습니다." },
@@ -85,8 +92,17 @@ export function CrimeRegisterRedesign() {
   // Memoize the actions element so the page-header effect only refires when the
   // handlers or the image-present flag actually change (not every render).
   const headerActions = useMemo(
-    () => <HeaderActions onRotate={handleRotate} onReset={handleReset} disabled={!formData.image} />,
-    [handleRotate, handleReset, formData.image]
+    () => (
+      <HeaderActions
+        onRotate={handleRotate}
+        onReset={handleReset}
+        onCrop={editor.toggleCrop}
+        onCalibrate={editor.toggleCalibration}
+        mode={editor.mode}
+        hasImage={!!formData.image}
+      />
+    ),
+    [handleRotate, handleReset, editor.toggleCrop, editor.toggleCalibration, editor.mode, formData.image]
   )
 
   usePageHeader({ title: HEADER_TITLE, actions: headerActions })
@@ -102,6 +118,7 @@ export function CrimeRegisterRedesign() {
           image={formData.image}
           onFileSelect={handleFileSelect}
           onRotate={handleRotate}
+          editor={editor}
         />
         <CaseInfoPanel
           formData={formData}

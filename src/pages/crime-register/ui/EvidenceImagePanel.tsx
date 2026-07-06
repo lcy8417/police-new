@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
+import type { ImageEditor } from "@/features/crime-register"
 import { cn } from "@/shared/lib/utils"
 import { Slider } from "@/shared/ui/slider"
 import { TechCorners } from "@/shared/ui/tech-corners"
@@ -47,14 +48,16 @@ interface EvidenceImagePanelProps {
   image: string | null
   onFileSelect: (file: File) => void
   onRotate: (deg: number) => void
+  editor: ImageEditor
 }
 
 /**
  * Left "현장 이미지" panel: rotation toolbar, a ruler-framed evidence
- * viewport, and a status bar with view-mode toggles. Now backed by real
- * upload + ±90 rotation; empty state prompts an upload.
+ * viewport, and a status bar with view-mode toggles. Backed by real upload +
+ * ±90 rotation; the `editor` layers a crop / 4-point-calibration overlay
+ * pixel-perfect over the displayed image.
  */
-export function EvidenceImagePanel({ image, onFileSelect, onRotate }: EvidenceImagePanelProps) {
+export function EvidenceImagePanel({ image, onFileSelect, onRotate, editor }: EvidenceImagePanelProps) {
   const [rotation, setRotation] = useState([0])
   const [viewMode, setViewMode] = useState<(typeof VIEW_MODES)[number]>("원본")
   const [dimensions, setDimensions] = useState<[number, number]>([0, 0])
@@ -160,17 +163,51 @@ export function EvidenceImagePanel({ image, onFileSelect, onRotate }: EvidenceIm
         <Crosshair className="absolute right-4 bottom-4 size-5 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
 
         {image ? (
-          <img
-            src={image}
-            alt="현장 증거 이미지 미리보기"
-            draggable={false}
-            onLoad={(e) => {
-              const el = e.currentTarget
-              setDimensions([el.naturalWidth, el.naturalHeight])
-            }}
-            className="relative max-h-full max-w-full object-contain select-none"
-            style={{ filter: "contrast(1.05) brightness(0.95)" }}
-          />
+          <div
+            ref={editor.containerRef}
+            className="relative flex max-h-full max-w-full items-center justify-center"
+          >
+            <img
+              ref={editor.imgRef}
+              src={image}
+              alt="현장 증거 이미지 미리보기"
+              draggable={false}
+              onLoad={(e) => {
+                const el = e.currentTarget
+                setDimensions([el.naturalWidth, el.naturalHeight])
+                editor.recomputeOverlay()
+              }}
+              className="max-h-full max-w-full object-contain select-none"
+              style={{ filter: "contrast(1.05) brightness(0.95)" }}
+            />
+            {editor.mode !== "none" && editor.overlayRect && (
+              <canvas
+                ref={editor.overlayRef}
+                onMouseDown={editor.onOverlayMouseDown}
+                onMouseMove={editor.onOverlayMouseMove}
+                onMouseUp={editor.onOverlayMouseUp}
+                onMouseLeave={editor.onOverlayMouseUp}
+                onClick={editor.onOverlayClick}
+                className="absolute cursor-crosshair"
+                style={{
+                  left: editor.overlayRect.left,
+                  top: editor.overlayRect.top,
+                  width: editor.overlayRect.width,
+                  height: editor.overlayRect.height,
+                }}
+              />
+            )}
+            {editor.mode === "calibration" && (
+              <span className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-md border border-[#3B82F6]/50 bg-[#0B121D]/90 px-3 py-1 font-mono text-[11px] tabular-nums text-[#4A9EFF] shadow-[0_0_16px_rgba(37,99,235,0.4)]">
+                {editor.pointCount} / 4 점
+              </span>
+            )}
+            {editor.mode === "crop" && (
+              <span className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-md border border-[#3B82F6]/50 bg-[#0B121D]/90 px-3 py-1 font-mono text-[11px] text-[#4A9EFF] shadow-[0_0_16px_rgba(37,99,235,0.4)]">
+                영역을 드래그한 뒤 크롭 완료
+              </span>
+            )}
+          </div>
         ) : (
           <button
             type="button"
