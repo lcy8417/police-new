@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppShell } from "@/widgets/app-shell";
 import CrimeRegister from "./pages/CrimeRegister";
-import CrimeSearch from "./pages/CrimeSearch";
+import { CrimeSearchPage as CrimeSearch } from "@/pages/crime-search";
 import CrimeDetail from "./pages/CrimeDetail";
 import ShoesRegister from "./pages/ShoesRegister";
 import PatternExtract from "./pages/PatternExtract";
