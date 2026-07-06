@@ -25,7 +25,8 @@
     "react-dom": "^19.1.0",
     "react-modal": "^3.16.3",
     "react-router-dom": "^7.6.2",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",

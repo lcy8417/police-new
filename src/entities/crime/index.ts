@@ -8,6 +8,7 @@ export {
   saveCrimeEditImage,
 } from "./api/crime-api";
 export { crimeKeys } from "./api/query-keys";
+export { useCrimeStore } from "./model/crime-store";
 export type {
   Crime,
   CrimeDto,
