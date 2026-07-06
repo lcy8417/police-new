@@ -1,2 +1,8 @@
 export { Button, buttonVariants } from './button'
 export * from './sidebar'
+export { Input } from './input'
+export { Textarea } from './textarea'
+export { Slider } from './slider'
+export { Badge, badgeVariants } from './badge'
+export { TechCorners } from './tech-corners'
+export { DotGrid, GlowOrb, EdgeGlow } from './glow-fx'
