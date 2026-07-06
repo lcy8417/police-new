@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import "./ShoesResultMain.css";
 import ImageLoader from "./ImageLoader";
 import RetrievalResults from "./RetrievalResults";
-import Sidebar from "./Sidebar";
 import { imageSearch, imageLoad } from "../services/api";
 import { useParams, useSearchParams } from "react-router-dom";
 import { crimeDataContext } from "../App";
@@ -65,7 +64,6 @@ const ShoesResultMain = ({ binary, similarity }) => {
   return (
     <div className="ShoesResultMain">
       {isSearching && <LoadingModal text="신발 검색 중..." />}
-      <Sidebar />
       <div className="main">
         <ImageLoader formData={formData} value="현장이미지" />
         <RetrievalResults

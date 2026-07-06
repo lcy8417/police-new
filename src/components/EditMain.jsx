@@ -5,7 +5,6 @@ import Preprocessing from "./Preprocessing";
 import Canvas from "./Canvas";
 import { crimeDataContext } from "../App"; // Assuming you have a context for crime data
 import { useParams } from "react-router-dom"; // Import useParams to access route parameters
-import Sidebar from "./Sidebar"; // Assuming you have a Sidebar component for navigation
 import useImageProcessing from "../hooks/useImageProcessing"; // Custom hook for image processing
 import LoadingModal from "./LoadingModal"; // Importing LoadingModal component
 
@@ -255,7 +254,6 @@ const EditMain = ({ scrollState, setScrollState }) => {
   return (
     <div className="EditMain">
       {isProcessing && <LoadingModal text="이미지를 처리 중입니다..." />}
-      <Sidebar />
       <div className="main">
         <div className="image-swapper">
           <ImageLoader

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
+import { AppShell } from "@/widgets/app-shell";
 import CrimeRegister from "./pages/CrimeRegister";
 import CrimeSearch from "./pages/CrimeSearch";
 import CrimeDetail from "./pages/CrimeDetail";
@@ -53,41 +54,41 @@ function App() {
       value={{ crimeData, setCrimeData, setRegisterFlag }}
     >
       <BrowserRouter>
-        <div className="app-layout">
-          <div className="page-content">
-            <Routes>
-              <Route path="/" element={<Navigate to="/crimeRegister" />} />
-              <Route path="/crimeRegister" element={<CrimeRegister />} />
-              <Route path="/search" element={<CrimeSearch />} />
-              <Route path="/search/:crimeNumber" element={<CrimeDetail />} />
-              <Route
-                path="/search/:crimeNumber/crimeHistory/:historyId"
-                element={<CrimeHistory />}
-              />
-              <Route
-                path="/search/:crimeNumber/patternExtract"
-                element={<PatternExtract />}
-              />
-              <Route
-                path="/search/:crimeNumber/shoesResult"
-                element={<ShoesResult />}
-              />
-              <Route
-                path="/search/:crimeNumber/shoesResult/detail/:modelNumber"
-                element={<ResultDetail />}
-              />
-              <Route path="/edit/:crimeNumber" element={<CrimeEdit />} />
-              <Route path="/editormode" element={<EditorMode />} />
-              <Route path="/shoesRegister" element={<ShoesRegister />} />
-              <Route path="/shoesRepository" element={<ShoesRepository />} />
-              <Route
-                path="/shoesRepository/:modelNumber"
-                element={<ShoesRepository />}
-              />
-              <Route path="/shoesEdit/:modelNumber" element={<ShoesEdit />} />
-            </Routes>
-          </div>
-        </div>
+        <Routes>
+          {/* Persistent shell: fixed TopNav + Sidebar, only the Outlet content swaps. */}
+          <Route element={<AppShell />}>
+            <Route path="/" element={<Navigate to="/crimeRegister" />} />
+            <Route path="/crimeRegister" element={<CrimeRegister />} />
+            <Route path="/search" element={<CrimeSearch />} />
+            <Route path="/search/:crimeNumber" element={<CrimeDetail />} />
+            <Route
+              path="/search/:crimeNumber/crimeHistory/:historyId"
+              element={<CrimeHistory />}
+            />
+            <Route
+              path="/search/:crimeNumber/patternExtract"
+              element={<PatternExtract />}
+            />
+            <Route
+              path="/search/:crimeNumber/shoesResult"
+              element={<ShoesResult />}
+            />
+            <Route
+              path="/search/:crimeNumber/shoesResult/detail/:modelNumber"
+              element={<ResultDetail />}
+            />
+            <Route path="/edit/:crimeNumber" element={<CrimeEdit />} />
+            <Route path="/shoesRegister" element={<ShoesRegister />} />
+            <Route path="/shoesRepository" element={<ShoesRepository />} />
+            <Route
+              path="/shoesRepository/:modelNumber"
+              element={<ShoesRepository />}
+            />
+            <Route path="/shoesEdit/:modelNumber" element={<ShoesEdit />} />
+          </Route>
+          {/* Standalone image editor — intentionally outside the shell. */}
+          <Route path="/editormode" element={<EditorMode />} />
+        </Routes>
       </BrowserRouter>
     </crimeDataContext.Provider>
   );

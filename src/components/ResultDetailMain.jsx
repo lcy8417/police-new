@@ -4,7 +4,6 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import Button from "./Button";
 import ImageLoader from "./ImageLoader";
 import FormList from "./FormList";
-import Sidebar from "./Sidebar";
 import PartialPatterns from "./PartialPatterns";
 import { useContext } from "react";
 import { crimeDataContext } from "../App";
@@ -111,7 +110,6 @@ const ShoesResultDetail = () => {
   return (
     <div className="ResultDetailMain">
       {isSearching && <LoadingModal text="신발 검색 중..." />}
-      <Sidebar />
       <div className="main">
         <ImageLoader
           formData={queryData || currentCrimeData}

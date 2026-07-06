@@ -2,7 +2,6 @@ import "./ShoesRegisterMain.css";
 import PatternList from "./PatternList";
 import PatternInfo from "./PatternInfo";
 import FormList from "./FormList";
-import Sidebar from "./Sidebar";
 import Canvas from "./Canvas";
 import { handleChange, rotateImage } from "../utils/get-input-change";
 import usePatternManager from "../hooks/usePatternManager";
@@ -10,7 +9,7 @@ import LoadingModal from "./LoadingModal"; // Importing LoadingModal component
 import React, { useState, forwardRef, useImperativeHandle } from "react";
 
 const ShoesRegisterMain = forwardRef(
-  ({ formData, setFormData, propsImage = null, sidebar = true }, ref) => {
+  ({ formData, setFormData, propsImage = null }, ref) => {
     const {
       canvasRef,
       patterns,
@@ -91,7 +90,6 @@ const ShoesRegisterMain = forwardRef(
     return (
       <div className="ShoesRegisterMain">
         {isExtracting && <LoadingModal text="패턴 추출 중..." />}
-        {sidebar && <Sidebar />}
         <div className="main">
           <Canvas
             canvasRef={canvasRef}
