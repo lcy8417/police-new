@@ -2,3 +2,4 @@
 // functions, and query keys for crime / shoe / pattern / history.
 // FSD import rule: may import only `shared`.
 export * from "./pattern";
+export * from "./crime";
