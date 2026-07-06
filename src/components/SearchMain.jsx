@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { useState, useContext, useEffect } from "react";
 import FormList from "./FormList"; // Assuming you have a FormList component
 import { crimeDataContext } from "../App"; // Assuming you have a context for crime data
-import Sidebar from "./Sidebar"; // Assuming you have a Sidebar component for navigation
 import SearchResults from "./SearchResults"; // Assuming you have a SearchResults component for displaying results
 
 const SearchMain = ({ searchForm, setSearchForm }) => {
@@ -102,7 +101,6 @@ const SearchMain = ({ searchForm, setSearchForm }) => {
   return (
     <>
       <div className="SearchMain">
-        <Sidebar />
         <div className="main">
           <FormList
             formData={searchForm}

@@ -4,7 +4,6 @@ import FormItem from "./FormItem";
 import "./CrimeRegisterMain.css";
 import React, { forwardRef, useImperativeHandle, useState } from "react";
 import FormList from "./FormList";
-import Sidebar from "./Sidebar";
 import { handleChange, rotateImage } from "../utils/get-input-change";
 import { useCalibration } from "../hooks/useCalibration";
 import CalibrationInfo from "./CalibrationInfo";
@@ -75,7 +74,6 @@ const CrimeRegisterMain = forwardRef(
 
     return (
       <div className="CrimeRegisterMain">
-        <Sidebar />
         <div className="main">
           <Canvas
             canvasRef={canvasRef}

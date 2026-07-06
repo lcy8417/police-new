@@ -5,7 +5,6 @@ import ImageLoader from "./ImageLoader"; // Assuming you have an ImageLoader com
 import FormList from "./FormList"; // Assuming you have a FormList component
 import { useContext, useEffect, useState, useRef } from "react";
 import { crimeDataContext } from "../App"; // Assuming you have a context for crime data
-import Sidebar from "./Sidebar";
 import SearchResults from "./SearchResults"; // Assuming you have a SearchResults component
 import { imageChangeHandler } from "../utils/get-input-change"; // Assuming you have a utility function for image handling
 
@@ -50,8 +49,6 @@ const DetailMain = ({ setCrimeNumber }) => {
 
   return (
     <div className="DetailMain">
-      <Sidebar />
-
       <div className="main">
         <div className="image-swapper">
           <ImageLoader

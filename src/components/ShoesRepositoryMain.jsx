@@ -1,6 +1,5 @@
 import SearchResults from "./SearchResults";
 import { useState, useEffect } from "react";
-import Sidebar from "./Sidebar";
 import "./ShoesRepositoryMain.css";
 import ImageLoader from "./ImageLoader";
 import FormList from "./FormList";
@@ -87,7 +86,6 @@ const ShoesRepositoryMain = () => {
 
   return (
     <div className="ShoesRepositoryMain">
-      <Sidebar />
       <div className="main">
         <div className="list-header">
           <Button

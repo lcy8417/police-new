@@ -5,7 +5,6 @@ import PatternList from "./PatternList";
 import PatternInfo from "./PatternInfo";
 import { crimeDataContext } from "../App";
 import { useParams } from "react-router-dom";
-import Sidebar from "./Sidebar";
 import usePatternManager from "../hooks/usePatternManager";
 import Canvas from "./Canvas";
 import { imageChangeHandler } from "../utils/get-input-change";
@@ -56,7 +55,6 @@ const PatternExtractMain = ({ imgRef }) => {
   return (
     <div className="PatternExtractMain">
       {isExtracting && <LoadingModal text="패턴 추출 중..." />}
-      <Sidebar />
       <div className="main">
         <div className="image-swapper">
           <Canvas
