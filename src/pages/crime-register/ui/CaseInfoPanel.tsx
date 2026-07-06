@@ -26,6 +26,7 @@ interface CaseInfoPanelProps {
   onFieldChange: (name: keyof CrimeFormData, value: string) => void
   onSubmit: () => void
   onReset: () => void
+  isSubmitting?: boolean
 }
 
 /**
@@ -33,7 +34,13 @@ interface CaseInfoPanelProps {
  * `CrimeRegisterMain`'s field set, restyled as a dark command-console card
  * with a live 초기화/저장 action row.
  */
-export function CaseInfoPanel({ formData, onFieldChange, onSubmit, onReset }: CaseInfoPanelProps) {
+export function CaseInfoPanel({
+  formData,
+  onFieldChange,
+  onSubmit,
+  onReset,
+  isSubmitting = false,
+}: CaseInfoPanelProps) {
   // 사건 내용 has no counterpart in the register body (backend contract has no
   // description field), so it stays local + optional and is not submitted.
   const [content, setContent] = useState("")
@@ -129,9 +136,10 @@ export function CaseInfoPanel({ formData, onFieldChange, onSubmit, onReset }: Ca
         <Button
           type="button"
           onClick={onSubmit}
-          className="h-11 flex-[2] bg-gradient-to-b from-[#2563EB] to-[#1D4ED8] text-white shadow-[0_0_20px_rgba(37,99,235,0.45)] hover:from-[#3b74f2] hover:to-[#2154d8]"
+          disabled={isSubmitting}
+          className="h-11 flex-[2] bg-gradient-to-b from-[#2563EB] to-[#1D4ED8] text-white shadow-[0_0_20px_rgba(37,99,235,0.45)] hover:from-[#3b74f2] hover:to-[#2154d8] disabled:opacity-60"
         >
-          저장
+          {isSubmitting ? "저장 중..." : "저장"}
         </Button>
       </div>
     </section>

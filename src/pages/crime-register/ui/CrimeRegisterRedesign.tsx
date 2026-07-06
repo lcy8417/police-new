@@ -1,4 +1,6 @@
 import { useCallback, useMemo, useState } from "react"
+import { useMutation } from "@tanstack/react-query"
+import { toast } from "sonner"
 
 import { registerCrime, useCrimeStore } from "@/entities/crime"
 import { usePageHeader } from "@/widgets/app-shell"
@@ -55,32 +57,30 @@ export function CrimeRegisterRedesign() {
     setFormData(EMPTY_FORM)
   }, [])
 
-  const handleSubmit = useCallback(async () => {
-    if (!formData.image || !formData.crimeNumber) {
-      // TODO(toast-slice): replace alert with unified toast
-      alert("이미지와 사건 번호는 필수 입력 사항입니다.")
-      return
-    }
-    try {
-      await registerCrime({
-        image: formData.image,
-        crimeNumber: formData.crimeNumber,
-        imageNumber: formData.imageNumber,
-        crimeName: formData.crimeName,
-        findTime: formData.findTime,
-        requestOffice: formData.requestOffice,
-        findMethod: formData.findMethod,
-      })
-      // TODO(toast-slice): replace alert with unified toast
-      alert("사건이 등록되었습니다.")
+  const registerMutation = useMutation({
+    mutationFn: registerCrime,
+    meta: { success: "사건이 등록되었습니다." },
+    onSuccess: () => {
       setFormData(EMPTY_FORM)
       useCrimeStore.getState().setRegisterFlag([])
-    } catch (error) {
-      console.error("사건 등록 중 오류 발생:", error)
-      // TODO(toast-slice): replace alert with unified toast
-      alert("사건 등록에 실패했습니다. 다시 시도해주세요.")
+    },
+  })
+
+  const handleSubmit = useCallback(() => {
+    if (!formData.image || !formData.crimeNumber) {
+      toast.error("이미지와 사건 번호는 필수 입력 사항입니다.")
+      return
     }
-  }, [formData])
+    registerMutation.mutate({
+      image: formData.image,
+      crimeNumber: formData.crimeNumber,
+      imageNumber: formData.imageNumber,
+      crimeName: formData.crimeName,
+      findTime: formData.findTime,
+      requestOffice: formData.requestOffice,
+      findMethod: formData.findMethod,
+    })
+  }, [formData, registerMutation])
 
   // Memoize the actions element so the page-header effect only refires when the
   // handlers or the image-present flag actually change (not every render).
@@ -108,6 +108,7 @@ export function CrimeRegisterRedesign() {
           onFieldChange={handleFieldChange}
           onSubmit={handleSubmit}
           onReset={handleReset}
+          isSubmitting={registerMutation.isPending}
         />
       </div>
     </div>

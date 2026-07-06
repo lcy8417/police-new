@@ -25,7 +25,7 @@ export async function apiGet<T>(path: string): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new ApiError(`GET ${path} failed`, response.status);
+    throw new ApiError("서버 요청에 실패했습니다", response.status);
   }
 
   return (await response.json()) as T;
@@ -44,7 +44,7 @@ export async function apiSend(
   });
 
   if (!response.ok) {
-    throw new ApiError(`${method} ${path} failed`, response.status);
+    throw new ApiError("서버 요청에 실패했습니다", response.status);
   }
 
   return response;
