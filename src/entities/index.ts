@@ -3,3 +3,4 @@
 // FSD import rule: may import only `shared`.
 export * from "./pattern";
 export * from "./crime";
+export * from "./shoe";
