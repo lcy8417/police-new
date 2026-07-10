@@ -1,7 +1,6 @@
 import "./PatternItem.css";
-import { crimeDataContext } from "../App";
+import { useCrimeStore } from "@/entities/crime";
 import { useParams } from "react-router-dom";
-import { useContext } from "react";
 
 const PatternItem = ({
   selectedIndex,
@@ -14,7 +13,7 @@ const PatternItem = ({
 }) => {
   const kind = ["top", "mid", "bottom", "outline"][selectedIndex];
   const { crimeNumber } = useParams();
-  const { crimeData } = useContext(crimeDataContext);
+  const crimeData = useCrimeStore((s) => s.crimeData);
   const currentData = formData
     ? formData //신발 등록
     : crimeData.find(
