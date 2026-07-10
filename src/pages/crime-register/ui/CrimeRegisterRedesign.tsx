@@ -25,6 +25,9 @@ const HEADER_TITLE = <HeaderTitle />
  */
 export function CrimeRegisterRedesign() {
   const [formData, setFormData] = useState<CrimeFormData>(EMPTY_FORM)
+  const adjust = useImageAdjustments(formData.image)
+  // Stable callbacks (referenced from memoised handlers below).
+  const { bake: bakeAdjustments, resetAdjustments } = adjust
 
   const handleFieldChange = useCallback((name: keyof CrimeFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -56,31 +59,35 @@ export function CrimeRegisterRedesign() {
 
   const handleReset = useCallback(() => {
     setFormData(EMPTY_FORM)
-  }, [])
+    resetAdjustments()
+  }, [resetAdjustments])
 
   const handleImageChange = useCallback((next: string) => {
     setFormData((prev) => ({ ...prev, image: next }))
   }, [])
 
   const editor = useImageEditor(formData.image, handleImageChange)
-  const adjust = useImageAdjustments(formData.image)
 
   const registerMutation = useMutation({
     mutationFn: registerCrime,
     meta: { success: "사건이 등록되었습니다." },
     onSuccess: () => {
       setFormData(EMPTY_FORM)
+      resetAdjustments()
       useCrimeStore.getState().setRegisterFlag([])
     },
   })
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     if (!formData.image || !formData.crimeNumber) {
       toast.error("이미지와 사건 번호는 필수 입력 사항입니다.")
       return
     }
+    // Bake the non-destructive visibility adjustments into the image so the
+    // analyst's corrections are persisted server-side (not just previewed).
+    const image = await bakeAdjustments(formData.image)
     registerMutation.mutate({
-      image: formData.image,
+      image,
       crimeNumber: formData.crimeNumber,
       imageNumber: formData.imageNumber,
       crimeName: formData.crimeName,
@@ -88,7 +95,7 @@ export function CrimeRegisterRedesign() {
       requestOffice: formData.requestOffice,
       findMethod: formData.findMethod,
     })
-  }, [formData, registerMutation])
+  }, [formData, registerMutation, bakeAdjustments])
 
   // Memoize the actions element so the page-header effect only refires when the
   // handlers or the image-present flag actually change (not every render).
