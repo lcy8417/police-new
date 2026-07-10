@@ -1,7 +1,19 @@
 import { useMemo } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { ImageOff, Radar, ScanSearch, Target } from "lucide-react"
+import {
+  ArrowLeftRight,
+  Award,
+  Camera,
+  Database,
+  ImageOff,
+  Radar,
+  ScanSearch,
+  ShieldCheck,
+  Target,
+  XCircle,
+  type LucideIcon,
+} from "lucide-react"
 
 import { saveCrimeHistory, useCrimeStore } from "@/entities/crime"
 import {
@@ -54,6 +66,8 @@ interface AttentionTileProps {
   image: string | null
   /** 어텐션 히트맵(유사도 근거)이면 파란 글로우로 강조한다. */
   emphasis?: boolean
+  /** 라벨 아이콘 — 출처(현장=Camera, DB=Database)를 구분한다. 없으면 emphasis일 때 Radar로 대체. */
+  icon?: LucideIcon
 }
 
 /**
@@ -61,7 +75,8 @@ interface AttentionTileProps {
  * 파란 테두리·글로우를 입혀 시각적으로 강조하고, 정적 측면 사진은 절제한 톤으로
  * 둔다. 이미지가 없으면 안내 문구를 보인다.
  */
-function AttentionTile({ code, label, image, emphasis = false }: AttentionTileProps) {
+function AttentionTile({ code, label, image, emphasis = false, icon }: AttentionTileProps) {
+  const Icon = icon ?? (emphasis ? Radar : null)
   return (
     <div
       className={cn(
@@ -73,9 +88,7 @@ function AttentionTile({ code, label, image, emphasis = false }: AttentionTilePr
     >
       <div className="flex items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-3 py-2">
         <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#C7CEDB]">
-          {emphasis && (
-            <Radar className="size-3.5 text-[#4A9EFF]" aria-hidden="true" />
-          )}
+          {Icon && <Icon className="size-3.5 text-[#4A9EFF]" aria-hidden="true" />}
           {label}
         </span>
         <span
@@ -103,6 +116,37 @@ function AttentionTile({ code, label, image, emphasis = false }: AttentionTilePr
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * 어텐션 맵 패널 내부의 소구획 라벨(가는 룰 + 중앙 텍스트). 질의·참조 쌍과
+ * 정적 참고 이미지 사이의 시각적 위계를 텍스트로도 명시한다.
+ */
+function SectionRule({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 px-0.5" aria-hidden="true">
+      <span className="h-px flex-1 bg-[#1E2A3C]" />
+      <span className="shrink-0 font-mono text-[9px] tracking-[0.16em] text-[#5B6B85] uppercase">
+        {label}
+      </span>
+      <span className="h-px flex-1 bg-[#1E2A3C]" />
+    </div>
+  )
+}
+
+/**
+ * 질의 어텐션 ↔ 바닥 어텐션 타일 사이의 대응 관계를 표시하는 연결 배지.
+ * 두 히트맵이 같은 유사도 산정의 짝이라는 것을 시각적으로 잇는다.
+ */
+function PairConnector() {
+  return (
+    <div className="relative hidden w-8 shrink-0 sm:block" aria-hidden="true">
+      <div className="absolute inset-y-6 left-1/2 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-[#3B82F6]/50 to-transparent" />
+      <span className="absolute top-1/2 left-1/2 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_10px_rgba(37,99,235,0.4)]">
+        <ArrowLeftRight className="size-3" aria-hidden="true" />
+      </span>
     </div>
   )
 }
@@ -149,6 +193,9 @@ export function ResultDetailPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const ranking = searchParams.get("ranking")
+  // 상위 3위는 검색결과 그리드의 TOP 뱃지와 같은 톤(그린 티어)으로 강조한다.
+  const rankNum = ranking ? Number.parseInt(ranking, 10) : null
+  const isTopRank = rankNum !== null && !Number.isNaN(rankNum) && rankNum <= 3
 
   // Context 브리지 대신 store 셀렉터로 현장 데이터에 접근한다.
   const crimeData = useCrimeStore((s) => s.crimeData)
@@ -244,14 +291,25 @@ export function ResultDetailPage() {
           검색결과로
         </Button>
         {ranking && (
-          <span className="flex items-center gap-1.5 rounded-md border border-[#3B82F6]/50 bg-[#152238] px-3 py-1.5 font-mono text-[13px] font-semibold text-[#4A9EFF] shadow-[0_0_14px_rgba(37,99,235,0.3)]">
-            <Target className="size-3.5" aria-hidden="true" />
+          <span
+            className={cn(
+              "flex items-center gap-1.5 rounded-md border px-3 py-1.5 font-mono text-[13px] font-semibold",
+              isTopRank
+                ? "border-[#22C55E]/50 bg-[#12241A] text-[#4ADE80] shadow-[0_0_14px_rgba(34,197,94,0.35)]"
+                : "border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_14px_rgba(37,99,235,0.3)]"
+            )}
+          >
+            {isTopRank ? (
+              <Award className="size-3.5" aria-hidden="true" />
+            ) : (
+              <Target className="size-3.5" aria-hidden="true" />
+            )}
             매칭 후보 [{ranking}위]
           </span>
         )}
       </>
     ),
-    [navigate, ranking]
+    [navigate, ranking, isTopRank]
   )
 
   usePageHeader({ title: HEADER_TITLE, actions: headerActions })
@@ -277,22 +335,27 @@ export function ResultDetailPage() {
                 Similarity · Evidence
               </span>
             </div>
-            <div className="grid min-h-0 flex-1 grid-rows-[minmax(0,1.35fr)_minmax(0,1fr)] gap-4 p-5">
-              {/* 질의/참조 어텐션 히트맵 쌍 — 유사도 근거라 나란히 강조한다. */}
-              <div className="grid min-h-0 grid-cols-2 gap-4">
+            <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1.5fr)_auto_minmax(0,1fr)] gap-3 p-5">
+              <SectionRule label="질의 · 참조 쌍" />
+              {/* 질의/참조 어텐션 히트맵 쌍 — 유사도 근거라 커넥터로 대응 관계를 잇는다. */}
+              <div className="grid min-h-0 grid-cols-[1fr_auto_1fr] gap-1">
                 <AttentionTile
                   code="SCENE-ATTN"
                   label="질의 어텐션"
                   image={images.query}
                   emphasis
+                  icon={Camera}
                 />
+                <PairConnector />
                 <AttentionTile
                   code="SOLE-B"
                   label="바닥 어텐션"
                   image={images.bottom}
                   emphasis
+                  icon={Database}
                 />
               </div>
+              <SectionRule label="참고 이미지" />
               {/* 측면 신발 사진(정적) — 참고용, 절제된 톤. */}
               <AttentionTile code="SOLE-S" label="측면 이미지" image={images.side} />
             </div>
@@ -303,36 +366,55 @@ export function ResultDetailPage() {
         </div>
 
         {/* 사건정보 + 발견/불발견 저장 액션 */}
-        <section className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] px-6 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)] lg:flex-row lg:items-center lg:justify-between">
+        <section className="relative flex flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
           <TechCorners size={20} />
-          <div className="grid flex-1 grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3 lg:grid-cols-4">
-            <InfoField label="사건등록번호" value={currentCrimeData?.crimeNumber ?? crimeNumber} />
-            <InfoField label="모델 번호" value={modelNumber} />
-            <InfoField label="이미지 번호" value={currentCrimeData?.imageNumber} />
-            <InfoField label="사건 이름" value={currentCrimeData?.crimeName} />
-            <InfoField label="채취 일시" value={currentCrimeData?.findTime} />
-            <InfoField label="의뢰관서" value={currentCrimeData?.requestOffice} />
-            <InfoField label="발견 방법" value={currentCrimeData?.findMethod} />
-            <InfoField label="진행상태" value={currentCrimeData?.state} />
+          <div className="flex items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-6 py-3.5">
+            <span className="text-[15px] font-semibold text-[#E5E9F0]">사건 정보</span>
+            <span className="font-mono text-[11px] tracking-[0.14em] text-[#5B6B85] uppercase">
+              Case · Verdict
+            </span>
           </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <Button
-              type="button"
-              onClick={() => saveHistory(false)}
-              disabled={!currentCrimeData || saveMutation.isPending}
-              className="border border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
-            >
-              불발견
-            </Button>
-            <Button
-              type="button"
-              onClick={() => saveHistory(true)}
-              disabled={!currentCrimeData || saveMutation.isPending}
-              className="border border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_14px_rgba(37,99,235,0.3)] hover:bg-[#182b45]"
-            >
-              <Target className="size-4" aria-hidden="true" />
-              발견
-            </Button>
+          <div className="flex flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="grid flex-1 grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3 lg:grid-cols-4">
+              <InfoField label="사건등록번호" value={currentCrimeData?.crimeNumber ?? crimeNumber} />
+              <InfoField label="모델 번호" value={modelNumber} />
+              <InfoField label="이미지 번호" value={currentCrimeData?.imageNumber} />
+              <InfoField label="사건 이름" value={currentCrimeData?.crimeName} />
+              <InfoField label="채취 일시" value={currentCrimeData?.findTime} />
+              <InfoField label="의뢰관서" value={currentCrimeData?.requestOffice} />
+              <InfoField label="발견 방법" value={currentCrimeData?.findMethod} />
+              <InfoField label="진행상태" value={currentCrimeData?.state} />
+            </div>
+
+            <div className="hidden h-16 w-px shrink-0 self-center bg-[#1E2A3C] lg:block" aria-hidden="true" />
+
+            {/* 판정 존: 이 화면의 핵심 결정이라 라벨 + 명확한 긍정/부정 톤으로 감쌌다. */}
+            <div className="flex shrink-0 flex-col gap-2">
+              <span className="flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.14em] text-[#8A93A6] uppercase">
+                <ShieldCheck className="size-3.5 text-[#4A9EFF]" aria-hidden="true" />
+                판정 · 이력 저장
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  onClick={() => saveHistory(false)}
+                  disabled={!currentCrimeData || saveMutation.isPending}
+                  className="border border-[#1E2A3C] bg-[#0F1826] text-[#8A93A6] hover:border-[#EF4444]/50 hover:bg-[#241212] hover:text-[#F87171]"
+                >
+                  <XCircle className="size-4" aria-hidden="true" />
+                  불발견
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => saveHistory(true)}
+                  disabled={!currentCrimeData || saveMutation.isPending}
+                  className="border border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_18px_rgba(37,99,235,0.35)] hover:bg-[#182b45]"
+                >
+                  <Target className="size-4" aria-hidden="true" />
+                  발견
+                </Button>
+              </div>
+            </div>
           </div>
         </section>
       </div>
