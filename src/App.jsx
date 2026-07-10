@@ -3,13 +3,13 @@ import { AppShell } from "@/widgets/app-shell";
 import { CrimeRegisterRedesign as CrimeRegister } from "@/pages/crime-register";
 import {
   CrimeSearchPage as CrimeSearch,
+  PatternExtractPage as PatternExtract,
   ShoesResultPage as ShoesResult,
   CrimeHistoryPage as CrimeHistory,
   ResultDetailPage as ResultDetail,
 } from "@/pages/crime-search";
 import CrimeDetail from "./pages/CrimeDetail";
 import ShoesRegister from "./pages/ShoesRegister";
-import PatternExtract from "./pages/PatternExtract";
 import CrimeEdit from "./pages/CrimeEdit";
 import ShoesRepository from "./pages/ShoesRepository";
 import ShoesEdit from "./pages/ShoesEdit";
