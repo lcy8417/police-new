@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ChevronLeft, ChevronRight, ImageOff } from "lucide-react"
+import { Camera, ChevronLeft, ChevronRight, Database, ImageOff } from "lucide-react"
 
 import { TechCorners } from "@/shared/ui/tech-corners"
 import { cn } from "@/shared/lib/utils"
@@ -89,6 +89,14 @@ export function PartialPatternsCompare({
           <span className="rounded-md border border-[#3B82F6]/50 bg-[#152238] px-2.5 py-0.5 font-mono text-[13px] font-semibold text-[#4A9EFF]">
             {currentPartial}
           </span>
+          {/* 필수플래그 범례 — 아래 썸네일의 붉은 점이 무엇을 뜻하는지 명시한다. */}
+          <span className="hidden items-center gap-1.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-0.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase sm:flex">
+            <span
+              className="size-1.5 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
+              aria-hidden="true"
+            />
+            필수
+          </span>
         </div>
         <button
           type="button"
@@ -104,12 +112,20 @@ export function PartialPatternsCompare({
       <div className="grid min-h-0 flex-1 auto-cols-fr grid-flow-col gap-4 overflow-y-auto p-5">
         {patternItems.map((item, index) => {
           const patterns = item?.[zoneKey] ?? []
+          // 현장(카메라 촬영) 열과 DB(등록 신발) 열을 아이콘으로 구분한다 —
+          // 인덱스가 아니라 제목으로 판별해 향후 재사용 시에도 안전하게 맞는다.
+          const isSceneColumn = item.title.includes("현장")
           return (
             <div
               key={index}
               className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#1E2A3C] bg-[#0F1826]"
             >
-              <div className="border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
+              <div className="flex items-center gap-1.5 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
+                {isSceneColumn ? (
+                  <Camera className="size-3.5 text-[#4A9EFF]" aria-hidden="true" />
+                ) : (
+                  <Database className="size-3.5 text-[#4A9EFF]" aria-hidden="true" />
+                )}
                 <span className="text-[13px] font-semibold text-[#C7CEDB]">
                   {item.title}
                 </span>
@@ -121,9 +137,7 @@ export function PartialPatternsCompare({
                       key={i}
                       className={cn(
                         "relative aspect-square overflow-hidden rounded-lg border bg-[#05080D]",
-                        isEssential(src)
-                          ? "border-[#EF4444]/70 shadow-[0_0_10px_rgba(239,68,68,0.35)]"
-                          : "border-[#1E2A3C]"
+                        isEssential(src) ? "border-[#EF4444]/30" : "border-[#1E2A3C]"
                       )}
                     >
                       <img
@@ -131,6 +145,13 @@ export function PartialPatternsCompare({
                         alt={`${item.title} ${currentPartial} 문양 ${i + 1}`}
                         className="absolute inset-0 size-full object-contain p-2"
                       />
+                      {/* 필수플래그: 전면 글로우 테두리 대신 코너 점으로 절제해 표시한다. */}
+                      {isEssential(src) && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
+                        />
+                      )}
                     </div>
                   ))}
                 </div>

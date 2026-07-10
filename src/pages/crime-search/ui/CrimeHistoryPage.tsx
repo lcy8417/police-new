@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
-import { ArrowLeft, ImageOff } from "lucide-react"
+import { ArrowLeft, ImageOff, Target } from "lucide-react"
 
 import { crimeKeys } from "@/entities/crime"
 import {
@@ -44,21 +44,34 @@ function buildHistoryImages(historyData: {
 }
 
 interface ImageTileProps {
+  /** 4분할 내 순번(1~4) — 좌상단 증거 번호 태그로 표시된다. */
+  index: number
+  /** 영문 대문자 증거 코드(예: SCENE, EDIT, SOLE-B, SOLE-S). */
+  code: string
   label: string
   image: string | null
 }
 
-/** 표시 전용 이미지 타일(업로드/에디터 없음). 이미지가 없으면 안내 문구를 보인다. */
-function ImageTile({ label, image }: ImageTileProps) {
+/**
+ * 표시 전용 이미지 타일(업로드/에디터 없음). 반복되던 "Read-Only" 라벨 대신
+ * 타일별 증거 번호(01~04)와 코드(SCENE/EDIT/SOLE-B/SOLE-S)를 태그로 달아 4분할
+ * 전체가 하나의 증거 세트처럼 읽히게 한다. 이미지가 없으면 안내 문구를 보인다.
+ */
+function ImageTile({ index, code, label, image }: ImageTileProps) {
   return (
-    <div className="relative flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#1E2A3C] bg-[#0F1826]">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[#1E2A3C] bg-[#0F1826]">
       <div className="flex items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-3 py-2">
-        <span className="text-[12px] font-semibold text-[#C7CEDB]">{label}</span>
+        <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#C7CEDB]">
+          <span className="rounded border border-[#1E2A3C] bg-[#05080D] px-1 font-mono text-[9px] tabular-nums text-[#5B6B85]">
+            {String(index).padStart(2, "0")}
+          </span>
+          {label}
+        </span>
         <span className="rounded border border-[#1E2A3C] bg-[#0F1826] px-1.5 py-0.5 font-mono text-[9px] tracking-wide text-[#8A93A6] uppercase">
-          Read-Only
+          {code}
         </span>
       </div>
-      <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-[#05080D]">
+      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#05080D]">
         {image ? (
           <img
             src={image}
@@ -67,8 +80,8 @@ function ImageTile({ label, image }: ImageTileProps) {
           />
         ) : (
           <div className="flex flex-col items-center gap-2 text-[#5B6B85]">
-            <ImageOff className="size-7" aria-hidden="true" />
-            <span className="text-xs font-medium">이미지 없음</span>
+            <ImageOff className="size-6" aria-hidden="true" />
+            <span className="text-[11px] font-medium">이미지 없음</span>
           </div>
         )}
       </div>
@@ -180,7 +193,8 @@ export function CrimeHistoryPage() {
           뒤로가기
         </Button>
         {ranking && (
-          <span className="rounded-md border border-[#3B82F6]/50 bg-[#152238] px-3 py-1.5 font-mono text-[13px] font-semibold text-[#4A9EFF]">
+          <span className="flex items-center gap-1.5 rounded-md border border-[#3B82F6]/50 bg-[#152238] px-3 py-1.5 font-mono text-[13px] font-semibold text-[#4A9EFF] shadow-[0_0_14px_rgba(37,99,235,0.3)]">
+            <Target className="size-3.5" aria-hidden="true" />
             발견 [{ranking}위]
           </span>
         )}
@@ -192,15 +206,17 @@ export function CrimeHistoryPage() {
   usePageHeader({ title: HEADER_TITLE, actions: headerActions })
 
   return (
-    <div className="relative min-h-[calc(100vh-110px)] w-full bg-background px-6 py-6">
+    <div className="relative h-[calc(100vh-110px)] w-full overflow-hidden bg-background px-6 py-6">
       <DotGrid />
       <GlowOrb className="-top-24 right-1/4 h-72 w-72 bg-[#2563EB]/10" />
       <GlowOrb className="bottom-0 left-1/3 h-64 w-64 bg-[#4A9EFF]/8" />
 
-      <div className="relative flex flex-col gap-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {/* 3블록을 뷰포트 높이에 맞춰 2행으로 배분한다: 증거·문양(1행) / 검색결과(2행,
+          비중 큼) — ShoesResultPage와 같은 "페이지는 고정, 패널 내부만 스크롤" 규약. */}
+      <div className="relative grid h-full min-h-0 grid-rows-[minmax(0,1fr)_minmax(0,1.2fr)] gap-6">
+        <div className="grid min-h-0 grid-cols-1 gap-6 lg:grid-cols-2">
           {/* 증거 이미지 4분할(표시 전용) */}
-          <section className="relative flex flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
+          <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
             <TechCorners size={22} />
             <div className="flex items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-6 py-3.5">
               <span className="text-[15px] font-semibold text-[#E5E9F0]">증거 이미지</span>
@@ -208,23 +224,20 @@ export function CrimeHistoryPage() {
                 Evidence · 4-View
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-4 p-5">
-              <ImageTile label="현장이미지" image={sceneImage} />
-              <ImageTile label="편집이미지" image={images.edit} />
-              <ImageTile label="바닥이미지" image={images.bottom} />
-              <ImageTile label="측면이미지" image={images.side} />
+            <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-4 p-5">
+              <ImageTile index={1} code="SCENE" label="현장이미지" image={sceneImage} />
+              <ImageTile index={2} code="EDIT" label="편집이미지" image={images.edit} />
+              <ImageTile index={3} code="SOLE-B" label="바닥이미지" image={images.bottom} />
+              <ImageTile index={4} code="SOLE-S" label="측면이미지" image={images.side} />
             </div>
           </section>
 
-          {/* 현장패턴 vs DB패턴 문양 비교 */}
-          <PartialPatternsCompare
-            patternItems={currentPatterns}
-            className="min-h-[440px]"
-          />
+          {/* 현장패턴 vs DB패턴 문양 비교 — 좌측 패널과 같은 행 높이를 그대로 채운다. */}
+          <PartialPatternsCompare patternItems={currentPatterns} className="h-full" />
         </div>
 
         {/* 과거 검색결과(비클릭 재사용) */}
-        <div className="h-[560px]">
+        <div className="min-h-0">
           <RetrievalResultsGrid
             results={results}
             totalCount={totalCount}
