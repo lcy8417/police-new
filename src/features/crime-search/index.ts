@@ -7,3 +7,8 @@ export type {
   RetrievalResultsGridProps,
   RetrievalResultItem,
 } from "./ui/RetrievalResultsGrid";
+export { PartialPatternsCompare } from "./ui/PartialPatternsCompare";
+export type {
+  PartialPatternsCompareProps,
+  PatternCompareGroup,
+} from "./ui/PartialPatternsCompare";

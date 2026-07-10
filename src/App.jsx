@@ -4,6 +4,7 @@ import { CrimeRegisterRedesign as CrimeRegister } from "@/pages/crime-register";
 import {
   CrimeSearchPage as CrimeSearch,
   ShoesResultPage as ShoesResult,
+  CrimeHistoryPage as CrimeHistory,
 } from "@/pages/crime-search";
 import CrimeDetail from "./pages/CrimeDetail";
 import ShoesRegister from "./pages/ShoesRegister";
@@ -12,7 +13,6 @@ import CrimeEdit from "./pages/CrimeEdit";
 import ResultDetail from "./pages/ResultDetail";
 import ShoesRepository from "./pages/ShoesRepository";
 import ShoesEdit from "./pages/ShoesEdit";
-import CrimeHistory from "./pages/CrimeHistory";
 import EditorMode from "./pages/EditorMode";
 
 import { createContext, useEffect } from "react";
