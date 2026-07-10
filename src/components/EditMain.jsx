@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect, useContext } from "react";
+import { useState, useRef, useEffect } from "react";
 import "./EditMain.css";
 import ImageLoader from "./ImageLoader";
 import Preprocessing from "./Preprocessing";
 import Canvas from "./Canvas";
-import { crimeDataContext } from "../App"; // Assuming you have a context for crime data
+import { useCrimeStore } from "@/entities/crime"; // 현장 데이터 단일 출처(Zustand)
 import { useParams } from "react-router-dom"; // Import useParams to access route parameters
 import useImageProcessing from "../hooks/useImageProcessing"; // Custom hook for image processing
 import LoadingModal from "./LoadingModal"; // Importing LoadingModal component
@@ -32,7 +32,7 @@ const EditMain = ({ scrollState, setScrollState }) => {
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
 
-  const { crimeData } = useContext(crimeDataContext); // Accessing crime data from context
+  const crimeData = useCrimeStore((s) => s.crimeData); // store에서 현장 데이터 조회
   const { crimeNumber } = useParams(); // Assuming you have a route parameter for the crime ID
 
   const [buttonState, setButtonState] = useState(null);

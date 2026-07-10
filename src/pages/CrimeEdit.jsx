@@ -1,14 +1,13 @@
 import EditMain from "../components/EditMain";
 import Header from "../components/Header";
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useContext, useEffect } from "react";
-import { crimeDataContext } from "../App";
+import { useState, useEffect } from "react";
+import { useCrimeStore } from "@/entities/crime";
 import { fetchEditImageSave } from "../services/crud";
 
-const url = import.meta.env.VITE_API_URL;
-
 const CrimeEdit = () => {
-  const { crimeData, setCrimeData } = useContext(crimeDataContext);
+  const crimeData = useCrimeStore((s) => s.crimeData);
+  const setCrimeData = useCrimeStore((s) => s.setCrimeData);
   const { crimeNumber } = useParams();
 
   // 현재 스크롤 상태 메모

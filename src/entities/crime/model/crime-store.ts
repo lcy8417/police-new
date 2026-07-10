@@ -8,7 +8,7 @@ import type { Crime } from "./types";
 const PATTERN_ZONES: readonly PatternZone[] = ["top", "mid", "bottom", "outline"];
 
 /** Accepts a value or an updater function — matching React's setState contract,
- * so the 12 legacy `crimeDataContext` consumers keep working unchanged. */
+ * so store consumers can update the list with the same ergonomics as setState. */
 type CrimeUpdater = Crime[] | ((prev: Crime[]) => Crime[]);
 
 interface CrimeStore {
@@ -20,10 +20,9 @@ interface CrimeStore {
 }
 
 /**
- * Single source of truth for the working crime list. The legacy
- * `crimeDataContext` provider (App.jsx) is now a thin bridge that reads its
- * value from this store, so `.jsx` (context) and `.tsx` (store) code share one
- * source of truth until the last context consumer is migrated.
+ * Single source of truth for the working crime list. Every screen — both the
+ * `.jsx` legacy consumers and the `.tsx` redesign — subscribes to this store
+ * directly via selectors; the former React Context bridge has been removed.
  */
 export const useCrimeStore = create<CrimeStore>((set, get) => ({
   crimeData: [],
