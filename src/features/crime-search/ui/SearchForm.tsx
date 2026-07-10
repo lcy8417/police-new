@@ -68,8 +68,8 @@ export function SearchForm({
         <span className="text-[15px] font-semibold text-[#E5E9F0]">검색 조건</span>
       </div>
 
-      {/* 필드 그리드 */}
-      <div className="grid grid-cols-1 gap-x-5 gap-y-4 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4">
+      {/* 필드 그리드 — 6필드를 3열 x 2행으로 꽉 채워 여백 없이 타이트하게 배치한다. */}
+      <div className="grid grid-cols-1 gap-x-6 gap-y-4 px-6 py-4 sm:grid-cols-2 lg:grid-cols-3">
         <Field label="사건등록번호">
           <Input
             value={searchForm.crimeNumber}
