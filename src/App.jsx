@@ -1,8 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import "./App.css";
 import { AppShell } from "@/widgets/app-shell";
-import CrimeRegister from "./pages/CrimeRegister";
-import CrimeSearch from "./pages/CrimeSearch";
+import { CrimeRegisterRedesign as CrimeRegister } from "@/pages/crime-register";
+import { CrimeSearchPage as CrimeSearch } from "@/pages/crime-search";
 import CrimeDetail from "./pages/CrimeDetail";
 import ShoesRegister from "./pages/ShoesRegister";
 import PatternExtract from "./pages/PatternExtract";
@@ -14,40 +13,24 @@ import ShoesEdit from "./pages/ShoesEdit";
 import CrimeHistory from "./pages/CrimeHistory";
 import EditorMode from "./pages/EditorMode";
 
-import { useState, createContext, useEffect } from "react";
-import { fetchCrimeData } from "./services/crud"; // 🧊 CRUD 서비스에서 함수 가져오기
-import { pathInsert } from "./utils/path-utils"; // 🧊 경로 유틸리티 함수 가져오기
+import { createContext, useEffect } from "react";
+import { useCrimeStore } from "@/entities/crime";
 
 export const crimeDataContext = createContext();
 
 function App() {
-  const [crimeData, setCrimeData] = useState([]);
-  const [registerFlag, setRegisterFlag] = useState([]);
+  // Bridge: the legacy context value is sourced from the Zustand store, so the
+  // existing consumers and any new store-based code share one source of truth.
+  // `setCrimeData` is React-setState-compatible; `setRegisterFlag` refetches.
+  const crimeData = useCrimeStore((s) => s.crimeData);
+  const setCrimeData = useCrimeStore((s) => s.setCrimeData);
+  const setRegisterFlag = useCrimeStore((s) => s.setRegisterFlag);
+  const refetch = useCrimeStore((s) => s.refetch);
 
-  // 범죄 데이터 초기화
+  // Initial load (replaces the old `useEffect(readCrimeData, [registerFlag])`).
   useEffect(() => {
-    // 서버에서 범죄 데이터 가져오기
-    const readCrimeData = async () => {
-      try {
-        const data = await fetchCrimeData();
-        // 처음 불러올 때, top, mid, bottom, outline 필드가 없을 수 있으므로 초기화
-        // 또한 불러올 문양은 이름만 있으므로, 경로를 넣어줌
-        const updatedData = data.map((item) => ({
-          ...item,
-          top: item.top.map(pathInsert) || [],
-          mid: item.mid.map(pathInsert) || [],
-          bottom: item.bottom.map(pathInsert) || [],
-          outline: item.outline.map(pathInsert) || [],
-          image: `${item.image}`, // 캐시 방지를 위해 현재 시간 추가
-        }));
-        setCrimeData(updatedData);
-      } catch (error) {
-        console.error("Error fetching crime data:", error);
-      }
-    };
-
-    readCrimeData();
-  }, [registerFlag]);
+    void refetch();
+  }, [refetch]);
 
   return (
     <crimeDataContext.Provider

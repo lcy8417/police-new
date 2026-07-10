@@ -1,23 +1,41 @@
-import filesLoad from "../hooks/useFileLoad";
-import { useEffect, useRef, useState, useContext } from "react";
-import { crimeDataContext } from "../App";
-import { patternsExtract } from "../services/api";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
-const url = import.meta.env.VITE_API_URL;
+import { useCrimeStore, type Crime } from "@/entities/crime";
+import type { PatternEntry, PatternZone } from "@/entities/pattern";
+import type { Shoe } from "@/entities/shoe";
+import filesLoad from "@/hooks/useFileLoad";
+import { patternsExtract } from "@/services/api";
 
-const usePatternManager = ({
+type ShoeUpdater = Shoe | ((prev: Shoe) => Shoe);
+
+interface LineState {
+  lineYs: [number, number];
+  draggingLine: number | null;
+  offsetY: number;
+}
+
+interface UsePatternManagerParams {
+  index?: number;
+  currentData?: Crime | null;
+  formData?: Shoe | null;
+  setFormData?: ((updater: ShoeUpdater) => void) | null;
+  imgRef?: RefObject<HTMLImageElement | null> | null;
+}
+
+export const usePatternManager = ({
   index = -1,
   currentData = null,
   formData = null,
   setFormData = null,
   imgRef = null,
-}) => {
-  const canvasRef = useRef(null);
+}: UsePatternManagerParams) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const [patterns, setPatterns] = useState([]);
-  const [selected, setSelected] = useState(null);
-  const { crimeData, setCrimeData } = useContext(crimeDataContext);
-  const [lineState, setLineState] = useState({
+  const [patterns, setPatterns] = useState<string[]>([]);
+  const [selected, setSelected] = useState<number | null>(null);
+  const crimeData = useCrimeStore((s) => s.crimeData);
+  const setCrimeData = useCrimeStore((s) => s.setCrimeData);
+  const [lineState, setLineState] = useState<LineState>({
     lineYs: [100, 200],
     draggingLine: null,
     offsetY: 0,
@@ -25,11 +43,10 @@ const usePatternManager = ({
 
   const extractPattern = async () => {
     //const patternsRoot = "/src/assets/Patterns/전체/";
-      const patternsRoot = `${import.meta.env.VITE_API_URL}/patterns/`;
-
+    const patternsRoot = `${import.meta.env.VITE_API_URL}/patterns/`;
 
     // 패턴 이미지 경로를 생성하는 함수. 족적과 신발은 필수 문양 여부에 따라 다르게 처리
-    const format = (src) => {
+    const format = (src: string): PatternEntry => {
       const returnText = patternsRoot + src + ".png";
       return formData ? returnText : [returnText, 0];
     };
@@ -37,23 +54,26 @@ const usePatternManager = ({
     const requestType = formData ? "shoes" : "crime";
 
     // 신발 정보 수정일 때는 png 파일 이름을 추출하여 사용
-    const shoesImage = formData?.image.includes(".png")
-      ? formData?.image.split(/[/\\]/).pop().split(".")[0]
+    // (non-null assertions below mirror the original's unguarded `.image`/`.pop()`
+    // access — they preserve the exact runtime behavior, including throwing if
+    // `formData.image` were ever null, rather than adding new guards.)
+    const shoesImage = formData?.image!.includes(".png")
+      ? formData?.image!.split(/[/\\]/).pop()!.split(".")[0]
       : formData?.image;
 
-    let requestImage = null;
+    let requestImage: string | null | undefined = null;
     // imgRef(현장, 편집이미지 모달)가 있는 경우
     if (imgRef && imgRef.current) {
       // 편집 이미지의 경우
       requestImage = imgRef.current.src.startsWith("data:image")
         ? imgRef.current.src
-        : imgRef.current.src.split(/[/\\]/).pop().replace(".png", "");
+        : imgRef.current.src.split(/[/\\]/).pop()!.replace(".png", "");
     } else {
       // 현장 이미지의 경우
       requestImage = currentData?.crimeNumber || shoesImage;
     }
 
-    const rect = canvasRef.current.getBoundingClientRect();
+    const rect = canvasRef.current!.getBoundingClientRect();
     const { top, mid, bottom, outline } = await patternsExtract({
       crimeNumber: currentData?.crimeNumber || "shoes",
       body: {
@@ -82,7 +102,7 @@ const usePatternManager = ({
       );
     } else {
       // shoesRegister에서 호출되는 경우
-      setFormData((prev) => ({
+      setFormData!((prev) => ({
         ...prev,
         top: top.map(format),
         mid: mid.map(format),
@@ -123,20 +143,27 @@ const usePatternManager = ({
     });
   };
 
-  const patternsKindSelect = (e) => {
-    const kind = e.target.textContent;
+  const patternsKindSelect = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const kind = (e.target as HTMLElement).textContent;
     filesLoad(kind, setPatterns);
   };
 
-  const insertPattern = (e) => {
-    const kind = ["top", "mid", "bottom", "outline"][selected];
+  const insertPattern = (e: React.MouseEvent<HTMLImageElement>) => {
+    // Selected zone index -> zone name. When `selected` is null this yields
+    // `undefined`, matching the original JS `arr[null]` lookup (also
+    // `undefined`); `kind` is only ever read below once `selected !== null`
+    // has been checked, exactly as in the original.
+    const kind = ["top", "mid", "bottom", "outline"][
+      selected ?? -1
+    ] as PatternZone;
+    const src = (e.target as HTMLImageElement).src;
 
     if (setFormData) {
       // shoesRegister에서 호출되는 경우
-      if (selected !== null && !formData[kind].includes(e.target.src)) {
+      if (selected !== null && !formData![kind].includes(src)) {
         setFormData((prev) => ({
           ...prev,
-          [kind]: [...prev[kind], e.target.src],
+          [kind]: [...prev[kind], src],
         }));
       }
       return;
@@ -145,9 +172,7 @@ const usePatternManager = ({
     // crimeExtract에서 호출되는 경우
     if (index === -1) return; // id가 없는 경우 함수 종료
 
-    const exists = crimeData[index][kind]?.some(
-      (item) => item[0] === e.target.src
-    );
+    const exists = crimeData[index][kind]?.some((item) => item[0] === src);
 
     if (selected !== null && !exists) {
       setCrimeData((prev) => {
@@ -157,7 +182,7 @@ const usePatternManager = ({
           i === index
             ? {
                 ...item,
-                [kind]: [...item[kind], [e.target.src, 0]], // 새로운 데이터 추가
+                [kind]: [...item[kind], [src, 0] as PatternEntry], // 새로운 데이터 추가
               }
             : item
         );
@@ -165,7 +190,7 @@ const usePatternManager = ({
     }
   };
 
-  const deletePattern = (kind, src) => {
+  const deletePattern = (kind: PatternZone, src: string) => {
     if (setFormData) {
       // shoesRegister에서 호출되는 경우
       setFormData((prev) => ({
@@ -192,7 +217,7 @@ const usePatternManager = ({
     });
   };
 
-  const essentialCheck = (kind, src) => {
+  const essentialCheck = (kind: PatternZone, src: string) => {
     setCrimeData((prev) => {
       if (index === -1) return prev; // id가 없는 경우 기존 상태 반환
 
@@ -202,7 +227,7 @@ const usePatternManager = ({
               ...item,
               [kind]: item[kind].map((subItem) => {
                 if (subItem[0] === src) {
-                  return [subItem[0], !subItem[1]];
+                  return [subItem[0], !subItem[1]] as PatternEntry;
                 }
                 return subItem;
               }),
@@ -232,5 +257,3 @@ const usePatternManager = ({
     setPatterns, // 추가: 패턴을 외부에서 설정할 수 있도록
   };
 };
-
-export default usePatternManager;

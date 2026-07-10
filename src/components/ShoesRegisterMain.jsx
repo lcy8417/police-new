@@ -4,7 +4,7 @@ import PatternInfo from "./PatternInfo";
 import FormList from "./FormList";
 import Canvas from "./Canvas";
 import { handleChange, rotateImage } from "../utils/get-input-change";
-import usePatternManager from "../hooks/usePatternManager";
+import { usePatternManager } from "@/features/patterns-extract";
 import LoadingModal from "./LoadingModal"; // Importing LoadingModal component
 import React, { useState, forwardRef, useImperativeHandle } from "react";
 
