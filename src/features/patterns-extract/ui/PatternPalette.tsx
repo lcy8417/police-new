@@ -1,6 +1,7 @@
-import type { MouseEvent } from "react";
+import { useState, type MouseEvent } from "react";
 import { Database } from "lucide-react";
 
+import { cn } from "@/shared/lib/utils";
 import { TechCorners } from "@/shared/ui/tech-corners";
 
 /**
@@ -29,6 +30,11 @@ export function PatternPalette({
   patternsKindSelect,
   insertPattern,
 }: PatternPaletteProps) {
+  // 표시 전용 — 어느 종류 버튼이 활성인지 로컬로 추적한다(usePatternManager는
+  // 이 상태를 소유하지 않으므로 계약을 바꾸지 않는다). 마운트 시 훅이 "무늬"를
+  // 기본 로드하므로 초깃값을 맞춘다.
+  const [activeKind, setActiveKind] = useState<string>(KINDS[0]);
+
   return (
     <section className="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
       <TechCorners size={20} />
@@ -49,12 +55,27 @@ export function PatternPalette({
           <button
             key={kind}
             type="button"
-            onClick={patternsKindSelect}
-            className="rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2.5 py-1 text-xs font-medium text-[#C7CEDB] transition-colors hover:border-[#3B82F6]/50 hover:bg-[#152238] hover:text-[#4A9EFF]"
+            onClick={(e) => {
+              setActiveKind(kind);
+              patternsKindSelect(e);
+            }}
+            className={cn(
+              "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+              activeKind === kind
+                ? "border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF]"
+                : "border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#3B82F6]/50 hover:bg-[#152238] hover:text-[#4A9EFF]"
+            )}
           >
             {kind}
           </button>
         ))}
+      </div>
+
+      {/* 삽입 안내 — 문양 정보 패널에서 선택한 부위가 삽입 대상이 된다. */}
+      <div className="border-b border-[#141D2C] px-4 py-1.5">
+        <span className="font-mono text-[10px] tracking-wide text-[#5B6B85]">
+          썸네일 클릭 시 문양 정보에서 선택한 부위에 삽입됩니다
+        </span>
       </div>
 
       {/* 문양 썸네일 그리드 */}

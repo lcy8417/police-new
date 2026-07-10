@@ -1,4 +1,4 @@
-import { ImageOff, Target } from "lucide-react";
+import { Crosshair, ImageOff, Target, Trash2 } from "lucide-react";
 
 import type { Crime } from "@/entities/crime";
 import type { PatternEntry, PatternZone } from "@/entities/pattern";
@@ -43,20 +43,25 @@ export function PatternZones({
 }: PatternZonesProps) {
   return (
     <section className="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
-      <TechCorners size={20} />
+      <TechCorners size={20} active={selected !== null} />
 
       <div className="flex items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-5 py-3">
         <span className="flex items-center gap-2 text-[15px] font-semibold text-[#E5E9F0]">
           <Target className="size-4 text-[#4A9EFF]" aria-hidden="true" />
           문양 정보
         </span>
-        <span className="hidden items-center gap-1.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-0.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase sm:flex">
-          <span
-            className="size-1.5 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
-            aria-hidden="true"
-          />
-          필수
-        </span>
+        <div className="hidden items-center gap-2.5 sm:flex">
+          <span className="font-mono text-[10px] tracking-wide text-[#5B6B85]">
+            클릭 삭제 · 우클릭 필수
+          </span>
+          <span className="flex items-center gap-1.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-0.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase">
+            <span
+              className="size-1.5 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
+              aria-hidden="true"
+            />
+            필수
+          </span>
+        </div>
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto p-4">
@@ -83,7 +88,15 @@ export function PatternZones({
                     : "border-[#141D2C] bg-[#0D1420]/60 text-[#C7CEDB] hover:text-white"
                 )}
               >
-                <span>{label}</span>
+                <span className="flex items-center gap-1.5">
+                  <span>{label}</span>
+                  {isSelected && (
+                    <span className="flex items-center gap-1 rounded border border-[#3B82F6]/40 bg-[#0B121D]/60 px-1.5 py-0.5 font-mono text-[9px] tracking-wide text-[#4A9EFF] uppercase">
+                      <Crosshair className="size-2.5" aria-hidden="true" />
+                      대상
+                    </span>
+                  )}
+                </span>
                 <span className="font-mono text-[10px] tabular-nums text-[#5B6B85]">
                   {patterns.length}
                 </span>
@@ -97,8 +110,10 @@ export function PatternZones({
                       <div
                         key={i}
                         className={cn(
-                          "relative aspect-square overflow-hidden rounded-lg border bg-[#05080D]",
-                          essential ? "border-[#EF4444]/40" : "border-[#1E2A3C]"
+                          "group relative aspect-square overflow-hidden rounded-lg border bg-[#05080D] transition-colors",
+                          essential
+                            ? "border-[#EF4444]/40"
+                            : "border-[#1E2A3C] hover:border-[#3B82F6]/40"
                         )}
                       >
                         <img
@@ -110,7 +125,7 @@ export function PatternZones({
                             e.preventDefault();
                             essentialCheck(key, path);
                           }}
-                          className="absolute inset-0 size-full cursor-pointer object-contain p-1.5"
+                          className="absolute inset-0 size-full cursor-pointer object-contain p-1.5 transition-transform group-hover:scale-105"
                         />
                         {essential && (
                           <span
@@ -118,6 +133,10 @@ export function PatternZones({
                             className="absolute top-1 right-1 size-1.5 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
                           />
                         )}
+                        {/* 삭제 어포던스(호버 전용) — 클릭 시 삭제됨을 시각적으로 예고한다. */}
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#05080D]/0 opacity-0 transition-all duration-150 group-hover:bg-[#05080D]/70 group-hover:opacity-100">
+                          <Trash2 className="size-3.5 text-[#EF4444]" aria-hidden="true" />
+                        </div>
                       </div>
                     );
                   })}
