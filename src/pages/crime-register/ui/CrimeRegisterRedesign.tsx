@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { registerCrime, useCrimeStore } from "@/entities/crime"
-import { useImageEditor } from "@/features/crime-register"
+import { useImageAdjustments, useImageEditor } from "@/features/crime-register"
 import { usePageHeader } from "@/widgets/app-shell"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 import { rotateImage, resizeImage } from "@/utils/get-input-change"
@@ -63,6 +63,7 @@ export function CrimeRegisterRedesign() {
   }, [])
 
   const editor = useImageEditor(formData.image, handleImageChange)
+  const adjust = useImageAdjustments(formData.image)
 
   const registerMutation = useMutation({
     mutationFn: registerCrime,
@@ -119,6 +120,7 @@ export function CrimeRegisterRedesign() {
           onFileSelect={handleFileSelect}
           onRotate={handleRotate}
           editor={editor}
+          adjust={adjust}
         />
         <CaseInfoPanel
           formData={formData}
