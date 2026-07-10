@@ -5,12 +5,12 @@ import {
   CrimeSearchPage as CrimeSearch,
   ShoesResultPage as ShoesResult,
   CrimeHistoryPage as CrimeHistory,
+  ResultDetailPage as ResultDetail,
 } from "@/pages/crime-search";
 import CrimeDetail from "./pages/CrimeDetail";
 import ShoesRegister from "./pages/ShoesRegister";
 import PatternExtract from "./pages/PatternExtract";
 import CrimeEdit from "./pages/CrimeEdit";
-import ResultDetail from "./pages/ResultDetail";
 import ShoesRepository from "./pages/ShoesRepository";
 import ShoesEdit from "./pages/ShoesEdit";
 import EditorMode from "./pages/EditorMode";
