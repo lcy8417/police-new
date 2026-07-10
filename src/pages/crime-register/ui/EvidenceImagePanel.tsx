@@ -19,7 +19,7 @@ import { AdjustmentsDock } from "./AdjustmentsDock"
 
 const ROTATION_TICKS = ["-180°", "-90°", "0°", "90°", "180°"]
 
-/** Before/after compare: "원본" shows raw pixels, "보정" the adjusted preview. */
+/** 전/후 비교: "원본"은 원시 픽셀을, "보정"은 조정된 미리보기를 보여준다. */
 const VIEW_MODES = ["원본", "보정"] as const
 
 function ToolbarIconButton({
@@ -52,17 +52,21 @@ interface EvidenceImagePanelProps {
   onRotate: (deg: number) => void
   editor: ImageEditor
   adjust: ImageAdjustments
-  /** Free-angle rotation (-180..180), previewed via CSS transform. */
+  /** 자유각 회전(-180..180), CSS transform으로 미리보기된다. */
   rotation: number
   onRotationChange: (deg: number) => void
+  /** 도크 도구 섹션 핸들러(회전 선커밋 래퍼 경유). */
+  onCrop: () => void
+  onCalibrate: () => void
+  onReset: () => void
 }
 
 /**
- * Left "현장 이미지" panel: rotation toolbar, a ruler-framed evidence viewport
- * with a right-hand "가시성 보정" dock, and a status bar with a 원본/보정
- * compare toggle. Upload + ±90 rotation are backed by the page; the `editor`
- * layers a crop / 4-point-calibration overlay pixel-perfect over the displayed
- * image, and `adjust` drives non-destructive visibility filters.
+ * 왼쪽 "현장 이미지" 패널: 회전 툴바, 눈금자로 둘러싸인 증거 뷰포트와 오른쪽
+ * "가시성 보정" 독, 그리고 원본/보정 비교 토글이 있는 상태 표시줄로 구성된다.
+ * 업로드 + ±90도 회전은 페이지에서 처리되며, `editor`는 표시된 이미지 위에
+ * 픽셀 단위로 정확한 크롭 / 4점 각도보정 오버레이를 얹고, `adjust`는 비파괴
+ * 가시성 필터를 구동한다.
  */
 export function EvidenceImagePanel({
   image,
@@ -72,6 +76,9 @@ export function EvidenceImagePanel({
   adjust,
   rotation,
   onRotationChange,
+  onCrop,
+  onCalibrate,
+  onReset,
 }: EvidenceImagePanelProps) {
   const [viewMode, setViewMode] = useState<(typeof VIEW_MODES)[number]>("보정")
   const [dimensions, setDimensions] = useState<[number, number]>([0, 0])
@@ -80,19 +87,19 @@ export function EvidenceImagePanel({
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) onFileSelect(file)
-    // Allow re-selecting the same file (onChange won't fire otherwise).
+    // 같은 파일을 다시 선택할 수 있도록 허용한다(그렇지 않으면 onChange가 발생하지 않음).
     e.target.value = ""
   }
 
   const [width, height] = dimensions
 
-  // 원본 shows the committed pixels raw; 보정 shows the adjusted preview.
+  // 원본은 커밋된 픽셀을 그대로 보여주고, 보정은 조정된 미리보기를 보여준다.
   const showRaw = viewMode === "원본"
   const displaySrc = showRaw ? image : (adjust.displayImage ?? image)
   const displayFilter = showRaw ? "none" : adjust.cssFilter
 
-  // Purely presentational: highlight the tick nearest the live rotation value
-  // so the ruler reads like an editor's angle gauge, not a static legend.
+  // 순수하게 표시용: 눈금자가 정적인 범례가 아니라 편집기의 각도 게이지처럼
+  // 보이도록, 실시간 회전값에 가장 가까운 눈금을 강조한다.
   const nearestTickValue = ROTATION_TICKS.reduce((closest, tick) => {
     const tickValue = Number.parseInt(tick, 10)
     return Math.abs(tickValue - rotation) < Math.abs(Number.parseInt(closest, 10) - rotation)
@@ -112,7 +119,7 @@ export function EvidenceImagePanel({
         onChange={handleFileChange}
       />
 
-      {/* Panel header */}
+      {/* 패널 헤더 */}
       <div className="flex items-center justify-between px-6 pt-5">
         <span className="text-[15px] font-semibold text-[#E5E9F0]">현장 이미지</span>
         <span className="relative flex size-2">
@@ -121,7 +128,7 @@ export function EvidenceImagePanel({
         </span>
       </div>
 
-      {/* Toolbar: rotate left/right, rotation slider w/ ticks, fit + zoom */}
+      {/* 툴바: 좌/우 회전, 눈금이 있는 회전 슬라이더, 맞춤 + 확대/축소 */}
       <div className="mt-4 flex items-center gap-3 border-y border-[#141D2C] bg-[#0D1420]/60 px-6 py-3">
         <div className="flex shrink-0 items-center gap-0.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] p-0.5">
           <ToolbarIconButton
@@ -141,8 +148,8 @@ export function EvidenceImagePanel({
         <div className="h-6 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
 
         <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-1">
-          {/* Free-angle rotation: CSS-transform live preview, baked at save.
-              Disabled during crop/calibration (rotation is committed on entry). */}
+          {/* 자유각 회전: CSS transform으로 실시간 미리보기하며 저장 시점에 굽는다.
+              크롭/각도보정 중에는 비활성화된다(진입 시 회전이 커밋됨). */}
           <Slider
             value={[rotation]}
             onValueChange={([v]) => onRotationChange(v)}
@@ -194,12 +201,12 @@ export function EvidenceImagePanel({
         </div>
       </div>
 
-      {/* Viewport (ruler-framed) + right-hand 가시성 보정 dock.
-          Stacks to a column below `lg` so the dock falls beneath the
-          viewport instead of squeezing it on narrow widths. */}
+      {/* 뷰포트(눈금자로 둘러싸임) + 오른쪽 가시성 보정 독.
+          `lg` 미만에서는 세로로 쌓여, 좁은 화면에서 뷰포트를 압박하는 대신
+          독이 뷰포트 아래로 내려가도록 한다. */}
       <div className="mt-4 mb-3 flex min-h-0 flex-1 flex-col gap-4 px-6 lg:flex-row">
         <div className="relative flex min-h-[280px] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-xl border border-[#141D2C] bg-[#05080D] lg:min-h-0">
-          {/* checkerboard scale bars */}
+          {/* 체커보드 눈금 바 */}
           <div
             className="absolute inset-x-2 top-2 h-[8px] rounded-sm opacity-70"
             style={{
@@ -213,7 +220,7 @@ export function EvidenceImagePanel({
             }}
           />
 
-          {/* corner crosshairs */}
+          {/* 모서리 십자선 */}
           <Crosshair className="absolute top-4 left-4 size-5 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
           <Crosshair className="absolute top-4 right-4 size-5 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
           <Crosshair className="absolute bottom-4 left-4 size-5 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
@@ -285,10 +292,17 @@ export function EvidenceImagePanel({
           </span>
         </div>
 
-        <AdjustmentsDock adjust={adjust} disabled={!image} />
+        <AdjustmentsDock
+          adjust={adjust}
+          onCrop={onCrop}
+          onCalibrate={onCalibrate}
+          onReset={onReset}
+          mode={editor.mode}
+          disabled={!image}
+        />
       </div>
 
-      {/* Status bar */}
+      {/* 상태 표시줄 */}
       <div className="flex flex-wrap items-center gap-3 border-t border-[#141D2C] px-6 py-3">
         <span className="rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2.5 py-1 font-mono text-[11px] tabular-nums text-[#8A93A6]">
           {width} x {height} px

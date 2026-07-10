@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
 
@@ -9,28 +9,29 @@ import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 import { rotateImage, resizeImage } from "@/utils/get-input-change"
 
 import { EMPTY_FORM, type CrimeFormData } from "../model/form"
-import { HeaderActions, HeaderTitle } from "./HeaderContent"
+import { HeaderTitle } from "./HeaderContent"
 import { EvidenceImagePanel } from "./EvidenceImagePanel"
 import { CaseInfoPanel } from "./CaseInfoPanel"
 
-// Title is static — build the element once so the header effect never refires
-// on its account.
+// 제목은 정적이다 — 이 값 때문에 헤더 effect가 다시 실행되지 않도록 엘리먼트를
+// 한 번만 생성한다.
 const HEADER_TITLE = <HeaderTitle />
 
 /**
- * Command-center `/crimeRegister`. Owns the register `formData`, wires upload
- * / ±90 rotation / save / reset against the crime entity layer, and publishes
- * the title + action-card row into `TopNav`. Crop + 4-point calibration remain
- * deferred to Slice 2 (see the inert header cards).
+ * 커맨드 센터 `/crimeRegister`. 등록 `formData`를 소유하고, 업로드 / ±90도·자유각
+ * 회전 / 크롭 / 4점 각도보정 / 가시성 보정(밝기·대비·감마·임계값·반전·흑백) / 저장 /
+ * 초기화를 crime 엔티티 계층과 연결한다. `TopNav`에는 제목만 게시하고, 편집
+ * 도구(크롭·각도보정·초기화)는 이미지 옆 도크로 내렸다.
+ * 회전·가시성 보정은 비파괴로 미리보기하다가 저장 시점에만 픽셀로 굽는다.
  */
 export function CrimeRegisterRedesign() {
   const [formData, setFormData] = useState<CrimeFormData>(EMPTY_FORM)
   const adjust = useImageAdjustments(formData.image)
-  // Stable callbacks (referenced from memoised handlers below).
+  // 안정적인 콜백(아래 메모이즈된 핸들러에서 참조됨).
   const { bake: bakeAdjustments, resetAdjustments } = adjust
 
-  // Free-angle rotation (slider). Mirrored into refs so the crop/calibration
-  // wrappers stay referentially stable across rotation drags.
+  // 자유각 회전(슬라이더). 회전 드래그 중에도 crop/calibration 래퍼가 참조적으로
+  // 안정적으로 유지되도록 ref에도 미러링한다.
   const [rotation, setRotationState] = useState(0)
   const rotationRef = useRef(0)
   const setRotation = useCallback((deg: number) => {
@@ -81,9 +82,9 @@ export function CrimeRegisterRedesign() {
   const editor = useImageEditor(formData.image, handleImageChange)
   const { toggleCrop, toggleCalibration } = editor
 
-  // Free-angle rotation is previewed via CSS transform and baked into pixels
-  // only at save — or eagerly when entering crop/calibration, so the overlay
-  // always maps against un-rotated pixels.
+  // 자유각 회전은 CSS transform으로 미리보기되며, 저장 시점에만 — 또는
+  // crop/calibration에 진입할 때 즉시 — 픽셀에 구워져서, 오버레이는 항상
+  // 회전되지 않은 픽셀을 기준으로 매핑된다.
   const commitRotation = useCallback(async () => {
     const deg = rotationRef.current
     const img = imageRef.current
@@ -119,9 +120,8 @@ export function CrimeRegisterRedesign() {
       toast.error("이미지와 사건 번호는 필수 입력 사항입니다.")
       return
     }
-    // Bake free-angle rotation, then the non-destructive visibility adjustments,
-    // into the image so the analyst's corrections persist server-side (not just
-    // previewed).
+    // 분석관의 보정이 미리보기에만 그치지 않고 서버 측에도 유지되도록, 자유각
+    // 회전을 먼저 굽고 이어서 비파괴 가시성 조정값을 이미지에 굽는다.
     const rotated =
       rotationRef.current !== 0
         ? await rotateArbitrary(formData.image, rotationRef.current)
@@ -138,23 +138,9 @@ export function CrimeRegisterRedesign() {
     })
   }, [formData, registerMutation, bakeAdjustments])
 
-  // Memoize the actions element so the page-header effect only refires when the
-  // handlers or the image-present flag actually change (not every render).
-  const headerActions = useMemo(
-    () => (
-      <HeaderActions
-        onRotate={handleRotate}
-        onReset={handleReset}
-        onCrop={handleCrop}
-        onCalibrate={handleCalibrate}
-        mode={editor.mode}
-        hasImage={!!formData.image}
-      />
-    ),
-    [handleRotate, handleReset, handleCrop, handleCalibrate, editor.mode, formData.image]
-  )
-
-  usePageHeader({ title: HEADER_TITLE, actions: headerActions })
+  // 편집 도구(크롭·각도보정·초기화)는 앱셸 헤더가 아니라 이미지 옆 도크로
+  // 내렸으므로, 헤더에는 제목만 게시한다.
+  usePageHeader({ title: HEADER_TITLE })
 
   return (
     <div className="relative h-[calc(100vh-110px)] w-full overflow-hidden bg-background px-6 py-6">
@@ -171,6 +157,9 @@ export function CrimeRegisterRedesign() {
           adjust={adjust}
           rotation={rotation}
           onRotationChange={setRotation}
+          onCrop={handleCrop}
+          onCalibrate={handleCalibrate}
+          onReset={handleReset}
         />
         <CaseInfoPanel
           formData={formData}

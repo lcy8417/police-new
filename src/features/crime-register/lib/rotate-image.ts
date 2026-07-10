@@ -1,11 +1,10 @@
 /**
- * Free-angle rotation for the evidence image. `rotateImage` in
- * `utils/get-input-change.js` only handles 90° multiples; this generalises it
- * to any angle, growing the output canvas to the rotated bounding box so no
- * corner is clipped.
+ * 증거 이미지에 대한 자유각 회전. `utils/get-input-change.js`의 `rotateImage`는
+ * 90도 배수만 처리하지만, 이 함수는 임의의 각도로 일반화하여 어떤 모서리도
+ * 잘리지 않도록 출력 캔버스를 회전된 바운딩 박스 크기로 키운다.
  */
 
-/** Bounding-box size of a `w`×`h` rectangle rotated by `degrees` (pure). */
+/** `degrees`만큼 회전된 `w`×`h` 사각형의 바운딩 박스 크기(순수 함수). */
 export function rotatedBounds(
   w: number,
   h: number,
@@ -21,8 +20,8 @@ export function rotatedBounds(
 }
 
 /**
- * Rotate `base64` by `degrees`, returning a new PNG data URL sized to the
- * rotated bounding box. A no-op (returns the input) at whole turns.
+ * `base64`를 `degrees`만큼 회전시켜, 회전된 바운딩 박스 크기의 새 PNG data URL을
+ * 반환한다. 360도의 정수배 회전일 때는 no-op(입력을 그대로 반환)이다.
  */
 export async function rotateArbitrary(base64: string, degrees: number): Promise<string> {
   if (degrees % 360 === 0) return base64

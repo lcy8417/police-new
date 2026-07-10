@@ -1,6 +1,14 @@
-import { RotateCcw, SlidersHorizontal } from "lucide-react"
+import {
+  Crop,
+  Crosshair,
+  RefreshCw,
+  RotateCcw,
+  SlidersHorizontal,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react"
 
-import type { ImageAdjustments } from "@/features/crime-register"
+import type { EditorMode, ImageAdjustments } from "@/features/crime-register"
 import { cn } from "@/shared/lib/utils"
 import { EdgeGlow } from "@/shared/ui/glow-fx"
 import { Slider } from "@/shared/ui/slider"
@@ -8,13 +16,50 @@ import { TechCorners } from "@/shared/ui/tech-corners"
 import { Toggle } from "@/shared/ui/toggle"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip"
 
-/** Threshold value applied when the analyst first enables binarization. */
+/** 분석관이 이진화를 처음 켤 때 적용되는 임계값. */
 const THRESHOLD_DEFAULT = 127
 
 interface AdjustmentsDockProps {
   adjust: ImageAdjustments
-  /** Greyed-out until an image is present. */
+  /** 크롭 모드 토글(회전 선커밋 래퍼 경유). */
+  onCrop: () => void
+  /** 4점 각도보정 모드 토글(회전 선커밋 래퍼 경유). */
+  onCalibrate: () => void
+  /** 폼·이미지·조정·회전 전체 초기화. */
+  onReset: () => void
+  /** 현재 오버레이 편집 모드(도구 버튼 활성 표시용). */
+  mode: EditorMode
+  /** 이미지가 없으면 가시성 보정 섹션만 비활성(도구는 항상 활성). */
   disabled?: boolean
+}
+
+/** 도구 섹션의 아이콘+라벨 버튼. 이미지 유무와 무관하게 항상 활성. */
+function ToolButton({
+  icon: Icon,
+  label,
+  active = false,
+  onClick,
+}: {
+  icon: LucideIcon
+  label: string
+  active?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex h-14 flex-col items-center justify-center gap-1 rounded-md border px-1 text-[10px] leading-tight font-medium transition-all",
+        active
+          ? "border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_18px_rgba(37,99,235,0.35)]"
+          : "border-[#1E2A3C] bg-[#0F1826] text-[#8A93A6] hover:border-[#2A3B54] hover:bg-[#141F30] hover:text-[#C7CEDB]"
+      )}
+    >
+      <Icon className="size-4" aria-hidden="true" />
+      <span className="text-center">{label}</span>
+    </button>
+  )
 }
 
 function SliderRow({
@@ -69,12 +114,19 @@ const TOGGLE_CLASS =
   "h-8 flex-1 rounded-md border border-[#1E2A3C] bg-[#0F1826] text-xs text-[#8A93A6] transition-shadow hover:bg-[#141F30] hover:text-[#C7CEDB] data-[state=on]:border-[#3B82F6]/50 data-[state=on]:bg-[#152238] data-[state=on]:text-[#4A9EFF] data-[state=on]:shadow-[0_0_18px_rgba(37,99,235,0.35)]"
 
 /**
- * Right-hand "가시성 보정" dock: the forensic analyst's controls for lifting a
- * faint shoeprint out of a low-contrast scene photo. Brightness/contrast/invert/
- * grayscale are live CSS filters; gamma/threshold preview-bake through the
- * canvas. All values are non-destructive until the case is saved.
+ * 오른쪽 "도구/보정" 도크. 상단 도구 섹션(크롭·각도보정·전체 초기화)과 하단
+ * 가시성 보정 섹션(밝기·대비·감마·임계값 + 반전·흑백)을 한곳에 모아, 현장 사진에서
+ * 흐릿한 족적을 끌어올리는 편집 컨트롤을 이미지 옆에 통합한다. 밝기·대비·반전·흑백은
+ * 실시간 CSS 필터, 감마·임계값은 canvas로 미리보기 굽기 — 저장 전까지 비파괴다.
  */
-export function AdjustmentsDock({ adjust, disabled = false }: AdjustmentsDockProps) {
+export function AdjustmentsDock({
+  adjust,
+  onCrop,
+  onCalibrate,
+  onReset,
+  mode,
+  disabled = false,
+}: AdjustmentsDockProps) {
   const { adjustments, setAdjustment, resetAdjustments, isAdjusted } = adjust
   const { brightness, contrast, gamma, threshold, invert, grayscale } = adjustments
   const thresholdOn = threshold !== null
@@ -83,6 +135,37 @@ export function AdjustmentsDock({ adjust, disabled = false }: AdjustmentsDockPro
     <aside className="relative flex w-full shrink-0 flex-col gap-4 overflow-y-auto rounded-xl border border-[#141D2C] bg-[#0B121D]/60 p-4 lg:w-56">
       <TechCorners size={16} active={isAdjusted} />
 
+      {/* 도구 섹션: 크롭·각도보정·전체 초기화. 이미지가 없어도 활성 —
+          핸들러가 "이미지를 먼저 등록해주세요" 토스트를 띄운다. */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5">
+          <Wrench className="size-3.5 text-[#4A9EFF]" aria-hidden="true" />
+          <span className="text-[11px] font-semibold tracking-[0.14em] text-[#8A93A6] uppercase">
+            도구
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <ToolButton
+            icon={Crop}
+            label={mode === "crop" ? "크롭 완료" : "크롭"}
+            active={mode === "crop"}
+            onClick={onCrop}
+          />
+          <ToolButton
+            icon={Crosshair}
+            label="각도보정"
+            active={mode === "calibration"}
+            onClick={onCalibrate}
+          />
+          <ToolButton icon={RefreshCw} label="전체 초기화" onClick={onReset} />
+        </div>
+      </div>
+
+      <div className="relative h-px">
+        <EdgeGlow className="inset-x-0" />
+      </div>
+
+      {/* 가시성 보정 섹션 */}
       <div className="space-y-0.5">
         <div className="flex items-center gap-1.5">
           <SlidersHorizontal className="size-3.5 text-[#4A9EFF]" aria-hidden="true" />
@@ -135,7 +218,7 @@ export function AdjustmentsDock({ adjust, disabled = false }: AdjustmentsDockPro
         disabled={disabled}
       />
 
-      {/* Threshold has an on/off gate (null = off) plus its 0..255 slider. */}
+      {/* 임계값은 on/off 게이트(null = 꺼짐)와 0..255 슬라이더를 함께 가진다. */}
       <div className={cn("space-y-1.5", disabled && "pointer-events-none opacity-40")}>
         <div className="flex items-center justify-between">
           <Tooltip>
