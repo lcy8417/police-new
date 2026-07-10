@@ -80,7 +80,7 @@ export function CrimeRegisterRedesign() {
   }, [])
 
   const editor = useImageEditor(formData.image, handleImageChange)
-  const { toggleCrop, toggleCalibration } = editor
+  const { toggleCrop, toggleCalibration, toggleMeasure } = editor
 
   // 자유각 회전은 CSS transform으로 미리보기되며, 저장 시점에만 — 또는
   // crop/calibration에 진입할 때 즉시 — 픽셀에 구워져서, 오버레이는 항상
@@ -103,6 +103,11 @@ export function CrimeRegisterRedesign() {
     await commitRotation()
     toggleCalibration()
   }, [commitRotation, toggleCalibration])
+
+  const handleMeasure = useCallback(async () => {
+    await commitRotation()
+    toggleMeasure()
+  }, [commitRotation, toggleMeasure])
 
   const registerMutation = useMutation({
     mutationFn: registerCrime,
@@ -159,6 +164,7 @@ export function CrimeRegisterRedesign() {
           onRotationChange={setRotation}
           onCrop={handleCrop}
           onCalibrate={handleCalibrate}
+          onMeasure={handleMeasure}
           onReset={handleReset}
         />
         <CaseInfoPanel

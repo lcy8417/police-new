@@ -58,6 +58,7 @@ interface EvidenceImagePanelProps {
   /** 도크 도구 섹션 핸들러(회전 선커밋 래퍼 경유). */
   onCrop: () => void
   onCalibrate: () => void
+  onMeasure: () => void
   onReset: () => void
 }
 
@@ -78,6 +79,7 @@ export function EvidenceImagePanel({
   onRotationChange,
   onCrop,
   onCalibrate,
+  onMeasure,
   onReset,
 }: EvidenceImagePanelProps) {
   const [viewMode, setViewMode] = useState<(typeof VIEW_MODES)[number]>("보정")
@@ -274,6 +276,11 @@ export function EvidenceImagePanel({
                   영역을 드래그한 뒤 크롭 완료
                 </span>
               )}
+              {editor.mode === "measure" && (
+                <span className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 rounded-md border border-[#3B82F6]/50 bg-[#0B121D]/90 px-3 py-1 font-mono text-[11px] tabular-nums text-[#4A9EFF] shadow-[0_0_16px_rgba(37,99,235,0.4)]">
+                  P1·P2로 1cm 기준 → P3·P4 측정 ({editor.measureCount} / 4)
+                </span>
+              )}
             </div>
           ) : (
             <button
@@ -296,6 +303,7 @@ export function EvidenceImagePanel({
           adjust={adjust}
           onCrop={onCrop}
           onCalibrate={onCalibrate}
+          onMeasure={onMeasure}
           onReset={onReset}
           mode={editor.mode}
           disabled={!image}

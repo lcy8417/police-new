@@ -4,15 +4,15 @@ import { toast } from "sonner"
 
 import { fetchPerspective } from "@/services/api"
 
-/** Active client-side editing mode over the evidence image. Mutually exclusive. */
-export type EditorMode = "none" | "crop" | "calibration"
+/** 증거 이미지 위에서 활성화되는 클라이언트 편집 모드. 상호배타적이다. */
+export type EditorMode = "none" | "crop" | "calibration" | "measure"
 
 interface Point {
   x: number
   y: number
 }
 
-/** Position + size of the overlay canvas, measured against the displayed image. */
+/** 표시된 이미지에 대해 측정된 오버레이 canvas의 위치 + 크기. */
 interface OverlayRect {
   left: number
   top: number
@@ -22,22 +22,27 @@ interface OverlayRect {
 
 const MIN_CROP = 5
 const POINT_COLORS = ["#ff4d4f", "#52c41a", "#4a9eff", "#faad14"]
+/** 길이측정 색상: 기준선(P1·P2)은 파랑, 측정선(P3·P4)은 빨강. */
+const MEASURE_REF = "#4a9eff"
+const MEASURE_LINE = "#ff4d4f"
 
 /**
- * Client-side evidence-image editor for `/crimeRegister`: rectangular crop and
- * 4-point perspective (각도 보정) correction, sharing one overlay `<canvas>`
- * layered pixel-perfect over the displayed `<img>`.
+ * `/crimeRegister`용 클라이언트 증거-이미지 편집기: 사각형 크롭, 4점 원근(각도
+ * 보정), 그리고 길이측정. 표시된 `<img>` 위에 픽셀 단위로 정확히 겹쳐진 하나의
+ * 오버레이 `<canvas>`를 공유한다.
  *
- * Crop math is ported from the legacy `Canvas.jsx` (`cropImageBySelection`):
- * the selection is captured in canvas/CSS pixels, then scaled to the image's
- * natural pixels via an offscreen canvas. Calibration mirrors the legacy
- * `useCalibration.js` transform (canvas coords → 0‑1 relative → natural pixels)
- * and POSTs through `fetchPerspective`; the request is routed through a
- * TanStack mutation so the app-wide `MutationCache` toast reports any failure.
+ * 크롭 수학은 레거시 `Canvas.jsx`(`cropImageBySelection`)에서 이식했다: 선택
+ * 영역을 canvas/CSS 픽셀로 잡은 뒤 오프스크린 canvas로 이미지의 자연 픽셀에
+ * 맞춰 스케일한다. 각도보정은 레거시 `useCalibration.js` 변환(canvas 좌표 →
+ * 0~1 상대 → 자연 픽셀)을 그대로 따르며 `fetchPerspective`로 POST하고, 요청은
+ * TanStack 뮤테이션을 거쳐 앱 전역 `MutationCache` 토스트가 실패를 보고한다.
+ * 길이측정은 레거시 `ImageLoader.jsx`의 측정 로직을 이식했다: P1·P2로 알려진
+ * 1cm 기준의 픽셀↔cm 배율을 정하고 P3·P4로 실제 길이를 잰다(거리 비율이라
+ * 표시 픽셀 공간에서 스케일 불변).
  *
- * Alignment strategy: the overlay is measured from `imgRef.getBoundingClientRect()`
- * relative to `containerRef`, so it tracks the image exactly regardless of the
- * panel's responsive `object-contain` sizing.
+ * 정렬 전략: 오버레이는 `containerRef` 기준으로 `imgRef.getBoundingClientRect()`
+ * 에서 측정하므로, 패널의 반응형 `object-contain` 크기와 무관하게 이미지를
+ * 정확히 추적한다.
  */
 export function useImageEditor(image: string | null, onImageChange: (next: string) => void) {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -47,10 +52,14 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
   const [mode, setMode] = useState<EditorMode>("none")
   const [overlayRect, setOverlayRect] = useState<OverlayRect | null>(null)
 
-  // Calibration points (canvas-pixel coords).
+  // 각도보정 점(canvas 픽셀 좌표).
   const [points, setPoints] = useState<Point[]>([])
 
-  // Crop selection kept in state (for redraw) and refs (for a stable applyCrop).
+  // 길이측정 점(canvas 픽셀 좌표) + 커서(P4 배치 전 실시간 미리보기용).
+  const [measurePoints, setMeasurePoints] = useState<Point[]>([])
+  const [cursorPos, setCursorPos] = useState<Point | null>(null)
+
+  // 크롭 선택 영역을 state(재그리기용)와 ref(안정적인 applyCrop용)에 둔다.
   const [selStart, setSelStart] = useState<Point>({ x: 0, y: 0 })
   const [selEnd, setSelEnd] = useState<Point>({ x: 0, y: 0 })
   const [isSelecting, setIsSelecting] = useState(false)
@@ -59,6 +68,8 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
 
   const resetSelection = useCallback(() => {
     setPoints([])
+    setMeasurePoints([])
+    setCursorPos(null)
     setIsSelecting(false)
     setSelStart({ x: 0, y: 0 })
     setSelEnd({ x: 0, y: 0 })
@@ -66,8 +77,8 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
     selEndRef.current = { x: 0, y: 0 }
   }, [])
 
-  // Measure the overlay against the displayed image; also resize the canvas
-  // bitmap to match its CSS size so mouse/canvas coords map 1:1.
+  // 표시된 이미지에 맞춰 오버레이를 측정한다. 마우스/canvas 좌표가 1:1로
+  // 대응하도록 canvas 비트맵 크기도 CSS 크기에 맞춘다.
   const recomputeOverlay = useCallback(() => {
     const img = imgRef.current
     const container = containerRef.current
@@ -88,7 +99,7 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
     }
   }, [])
 
-  // Keep the overlay aligned while a mode is active (responsive resizes, etc.).
+  // 모드가 활성인 동안 오버레이 정렬을 유지한다(반응형 리사이즈 등).
   useEffect(() => {
     if (mode === "none") return
     recomputeOverlay()
@@ -102,13 +113,13 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
     }
   }, [mode, image, recomputeOverlay])
 
-  // Leaving an image (reset) exits any active mode; a new image clears stale marks.
+  // 이미지를 떠나면(초기화) 활성 모드를 종료하고, 새 이미지는 이전 표식을 지운다.
   useEffect(() => {
     if (!image) setMode("none")
     resetSelection()
   }, [image, resetSelection])
 
-  // Draw the crop rectangle or the 4 calibration marks onto the overlay.
+  // 오버레이에 크롭 사각형 / 4개 각도보정 표식 / 길이측정 선을 그린다.
   useEffect(() => {
     const canvas = overlayRef.current
     if (!canvas || mode === "none") return
@@ -123,7 +134,7 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
       const x = Math.min(selStart.x, selEnd.x)
       const y = Math.min(selStart.y, selEnd.y)
       ctx.save()
-      // Dim everything outside the selection.
+      // 선택 영역 바깥을 어둡게 처리.
       ctx.fillStyle = "rgba(5,8,13,0.55)"
       ctx.fillRect(0, 0, canvas.width, canvas.height)
       ctx.clearRect(x, y, w, h)
@@ -131,7 +142,7 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
       ctx.lineWidth = 2
       ctx.setLineDash([6, 4])
       ctx.strokeRect(x, y, w, h)
-      // Corner handles.
+      // 모서리 핸들.
       ctx.setLineDash([])
       ctx.fillStyle = "rgba(74,158,255,0.95)"
       const hs = 8
@@ -145,7 +156,65 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
       return
     }
 
-    // calibration — X marks + numbers, plus a guide polygon.
+    if (mode === "measure") {
+      const mp = measurePoints
+      // P1·P2 거리 = 1cm 기준 → 픽셀당 cm 배율.
+      const pxPerCm =
+        mp.length >= 2 ? Math.hypot(mp[0].x - mp[1].x, mp[0].y - mp[1].y) : 0
+
+      const drawLine = (a: Point, b: Point, color: string) => {
+        ctx.strokeStyle = color
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.moveTo(a.x, a.y)
+        ctx.lineTo(b.x, b.y)
+        ctx.stroke()
+      }
+      const drawTag = (p: Point, text: string, color: string) => {
+        ctx.font = "bold 13px Arial"
+        const w = ctx.measureText(text).width
+        ctx.fillStyle = "rgba(5,8,13,0.82)"
+        ctx.fillRect(p.x + 8, p.y - 22, w + 10, 18)
+        ctx.fillStyle = color
+        ctx.fillText(text, p.x + 13, p.y - 9)
+      }
+
+      // 기준선 P1-P2 (파랑).
+      if (mp.length >= 2) {
+        drawLine(mp[0], mp[1], MEASURE_REF)
+        drawTag(
+          { x: (mp[0].x + mp[1].x) / 2, y: (mp[0].y + mp[1].y) / 2 },
+          "기준 1cm",
+          MEASURE_REF
+        )
+      }
+
+      // 측정선 P3-(P4 또는 커서) (빨강) + 실측 cm.
+      const end = mp[3] ?? (mp.length === 3 ? cursorPos : null)
+      if (mp[2] && end && pxPerCm > 0) {
+        drawLine(mp[2], end, MEASURE_LINE)
+        const cm = Math.hypot(mp[2].x - end.x, mp[2].y - end.y) / pxPerCm
+        drawTag(
+          { x: (mp[2].x + end.x) / 2, y: (mp[2].y + end.y) / 2 },
+          `${cm.toFixed(2)} cm`,
+          MEASURE_LINE
+        )
+      }
+
+      // 각 점(원 + 라벨). 앞 2개는 기준(파랑), 뒤 2개는 측정(빨강).
+      mp.forEach((pt, i) => {
+        const color = i < 2 ? MEASURE_REF : MEASURE_LINE
+        ctx.beginPath()
+        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2)
+        ctx.fillStyle = color
+        ctx.fill()
+        ctx.font = "bold 12px Arial"
+        ctx.fillText(`P${i + 1}`, pt.x + 7, pt.y - 7)
+      })
+      return
+    }
+
+    // 각도보정 — X 표식 + 번호, 그리고 가이드 다각형.
     if (points.length > 1) {
       ctx.strokeStyle = "rgba(74,158,255,0.6)"
       ctx.lineWidth = 1
@@ -171,9 +240,9 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
       ctx.font = "bold 14px Arial"
       ctx.fillText(String(i + 1), pt.x + size + 3, pt.y - size - 3)
     })
-  }, [mode, overlayRect, points, selStart, selEnd])
+  }, [mode, overlayRect, points, selStart, selEnd, measurePoints, cursorPos])
 
-  // Convert a mouse event into canvas-pixel coordinates.
+  // 마우스 이벤트를 canvas 픽셀 좌표로 변환한다.
   const canvasPoint = useCallback((e: MouseEvent): Point | null => {
     const canvas = overlayRef.current
     if (!canvas) return null
@@ -183,7 +252,7 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
     return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY }
   }, [])
 
-  // Crop crops the current selection out of the image at natural resolution.
+  // 크롭은 현재 선택 영역을 자연 해상도로 잘라낸다.
   const applyCrop = useCallback(async () => {
     const canvas = overlayRef.current
     if (!image || !canvas) return
@@ -224,11 +293,11 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
       setMode("none")
       resetSelection()
     },
-    // On failure the app-wide MutationCache toast fires; clear points to retry.
+    // 실패 시 앱 전역 MutationCache 토스트가 뜬다; 재시도할 수 있게 점을 비운다.
     onError: () => setPoints([]),
   })
 
-  // Crop button: first press enters crop mode, second press applies + exits.
+  // 크롭 버튼: 첫 클릭은 크롭 모드 진입, 두 번째 클릭은 적용 + 종료.
   const toggleCrop = useCallback(async () => {
     if (!image) {
       toast.error("이미지를 먼저 등록해주세요")
@@ -244,7 +313,7 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
     }
   }, [image, mode, applyCrop, resetSelection])
 
-  // Calibration button: toggles 4-point mode on/off.
+  // 각도보정 버튼: 4점 모드를 켜고 끈다.
   const toggleCalibration = useCallback(() => {
     if (!image) {
       toast.error("이미지를 먼저 등록해주세요")
@@ -252,6 +321,16 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
     }
     resetSelection()
     setMode((m) => (m === "calibration" ? "none" : "calibration"))
+  }, [image, resetSelection])
+
+  // 길이측정 버튼: 측정 모드를 켜고 끈다.
+  const toggleMeasure = useCallback(() => {
+    if (!image) {
+      toast.error("이미지를 먼저 등록해주세요")
+      return
+    }
+    resetSelection()
+    setMode((m) => (m === "measure" ? "none" : "measure"))
   }, [image, resetSelection])
 
   const onOverlayMouseDown = useCallback(
@@ -270,6 +349,12 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
 
   const onOverlayMouseMove = useCallback(
     (e: MouseEvent) => {
+      // 측정 모드: 커서를 추적해 P4 배치 전 실시간 길이를 보여준다.
+      if (mode === "measure") {
+        const p = canvasPoint(e)
+        if (p) setCursorPos(p)
+        return
+      }
       if (mode !== "crop" || !isSelecting) return
       const p = canvasPoint(e)
       if (!p) return
@@ -285,12 +370,20 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
 
   const onOverlayClick = useCallback(
     (e: MouseEvent) => {
-      if (mode !== "calibration" || points.length >= 4) return
       const canvas = overlayRef.current
-      const img = imgRef.current
       const p = canvasPoint(e)
-      if (!p || !canvas || !img) return
+      if (!p || !canvas) return
       if (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) return
+
+      // 측정 모드: 점을 찍는다. 4점이 다 찍힌 뒤 클릭하면 새 측정을 시작한다.
+      if (mode === "measure") {
+        setMeasurePoints((prev) => (prev.length >= 4 ? [p] : [...prev, p]))
+        return
+      }
+
+      if (mode !== "calibration" || points.length >= 4) return
+      const img = imgRef.current
+      if (!img) return
       const next = [...points, p]
       setPoints(next)
       if (next.length === 4) {
@@ -311,9 +404,11 @@ export function useImageEditor(image: string | null, onImageChange: (next: strin
     overlayRef,
     overlayRect,
     pointCount: points.length,
+    measureCount: measurePoints.length,
     isCalibrating: perspective.isPending,
     toggleCrop,
     toggleCalibration,
+    toggleMeasure,
     onOverlayMouseDown,
     onOverlayMouseMove,
     onOverlayMouseUp,

@@ -3,6 +3,7 @@ import {
   Crosshair,
   RefreshCw,
   RotateCcw,
+  Ruler,
   SlidersHorizontal,
   Wrench,
   type LucideIcon,
@@ -25,6 +26,8 @@ interface AdjustmentsDockProps {
   onCrop: () => void
   /** 4점 각도보정 모드 토글(회전 선커밋 래퍼 경유). */
   onCalibrate: () => void
+  /** 길이측정 모드 토글(회전 선커밋 래퍼 경유). */
+  onMeasure: () => void
   /** 폼·이미지·조정·회전 전체 초기화. */
   onReset: () => void
   /** 현재 오버레이 편집 모드(도구 버튼 활성 표시용). */
@@ -123,6 +126,7 @@ export function AdjustmentsDock({
   adjust,
   onCrop,
   onCalibrate,
+  onMeasure,
   onReset,
   mode,
   disabled = false,
@@ -144,7 +148,7 @@ export function AdjustmentsDock({
             도구
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <ToolButton
             icon={Crop}
             label={mode === "crop" ? "크롭 완료" : "크롭"}
@@ -156,6 +160,12 @@ export function AdjustmentsDock({
             label="각도보정"
             active={mode === "calibration"}
             onClick={onCalibrate}
+          />
+          <ToolButton
+            icon={Ruler}
+            label="길이측정"
+            active={mode === "measure"}
+            onClick={onMeasure}
           />
           <ToolButton icon={RefreshCw} label="전체 초기화" onClick={onReset} />
         </div>
