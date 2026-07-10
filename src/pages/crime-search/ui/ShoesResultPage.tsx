@@ -74,7 +74,9 @@ export function ShoesResultPage() {
 
   // 2단계: 로드된 이미지 + 현장 문양으로 신발 검색을 수행한다.
   const searchQuery = useQuery({
-    queryKey: ["crimeSearch", "results", crimeNumber, page, binary, similarity],
+    // edit도 키에 포함한다 — 검색 body의 loadedImage가 (crimeNumber, edit)에서
+    // 파생되므로, edit이 바뀌면 검색 결과 캐시도 무효화되어야 한다.
+    queryKey: ["crimeSearch", "results", crimeNumber, edit, page, binary, similarity],
     queryFn: () =>
       imageSearch({
         crimeNumber,
