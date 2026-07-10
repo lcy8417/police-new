@@ -118,6 +118,8 @@ body,
   padding: 0;
   height: 100%;
   width: 100%;
-  background-color: rgb(246, 246, 246);
+  /* 다크 리디자인 이전의 라이트 배경(rgb(246,246,246)) 잔재 제거 — 근본 배경도
+     --background 다크 토큰으로 맞춰 리사이즈·초기 페인트 순간 회색 플래시를 없앤다. */
+  background-color: var(--background);
   overflow: hidden;
 }
