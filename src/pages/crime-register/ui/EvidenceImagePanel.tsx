@@ -52,6 +52,9 @@ interface EvidenceImagePanelProps {
   onRotate: (deg: number) => void
   editor: ImageEditor
   adjust: ImageAdjustments
+  /** Free-angle rotation (-180..180), previewed via CSS transform. */
+  rotation: number
+  onRotationChange: (deg: number) => void
 }
 
 /**
@@ -67,8 +70,9 @@ export function EvidenceImagePanel({
   onRotate,
   editor,
   adjust,
+  rotation,
+  onRotationChange,
 }: EvidenceImagePanelProps) {
-  const [rotation, setRotation] = useState([0])
   const [viewMode, setViewMode] = useState<(typeof VIEW_MODES)[number]>("보정")
   const [dimensions, setDimensions] = useState<[number, number]>([0, 0])
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -86,6 +90,15 @@ export function EvidenceImagePanel({
   const showRaw = viewMode === "원본"
   const displaySrc = showRaw ? image : (adjust.displayImage ?? image)
   const displayFilter = showRaw ? "none" : adjust.cssFilter
+
+  // Purely presentational: highlight the tick nearest the live rotation value
+  // so the ruler reads like an editor's angle gauge, not a static legend.
+  const nearestTickValue = ROTATION_TICKS.reduce((closest, tick) => {
+    const tickValue = Number.parseInt(tick, 10)
+    return Math.abs(tickValue - rotation) < Math.abs(Number.parseInt(closest, 10) - rotation)
+      ? tick
+      : closest
+  }, ROTATION_TICKS[2])
 
   return (
     <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
@@ -109,8 +122,8 @@ export function EvidenceImagePanel({
       </div>
 
       {/* Toolbar: rotate left/right, rotation slider w/ ticks, fit + zoom */}
-      <div className="mt-4 flex items-center gap-4 border-y border-[#141D2C] bg-[#0D1420]/60 px-6 py-3">
-        <div className="flex shrink-0 items-center gap-1">
+      <div className="mt-4 flex items-center gap-3 border-y border-[#141D2C] bg-[#0D1420]/60 px-6 py-3">
+        <div className="flex shrink-0 items-center gap-0.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] p-0.5">
           <ToolbarIconButton
             icon={RotateCcw}
             label="왼쪽으로 90도 회전"
@@ -125,28 +138,54 @@ export function EvidenceImagePanel({
           />
         </div>
 
+        <div className="h-6 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
+
         <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-1">
-          {/* TODO(phase3): wire slider to absolute-angle rotation (needs the
-              original image kept aside); ±90 buttons cover discrete rotation. */}
-          <Slider value={rotation} onValueChange={setRotation} min={-180} max={180} step={1} />
-          <div className="flex justify-between font-mono text-[10px] tracking-wide tabular-nums text-[#5B6B85]">
+          {/* Free-angle rotation: CSS-transform live preview, baked at save.
+              Disabled during crop/calibration (rotation is committed on entry). */}
+          <Slider
+            value={[rotation]}
+            onValueChange={([v]) => onRotationChange(v)}
+            min={-180}
+            max={180}
+            step={1}
+            disabled={!image || editor.mode !== "none"}
+          />
+          <div className="flex justify-between font-mono text-[10px] tracking-wide tabular-nums">
             {ROTATION_TICKS.map((tick) => (
-              <span key={tick}>{tick}</span>
+              <span
+                key={tick}
+                className={
+                  tick === nearestTickValue
+                    ? "text-[#4A9EFF] drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]"
+                    : "text-[#5B6B85]"
+                }
+              >
+                {tick}
+              </span>
             ))}
           </div>
         </div>
 
+        <div className="h-6 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
+
+        <span className="w-14 shrink-0 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-1 text-center font-mono text-[11px] tabular-nums text-[#4A9EFF]">
+          {rotation}°
+        </span>
+
+        <div className="h-6 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
+
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
-            className="flex h-8 items-center gap-1.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-3 text-xs text-[#C7CEDB] transition-colors hover:border-[#2A3B54] hover:text-white"
+            className="flex h-8 items-center gap-1.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-3 text-xs text-[#C7CEDB] transition-colors hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
           >
             <Maximize className="size-3.5" aria-hidden="true" />
             맞춤
           </button>
           <button
             type="button"
-            className="flex h-8 items-center gap-1.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-3 text-xs text-[#C7CEDB] transition-colors hover:border-[#2A3B54] hover:text-white"
+            className="flex h-8 items-center gap-1.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-3 text-xs text-[#C7CEDB] transition-colors hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
           >
             <Search className="size-3.5" aria-hidden="true" />
             <span className="tabular-nums">100%</span>
@@ -155,9 +194,11 @@ export function EvidenceImagePanel({
         </div>
       </div>
 
-      {/* Viewport (ruler-framed) + right-hand 가시성 보정 dock */}
-      <div className="mt-4 mb-3 flex min-h-0 flex-1 gap-4 px-6">
-        <div className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-xl border border-[#141D2C] bg-[#05080D]">
+      {/* Viewport (ruler-framed) + right-hand 가시성 보정 dock.
+          Stacks to a column below `lg` so the dock falls beneath the
+          viewport instead of squeezing it on narrow widths. */}
+      <div className="mt-4 mb-3 flex min-h-0 flex-1 flex-col gap-4 px-6 lg:flex-row">
+        <div className="relative flex min-h-[280px] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-xl border border-[#141D2C] bg-[#05080D] lg:min-h-0">
           {/* checkerboard scale bars */}
           <div
             className="absolute inset-x-2 top-2 h-[8px] rounded-sm opacity-70"
@@ -194,7 +235,10 @@ export function EvidenceImagePanel({
                   editor.recomputeOverlay()
                 }}
                 className="max-h-full max-w-full object-contain select-none"
-                style={{ filter: displayFilter }}
+                style={{
+                  filter: displayFilter,
+                  transform: rotation ? `rotate(${rotation}deg)` : undefined,
+                }}
               />
               {editor.mode !== "none" && editor.overlayRect && (
                 <canvas

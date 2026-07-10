@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { registerCrime, useCrimeStore } from "@/entities/crime"
-import { useImageAdjustments, useImageEditor } from "@/features/crime-register"
+import { rotateArbitrary, useImageAdjustments, useImageEditor } from "@/features/crime-register"
 import { usePageHeader } from "@/widgets/app-shell"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 import { rotateImage, resizeImage } from "@/utils/get-input-change"
@@ -28,6 +28,17 @@ export function CrimeRegisterRedesign() {
   const adjust = useImageAdjustments(formData.image)
   // Stable callbacks (referenced from memoised handlers below).
   const { bake: bakeAdjustments, resetAdjustments } = adjust
+
+  // Free-angle rotation (slider). Mirrored into refs so the crop/calibration
+  // wrappers stay referentially stable across rotation drags.
+  const [rotation, setRotationState] = useState(0)
+  const rotationRef = useRef(0)
+  const setRotation = useCallback((deg: number) => {
+    rotationRef.current = deg
+    setRotationState(deg)
+  }, [])
+  const imageRef = useRef(formData.image)
+  imageRef.current = formData.image
 
   const handleFieldChange = useCallback((name: keyof CrimeFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -60,13 +71,37 @@ export function CrimeRegisterRedesign() {
   const handleReset = useCallback(() => {
     setFormData(EMPTY_FORM)
     resetAdjustments()
-  }, [resetAdjustments])
+    setRotation(0)
+  }, [resetAdjustments, setRotation])
 
   const handleImageChange = useCallback((next: string) => {
     setFormData((prev) => ({ ...prev, image: next }))
   }, [])
 
   const editor = useImageEditor(formData.image, handleImageChange)
+  const { toggleCrop, toggleCalibration } = editor
+
+  // Free-angle rotation is previewed via CSS transform and baked into pixels
+  // only at save — or eagerly when entering crop/calibration, so the overlay
+  // always maps against un-rotated pixels.
+  const commitRotation = useCallback(async () => {
+    const deg = rotationRef.current
+    const img = imageRef.current
+    if (deg === 0 || !img) return
+    const rotated = await rotateArbitrary(img, deg)
+    setFormData((prev) => ({ ...prev, image: rotated }))
+    setRotation(0)
+  }, [setRotation])
+
+  const handleCrop = useCallback(async () => {
+    await commitRotation()
+    toggleCrop()
+  }, [commitRotation, toggleCrop])
+
+  const handleCalibrate = useCallback(async () => {
+    await commitRotation()
+    toggleCalibration()
+  }, [commitRotation, toggleCalibration])
 
   const registerMutation = useMutation({
     mutationFn: registerCrime,
@@ -74,6 +109,7 @@ export function CrimeRegisterRedesign() {
     onSuccess: () => {
       setFormData(EMPTY_FORM)
       resetAdjustments()
+      setRotation(0)
       useCrimeStore.getState().setRegisterFlag([])
     },
   })
@@ -83,9 +119,14 @@ export function CrimeRegisterRedesign() {
       toast.error("이미지와 사건 번호는 필수 입력 사항입니다.")
       return
     }
-    // Bake the non-destructive visibility adjustments into the image so the
-    // analyst's corrections are persisted server-side (not just previewed).
-    const image = await bakeAdjustments(formData.image)
+    // Bake free-angle rotation, then the non-destructive visibility adjustments,
+    // into the image so the analyst's corrections persist server-side (not just
+    // previewed).
+    const rotated =
+      rotationRef.current !== 0
+        ? await rotateArbitrary(formData.image, rotationRef.current)
+        : formData.image
+    const image = await bakeAdjustments(rotated)
     registerMutation.mutate({
       image,
       crimeNumber: formData.crimeNumber,
@@ -104,13 +145,13 @@ export function CrimeRegisterRedesign() {
       <HeaderActions
         onRotate={handleRotate}
         onReset={handleReset}
-        onCrop={editor.toggleCrop}
-        onCalibrate={editor.toggleCalibration}
+        onCrop={handleCrop}
+        onCalibrate={handleCalibrate}
         mode={editor.mode}
         hasImage={!!formData.image}
       />
     ),
-    [handleRotate, handleReset, editor.toggleCrop, editor.toggleCalibration, editor.mode, formData.image]
+    [handleRotate, handleReset, handleCrop, handleCalibrate, editor.mode, formData.image]
   )
 
   usePageHeader({ title: HEADER_TITLE, actions: headerActions })
@@ -128,6 +169,8 @@ export function CrimeRegisterRedesign() {
           onRotate={handleRotate}
           editor={editor}
           adjust={adjust}
+          rotation={rotation}
+          onRotationChange={setRotation}
         />
         <CaseInfoPanel
           formData={formData}
