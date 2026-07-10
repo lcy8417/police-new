@@ -37,15 +37,22 @@ interface InfoFieldProps {
   emphasis?: boolean
 }
 
-/** 사건정보 한 항목(라벨 + 값). 값이 없으면 표시하지 않는다(ResultDetailPage와 동일 톤). */
+/**
+ * 사건정보 한 항목(라벨 + 값). 값이 비어도 라벨과 `-` 플레이스홀더를 항상 표시한다
+ * — 메타 필드가 전부 공란인 레코드에서 패널이 "고장난 빈 화면"으로 보이지 않도록,
+ * 예전의 "빈 값이면 숨김" early-return을 걷어냈다.
+ */
 function InfoField({ label, value, emphasis = false }: InfoFieldProps) {
-  if (value === null || value === undefined || value === "") return null
+  const isEmpty = value === null || value === undefined || value === ""
   return (
     <div className="flex flex-col gap-0.5">
       <span className="font-mono text-[10px] tracking-wide text-[#5B6B85] uppercase">
         {label}
       </span>
-      {emphasis ? (
+      {isEmpty ? (
+        // 값 없음 — 라벨과 같은 muted 톤(#5B6B85)으로 떨어뜨려 실제 값과 위계를 준다.
+        <span className="text-[13px] font-semibold text-[#5B6B85]">-</span>
+      ) : emphasis ? (
         <span className="inline-flex w-fit items-center rounded-full border border-[#3B82F6]/40 bg-[#152238]/60 px-2 py-0.5 text-[12px] font-semibold text-[#4A9EFF]">
           {value}
         </span>

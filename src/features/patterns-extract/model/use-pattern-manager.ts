@@ -74,12 +74,28 @@ export const usePatternManager = ({
     }
 
     const rect = canvasRef.current!.getBoundingClientRect();
+    // getBoundingClientRect·선 드래그 좌표는 서브픽셀(소수)이지만 백엔드는
+    // line_ys·render_size를 정수로 받으므로(int_from_float) 전송 직전에 반올림한다.
+    const renderH = Math.round(rect.height);
+    const renderW = Math.round(rect.width);
+    // 서버는 line_ys로 top/mid/bottom 세 영역을 잘라낸다. 경계가 이미지 밖·가장자리·
+    // 서로 겹침이면 빈 슬라이스가 되어 "tile cannot extend outside image"로 죽는다.
+    // 두 경계를 [1, renderH-1]로 clamp하고, 오름차순 + mid(=[y0:y1]) 최소 1행을
+    // 보장해 네 영역 모두 최소 1행을 남긴다.
+    const maxY = Math.max(1, renderH - 1);
+    const clampY = (y: number) => Math.min(Math.max(Math.round(y), 1), maxY);
+    let [y0, y1] = lineState.lineYs.map(clampY);
+    if (y0 > y1) [y0, y1] = [y1, y0];
+    if (y0 === y1) {
+      if (y1 < maxY) y1 = y1 + 1;
+      else y0 = Math.max(1, y0 - 1);
+    }
     const { top, mid, bottom, outline } = await patternsExtract({
       crimeNumber: currentData?.crimeNumber || "shoes",
       body: {
         image: requestImage,
-        line_ys: lineState.lineYs,
-        render_size: [rect.width, rect.height],
+        line_ys: [y0, y1],
+        render_size: [renderW, renderH],
         type: requestType,
       },
     });

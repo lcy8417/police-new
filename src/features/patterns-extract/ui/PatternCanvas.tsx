@@ -232,7 +232,14 @@ export function PatternCanvas({
     if (lineState.draggingLine !== null) {
       setLineState((prev) => {
         const moved = moveLine(prev.lineYs, prev.draggingLine, y, prev.offsetY);
-        return { ...prev, lineYs: [moved[0], moved[1]] as [number, number] };
+        // 선을 canvas(=이미지) 세로 범위로 clamp한다. 벗어난 좌표를 그대로 두면
+        // 서버가 이미지 밖을 슬라이스하다 "tile cannot extend outside image"로 죽는다.
+        const h = canvas?.height ?? 0;
+        const clamp = (v: number) => Math.min(Math.max(v, 0), h);
+        return {
+          ...prev,
+          lineYs: [clamp(moved[0]), clamp(moved[1])] as [number, number],
+        };
       });
     }
   };
