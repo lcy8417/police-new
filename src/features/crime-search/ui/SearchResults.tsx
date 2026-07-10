@@ -134,7 +134,7 @@ export function SearchResults({
                   <tr
                     key={`${crimeNumber}-${rowIndex}`}
                     onClick={() => onRowClick(crimeNumber)}
-                    className="cursor-pointer border-b border-[#141D2C] transition-colors hover:bg-[#111C2C]"
+                    className="cursor-pointer border-b border-[#141D2C] transition-colors hover:bg-[#141F30]"
                   >
                     {COLUMNS.map((col) => (
                       <td

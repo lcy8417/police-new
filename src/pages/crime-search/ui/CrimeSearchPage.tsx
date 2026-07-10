@@ -68,9 +68,11 @@ export function CrimeSearchPage() {
 
   usePageHeader({ title: HEADER_TITLE })
 
-  // 원본 데이터가 갱신되면(재조회 등) 전체 목록으로 되돌린다.
+  // 원본 데이터가 갱신되면(재조회 등) 전체 목록으로 되돌리고, 데이터가 줄어
+  // 현재 페이지가 빈 slice가 되는 것을 막기 위해 첫 페이지로 리셋한다.
   useEffect(() => {
     setFilteredRows(crimeData.map(toRow))
+    setPage(0)
   }, [crimeData])
 
   // 의뢰관서/발견 방법 select 옵션은 crimeData의 distinct 값에서 파생한다

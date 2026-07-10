@@ -118,7 +118,7 @@ export function SearchForm({
             onChange={(e) => onFieldChange("requestOffice", e.target.value)}
             className={selectClass}
           >
-            <option value="">의뢰관서를 입력하세요</option>
+            <option value="">의뢰관서를 선택하세요</option>
             {requestOfficeOptions.map((option) => (
               <option key={option} value={option}>
                 {option}
@@ -133,7 +133,7 @@ export function SearchForm({
             onChange={(e) => onFieldChange("findMethod", e.target.value)}
             className={selectClass}
           >
-            <option value="">발견 방법을 입력하세요</option>
+            <option value="">발견 방법을 선택하세요</option>
             {findMethodOptions.map((option) => (
               <option key={option} value={option}>
                 {option}
