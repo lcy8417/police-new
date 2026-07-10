@@ -1,12 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppShell } from "@/widgets/app-shell";
 import { CrimeRegisterRedesign as CrimeRegister } from "@/pages/crime-register";
-import { CrimeSearchPage as CrimeSearch } from "@/pages/crime-search";
+import {
+  CrimeSearchPage as CrimeSearch,
+  ShoesResultPage as ShoesResult,
+} from "@/pages/crime-search";
 import CrimeDetail from "./pages/CrimeDetail";
 import ShoesRegister from "./pages/ShoesRegister";
 import PatternExtract from "./pages/PatternExtract";
 import CrimeEdit from "./pages/CrimeEdit";
-import ShoesResult from "./pages/ShoesResult";
 import ResultDetail from "./pages/ResultDetail";
 import ShoesRepository from "./pages/ShoesRepository";
 import ShoesEdit from "./pages/ShoesEdit";
