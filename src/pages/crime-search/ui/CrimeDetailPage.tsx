@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import {
   ArrowLeft,
@@ -83,6 +83,7 @@ const SIMILARITY_ON = "유사부위표출보기"
 export function CrimeDetailPage() {
   const { crimeNumber = "" } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const imgRef = useRef<HTMLImageElement | null>(null)
 
   // Context 브리지 대신 store 셀렉터로 현장 데이터에 접근한다.
@@ -138,7 +139,9 @@ export function CrimeDetailPage() {
 
   // 인라인 신발 검색 상태(레거시 ShoesResultPage에서 이관). searchActive가 true면
   // 본문이 검색모드(이미지·문양정보·결과 그리드)로 전환된다.
-  const [searchActive, setSearchActive] = useState(false)
+  // 검색모드는 URL 쿼리(?mode=search)로 관리한다 — [신발 검색]이 history에 항목을 쌓아
+  // 브라우저 뒤로가기로 문양추출(검색 종료) 상태로 바로 복귀할 수 있게 한다.
+  const searchActive = searchParams.get("mode") === "search"
   // 현장/편집 스와퍼의 현재 표시 대상. 검색 edit 여부가 이 값에서 파생되므로,
   // 검색모드에서 편집이미지로 전환하면 검색도 그 이미지로 자동 재실행된다.
   const [sceneView, setSceneView] = useState<"origin" | "edit">("origin")
@@ -244,12 +247,17 @@ export function CrimeDetailPage() {
         void fetchPatterns(crimeNumber, currentCrimeData)
       }
       setSearchPage(0)
-      setSearchActive(true)
+      // history에 항목을 쌓는다(replace 아님) → 뒤로가기로 문양추출로 복귀.
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.set("mode", "search")
+        return next
+      })
     } catch (error) {
       console.error("Error updating patterns:", error)
       toast.error("문양 업데이트 중 오류가 발생했습니다.")
     }
-  }, [crimeNumber, currentCrimeData])
+  }, [crimeNumber, currentCrimeData, setSearchParams])
 
   // 결과 카드 클릭 → 기존과 동일하게 결과 상세로 이동한다.
   const handleSelect = useCallback(
@@ -266,8 +274,12 @@ export function CrimeDetailPage() {
   }, [])
 
   const exitSearch = useCallback(() => {
-    setSearchActive(false)
-  }, [])
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete("mode")
+      return next
+    })
+  }, [setSearchParams])
 
   const headerActions = useMemo(() => {
     // 두 모드 공통: [목록으로][편집].
@@ -382,14 +394,10 @@ export function CrimeDetailPage() {
       {/* 검색모드(searchActive)에서는 3열 [이미지 | 문양 정보 | 검색 결과(2fr)]로 전환한다.
           문양 리스트·사건정보 열은 렌더하지 않고, 문양 정보(필수 토글)는 유지해 필수를
           바꾸면 오른쪽 결과가 300ms 후 자동 갱신되게 한다. */}
-      <div
-        className={cn(
-          "relative grid min-h-0 flex-1 grid-cols-1 gap-4",
-          searchActive
-            ? "xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,2fr)]"
-            : "xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.55fr)]"
-        )}
-      >
+      {/* 그리드 트랙은 모드와 무관하게 4열 고정 — 검색모드에선 문양리스트+사건정보(3·4열)
+          자리에 결과를 col-span-2로 얹어, 이미지·문양정보(1·2열)는 전환 시 움직이지 않는다.
+          이미지 열은 0.8fr로 좁혀 세로 이미지의 좌우 여백을 줄인다. */}
+      <div className="relative grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.55fr)]">
         {/* 각 열 래퍼: 내부 grid-rows로 자식 section이 열 높이를 꽉 채우게 하고,
             xl 미만에서는 min-h로 최소 높이를 확보해 캔버스가 붕괴하지 않게 한다. */}
         <div className="grid min-h-[560px] grid-rows-[minmax(0,1fr)] xl:h-full xl:min-h-0">
@@ -419,8 +427,8 @@ export function CrimeDetailPage() {
         </div>
 
         {searchActive ? (
-          // 검색모드: 문양 요약 칩 + 검색 결과 그리드(2fr).
-          <div className="flex min-h-[420px] min-w-0 flex-col gap-3 xl:h-full xl:min-h-0">
+          // 검색모드: 문양리스트+사건정보 두 열 자리(col-span-2)에 문양 요약 칩 + 결과 그리드.
+          <div className="flex min-h-[420px] min-w-0 flex-col gap-3 xl:col-span-2 xl:h-full xl:min-h-0">
             <SearchPatternChips patterns={searchPatterns} />
             <div className="min-h-0 flex-1">
               <RetrievalResultsGrid
