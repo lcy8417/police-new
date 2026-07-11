@@ -365,18 +365,18 @@ export function PatternCanvas({
           </>
         )}
 
-        {/* 래퍼는 표시된 이미지에 딱 붙어 캔버스 오버레이가 정합되게 한다. 폭/높이는
-            뷰포트(정한 폭의 열 + flex-1 높이)를 기준으로 max-w-full/max-h-full이 잡으므로,
-            세로 이미지도 높이에 맞아 삐져나가지 않는다(fit-content 내부 사이징 제거). */}
+        {/* 이미지를 뷰포트 높이에 꽉 채운다: img는 h-full(높이 우선)·w-auto(종횡비 폭),
+            래퍼는 h-full·w-fit으로 표시 이미지에 딱 붙어 캔버스 오버레이가 정합된다.
+            높이 우선이라 세로 이미지가 위아래로 삐지지 않고 꽉 찬다. */}
         {image ? (
-          <div className="relative inline-flex max-h-full max-w-full items-center justify-center">
+          <div className="relative flex h-full w-fit max-w-full items-center justify-center">
             <img
               ref={imgRef}
               src={image}
               alt="현장 신발 이미지"
               draggable={false}
               onLoad={handleImageLoad}
-              className="max-h-full max-w-full object-contain select-none"
+              className="h-full w-auto max-w-full object-contain select-none"
             />
             <canvas
               ref={canvasRef}
