@@ -45,7 +45,7 @@ export function PatternZones({
     <section className="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
       <TechCorners size={20} active={selected !== null} />
 
-      <div className="flex items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-5 py-3">
+      <div className="flex shrink-0 items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
         <span className="flex items-center gap-2 text-[15px] font-semibold text-[#E5E9F0]">
           <Target className="size-4 text-[#4A9EFF]" aria-hidden="true" />
           문양 정보
@@ -64,7 +64,7 @@ export function PatternZones({
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto p-4">
+      <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-2.5 p-3">
         {ZONES.map(({ label, key }, index) => {
           const isSelected = selected === index;
           const patterns = currentData?.[key] ?? [];
@@ -82,7 +82,7 @@ export function PatternZones({
                 type="button"
                 onClick={() => setSelected(index)}
                 className={cn(
-                  "flex items-center justify-between border-b px-3 py-2 text-left text-[13px] font-semibold transition-colors",
+                  "flex shrink-0 items-center justify-between border-b px-3 py-2 text-left text-[13px] font-semibold transition-colors",
                   isSelected
                     ? "border-[#141D2C] bg-[#152238] text-[#4A9EFF]"
                     : "border-[#141D2C] bg-[#0D1420]/60 text-[#C7CEDB] hover:text-white"
@@ -103,7 +103,7 @@ export function PatternZones({
               </button>
 
               {patterns.length > 0 ? (
-                <div className="grid auto-rows-max grid-cols-3 gap-2 overflow-y-auto p-3">
+                <div className="grid min-h-0 flex-1 auto-rows-max grid-cols-3 gap-2 overflow-y-auto p-2.5">
                   {patterns.map((item, i) => {
                     const [path, essential] = normalize(item);
                     return (

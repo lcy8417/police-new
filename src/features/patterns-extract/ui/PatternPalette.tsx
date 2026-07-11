@@ -39,7 +39,7 @@ export function PatternPalette({
     <section className="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
       <TechCorners size={20} />
 
-      <div className="flex items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-5 py-3">
+      <div className="flex shrink-0 items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
         <span className="flex items-center gap-2 text-[15px] font-semibold text-[#E5E9F0]">
           <Database className="size-4 text-[#4A9EFF]" aria-hidden="true" />
           문양 리스트
@@ -50,7 +50,7 @@ export function PatternPalette({
       </div>
 
       {/* 종류 선택 버튼(텍스트 전용 — textContent 규약 유지) */}
-      <div className="flex flex-wrap gap-1.5 border-b border-[#141D2C] bg-[#0D1420]/40 px-4 py-3">
+      <div className="flex shrink-0 flex-wrap gap-1.5 border-b border-[#141D2C] bg-[#0D1420]/40 px-4 py-2.5">
         {KINDS.map((kind) => (
           <button
             key={kind}
@@ -72,14 +72,14 @@ export function PatternPalette({
       </div>
 
       {/* 삽입 안내 — 문양 정보 패널에서 선택한 부위가 삽입 대상이 된다. */}
-      <div className="border-b border-[#141D2C] px-4 py-1.5">
+      <div className="shrink-0 border-b border-[#141D2C] px-4 py-1.5">
         <span className="font-mono text-[10px] tracking-wide text-[#5B6B85]">
           썸네일 클릭 시 문양 정보에서 선택한 부위에 삽입됩니다
         </span>
       </div>
 
       {/* 문양 썸네일 그리드 */}
-      <div className="grid auto-rows-max grid-cols-4 gap-2.5 overflow-y-auto p-4 sm:grid-cols-5">
+      <div className="grid min-h-0 flex-1 auto-rows-max grid-cols-4 gap-2.5 overflow-y-auto p-4 sm:grid-cols-5 lg:grid-cols-6">
         {patterns.map((src, index) => (
           <button
             key={index}

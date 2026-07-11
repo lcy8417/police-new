@@ -277,7 +277,7 @@ export function PatternCanvas({
   const showOverlayChrome = Boolean(image) && canvasSize.h > 0;
 
   return (
-    <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
+    <section className="relative flex h-full min-h-0 w-fit min-w-[320px] flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
       <TechCorners size={22} active={isExtracting} />
 
       {/* 패널 헤더 */}
@@ -366,7 +366,7 @@ export function PatternCanvas({
         )}
 
         {image ? (
-          <div className="relative inline-flex max-h-full max-w-full items-center justify-center">
+          <div className="relative inline-flex max-h-full max-w-[46vw] items-center justify-center">
             <img
               ref={imgRef}
               src={image}
