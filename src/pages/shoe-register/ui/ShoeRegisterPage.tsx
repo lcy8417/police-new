@@ -16,7 +16,7 @@ import { rotateArbitrary } from "@/features/crime-register"
 import { usePageHeader } from "@/widgets/app-shell"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 import { Slider } from "@/shared/ui/slider"
-import { rotateImage, resizeImage } from "@/utils/get-input-change"
+import { resizeImage } from "@/utils/get-input-change"
 
 import { EMPTY_SHOE_FORM } from "../model/form"
 import { HeaderTitle } from "./HeaderContent"
@@ -64,14 +64,23 @@ function ToolbarIconButton({
  * 재사용한다. 이미지 업로드는 캔버스 빈 상태의 드롭존, 회전은 캔버스 상단 툴바로
  * (crime-register `EvidenceImagePanel`과 같은 언어), 현장/편집 스와퍼는 숨긴다.
  * 저장은 `registerShoe`(POST /shoes/register)로 승격했다.
+ *
+ * 회전 모델: 원본 업로드 이미지(uploadedRef)는 보존하고, 슬라이더/버튼이 정하는
+ * **절대각(angle)**을 원본에 한 번만 적용해 `formData.image`로 굽는다(누적 패딩 방지).
+ * 드래그 중에는 커밋각(angle) 대비 미리보기각(previewAngle)의 차이만큼 뷰포트 래퍼를
+ * CSS로 돌려 미리보기하고(이미지+경계선 canvas 동시 회전 → 정합 유지), 손을 떼면
+ * 원본에서 previewAngle로 다시 구워 정합된 축정렬 이미지를 만든다. 비동기 bake는
+ * uploadedRef 가드로 초기화/재업로드가 항상 이기게 한다.
  */
 export function ShoeRegisterPage() {
   const [formData, setFormData] = useState<Shoe>(EMPTY_SHOE_FORM)
   const [isExtracting, setIsExtracting] = useState(false)
-  // 자유각 회전(-180..180). 슬라이더 드래그 중에는 뷰포트 래퍼 CSS transform으로
-  // 미리보기하고, 손을 떼면(onValueCommit) rotateArbitrary로 픽셀에 굽고 0으로 리셋한다.
-  const [rotation, setRotation] = useState(0)
+  // 회전 상태: angle=formData.image에 실제로 구워진 각도, previewAngle=슬라이더 라이브값.
+  const [angle, setAngle] = useState(0)
+  const [previewAngle, setPreviewAngle] = useState(0)
   const imgRef = useRef<HTMLImageElement>(null)
+  // 회전 원본(누적 방지) — 항상 여기서 절대각으로 굽는다. null이면 이미지 없음.
+  const uploadedRef = useRef<string | null>(null)
 
   // 문양·경계선·추출 상태는 features 훅이 소유한다(신발 모드: formData/setFormData).
   const pm = usePatternManager({ formData, setFormData, imgRef })
@@ -87,34 +96,34 @@ export function ShoeRegisterPage() {
       try {
         // 업로드 이미지는 최대 1000px로 다운스케일(레거시 resizeImage와 동일).
         const processed = await resizeImage(base64)
+        uploadedRef.current = processed
+        setAngle(0)
+        setPreviewAngle(0)
         setFormData((prev) => ({ ...prev, image: processed }))
       } catch (error) {
         console.error("이미지 처리 중 오류 발생:", error)
+        uploadedRef.current = base64
+        setAngle(0)
+        setPreviewAngle(0)
         setFormData((prev) => ({ ...prev, image: base64 }))
       }
     }
     reader.readAsDataURL(file)
   }, [])
 
-  // ±90도 즉시 회전(툴바 버튼) — 바로 픽셀에 굽는다.
-  const handleRotate90 = useCallback(async (deg: number) => {
-    const current = imgRef.current?.src
-    if (!current) return
-    const rotated = await rotateImage(current, deg)
-    setFormData((prev) => ({ ...prev, image: rotated }))
-  }, [])
-
-  // 자유각 회전 커밋 — 슬라이더를 놓는 순간 rotateArbitrary로 굽고 각도를 리셋한다.
-  const handleRotationCommit = useCallback(async (deg: number) => {
-    if (deg === 0) return
-    const current = imgRef.current?.src
-    if (!current) {
-      setRotation(0)
-      return
-    }
-    const rotated = await rotateArbitrary(current, deg)
-    setFormData((prev) => ({ ...prev, image: rotated }))
-    setRotation(0)
+  // 절대각 회전 적용 — 항상 원본(uploadedRef)에서 deg로 한 번만 굽는다(누적 방지).
+  // await 중 초기화/재업로드로 원본이 바뀌면 가드로 결과를 버린다(초기화가 이긴다).
+  const applyRotation = useCallback(async (deg: number) => {
+    const base = uploadedRef.current
+    if (!base) return
+    // -180~180 범위로 정규화(슬라이더 표시 일관성).
+    const normalized = ((((deg + 180) % 360) + 360) % 360) - 180
+    const baked =
+      normalized % 360 === 0 ? base : await rotateArbitrary(base, normalized)
+    if (uploadedRef.current !== base) return // 초기화/재업로드가 끼어들었으면 폐기
+    setFormData((prev) => ({ ...prev, image: baked }))
+    setAngle(normalized)
+    setPreviewAngle(normalized)
   }, [])
 
   const handleExtract = useCallback(async () => {
@@ -136,8 +145,10 @@ export function ShoeRegisterPage() {
   const registerMutation = useMutation({
     mutationFn: registerShoe,
     onSuccess: () => {
+      uploadedRef.current = null
+      setAngle(0)
+      setPreviewAngle(0)
       setFormData(EMPTY_SHOE_FORM)
-      setRotation(0)
       toast.success("신발 정보가 등록되었습니다.")
     },
     onError: () => {
@@ -154,8 +165,11 @@ export function ShoeRegisterPage() {
   }, [formData, registerMutation])
 
   const handleReset = useCallback(() => {
+    // 원본 ref를 먼저 비워, 진행 중인 회전 bake가 이미지를 되살리지 못하게 한다.
+    uploadedRef.current = null
+    setAngle(0)
+    setPreviewAngle(0)
     setFormData(EMPTY_SHOE_FORM)
-    setRotation(0)
   }, [])
 
   // 현재 선택된 부위에 이미 삽입된 문양인지 이름 기준으로 판정한다(팔레트 비활성용).
@@ -176,8 +190,8 @@ export function ShoeRegisterPage() {
   // 실시간 회전값에 가장 가까운 눈금을 강조한다(표시 전용).
   const nearestTick = ROTATION_TICKS.reduce((closest, tick) => {
     const tickValue = Number.parseInt(tick, 10)
-    return Math.abs(tickValue - rotation) <
-      Math.abs(Number.parseInt(closest, 10) - rotation)
+    return Math.abs(tickValue - previewAngle) <
+      Math.abs(Number.parseInt(closest, 10) - previewAngle)
       ? tick
       : closest
   }, ROTATION_TICKS[2])
@@ -189,13 +203,13 @@ export function ShoeRegisterPage() {
         <ToolbarIconButton
           icon={RotateCcw}
           label="왼쪽으로 90도 회전"
-          onClick={() => void handleRotate90(-90)}
+          onClick={() => void applyRotation(angle - 90)}
           disabled={!formData.image}
         />
         <ToolbarIconButton
           icon={RotateCw}
           label="오른쪽으로 90도 회전"
-          onClick={() => void handleRotate90(90)}
+          onClick={() => void applyRotation(angle + 90)}
           disabled={!formData.image}
         />
       </div>
@@ -203,10 +217,12 @@ export function ShoeRegisterPage() {
       <div className="h-6 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
 
       <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-1">
+        {/* 자유각 회전: 드래그 중에는 CSS transform으로 미리보기하고, 놓으면 원본에서
+            해당 각도로 다시 굽는다(누적 없음). */}
         <Slider
-          value={[rotation]}
-          onValueChange={([v]) => setRotation(v)}
-          onValueCommit={([v]) => void handleRotationCommit(v)}
+          value={[previewAngle]}
+          onValueChange={([v]) => setPreviewAngle(v)}
+          onValueCommit={([v]) => void applyRotation(v)}
           min={-180}
           max={180}
           step={1}
@@ -231,7 +247,7 @@ export function ShoeRegisterPage() {
       <div className="h-6 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
 
       <span className="w-14 shrink-0 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-1 text-center font-mono text-[11px] tabular-nums text-[#4A9EFF]">
-        {rotation}°
+        {previewAngle}°
       </span>
     </div>
   )
@@ -261,7 +277,11 @@ export function ShoeRegisterPage() {
           onUpload={handleFileSelect}
           topToolbar={rotationToolbar}
           viewportStyle={{
-            transform: rotation ? `rotate(${rotation}deg)` : undefined,
+            // 커밋각(angle) 대비 미리보기각의 차이만큼만 CSS로 돌려 미리보기한다.
+            transform:
+              previewAngle !== angle
+                ? `rotate(${previewAngle - angle}deg)`
+                : undefined,
           }}
         />
         <PatternZones
