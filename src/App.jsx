@@ -6,7 +6,6 @@ import {
   useParams,
 } from "react-router-dom";
 import { AppShell } from "@/widgets/app-shell";
-import { CrimeRegisterRedesign as CrimeRegister } from "@/pages/crime-register";
 import {
   CrimeSearchPage as CrimeSearch,
   CrimeDetailPage as CrimeDetail,
@@ -52,8 +51,13 @@ function App() {
       <Routes>
         {/* Persistent shell: fixed TopNav + Sidebar, only the Outlet content swaps. */}
         <Route element={<AppShell />}>
-          <Route path="/" element={<Navigate to="/crimeRegister" />} />
-          <Route path="/crimeRegister" element={<CrimeRegister />} />
+          <Route path="/" element={<Navigate to="/search" replace />} />
+          {/* 사건 등록은 사건 목록(`/search`)에 통합됐다. 기존 `/crimeRegister`
+              딥링크·북마크는 등록 모드로 리다이렉트해 하위 호환을 유지한다. */}
+          <Route
+            path="/crimeRegister"
+            element={<Navigate to="/search?mode=register" replace />}
+          />
           <Route path="/search" element={<CrimeSearch />} />
           <Route path="/search/:crimeNumber" element={<CrimeDetail />} />
             <Route
