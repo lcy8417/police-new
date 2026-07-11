@@ -137,7 +137,7 @@ export function RetrievalResultsGrid({
       {/* 결과 카드 그리드 */}
       <div
         ref={scrollRef}
-        className="relative grid min-h-0 flex-1 auto-rows-max grid-cols-3 gap-2.5 overflow-y-auto p-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
+        className="relative grid min-h-0 flex-1 auto-rows-max grid-cols-2 gap-3 overflow-y-auto p-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
       >
         {isLoading && (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-[#05080D]/85 backdrop-blur-md">
@@ -204,8 +204,8 @@ export function RetrievalResultsGrid({
                 </span>
               )}
 
-              {/* 신발 이미지는 세로형이라 카드도 세로로 길게(3:4) — 이미지가 카드를 꽉 채우게 여백 축소. */}
-              <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#05080D]">
+              {/* 신발 이미지는 세로형이라 카드도 세로로 길게(2:3) — 이미지가 카드를 꽉 채우게 여백 축소. */}
+              <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#05080D]">
                 <img
                   src={item.image}
                   alt={`신발 이미지 ${item.shoesName}`}
