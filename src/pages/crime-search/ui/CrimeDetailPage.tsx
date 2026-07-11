@@ -45,8 +45,8 @@ import { filteredPatterns, imageChangeHandler } from "@/utils/get-input-change"
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value"
 import { cn } from "@/shared/lib/utils"
 
-import { crimeHistoryPath, resultDetailPath } from "../model/search-paths"
-import { CaseInfoStrip } from "./CaseInfoStrip"
+import { crimeHistoryPath, resultDetailPath, searchDetailPath } from "../model/search-paths"
+import { CaseExplorerPanel } from "./CaseExplorerPanel"
 
 // 제목은 정적 — 헤더 effect가 매 렌더 재실행되지 않도록 한 번만 생성한다.
 const HEADER_TITLE = (
@@ -410,7 +410,7 @@ export function CrimeDetailPage() {
       {/* 그리드 트랙은 모드와 무관하게 4열 고정 — 검색모드에선 문양리스트+사건정보(3·4열)
           자리에 결과를 col-span-2로 얹어, 이미지·문양정보(1·2열)는 전환 시 움직이지 않는다.
           이미지 열은 0.8fr로 좁혀 세로 이미지의 좌우 여백을 줄인다. */}
-      <div className="relative grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.55fr)]">
+      <div className="relative grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.75fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.85fr)]">
         {/* 각 열 래퍼: 내부 grid-rows로 자식 section이 열 높이를 꽉 채우게 하고,
             xl 미만에서는 min-h로 최소 높이를 확보해 캔버스가 붕괴하지 않게 한다. */}
         <div className="grid min-h-[560px] grid-rows-[minmax(0,1fr)] xl:h-full xl:min-h-0">
@@ -462,9 +462,14 @@ export function CrimeDetailPage() {
               />
             </div>
 
-            {/* 맨 오른쪽 좁은 세로 열 — 사건정보 패널 */}
+            {/* 맨 오른쪽 세로 열 — 사건 탐색 패널(핀 카드 + 통합검색 + 사건 목록) */}
             <div className="grid min-h-[420px] grid-rows-[minmax(0,1fr)] xl:h-full xl:min-h-0">
-              <CaseInfoStrip crimeNumber={crimeNumber} currentData={currentCrimeData} />
+              <CaseExplorerPanel
+                crimeData={crimeData}
+                currentCrimeData={currentCrimeData}
+                crimeNumber={crimeNumber}
+                onSelect={(n) => navigate(searchDetailPath(n))}
+              />
             </div>
           </>
         )}

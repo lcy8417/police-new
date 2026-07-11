@@ -17,7 +17,7 @@ export interface NavItem {
 }
 
 export const navItems: NavItem[] = [
-  { label: "사건 등록", to: "/search?mode=register", icon: FileText },
+  { label: "사건 등록", to: "/crimeRegister", icon: FileText },
   { label: "사건 조회", to: "/search", icon: ListFilter },
   { label: "신발 등록", to: "/shoesRegister", icon: Footprints },
   { label: "신발 조회", to: "/shoesRepository/0", icon: Search },

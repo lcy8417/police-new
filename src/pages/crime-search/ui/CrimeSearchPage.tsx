@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
-import { Plus } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
 import { useCrimeStore, type Crime } from "@/entities/crime"
 import {
@@ -9,9 +8,7 @@ import {
   type CrimeSearchRow,
   type SearchFormState,
 } from "@/features/crime-search"
-import { RegisterStage, RegisterHeaderTitle } from "@/widgets/crime-register-stage"
 import { usePageHeader } from "@/widgets/app-shell"
-import { Button } from "@/shared/ui/button"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 
 import { EMPTY_SEARCH_FORM } from "../model/search-form"
@@ -29,9 +26,6 @@ const HEADER_TITLE = (
     </span>
   </div>
 )
-
-// 등록 모드에서 앱셸 헤더에 게시할 제목(이관된 등록 스테이지의 제목 재사용).
-const REGISTER_HEADER_TITLE = <RegisterHeaderTitle />
 
 /** `Crime` → 목록 테이블 행으로 투영한다(표시 컬럼만). */
 function toRow(item: Crime): CrimeSearchRow {
@@ -64,11 +58,6 @@ function distinctValues(data: Crime[], key: keyof Crime): string[] {
 export function CrimeSearchPage() {
   const navigate = useNavigate()
   const crimeData = useCrimeStore((s) => s.crimeData)
-  const [searchParams, setSearchParams] = useSearchParams()
-
-  // URL 쿼리 `?mode=register`로 조회 ↔ 등록 모드를 전환한다(페이지 리마운트 없이
-  // 콘텐츠만 스왑). 등록 모드에서는 이관된 편집 스테이지 위젯을 렌더한다.
-  const isRegister = searchParams.get("mode") === "register"
 
   const [searchForm, setSearchForm] = useState<SearchFormState>(EMPTY_SEARCH_FORM)
   const [filteredRows, setFilteredRows] = useState<CrimeSearchRow[]>(() =>
@@ -77,8 +66,8 @@ export function CrimeSearchPage() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
-  // 헤더 제목은 페이지가 모드에 따라 소유한다(등록 스테이지 위젯은 헤더를 게시하지 않음).
-  usePageHeader({ title: isRegister ? REGISTER_HEADER_TITLE : HEADER_TITLE })
+  // 헤더 제목은 페이지가 소유한다.
+  usePageHeader({ title: HEADER_TITLE })
 
   // 원본 데이터가 갱신되면(재조회 등) 전체 목록으로 되돌리고, 데이터가 줄어
   // 현재 페이지가 빈 slice가 되는 것을 막기 위해 첫 페이지로 리셋한다.
@@ -134,28 +123,11 @@ export function CrimeSearchPage() {
     [filteredRows, page, pageSize]
   )
 
-  // 등록 모드: 이관된 편집 스테이지 위젯을 렌더한다(저장 성공·취소 시 조회 모드로 복귀).
-  // 모든 훅 호출 뒤의 조건부 반환이라 훅 규칙을 어기지 않는다.
-  if (isRegister) {
-    return <RegisterStage onExit={() => setSearchParams({})} />
-  }
-
   return (
     <div className="relative flex h-[calc(100vh-110px)] w-full flex-col gap-6 overflow-hidden bg-background px-6 py-6">
       <DotGrid />
       <GlowOrb className="-top-24 right-1/4 h-72 w-72 bg-[#2563EB]/10" />
       <GlowOrb className="bottom-0 left-1/3 h-64 w-64 bg-[#4A9EFF]/8" />
-
-      <div className="relative flex shrink-0 justify-end">
-        <Button
-          type="button"
-          onClick={() => setSearchParams({ mode: "register" })}
-          className="h-10 gap-1.5 bg-gradient-to-b from-[#2563EB] to-[#1D4ED8] text-white shadow-[0_0_20px_rgba(37,99,235,0.45)] hover:from-[#3b74f2] hover:to-[#2154d8]"
-        >
-          <Plus className="size-4" aria-hidden="true" />
-          신규 등록
-        </Button>
-      </div>
 
       <div className="relative shrink-0">
         <SearchForm

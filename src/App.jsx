@@ -12,6 +12,7 @@ import {
   CrimeHistoryPage as CrimeHistory,
   ResultDetailPage as ResultDetail,
 } from "@/pages/crime-search";
+import { CrimeRegisterPage } from "@/pages/crime-register";
 import CrimeEdit from "./pages/CrimeEdit";
 import { ShoeRepositoryPage } from "@/pages/shoe-repository";
 import EditorMode from "./pages/EditorMode";
@@ -63,13 +64,10 @@ function App() {
       <Routes>
         {/* Persistent shell: fixed TopNav + Sidebar, only the Outlet content swaps. */}
         <Route element={<AppShell />}>
-          <Route path="/" element={<Navigate to="/search" replace />} />
-          {/* 사건 등록은 사건 목록(`/search`)에 통합됐다. 기존 `/crimeRegister`
-              딥링크·북마크는 등록 모드로 리다이렉트해 하위 호환을 유지한다. */}
-          <Route
-            path="/crimeRegister"
-            element={<Navigate to="/search?mode=register" replace />}
-          />
+          <Route path="/" element={<Navigate to="/crimeRegister" replace />} />
+          {/* 사건 등록은 독립 라우트다. 이관된 `RegisterStage` 위젯을 얇은 페이지가
+              감싸 렌더한다(등록↔검색 통합은 되돌림). */}
+          <Route path="/crimeRegister" element={<CrimeRegisterPage />} />
           <Route path="/search" element={<CrimeSearch />} />
           <Route path="/search/:crimeNumber" element={<CrimeDetail />} />
             <Route
