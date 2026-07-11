@@ -60,6 +60,18 @@ const HEADER_TITLE = (
   </div>
 )
 
+// 사건 미선택(빈 `/search`) 진입 시 헤더 — 일반 문구로 사건 선택을 안내한다.
+const HEADER_TITLE_EMPTY = (
+  <div className="flex flex-col justify-center gap-1">
+    <span className="text-[28px] leading-none font-bold text-white">
+      사건 커맨드센터
+    </span>
+    <span className="text-[13px] leading-none font-normal text-[#8A93A6]">
+      오른쪽 사건 탐색 패널에서 사건을 선택해 시작하세요.
+    </span>
+  </div>
+)
+
 /** 검색이력 테이블 헤더(레거시 `SearchResults`의 4열과 동일). */
 const HISTORY_COLUMNS = ["ID", "등록일시", "순위", "매칭된 신발 정보"] as const
 
@@ -391,7 +403,10 @@ export function CrimeDetailPage() {
     exitSearch,
   ])
 
-  usePageHeader({ title: HEADER_TITLE, actions: headerActions })
+  usePageHeader({
+    title: currentCrimeData ? HEADER_TITLE : HEADER_TITLE_EMPTY,
+    actions: headerActions,
+  })
 
   return (
     <div className="relative flex h-[calc(100vh-110px)] w-full flex-col gap-4 overflow-y-auto bg-background px-6 py-6">
@@ -413,6 +428,8 @@ export function CrimeDetailPage() {
       <div className="relative grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.75fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.85fr)]">
         {/* 각 열 래퍼: 내부 grid-rows로 자식 section이 열 높이를 꽉 채우게 하고,
             xl 미만에서는 min-h로 최소 높이를 확보해 캔버스가 붕괴하지 않게 한다. */}
+        {currentCrimeData ? (
+          <>
         <div className="grid min-h-[560px] grid-rows-[minmax(0,1fr)] xl:h-full xl:min-h-0">
           <PatternCanvas
             canvasRef={canvasRef}
@@ -463,6 +480,33 @@ export function CrimeDetailPage() {
             </div>
 
             {/* 맨 오른쪽 세로 열 — 사건 탐색 패널(핀 카드 + 통합검색 + 사건 목록) */}
+            <div className="grid min-h-[420px] grid-rows-[minmax(0,1fr)] xl:h-full xl:min-h-0">
+              <CaseExplorerPanel
+                crimeData={crimeData}
+                currentCrimeData={currentCrimeData}
+                crimeNumber={crimeNumber}
+                onSelect={(n) => navigate(searchDetailPath(n))}
+              />
+            </div>
+          </>
+        )}
+          </>
+        ) : (
+          <>
+            {/* 사건 미선택(빈 `/search`): 1~3열 자리에 중앙 힌트, 4열 탐색 패널은
+                항상 렌더해 목록에서 사건을 고를 수 있게 한다. */}
+            <div className="flex min-h-[420px] items-center justify-center rounded-2xl border border-[#1E2A3C] bg-[#0B121D] xl:col-span-3 xl:h-full xl:min-h-0">
+              <div className="flex flex-col items-center gap-3 px-6 text-center">
+                <ListTree className="size-10 text-[#2DD4BF]" aria-hidden="true" />
+                <span className="text-[15px] font-semibold text-[#E5E9F0]">
+                  사건을 선택하세요
+                </span>
+                <span className="max-w-[280px] text-[13px] leading-relaxed text-[#8A93A6]">
+                  오른쪽 사건 탐색 패널에서 사건을 선택하면 경계선 분할·문양 추출·신발
+                  검색 워크벤치가 열립니다.
+                </span>
+              </div>
+            </div>
             <div className="grid min-h-[420px] grid-rows-[minmax(0,1fr)] xl:h-full xl:min-h-0">
               <CaseExplorerPanel
                 crimeData={crimeData}

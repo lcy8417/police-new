@@ -7,7 +7,6 @@ import {
 } from "react-router-dom";
 import { AppShell } from "@/widgets/app-shell";
 import {
-  CrimeSearchPage as CrimeSearch,
   CrimeDetailPage as CrimeDetail,
   CrimeHistoryPage as CrimeHistory,
   ResultDetailPage as ResultDetail,
@@ -68,7 +67,10 @@ function App() {
           {/* 사건 등록은 독립 라우트다. 이관된 `RegisterStage` 위젯을 얇은 페이지가
               감싸 렌더한다(등록↔검색 통합은 되돌림). */}
           <Route path="/crimeRegister" element={<CrimeRegisterPage />} />
-          <Route path="/search" element={<CrimeSearch />} />
+          {/* `/search`(param 없음)와 `/search/:crimeNumber` 모두 통합 커맨드센터.
+              param 없이 진입하면 빈 상태(사건 미선택)로 열려, 4열 사건 탐색 패널의
+              목록에서 사건을 골라 워크벤치를 채운다. */}
+          <Route path="/search" element={<CrimeDetail />} />
           <Route path="/search/:crimeNumber" element={<CrimeDetail />} />
             <Route
               path="/search/:crimeNumber/crimeHistory/:historyId"

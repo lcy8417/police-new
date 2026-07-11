@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { ChevronDown, Compass } from "lucide-react"
+import { Compass, FileText } from "lucide-react"
 
 import type { Crime } from "@/entities/crime"
 import {
@@ -8,6 +8,13 @@ import {
   type CrimeSearchRow,
   type QuickSearchFilters,
 } from "@/features/crime-search"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/shared/ui/sheet"
 import { TechCorners } from "@/shared/ui/tech-corners"
 import { cn } from "@/shared/lib/utils"
 
@@ -50,8 +57,8 @@ function distinctValues(data: Crime[], key: keyof Crime): string[] {
   return Array.from(seen)
 }
 
-/** 핀 카드 상세 항목(라벨 위 / 값 아래). `CaseInfoStrip`의 StackField 스타일을 재사용한다. */
-function PinField({
+/** 상세 시트 항목(라벨 위 / 값 아래). */
+function DetailField({
   label,
   value,
 }: {
@@ -60,14 +67,14 @@ function PinField({
 }) {
   const isEmpty = value === null || value === undefined || value === ""
   return (
-    <div className="flex min-w-0 flex-col gap-0.5">
+    <div className="flex min-w-0 flex-col gap-1">
       <span className="font-mono text-[10px] font-medium tracking-wider text-[#8A93A6] uppercase">
         {label}
       </span>
       <span
         className={cn(
-          "text-[12px] font-semibold break-words",
-          isEmpty ? "text-[#75829B]" : "text-[#C7CEDB]"
+          "text-[13px] font-semibold break-words",
+          isEmpty ? "text-[#75829B]" : "text-[#E5E9F0]"
         )}
       >
         {isEmpty ? "-" : value}
@@ -77,11 +84,12 @@ function PinField({
 }
 
 /**
- * 사건 탐색 패널(페이지 로컬 조립). 통합 커맨드센터 상세(`CrimeDetailPage`) 4번째 열에서
- * [현재 사건 핀 카드 + 통합검색(QuickSearchBar) + 세로 카드 목록(CaseListCompact)]을 조립한다.
- * keyword·필터 상태를 소유하고 자체 완결 필터링을 수행한다(공유 검색 훅과 독립):
- * keyword는 사건번호·이미지번호·사건명 부분일치 OR, 필터는 정확일치 AND. 목록에서 다른
- * 사건을 고르면 `onSelect`로 URL을 전환해 1~3열 워크벤치가 자동 갱신된다.
+ * 사건 탐색 패널(페이지 로컬 조립, teal 소스 톤). 통합 커맨드센터 상세(`CrimeDetailPage`)
+ * 4번째 열에서 [현재 사건 컴팩트 인디케이터 + 통합검색(QuickSearchBar) + 세로 카드
+ * 목록(CaseListCompact)]을 조립한다. keyword·필터 상태를 소유하고 자체 완결 필터링을
+ * 수행한다(공유 검색 훅과 독립): keyword는 사건번호·이미지번호·사건명 부분일치 OR,
+ * 필터는 정확일치 AND. 목록 카드 좌측 클릭은 `onSelect`로 URL을 전환해 워크벤치를
+ * 갱신하고, 우측 "상세 보기"는 이 패널이 소유하는 상세 시트를 연다.
  */
 export function CaseExplorerPanel({
   crimeData,
@@ -91,7 +99,8 @@ export function CaseExplorerPanel({
 }: CaseExplorerPanelProps) {
   const [keyword, setKeyword] = useState("")
   const [filters, setFilters] = useState<QuickSearchFilters>(EMPTY_FILTERS)
-  const [detailOpen, setDetailOpen] = useState(false)
+  // 상세 시트 대상 사건번호(null이면 닫힘). 목록 카드 "상세 보기"로 설정한다.
+  const [detailNumber, setDetailNumber] = useState<string | null>(null)
 
   const requestOfficeOptions = useMemo(
     () => distinctValues(crimeData, "requestOffice"),
@@ -137,57 +146,45 @@ export function CaseExplorerPanel({
   // 핀 식별자: 조회된 사건번호 우선, 미조회면 URL 사건번호 플레이스홀더.
   const pinNumber = currentCrimeData?.crimeNumber ?? crimeNumber
 
+  // 상세 시트 대상 사건 — crimeData에서 사건번호로 조회한다.
+  const detailCrime = useMemo(
+    () =>
+      detailNumber === null
+        ? undefined
+        : crimeData.find((item) => String(item.crimeNumber) === detailNumber),
+    [crimeData, detailNumber]
+  )
+
   return (
-    <section className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
+    <section className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-[#183430] bg-[#0C1917] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
       <TechCorners size={18} />
 
-      <div className="flex items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-3">
+      <div className="flex items-center justify-between border-b border-[#132a27] bg-[#0E1F1D]/60 px-4 py-3">
         <span className="flex items-center gap-2 text-[14px] font-semibold text-[#E5E9F0]">
-          <Compass className="size-4 text-[#4A9EFF]" aria-hidden="true" />
+          <Compass className="size-4 text-[#2DD4BF]" aria-hidden="true" />
           사건 탐색
         </span>
-        <span className="font-mono text-[10px] font-medium tracking-[0.14em] text-[#8A93A6] uppercase">
+        <span className="font-mono text-[10px] font-medium tracking-[0.14em] text-[#5FE0D0]/70 uppercase">
           Explore
         </span>
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 px-3 py-3">
-        {/* 현재 사건 핀 카드 — 사건번호·이름·상태 상시, 나머지는 "상세 보기" 접힘. */}
-        <div className="shrink-0 rounded-xl border border-[#3B82F6]/30 bg-[#0D1420]/60 px-3 py-3">
+        {/* 현재 사건 컴팩트 인디케이터 — 번호·상태·사건명만(상세는 목록 카드 시트로). */}
+        <div className="shrink-0 rounded-xl border border-[#2DD4BF]/30 bg-[#0E1F1D]/60 px-3 py-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="w-fit max-w-full rounded-md border border-[#3B82F6]/40 bg-[#152238]/60 px-2.5 py-1 font-mono text-[12px] font-semibold tracking-wide break-words text-[#4A9EFF]">
-              {pinNumber || "-"}
+            <span className="w-fit max-w-full rounded-md border border-[#2DD4BF]/40 bg-[#0F2624]/60 px-2.5 py-1 font-mono text-[12px] font-semibold tracking-wide break-words text-[#5FE0D0]">
+              {pinNumber || "사건 미선택"}
             </span>
             {currentCrimeData?.state && (
-              <span className="inline-flex shrink-0 items-center rounded-full border border-[#3B82F6]/40 bg-[#152238]/60 px-2 py-0.5 text-[11px] font-semibold text-[#4A9EFF]">
+              <span className="inline-flex shrink-0 items-center rounded-full border border-[#2DD4BF]/40 bg-[#0F2624]/60 px-2 py-0.5 text-[11px] font-semibold text-[#5FE0D0]">
                 {currentCrimeData.state}
               </span>
             )}
           </div>
           <p className="mt-2 text-[13px] font-semibold break-words text-[#C7CEDB]">
-            {currentCrimeData?.crimeName ?? "-"}
+            {currentCrimeData?.crimeName ?? "사건을 선택하세요"}
           </p>
-
-          <button
-            type="button"
-            onClick={() => setDetailOpen((prev) => !prev)}
-            className="mt-2 flex items-center gap-1 text-[11px] font-medium text-[#8A93A6] transition-colors hover:text-[#C7CEDB]"
-          >
-            상세 보기
-            <ChevronDown
-              className={cn("size-3.5 transition-transform", detailOpen && "rotate-180")}
-              aria-hidden="true"
-            />
-          </button>
-
-          {detailOpen && (
-            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-[#141D2C] pt-2">
-              <PinField label="이미지 번호" value={currentCrimeData?.imageNumber} />
-              <PinField label="채취 일시" value={currentCrimeData?.findTime} />
-              <PinField label="의뢰관서" value={currentCrimeData?.requestOffice} />
-              <PinField label="발견 방법" value={currentCrimeData?.findMethod} />
-            </div>
-          )}
         </div>
 
         <div className="shrink-0">
@@ -205,8 +202,55 @@ export function CaseExplorerPanel({
           rows={filteredRows}
           currentCrimeNumber={pinNumber}
           onSelect={onSelect}
+          onOpenDetail={setDetailNumber}
         />
       </div>
+
+      {/* 사건 정보 — 우측 슬라이드 시트. 목록 카드의 [상세 보기] 버튼으로 연다.
+          CrimeDetailPage가 소유한 검색이력 시트와 트리거·내용이 달라 공존한다. */}
+      <Sheet
+        open={detailNumber !== null}
+        onOpenChange={(open) => {
+          if (!open) setDetailNumber(null)
+        }}
+      >
+        <SheetContent
+          side="right"
+          className="w-full gap-0 border-[#183430] bg-[#0C1917] p-0 text-[#C7CEDB] sm:max-w-[420px]"
+        >
+          <SheetHeader className="space-y-1 border-b border-[#132a27] bg-[#0E1F1D]/60 px-6 py-4">
+            <SheetTitle className="flex items-center gap-2 text-[15px] font-semibold text-[#E5E9F0]">
+              <FileText className="size-4 text-[#2DD4BF]" aria-hidden="true" />
+              사건 정보
+              {detailCrime?.state && (
+                <span className="inline-flex items-center rounded-full border border-[#2DD4BF]/40 bg-[#0F2624]/60 px-2 py-0.5 text-[11px] font-semibold text-[#5FE0D0]">
+                  {detailCrime.state}
+                </span>
+              )}
+            </SheetTitle>
+            <SheetDescription className="font-mono text-[11px] tracking-[0.14em] text-[#5B6B85] uppercase">
+              Case · Detail
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="h-[calc(100dvh-88px)] overflow-auto px-6 py-5">
+            {detailCrime ? (
+              <div className="grid grid-cols-1 gap-4">
+                <DetailField label="사건등록번호" value={detailCrime.crimeNumber} />
+                <DetailField label="이미지번호" value={detailCrime.imageNumber} />
+                <DetailField label="사건명" value={detailCrime.crimeName} />
+                <DetailField label="채취일시" value={detailCrime.findTime} />
+                <DetailField label="의뢰관서" value={detailCrime.requestOffice} />
+                <DetailField label="발견방법" value={detailCrime.findMethod} />
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center text-center text-[13px] text-[#5B6B85]">
+                사건 정보를 찾을 수 없습니다.
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </section>
   )
 }
