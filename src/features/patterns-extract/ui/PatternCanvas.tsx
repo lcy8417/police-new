@@ -4,7 +4,10 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
+  type CSSProperties,
   type MouseEvent,
+  type ReactNode,
   type RefObject,
 } from "react";
 import {
@@ -82,6 +85,19 @@ interface PatternCanvasProps {
   onShowOrigin: () => void;
   onShowEdit: () => void;
   isExtracting?: boolean;
+  /**
+   * 표시 전용 확장(기본값은 모두 현재 검색화면 동작과 동일 — 좌표 수학 무관).
+   * 신발 등록 화면이 재사용할 때만 값을 넘긴다.
+   */
+  /** 현장/편집 스와퍼를 숨긴다(서버 이미지가 하나뿐인 등록 화면용). */
+  hideViewSwapper?: boolean;
+  /** 넘기면 빈 상태를 "업로드 드롭존"으로 바꾼다(클릭 시 파일 선택 → onUpload). */
+  onUpload?: (file: File) => void;
+  /** 헤더 아래에 얹는 툴바 밴드(예: 회전 슬라이더). */
+  topToolbar?: ReactNode;
+  /** 뷰포트 래퍼(img+경계선 canvas 공통)에 적용할 스타일 — 회전 미리보기 transform용.
+   *  래퍼째 회전하므로 이미지와 경계선이 함께 돌아 정합이 유지된다. */
+  viewportStyle?: CSSProperties;
 }
 
 /** 도크 툴바용 소형 버튼(crime-register EvidenceImagePanel 톤 준용). */
@@ -147,7 +163,19 @@ export function PatternCanvas({
   onShowOrigin,
   onShowEdit,
   isExtracting = false,
+  hideViewSwapper = false,
+  onUpload,
+  topToolbar,
+  viewportStyle,
 }: PatternCanvasProps) {
+  // 업로드 드롭존(onUpload가 있을 때만)용 숨은 파일 입력.
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const handleUploadChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onUpload?.(file);
+    // 같은 파일을 다시 선택해도 onChange가 발화하도록 값을 비운다.
+    e.target.value = "";
+  };
   // canvas 리사이즈 시 선을 다시 그리기 위한 트리거.
   const [canvasSize, setCanvasSize] = useState<{ w: number; h: number }>({
     w: 0,
@@ -535,39 +563,57 @@ export function PatternCanvas({
     <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)] backdrop-blur-sm">
       <TechCorners size={22} active={isExtracting} />
 
+      {/* 업로드 드롭존용 숨은 파일 입력(onUpload가 있을 때만 의미 있음). */}
+      {onUpload && (
+        <input
+          ref={uploadInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleUploadChange}
+        />
+      )}
+
       {/* 패널 헤더 — 타이틀(왼쪽) + 현장/편집 스와퍼(오른쪽, 컴팩트). 기존에 별도
           툴바 밴드에 있던 스와퍼를 여기로 옮기고, "PATTERN·EXTRACT" 라벨은 공간
-          확보를 위해 제거했다(뷰포트 세로 확장이 우선). */}
+          확보를 위해 제거했다(뷰포트 세로 확장이 우선). 스와퍼는 서버 이미지가
+          둘(현장/편집)일 때만 의미가 있어, 등록 화면(단일 업로드 이미지)에서는
+          hideViewSwapper로 숨긴다. */}
       <div className="flex items-center justify-between gap-3 border-b border-[#141D2C] bg-[#0D1420]/60 px-6 py-3">
         <span className="flex items-center gap-2 text-[15px] font-semibold text-[#E5E9F0]">
           <ScanSearch className="size-4 text-[#4A9EFF]" aria-hidden="true" />
           신발 이미지
         </span>
-        <ToggleGroup
-          type="single"
-          value={activeView}
-          onValueChange={(v) => {
-            if (v === "현장이미지") handleShowOrigin();
-            else if (v === "편집이미지") handleShowEdit();
-          }}
-          className="gap-0.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] p-0.5"
-        >
-          <ToggleGroupItem
-            value="현장이미지"
-            className="h-6 gap-1 rounded-[5px] px-2 text-[11px] font-medium text-[#8A93A6] hover:text-[#C7CEDB] data-[state=on]:border data-[state=on]:border-[#3B82F6]/50 data-[state=on]:bg-[#152238] data-[state=on]:text-[#4A9EFF]"
+        {!hideViewSwapper && (
+          <ToggleGroup
+            type="single"
+            value={activeView}
+            onValueChange={(v) => {
+              if (v === "현장이미지") handleShowOrigin();
+              else if (v === "편집이미지") handleShowEdit();
+            }}
+            className="gap-0.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] p-0.5"
           >
-            <Camera className="size-3" aria-hidden="true" />
-            현장
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="편집이미지"
-            className="h-6 gap-1 rounded-[5px] px-2 text-[11px] font-medium text-[#8A93A6] hover:text-[#C7CEDB] data-[state=on]:border data-[state=on]:border-[#3B82F6]/50 data-[state=on]:bg-[#152238] data-[state=on]:text-[#4A9EFF]"
-          >
-            <ImagePlus className="size-3" aria-hidden="true" />
-            편집
-          </ToggleGroupItem>
-        </ToggleGroup>
+            <ToggleGroupItem
+              value="현장이미지"
+              className="h-6 gap-1 rounded-[5px] px-2 text-[11px] font-medium text-[#8A93A6] hover:text-[#C7CEDB] data-[state=on]:border data-[state=on]:border-[#3B82F6]/50 data-[state=on]:bg-[#152238] data-[state=on]:text-[#4A9EFF]"
+            >
+              <Camera className="size-3" aria-hidden="true" />
+              현장
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="편집이미지"
+              className="h-6 gap-1 rounded-[5px] px-2 text-[11px] font-medium text-[#8A93A6] hover:text-[#C7CEDB] data-[state=on]:border data-[state=on]:border-[#3B82F6]/50 data-[state=on]:bg-[#152238] data-[state=on]:text-[#4A9EFF]"
+            >
+              <ImagePlus className="size-3" aria-hidden="true" />
+              편집
+            </ToggleGroupItem>
+          </ToggleGroup>
+        )}
       </div>
+
+      {/* 헤더 아래 툴바 밴드(예: 회전 슬라이더) — 넘겨졌을 때만 렌더. */}
+      {topToolbar}
 
       {/* 뷰포트: 이미지 + 경계선 오버레이 canvas.
           체커보드 눈금 바 / 모서리 십자선 / 하단 상태표시줄은 crime-register
@@ -607,7 +653,10 @@ export function PatternCanvas({
             래퍼는 h-full·w-fit으로 표시 이미지에 딱 붙어 캔버스 오버레이가 정합된다.
             높이 우선이라 세로 이미지가 위아래로 삐지지 않고 꽉 찬다. */}
         {image ? (
-          <div className="relative flex h-full w-fit max-w-full items-center justify-center">
+          <div
+            className="relative flex h-full w-fit max-w-full items-center justify-center"
+            style={viewportStyle}
+          >
             <img
               ref={imgRef}
               src={image}
@@ -854,6 +903,17 @@ export function PatternCanvas({
               })}
 
           </div>
+        ) : onUpload ? (
+          // 업로드 드롭존 — crime-register EvidenceImagePanel의 빈 상태와 같은 언어.
+          <button
+            type="button"
+            onClick={() => uploadInputRef.current?.click()}
+            className="relative flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#26334A] px-10 py-8 text-[#5B6B85] transition-colors hover:border-[#3B82F6]/60 hover:text-[#4A9EFF]"
+          >
+            <ImagePlus className="size-9" aria-hidden="true" />
+            <span className="text-sm font-medium">신발 이미지를 업로드하세요</span>
+            <span className="text-[11px] text-[#4C5670]">클릭하여 이미지 파일 선택</span>
+          </button>
         ) : (
           <div className="flex flex-col items-center gap-3 text-[#5B6B85]">
             <ImageOff className="size-9" aria-hidden="true" />

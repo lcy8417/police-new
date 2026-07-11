@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { ImagePlus, RotateCcw, RotateCw } from "lucide-react"
+import { RotateCcw, RotateCw, type LucideIcon } from "lucide-react"
 
 import { registerShoe, type Shoe } from "@/entities/shoe"
 import type { Crime } from "@/entities/crime"
@@ -12,9 +12,10 @@ import {
   PatternZones,
   usePatternManager,
 } from "@/features/patterns-extract"
+import { rotateArbitrary } from "@/features/crime-register"
 import { usePageHeader } from "@/widgets/app-shell"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
-import { cn } from "@/shared/lib/utils"
+import { Slider } from "@/shared/ui/slider"
 import { rotateImage, resizeImage } from "@/utils/get-input-change"
 
 import { EMPTY_SHOE_FORM } from "../model/form"
@@ -27,30 +28,30 @@ const HEADER_TITLE = <HeaderTitle />
 /** 부위 인덱스(0~3) → 데이터 키. PatternZones/팔레트 삽입 대상 판정에 쓴다. */
 const ZONE_KEYS: PatternZone[] = ["top", "mid", "bottom", "outline"]
 
-/** 헤더(TopNav)에 얹는 이미지 도구 버튼 — crime-register 도크 톤을 준용한다. */
-function HeaderToolButton({
+/** 회전 슬라이더 눈금(EvidenceImagePanel과 동일). */
+const ROTATION_TICKS = ["-180°", "-90°", "0°", "90°", "180°"]
+
+/** 회전 툴바용 아이콘 버튼(EvidenceImagePanel ToolbarIconButton 준용). */
+function ToolbarIconButton({
   icon: Icon,
   label,
   onClick,
   disabled = false,
 }: {
-  icon: typeof ImagePlus
+  icon: LucideIcon
   label: string
-  onClick: () => void
+  onClick?: () => void
   disabled?: boolean
 }) {
   return (
     <button
       type="button"
+      aria-label={label}
       onClick={onClick}
       disabled={disabled}
-      className={cn(
-        "flex h-9 items-center gap-1.5 rounded-md border px-3 text-[13px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-        "border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
-      )}
+      className="flex size-8 items-center justify-center rounded-md text-[#6B7688] transition-colors hover:bg-white/5 hover:text-[#4A9EFF] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#6B7688]"
     >
       <Icon className="size-4" aria-hidden="true" />
-      {label}
     </button>
   )
 }
@@ -60,18 +61,17 @@ function HeaderToolButton({
  * 대체하는 FSD 진입 페이지다. 신발 `formData`(엔티티 `Shoe` 형태)를 소유하고,
  * 문양추출 워크벤치는 검색 커맨드센터(`/search/:crimeNumber`)와 **동일 컴포넌트**
  * (`PatternCanvas`·`PatternZones`·`PatternPalette` + `usePatternManager` 신발 모드)를
- * 그대로 재사용한다. 이미지 업로드/회전은 TopNav 헤더 액션으로 얹고, 저장은
- * `registerShoe`(POST /shoes/register)로 승격했다.
- *
- * 재사용 트레이드오프: `PatternCanvas`의 현장/편집 스와퍼는 서버 이미지 전환용이라
- * 단일 업로드 이미지를 쓰는 등록 화면에서는 동작이 없다(no-op). 공유 컴포넌트의
- * 좌표 계약은 "절대 변경 금지"라 스와퍼를 제거하지 않고 그대로 둔다.
+ * 재사용한다. 이미지 업로드는 캔버스 빈 상태의 드롭존, 회전은 캔버스 상단 툴바로
+ * (crime-register `EvidenceImagePanel`과 같은 언어), 현장/편집 스와퍼는 숨긴다.
+ * 저장은 `registerShoe`(POST /shoes/register)로 승격했다.
  */
 export function ShoeRegisterPage() {
   const [formData, setFormData] = useState<Shoe>(EMPTY_SHOE_FORM)
   const [isExtracting, setIsExtracting] = useState(false)
+  // 자유각 회전(-180..180). 슬라이더 드래그 중에는 뷰포트 래퍼 CSS transform으로
+  // 미리보기하고, 손을 떼면(onValueCommit) rotateArbitrary로 픽셀에 굽고 0으로 리셋한다.
+  const [rotation, setRotation] = useState(0)
   const imgRef = useRef<HTMLImageElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 문양·경계선·추출 상태는 features 훅이 소유한다(신발 모드: formData/setFormData).
   const pm = usePatternManager({ formData, setFormData, imgRef })
@@ -96,26 +96,25 @@ export function ShoeRegisterPage() {
     reader.readAsDataURL(file)
   }, [])
 
-  const handleUploadClick = useCallback(() => {
-    fileInputRef.current?.click()
-  }, [])
-
-  const handleFileInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (file) void handleFileSelect(file)
-      // 같은 파일을 다시 선택해도 onChange가 발화하도록 값을 비운다.
-      e.target.value = ""
-    },
-    [handleFileSelect]
-  )
-
-  const handleRotate = useCallback(async (deg: number) => {
-    // 현재 표시 중인 이미지(imgRef.src = formData.image)를 회전해 다시 저장한다.
+  // ±90도 즉시 회전(툴바 버튼) — 바로 픽셀에 굽는다.
+  const handleRotate90 = useCallback(async (deg: number) => {
     const current = imgRef.current?.src
     if (!current) return
     const rotated = await rotateImage(current, deg)
     setFormData((prev) => ({ ...prev, image: rotated }))
+  }, [])
+
+  // 자유각 회전 커밋 — 슬라이더를 놓는 순간 rotateArbitrary로 굽고 각도를 리셋한다.
+  const handleRotationCommit = useCallback(async (deg: number) => {
+    if (deg === 0) return
+    const current = imgRef.current?.src
+    if (!current) {
+      setRotation(0)
+      return
+    }
+    const rotated = await rotateArbitrary(current, deg)
+    setFormData((prev) => ({ ...prev, image: rotated }))
+    setRotation(0)
   }, [])
 
   const handleExtract = useCallback(async () => {
@@ -138,6 +137,7 @@ export function ShoeRegisterPage() {
     mutationFn: registerShoe,
     onSuccess: () => {
       setFormData(EMPTY_SHOE_FORM)
+      setRotation(0)
       toast.success("신발 정보가 등록되었습니다.")
     },
     onError: () => {
@@ -155,6 +155,7 @@ export function ShoeRegisterPage() {
 
   const handleReset = useCallback(() => {
     setFormData(EMPTY_SHOE_FORM)
+    setRotation(0)
   }, [])
 
   // 현재 선택된 부위에 이미 삽입된 문양인지 이름 기준으로 판정한다(팔레트 비활성용).
@@ -172,47 +173,76 @@ export function ShoeRegisterPage() {
 
   const noop = useCallback(() => {}, [])
 
-  const headerActions = useMemo(
-    () => (
-      <div className="flex items-center gap-2">
-        <HeaderToolButton
-          icon={ImagePlus}
-          label="이미지 등록"
-          onClick={handleUploadClick}
-        />
-        <HeaderToolButton
+  // 실시간 회전값에 가장 가까운 눈금을 강조한다(표시 전용).
+  const nearestTick = ROTATION_TICKS.reduce((closest, tick) => {
+    const tickValue = Number.parseInt(tick, 10)
+    return Math.abs(tickValue - rotation) <
+      Math.abs(Number.parseInt(closest, 10) - rotation)
+      ? tick
+      : closest
+  }, ROTATION_TICKS[2])
+
+  // 캔버스 헤더 아래에 얹는 회전 툴바 밴드(EvidenceImagePanel 회전 툴바 언어).
+  const rotationToolbar = (
+    <div className="flex items-center gap-3 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
+      <div className="flex shrink-0 items-center gap-0.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] p-0.5">
+        <ToolbarIconButton
           icon={RotateCcw}
-          label="회전"
-          onClick={() => void handleRotate(-90)}
+          label="왼쪽으로 90도 회전"
+          onClick={() => void handleRotate90(-90)}
           disabled={!formData.image}
         />
-        <HeaderToolButton
+        <ToolbarIconButton
           icon={RotateCw}
-          label="회전"
-          onClick={() => void handleRotate(90)}
+          label="오른쪽으로 90도 회전"
+          onClick={() => void handleRotate90(90)}
           disabled={!formData.image}
         />
       </div>
-    ),
-    [formData.image, handleUploadClick, handleRotate]
+
+      <div className="h-6 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
+
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-1">
+        <Slider
+          value={[rotation]}
+          onValueChange={([v]) => setRotation(v)}
+          onValueCommit={([v]) => void handleRotationCommit(v)}
+          min={-180}
+          max={180}
+          step={1}
+          disabled={!formData.image}
+        />
+        <div className="flex justify-between font-mono text-[10px] tracking-wide tabular-nums">
+          {ROTATION_TICKS.map((tick) => (
+            <span
+              key={tick}
+              className={
+                tick === nearestTick
+                  ? "text-[#4A9EFF] drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]"
+                  : "text-[#5B6B85]"
+              }
+            >
+              {tick}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="h-6 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
+
+      <span className="w-14 shrink-0 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-1 text-center font-mono text-[11px] tabular-nums text-[#4A9EFF]">
+        {rotation}°
+      </span>
+    </div>
   )
 
-  usePageHeader({ title: HEADER_TITLE, actions: headerActions })
+  usePageHeader({ title: HEADER_TITLE })
 
   return (
     <div className="relative h-[calc(100vh-110px)] w-full overflow-hidden bg-background px-6 py-6">
       <DotGrid />
       <GlowOrb className="-top-24 right-1/4 h-72 w-72 bg-[#2563EB]/10" />
       <GlowOrb className="bottom-0 left-1/3 h-64 w-64 bg-[#4A9EFF]/8" />
-
-      {/* 업로드용 숨은 파일 입력 — 헤더의 "이미지 등록" 버튼이 click()으로 연다. */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileInputChange}
-      />
 
       <div className="relative grid h-full grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.7fr)]">
         <PatternCanvas
@@ -226,6 +256,13 @@ export function ShoeRegisterPage() {
           onShowOrigin={noop}
           onShowEdit={noop}
           isExtracting={isExtracting}
+          // 등록 화면 전용: 스와퍼 숨김 + 캔버스 드롭존 업로드 + 회전 툴바 + 회전 미리보기.
+          hideViewSwapper
+          onUpload={handleFileSelect}
+          topToolbar={rotationToolbar}
+          viewportStyle={{
+            transform: rotation ? `rotate(${rotation}deg)` : undefined,
+          }}
         />
         <PatternZones
           selected={pm.selected}
