@@ -277,7 +277,7 @@ export function PatternCanvas({
   const showOverlayChrome = Boolean(image) && canvasSize.h > 0;
 
   return (
-    <section className="relative flex h-full min-h-0 w-fit min-w-[320px] flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
+    <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
       <TechCorners size={22} active={isExtracting} />
 
       {/* 패널 헤더 */}
@@ -365,10 +365,11 @@ export function PatternCanvas({
           </>
         )}
 
-        {/* 이미지 폭 상한(max-w-[36vw])은 CrimeDetailPage 이미지 열의 fit-content(36vw)와
-            정합시킨다. 열 상한보다 크면 뷰포트 overflow-hidden이 이미지 오른쪽을 잘라낸다. */}
+        {/* 래퍼는 표시된 이미지에 딱 붙어 캔버스 오버레이가 정합되게 한다. 폭/높이는
+            뷰포트(정한 폭의 열 + flex-1 높이)를 기준으로 max-w-full/max-h-full이 잡으므로,
+            세로 이미지도 높이에 맞아 삐져나가지 않는다(fit-content 내부 사이징 제거). */}
         {image ? (
-          <div className="relative inline-flex max-h-full max-w-[36vw] items-center justify-center">
+          <div className="relative inline-flex max-h-full max-w-full items-center justify-center">
             <img
               ref={imgRef}
               src={image}
