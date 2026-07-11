@@ -24,6 +24,8 @@ interface PatternZonesProps {
   currentData: Crime | null | undefined;
   /** 문양 리스트에서 드래그한 문양을 해당 부위로 삽입한다(현재 선택과 무관). */
   onDropToZone?: (kind: PatternZone, src: string) => void;
+  /** view(조회) 모드: 삭제·필수토글·드롭을 비활성화한다(표시 전용). */
+  readOnly?: boolean;
 }
 
 /** 범죄 패턴 튜플 `[경로, 필수플래그]` / 신발 문자열 어느 표현이든 [경로, 필수]로 정규화. */
@@ -44,6 +46,7 @@ export function PatternZones({
   essentialCheck,
   currentData,
   onDropToZone,
+  readOnly = false,
 }: PatternZonesProps) {
   // 드래그 오버 중인 부위 — 시각 피드백(하이라이트)에만 쓰는 표시 전용 상태.
   const [dragOverKey, setDragOverKey] = useState<PatternZone | null>(null);
@@ -51,6 +54,7 @@ export function PatternZones({
   const handleDrop = (kind: PatternZone) => (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOverKey(null);
+    if (readOnly) return;
     const src = e.dataTransfer.getData("text/plain");
     if (src) onDropToZone?.(kind, src);
   };
@@ -74,7 +78,7 @@ export function PatternZones({
             Target
           </span>
           <span className="font-mono text-[10px] tracking-wide text-[#5B6B85]">
-            클릭 삭제 · 우클릭 필수
+            {readOnly ? "조회 전용" : "클릭 삭제 · 우클릭 필수"}
           </span>
           <span className="flex items-center gap-1.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-0.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase">
             <span
@@ -97,6 +101,7 @@ export function PatternZones({
               // 각 부위를 드롭 타깃으로 만든다. onDragOver의 preventDefault가
               // 있어야 onDrop이 발생한다.
               onDragOver={(e) => {
+                if (readOnly) return;
                 e.preventDefault();
                 e.dataTransfer.dropEffect = "copy";
                 if (dragOverKey !== key) setDragOverKey(key);
@@ -168,13 +173,24 @@ export function PatternZones({
                         <img
                           src={path}
                           alt={`${label} 문양 ${i + 1}`}
-                          title="클릭: 삭제 · 우클릭: 필수 토글"
-                          onClick={() => deletePattern(key, path)}
-                          onContextMenu={(e) => {
-                            e.preventDefault();
-                            essentialCheck(key, path);
-                          }}
-                          className="absolute inset-0 size-full cursor-pointer object-contain p-1.5 transition-transform group-hover:scale-105"
+                          title={
+                            readOnly ? undefined : "클릭: 삭제 · 우클릭: 필수 토글"
+                          }
+                          onClick={
+                            readOnly ? undefined : () => deletePattern(key, path)
+                          }
+                          onContextMenu={
+                            readOnly
+                              ? undefined
+                              : (e) => {
+                                  e.preventDefault();
+                                  essentialCheck(key, path);
+                                }
+                          }
+                          className={cn(
+                            "absolute inset-0 size-full object-contain p-1.5 transition-transform",
+                            !readOnly && "cursor-pointer group-hover:scale-105"
+                          )}
                         />
                         {essential && (
                           <span className="pointer-events-none absolute top-1 left-1 z-10 rounded border border-[#EF4444]/70 bg-[#EF4444] px-1 py-px font-mono text-[8px] font-bold tracking-wide text-white shadow-[0_0_8px_rgba(239,68,68,0.7)]">
@@ -182,9 +198,11 @@ export function PatternZones({
                           </span>
                         )}
                         {/* 삭제 어포던스(호버 전용) — 클릭 시 삭제됨을 시각적으로 예고한다. */}
-                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#05080D]/0 opacity-0 transition-all duration-150 group-hover:bg-[#05080D]/70 group-hover:opacity-100">
-                          <Trash2 className="size-3.5 text-[#EF4444]" aria-hidden="true" />
-                        </div>
+                        {!readOnly && (
+                          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#05080D]/0 opacity-0 transition-all duration-150 group-hover:bg-[#05080D]/70 group-hover:opacity-100">
+                            <Trash2 className="size-3.5 text-[#EF4444]" aria-hidden="true" />
+                          </div>
+                        )}
                       </div>
                     );
                   })}

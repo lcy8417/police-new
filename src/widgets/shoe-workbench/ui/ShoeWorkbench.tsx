@@ -55,10 +55,14 @@ function ToolbarIconButton({
 }
 
 interface ShoeWorkbenchProps {
-  /** "new" = 신규 등록(POST), "edit" = 기존 신발 수정(PUT). */
-  mode: "new" | "edit"
   /**
-   * 편집 대상 신발(문양은 이미 경로로 hydrate된 상태여야 한다 — 페이지가 담당).
+   * "view" = 선택 신발 조회(읽기전용), "edit" = 기존 신발 수정(PUT),
+   * "new" = 신규 등록(POST). 세 국면이 같은 4열 구조를 공유하며, view는 편집
+   * 액션(추출·삭제·드래그·저장)을 잠근다 — 실수 삭제 방지 2단계 진입.
+   */
+  mode: "view" | "edit" | "new"
+  /**
+   * 조회/편집 대상 신발(문양은 이미 경로로 hydrate된 상태여야 한다 — 페이지가 담당).
    * "new" 모드에서는 무시하고 `EMPTY_SHOE_FORM`으로 시작한다.
    */
   initialShoe?: Shoe
@@ -67,6 +71,8 @@ interface ShoeWorkbenchProps {
    * 담당한다. 없으면(독립 등록 화면) "new"는 폼을 리셋한다.
    */
   onSaved?: (savedModelNumber: string) => void
+  /** view 모드 [편집] 버튼 클릭 — 페이지가 편집 모드로 라우팅한다. */
+  onEdit?: () => void
 }
 
 /**
@@ -81,7 +87,12 @@ interface ShoeWorkbenchProps {
  * 편집 진입 시 `uploadedRef`를 서버 이미지로 반드시 시딩해야 첫 회전이 no-op가 되지
  * 않는다(`applyRotation`의 `if (!base) return` 가드).
  */
-export function ShoeWorkbench({ mode, initialShoe, onSaved }: ShoeWorkbenchProps) {
+export function ShoeWorkbench({
+  mode,
+  initialShoe,
+  onSaved,
+  onEdit,
+}: ShoeWorkbenchProps) {
   // 편집 = hydrate된 initialShoe, 신규 = 빈 폼. 페이지가 신발 전환 시 key로
   // 리마운트하므로 지연 초기화로 충분하다.
   const [formData, setFormData] = useState<Shoe>(
@@ -98,6 +109,7 @@ export function ShoeWorkbench({ mode, initialShoe, onSaved }: ShoeWorkbenchProps
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const isEdit = mode === "edit"
+  const readOnly = mode === "view"
 
   // 문양·경계선·추출 상태는 features 훅이 소유한다(신발 모드: formData/setFormData).
   const pm = usePatternManager({ formData, setFormData, imgRef })
@@ -345,9 +357,11 @@ export function ShoeWorkbench({ mode, initialShoe, onSaved }: ShoeWorkbenchProps
         onShowEdit={noop}
         isExtracting={isExtracting}
         // 신발 워크벤치 전용: 스와퍼 숨김 + 캔버스 드롭존 업로드 + 회전 툴바 + 회전 미리보기.
+        // 조회(readOnly) 모드에서는 업로드·회전·추출 액션을 모두 잠근다.
         hideViewSwapper
-        onUpload={handleFileSelect}
-        topToolbar={rotationToolbar}
+        readOnly={readOnly}
+        onUpload={readOnly ? undefined : handleFileSelect}
+        topToolbar={readOnly ? undefined : rotationToolbar}
         viewportStyle={{
           transform:
             previewAngle !== angle
@@ -364,12 +378,14 @@ export function ShoeWorkbench({ mode, initialShoe, onSaved }: ShoeWorkbenchProps
         // 양쪽을 처리한다. prop 타입만 Crime을 요구하므로 캐스팅한다.
         currentData={formData as unknown as Crime}
         onDropToZone={pm.insertPatternToZone}
+        readOnly={readOnly}
       />
       <PatternPalette
         patterns={pm.patterns}
         patternsKindSelect={pm.patternsKindSelect}
         insertPattern={pm.insertPattern}
         isInserted={isInserted}
+        readOnly={readOnly}
       />
       <ShoeInfoPanel
         formData={formData}
@@ -381,6 +397,8 @@ export function ShoeWorkbench({ mode, initialShoe, onSaved }: ShoeWorkbenchProps
         submitPendingLabel={isEdit ? "저장 중..." : "등록 중..."}
         resetLabel={isEdit ? "되돌리기" : "초기화"}
         modelNumberReadOnly={isEdit}
+        readOnly={readOnly}
+        onEdit={onEdit}
       />
     </div>
   )
