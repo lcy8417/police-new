@@ -198,12 +198,11 @@ export function CrimeDetailPage() {
       <GlowOrb className="-top-24 right-1/4 h-72 w-72 bg-[#2563EB]/10" />
       <GlowOrb className="bottom-0 left-1/3 h-64 w-64 bg-[#4A9EFF]/8" />
 
-      {/* 사건정보 슬림 바 */}
-      <CaseInfoStrip crimeNumber={crimeNumber} currentData={currentCrimeData} />
-
-      {/* 본문 3열: 캔버스 워크벤치(이미지 폭에 스너그) · 문양 정보 · 문양 리스트.
+      {/* 본문 4열: 캔버스 워크벤치(이미지 폭에 스너그) · 문양 정보 · 문양 리스트 · 사건정보(세로).
+          이미지 열 상한 fit-content(36vw)는 PatternCanvas 이미지 래퍼의 max-w-[36vw]와 정합.
+          사건정보는 맨 오른쪽 좁은 열(0.55fr)에 세로로 격납한다.
           xl 미만에서는 세로 스택으로 폴백하고 페이지 전체가 스크롤된다. */}
-      <div className="relative grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[fit-content(42vw)_minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="relative grid min-h-0 flex-1 grid-cols-1 gap-4 xl:grid-cols-[fit-content(36vw)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.55fr)]">
         {/* 각 열 래퍼: 내부 grid-rows로 자식 section이 열 높이를 꽉 채우게 하고,
             xl 미만에서는 min-h로 최소 높이를 확보해 캔버스가 붕괴하지 않게 한다. */}
         <div className="grid min-h-[560px] grid-rows-[minmax(0,1fr)] xl:h-full xl:min-h-0">
@@ -237,6 +236,11 @@ export function CrimeDetailPage() {
             patternsKindSelect={patternsKindSelect}
             insertPattern={insertPattern}
           />
+        </div>
+
+        {/* 맨 오른쪽 좁은 세로 열 — 사건정보 패널 */}
+        <div className="grid min-h-[420px] grid-rows-[minmax(0,1fr)] xl:h-full xl:min-h-0">
+          <CaseInfoStrip crimeNumber={crimeNumber} currentData={currentCrimeData} />
         </div>
       </div>
 

@@ -365,8 +365,10 @@ export function PatternCanvas({
           </>
         )}
 
+        {/* 이미지 폭 상한(max-w-[36vw])은 CrimeDetailPage 이미지 열의 fit-content(36vw)와
+            정합시킨다. 열 상한보다 크면 뷰포트 overflow-hidden이 이미지 오른쪽을 잘라낸다. */}
         {image ? (
-          <div className="relative inline-flex max-h-full max-w-[46vw] items-center justify-center">
+          <div className="relative inline-flex max-h-full max-w-[36vw] items-center justify-center">
             <img
               ref={imgRef}
               src={image}
