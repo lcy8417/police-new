@@ -40,8 +40,10 @@ type SimilarityTier = "high" | "mid" | "low" | "unknown"
 
 /** 유사도 값을 0~1 숫자로 정규화(파싱 실패 시 null). */
 function parseSimilarity(similarity: number | string): number | null {
-  const value = typeof similarity === "number" ? similarity : parseFloat(similarity)
-  return Number.isNaN(value) ? null : value
+  const raw = typeof similarity === "number" ? similarity : parseFloat(similarity)
+  if (Number.isNaN(raw)) return null
+  // 서버는 퍼센트(0~100, 예: 69.99)로 준다 — 1보다 크면 0~1로 정규화해 등급/게이지에 맞춘다.
+  return raw > 1 ? raw / 100 : raw
 }
 
 /** 유사도 등급(legacy high/mid/low 임계값 유지: >=0.8 / >=0.6 / 미만). */
@@ -135,7 +137,7 @@ export function RetrievalResultsGrid({
       {/* 결과 카드 그리드 */}
       <div
         ref={scrollRef}
-        className="relative grid min-h-0 flex-1 auto-rows-max grid-cols-2 gap-4 overflow-y-auto p-5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5"
+        className="relative grid min-h-0 flex-1 auto-rows-max grid-cols-3 gap-2.5 overflow-y-auto p-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7"
       >
         {isLoading && (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-[#05080D]/85 backdrop-blur-md">
@@ -202,11 +204,12 @@ export function RetrievalResultsGrid({
                 </span>
               )}
 
-              <div className="relative aspect-square w-full overflow-hidden bg-[#05080D]">
+              {/* 신발 이미지는 세로형이라 카드도 세로로 길게(3:4) — 이미지가 카드를 꽉 채우게 여백 축소. */}
+              <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#05080D]">
                 <img
                   src={item.image}
                   alt={`신발 이미지 ${item.shoesName}`}
-                  className="absolute inset-0 size-full object-contain p-4"
+                  className="absolute inset-0 size-full object-contain p-1.5"
                 />
               </div>
 

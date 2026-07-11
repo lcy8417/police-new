@@ -47,7 +47,6 @@ import { cn } from "@/shared/lib/utils"
 
 import { crimeHistoryPath, resultDetailPath } from "../model/search-paths"
 import { CaseInfoStrip } from "./CaseInfoStrip"
-import { SearchPatternChips } from "./SearchPatternChips"
 
 // 제목은 정적 — 헤더 effect가 매 렌더 재실행되지 않도록 한 번만 생성한다.
 const HEADER_TITLE = (
@@ -157,7 +156,8 @@ export function CrimeDetailPage() {
   )
   // 필수 문양 시그니처를 300ms 디바운스 → 쿼리 키에 실어 실시간 재검색을 구동한다.
   // 연속 토글 시 마지막 값만 요청되도록 안정 직렬화 문자열 하나로 관리한다.
-  const patternsKey = useDebouncedValue(JSON.stringify(searchPatterns), 300)
+  const patternsSignature = JSON.stringify(searchPatterns)
+  const patternsKey = useDebouncedValue(patternsSignature, 300)
   // 검색 body는 쿼리 키와 "동일한" 디바운스 소스(patternsKey)에서 파생한다. 키(디바운스)와
   // body(라이브 searchPatterns)가 어긋나면 데이터 로드 시점에 요청이 두 번 나가므로,
   // 파싱해 하나의 소스로 통일한다.
@@ -196,9 +196,14 @@ export function CrimeDetailPage() {
         // 레거시(JS)는 유사부위 리터럴 문자열 또는 false를 그대로 넘겼다.
         similarity: similarity as unknown as boolean,
       }),
-    // 필수 문양이 없어도 빈 body로 검색을 발사한다(전체 검색). 단 currentCrimeData가
-    // 로드된 뒤에만 발사해, 비동기 로드 전 빈 요청이 먼저 나가는 이중 요청을 막는다.
-    enabled: searchActive && Boolean(loadedImage) && Boolean(currentCrimeData),
+    // 디바운스가 라이브 값과 "일치할 때만"(settled) 발사한다. 디바운스가 뒤처지는
+    // 동안(스테일 patternsKey) 발사되어 빈 요청이 먼저 나가는 이중 요청을 원천 차단한다.
+    // (currentCrimeData 로드 전에는 patternsKey와 signature가 어긋나 자연히 비활성.)
+    enabled:
+      searchActive &&
+      Boolean(loadedImage) &&
+      Boolean(currentCrimeData) &&
+      patternsKey === patternsSignature,
   })
 
   const results = (searchResultQuery.data?.result ?? []) as RetrievalResultItem[]
@@ -435,19 +440,16 @@ export function CrimeDetailPage() {
         </div>
 
         {searchActive ? (
-          // 검색모드: 문양리스트+사건정보 두 열 자리(col-span-2)에 문양 요약 칩 + 결과 그리드.
-          <div className="flex min-h-[420px] min-w-0 flex-col gap-3 xl:col-span-2 xl:h-full xl:min-h-0">
-            <SearchPatternChips patterns={searchPatterns} />
-            <div className="min-h-0 flex-1">
-              <RetrievalResultsGrid
-                results={results}
-                totalCount={totalCount}
-                page={searchPage}
-                onPageChange={setSearchPage}
-                onSelect={handleSelect}
-                isLoading={isSearching}
-              />
-            </div>
+          // 검색모드: 문양리스트+사건정보 두 열 자리(col-span-2)에 검색 결과 그리드.
+          <div className="min-h-[420px] min-w-0 xl:col-span-2 xl:h-full xl:min-h-0">
+            <RetrievalResultsGrid
+              results={results}
+              totalCount={totalCount}
+              page={searchPage}
+              onPageChange={setSearchPage}
+              onSelect={handleSelect}
+              isLoading={isSearching}
+            />
           </div>
         ) : (
           <>
