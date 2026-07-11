@@ -11,7 +11,7 @@ import {
 } from "@/pages/crime-search";
 import ShoesRegister from "./pages/ShoesRegister";
 import CrimeEdit from "./pages/CrimeEdit";
-import ShoesRepository from "./pages/ShoesRepository";
+import { ShoeRepositoryPage } from "@/pages/shoe-repository";
 import ShoesEdit from "./pages/ShoesEdit";
 import EditorMode from "./pages/EditorMode";
 
@@ -55,10 +55,10 @@ function App() {
             />
             <Route path="/edit/:crimeNumber" element={<CrimeEdit />} />
             <Route path="/shoesRegister" element={<ShoesRegister />} />
-            <Route path="/shoesRepository" element={<ShoesRepository />} />
+            <Route path="/shoesRepository" element={<ShoeRepositoryPage />} />
             <Route
               path="/shoesRepository/:modelNumber"
-              element={<ShoesRepository />}
+              element={<ShoeRepositoryPage />}
             />
             <Route path="/shoesEdit/:modelNumber" element={<ShoesEdit />} />
           </Route>
