@@ -18,6 +18,24 @@ export async function fetchShoesList(page = 0): Promise<Shoe[]> {
   return convertKeysToCamelCase<Shoe[]>(data);
 }
 
+/** 서버 페이지 크기(GET /shoes?page=N이 페이지당 반환하는 최대 개수). */
+export const SHOES_PAGE_SIZE = 50;
+
+/**
+ * 전체 신발을 모은다 — 백엔드에 총 개수/전체 목록 엔드포인트가 없어(`?page=N`만
+ * 존재) 페이지를 순회하며 집계한다. 한 페이지가 `SHOES_PAGE_SIZE`보다 적게 오면
+ * 마지막 페이지로 보고 멈춘다. 폭주 방지로 페이지 상한을 둔다.
+ */
+export async function fetchAllShoes(): Promise<Shoe[]> {
+  const all: Shoe[] = [];
+  for (let page = 0; page < 1000; page++) {
+    const chunk = await fetchShoesList(page);
+    all.push(...chunk);
+    if (chunk.length < SHOES_PAGE_SIZE) break;
+  }
+  return all;
+}
+
 /** GET /shoes/:modelNumber. Mirror of crud.js#fetchCurrentShoes. */
 export async function fetchShoeDetail(modelNumber: string): Promise<Shoe> {
   const data = await apiGet<ShoeDto>(`/shoes/${modelNumber}`);

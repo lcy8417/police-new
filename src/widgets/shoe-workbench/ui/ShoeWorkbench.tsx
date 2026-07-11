@@ -10,7 +10,6 @@ import { toast } from "sonner"
 import {
   FilePlus2,
   ImagePlus,
-  Pencil,
   RotateCcw,
   RotateCw,
   type LucideIcon,
@@ -31,7 +30,7 @@ import {
   usePatternManager,
 } from "@/features/patterns-extract"
 import { rotateArbitrary } from "@/features/crime-register"
-import { Button } from "@/shared/ui/button"
+import { cn } from "@/shared/lib/utils"
 import { Slider } from "@/shared/ui/slider"
 import {
   Sheet,
@@ -77,59 +76,54 @@ function ToolbarIconButton({
 
 interface ShoeWorkbenchProps {
   /**
-   * "view" = 선택 신발 조회(읽기전용), "edit" = 기존 신발 수정(PUT),
-   * "new" = 신규 등록(POST). 세 국면이 같은 4열 구조를 공유하며, view는 편집
-   * 액션(추출·삭제·드래그·저장)을 잠근다 — 실수 삭제 방지 2단계 진입.
+   * "new" = 신규 등록(POST), "edit" = 기존 신발 편집(PUT, 또는 목록 브라우즈).
+   * 두 국면은 4번째 열 탭([새 신발]/[기존 신발 목록])으로 전환한다.
    */
-  mode: "view" | "edit" | "new"
+  mode: "new" | "edit"
   /**
-   * 조회/편집 대상 신발(문양은 이미 경로로 hydrate된 상태여야 한다 — 페이지가 담당).
-   * "new" 모드에서는 무시하고 `EMPTY_SHOE_FORM`으로 시작한다.
+   * 편집 대상 신발(문양은 이미 경로로 hydrate된 상태여야 한다 — 페이지가 담당).
+   * "new" 또는 미선택 브라우즈에서는 `EMPTY_SHOE_FORM`으로 시작한다.
    */
   initialShoe?: Shoe
-  /**
-   * 저장(등록/수정) 성공 후 호출. 통합 페이지가 목록 무효화·모드 종료·라우팅을
-   * 담당한다. 없으면(독립 등록 화면) "new"는 폼을 리셋한다.
-   */
+  /** 저장(등록/수정) 성공 후 호출. 페이지가 목록 무효화·라우팅·Sheet 닫기를 담당한다. */
   onSaved?: (savedModelNumber: string) => void
-  /** view 모드 [편집] 버튼 클릭 — 페이지가 편집 모드로 라우팅한다. */
-  onEdit?: () => void
-  /**
-   * 기존 신발 편집 중 "신규 신발 등록" 버튼 클릭 — 페이지가 ?mode=new로 라우팅해
-   * 전체를 초기화한다. 편집 모드에서는 이미지 교체 대신 신규 등록으로 유도한다.
-   */
+  /** [새 신발] 탭 / 툴바 [신규 신발 등록] 버튼 — ?mode=new로 라우팅(전체 초기화). */
   onNewRegister?: () => void
-  /**
-   * 기존 신발 모드(view/edit)의 4번째 열에 렌더할 신발 목록 패널. 신규 등록 모드
-   * (mode="new")에서는 무시하고 신발 정보 폼을 인라인으로 렌더한다.
-   */
+  /** [기존 신발 목록] 탭 — 목록 브라우즈로 라우팅. */
+  onBrowseList?: () => void
+  /** 기존 신발(edit) 모드 4번째 열에 렌더할 신발 목록. */
   listPanel?: ReactNode
+  /** 기본정보 Sheet 개폐(페이지 소유 — 선택된 행을 한 번 더 클릭하면 연다). */
+  infoSheetOpen?: boolean
+  onInfoSheetOpenChange?: (open: boolean) => void
 }
 
 /**
  * 신발 문양추출 워크벤치(4열). 레거시 `ShoesRegisterMain`/`Canvas.jsx` 스택을
- * 대체하며, 검색 커맨드센터(`/search/:crimeNumber`)와 **동일 컴포넌트**
+ * 대체하며, 검색 커맨드센터(`/search/:crimeNumber`)와 동일 컴포넌트
  * (`PatternCanvas`·`PatternZones`·`PatternPalette` + `usePatternManager` 신발 모드)를
- * 재사용한다. 등록(POST)·편집(PUT) 두 국면을 `formData` 하나로 겸용하고, 차이는
- * (a) 초기값 소스(EMPTY vs `initialShoe`)와 (b) 저장 뮤테이션(register vs update)뿐이다.
+ * 재사용한다. 등록(POST)·편집(PUT)을 `formData` 하나로 겸용한다.
  *
- * 회전 모델: 원본 업로드/서버 이미지(uploadedRef)를 보존하고, 슬라이더/버튼이 정하는
- * 절대각(angle)을 원본에 한 번만 적용해 `formData.image`로 굽는다(누적 패딩 방지).
- * 편집 진입 시 `uploadedRef`를 서버 이미지로 반드시 시딩해야 첫 회전이 no-op가 되지
- * 않는다(`applyRotation`의 `if (!base) return` 가드).
+ * 4번째 열은 탭으로 전환한다: [새 신발](신규 등록 정보 폼) / [기존 신발 목록](목록).
+ * 기존 신발 기본정보 편집은 목록에서 선택된 행을 한 번 더 클릭하면 열리는 우측
+ * Sheet에서 한다(문양+정보 함께 저장).
+ *
+ * 회전 모델: 원본 업로드/서버 이미지(uploadedRef)를 보존하고, 절대각(angle)을
+ * 원본에 한 번만 적용해 굽는다(누적 방지). 편집 진입 시 서버 이미지를 신규 업로드와
+ * 동일한 canvas 재그리기로 정규화해 회전 taint를 피한다.
  */
 export function ShoeWorkbench({
   mode,
   initialShoe,
   onSaved,
-  onEdit,
   onNewRegister,
+  onBrowseList,
   listPanel,
+  infoSheetOpen = false,
+  onInfoSheetOpenChange,
 }: ShoeWorkbenchProps) {
-  // 기존 신발 기본정보 편집 Sheet 개폐 상태(우측 드로어).
-  const [infoSheetOpen, setInfoSheetOpen] = useState(false)
-  // 편집 = hydrate된 initialShoe, 신규 = 빈 폼. 페이지가 신발 전환 시 key로
-  // 리마운트하므로 지연 초기화로 충분하다.
+  // 편집 = hydrate된 initialShoe, 신규/브라우즈 = 빈 폼. 페이지가 신발/모드 전환 시
+  // key로 리마운트하므로 지연 초기화로 충분하다.
   const [formData, setFormData] = useState<Shoe>(
     () => initialShoe ?? EMPTY_SHOE_FORM
   )
@@ -145,7 +139,6 @@ export function ShoeWorkbench({
 
   const isEdit = mode === "edit"
   const isNew = mode === "new"
-  const readOnly = mode === "view"
 
   // 문양·경계선·추출 상태는 features 훅이 소유한다(신발 모드: formData/setFormData).
   const pm = usePatternManager({ formData, setFormData, imgRef })
@@ -153,7 +146,7 @@ export function ShoeWorkbench({
   // 기존(서버) 이미지 회전 버그 대응: 신규 업로드는 canvas 재그리기(resizeImage)로
   // 만든 깨끗한 same-origin data URL이라 rotateArbitrary가 잘 돌지만, 서버 이미지는
   // 회전(canvas.toDataURL) 시 taint되거나 포맷이 달라 회전이 조용히 실패할 수 있다.
-  // 편집/조회 진입 시(key 리마운트로 신발마다 1회) 동일 파이프라인으로 정규화한다.
+  // 편집 진입 시(key 리마운트로 신발마다 1회) 동일 파이프라인으로 정규화한다.
   useEffect(() => {
     const src = initialShoe?.image
     if (!src) return
@@ -218,7 +211,6 @@ export function ShoeWorkbench({
   )
 
   // 절대각 회전 — 항상 원본(uploadedRef)에서 deg로 한 번만 굽는다(누적 방지).
-  // await 중 초기화/재업로드로 원본이 바뀌면 가드로 결과를 버린다(초기화가 이긴다).
   const applyRotation = useCallback(async (deg: number) => {
     const base = uploadedRef.current
     if (!base) return
@@ -262,17 +254,7 @@ export function ShoeWorkbench({
       toast.success(
         isEdit ? "신발 정보가 저장되었습니다." : "신발 정보가 등록되었습니다."
       )
-      if (onSaved) {
-        onSaved(savedModelNumber)
-        return
-      }
-      // 독립 등록 화면(통합 페이지 밖): 폼을 비워 다음 등록을 준비한다.
-      if (!isEdit) {
-        uploadedRef.current = null
-        setAngle(0)
-        setPreviewAngle(0)
-        setFormData(EMPTY_SHOE_FORM)
-      }
+      onSaved?.(savedModelNumber)
     },
     onError: () => {
       toast.error(isEdit ? "신발 저장에 실패했습니다." : "신발 등록에 실패했습니다.")
@@ -331,8 +313,8 @@ export function ShoeWorkbench({
   // 캔버스 헤더 아래에 얹는 회전 툴바 밴드(EvidenceImagePanel 회전 툴바 언어).
   const rotationToolbar = (
     <div className="flex items-center gap-3 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
-      {/* 신규 모드: 이미지 업로드/교체. 편집 모드: 이미지는 교체하지 않고 "신규 신발
-          등록"으로 유도한다(기존 신발 이미지 교체 대신 새 등록 — 전체 초기화). */}
+      {/* 신규 모드: 이미지 업로드/교체. 편집 모드: 이미지 교체 대신 [신규 신발 등록]로
+          유도한다(기존 신발 이미지는 교체하지 않고 새 등록 — 전체 초기화). */}
       {isNew ? (
         <button
           type="button"
@@ -419,88 +401,97 @@ export function ShoeWorkbench({
       submitPendingLabel={isEdit ? "저장 중..." : "등록 중..."}
       resetLabel={isEdit ? "되돌리기" : "초기화"}
       modelNumberReadOnly={isEdit}
-      readOnly={readOnly}
-      onEdit={onEdit}
     />
   )
 
-  // 4번째 열: 신규 등록은 정보 폼을 인라인으로, 기존 신발은 목록 + [정보 편집](→ Sheet).
-  const col4 = isNew ? (
-    infoPanel
-  ) : (
+  // 4번째 열 탭([새 신발]/[기존 신발 목록]) — 신규/기존 전환.
+  const tabButtonClass = (active: boolean) =>
+    cn(
+      "flex-1 rounded-md px-3 py-1.5 text-[13px] font-semibold transition-colors",
+      active
+        ? "bg-[#152238] text-[#4A9EFF] shadow-[0_0_14px_rgba(37,99,235,0.25)]"
+        : "text-[#8A93A6] hover:bg-white/5 hover:text-[#C7CEDB]"
+    )
+
+  const col4 = (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <Button
-        type="button"
-        onClick={() => setInfoSheetOpen(true)}
-        className="h-10 shrink-0 justify-center border border-[#3B82F6]/40 bg-[#152238] text-[#4A9EFF] shadow-[0_0_16px_rgba(37,99,235,0.3)] hover:bg-[#182b45]"
-      >
-        <Pencil className="size-4" aria-hidden="true" />
-        {readOnly ? "정보 보기" : "정보 편집"}
-      </Button>
-      <div className="min-h-0 flex-1">{listPanel}</div>
+      <div className="flex shrink-0 items-center gap-1 rounded-lg border border-[#1E2A3C] bg-[#0D1420] p-1">
+        <button
+          type="button"
+          onClick={onNewRegister}
+          className={tabButtonClass(isNew)}
+        >
+          새 신발
+        </button>
+        <button
+          type="button"
+          onClick={onBrowseList}
+          className={tabButtonClass(!isNew)}
+        >
+          기존 신발 목록
+        </button>
+      </div>
+      <div className="min-h-0 flex-1">{isNew ? infoPanel : listPanel}</div>
     </div>
   )
 
   return (
     <>
       <div className="relative grid h-full grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.85fr)]">
-      {/* "이미지 교체" 버튼용 숨은 파일 입력(캔버스 드롭존과 별개 진입점). */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileInputChange}
-      />
+        {/* "이미지 교체" 버튼용 숨은 파일 입력(캔버스 드롭존과 별개 진입점). */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileInputChange}
+        />
 
-      <PatternCanvas
-        canvasRef={pm.canvasRef}
-        imgRef={imgRef}
-        image={formData.image ?? null}
-        lineState={pm.lineState}
-        setLineState={pm.setLineState}
-        onExtract={handleExtract}
-        onClear={pm.clearPattern}
-        onShowOrigin={noop}
-        onShowEdit={noop}
-        isExtracting={isExtracting}
-        // 신발 워크벤치 전용: 스와퍼 숨김 + 캔버스 드롭존 업로드 + 회전 툴바 + 회전 미리보기.
-        // 조회(readOnly) 모드에서는 업로드·회전·추출 액션을 모두 잠근다.
-        hideViewSwapper
-        readOnly={readOnly}
-        onUpload={readOnly ? undefined : handleFileSelect}
-        topToolbar={readOnly ? undefined : rotationToolbar}
-        viewportStyle={{
-          transform:
-            previewAngle !== angle
-              ? `rotate(${previewAngle - angle}deg)`
-              : undefined,
-        }}
-      />
-      <PatternZones
-        selected={pm.selected}
-        setSelected={pm.setSelected}
-        deletePattern={pm.deletePattern}
-        essentialCheck={pm.essentialCheck}
-        // 신발 문양은 경로 문자열 배열이지만 PatternZones의 normalize가 문자열/튜플
-        // 양쪽을 처리한다. prop 타입만 Crime을 요구하므로 캐스팅한다.
-        currentData={formData as unknown as Crime}
-        onDropToZone={pm.insertPatternToZone}
-        readOnly={readOnly}
-      />
-      <PatternPalette
-        patterns={pm.patterns}
-        patternsKindSelect={pm.patternsKindSelect}
-        insertPattern={pm.insertPattern}
-        isInserted={isInserted}
-        readOnly={readOnly}
-      />
-      {col4}
+        <PatternCanvas
+          canvasRef={pm.canvasRef}
+          imgRef={imgRef}
+          image={formData.image ?? null}
+          lineState={pm.lineState}
+          setLineState={pm.setLineState}
+          onExtract={handleExtract}
+          onClear={pm.clearPattern}
+          onShowOrigin={noop}
+          onShowEdit={noop}
+          isExtracting={isExtracting}
+          // 신발 워크벤치 전용: 스와퍼 숨김 + 회전 툴바 + 회전 미리보기.
+          // 업로드는 신규 모드에서만(편집은 이미지 교체 대신 신규 등록으로 유도).
+          hideViewSwapper
+          onUpload={isNew ? handleFileSelect : undefined}
+          topToolbar={rotationToolbar}
+          viewportStyle={{
+            transform:
+              previewAngle !== angle
+                ? `rotate(${previewAngle - angle}deg)`
+                : undefined,
+          }}
+        />
+        <PatternZones
+          selected={pm.selected}
+          setSelected={pm.setSelected}
+          deletePattern={pm.deletePattern}
+          essentialCheck={pm.essentialCheck}
+          // 신발 문양은 경로 문자열 배열이지만 PatternZones의 normalize가 문자열/튜플
+          // 양쪽을 처리한다. prop 타입만 Crime을 요구하므로 캐스팅한다.
+          currentData={formData as unknown as Crime}
+          onDropToZone={pm.insertPatternToZone}
+        />
+        <PatternPalette
+          patterns={pm.patterns}
+          patternsKindSelect={pm.patternsKindSelect}
+          insertPattern={pm.insertPattern}
+          isInserted={isInserted}
+        />
+        {col4}
       </div>
 
-      {/* 기존 신발 기본정보 편집 Sheet(우측 드로어) — [정보 편집/보기]로 연다. */}
-      {!isNew && (
-        <Sheet open={infoSheetOpen} onOpenChange={setInfoSheetOpen}>
+      {/* 기존 신발 기본정보 편집 Sheet(우측 드로어) — 선택된 행 재클릭으로 페이지가 연다. */}
+      {isEdit && (
+        <Sheet open={infoSheetOpen} onOpenChange={onInfoSheetOpenChange}>
           <SheetContent
             side="right"
             className="w-full border-l border-[#1E2A3C] bg-[#0B121D] p-4 sm:max-w-md"
