@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query"
 import {
   ArrowLeft,
   Award,
-  ChevronDown,
   ExternalLink,
   Footprints,
   History,
@@ -14,6 +13,14 @@ import {
   Search,
 } from "lucide-react"
 import { toast } from "sonner"
+
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/shared/ui/sheet"
 
 import { crimeKeys, fetchCrimeDetail, useCrimeStore } from "@/entities/crime"
 import {
@@ -202,6 +209,20 @@ export function CrimeDetailPage() {
         <Button
           type="button"
           size="sm"
+          onClick={() => setHistoryOpen(true)}
+          className="border border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
+        >
+          <History className="size-4" aria-hidden="true" />
+          검색 이력
+          {historyRows.length > 0 && (
+            <span className="rounded-full border border-[#1E2A3C] bg-[#0B121D] px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-[#8A93A6]">
+              {historyRows.length}
+            </span>
+          )}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
           onClick={handleSearch}
           className="border border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_18px_rgba(37,99,235,0.35)] hover:bg-[#182b45]"
         >
@@ -210,7 +231,7 @@ export function CrimeDetailPage() {
         </Button>
       </>
     ),
-    [navigate, crimeNumber, handleSearch]
+    [navigate, crimeNumber, handleSearch, historyRows.length]
   )
 
   usePageHeader({ title: HEADER_TITLE, actions: headerActions })
@@ -270,42 +291,27 @@ export function CrimeDetailPage() {
         </div>
       </div>
 
-      {/* 접이식 검색이력 — 기본 접힘, 헤더 토글로 펼침. 데이터는 접힘과 무관하게 로드된다. */}
-      <section className="relative shrink-0 overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
-        <button
-          type="button"
-          onClick={() => setHistoryOpen((v) => !v)}
-          aria-expanded={historyOpen}
-          className="flex w-full items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-6 py-3 text-left transition-colors hover:bg-[#0D1420]"
+      {/* 검색 이력 — 우측 슬라이드 시트(Sheet)로 분리. 헤더의 [검색 이력] 버튼으로 연다.
+          데이터는 시트 개폐와 무관하게 항상 로드된다. */}
+      <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+        <SheetContent
+          side="right"
+          className="w-full gap-0 border-[#1E2A3C] bg-[#0B121D] p-0 text-[#C7CEDB] sm:max-w-[760px]"
         >
-          <span className="flex items-center gap-2 text-[15px] font-semibold text-[#E5E9F0]">
-            <History className="size-4 text-[#4A9EFF]" aria-hidden="true" />
-            검색 이력
-            <span className="rounded-full border border-[#1E2A3C] bg-[#0F1826] px-2 py-0.5 font-mono text-[11px] tabular-nums text-[#8A93A6]">
-              {historyRows.length}
-            </span>
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="font-mono text-[11px] tracking-[0.14em] text-[#5B6B85] uppercase">
+          <SheetHeader className="space-y-1 border-b border-[#141D2C] bg-[#0D1420]/60 px-6 py-4">
+            <SheetTitle className="flex items-center gap-2 text-[15px] font-semibold text-[#E5E9F0]">
+              <History className="size-4 text-[#4A9EFF]" aria-hidden="true" />
+              검색 이력
+              <span className="rounded-full border border-[#1E2A3C] bg-[#0F1826] px-2 py-0.5 font-mono text-[11px] tabular-nums text-[#8A93A6]">
+                {historyRows.length}
+              </span>
+            </SheetTitle>
+            <SheetDescription className="font-mono text-[11px] tracking-[0.14em] text-[#5B6B85] uppercase">
               Search · History
-            </span>
-            <ChevronDown
-              className={cn(
-                "size-4 text-[#5B6B85] transition-transform duration-300",
-                historyOpen && "rotate-180 text-[#4A9EFF]"
-              )}
-              aria-hidden="true"
-            />
-          </span>
-        </button>
+            </SheetDescription>
+          </SheetHeader>
 
-        {/* max-h 트랜지션으로 펼침/접힘. 접힘 시 overflow-hidden, 펼침 시 내부 스크롤. */}
-        <div
-          className={cn(
-            "overflow-auto transition-[max-height] duration-300 ease-in-out",
-            historyOpen ? "max-h-[360px]" : "max-h-0"
-          )}
-        >
+          <div className="h-[calc(100dvh-88px)] overflow-auto">
           <table className="w-full border-collapse text-left">
             <thead className="sticky top-0 z-10 bg-[#0D1420]">
               <tr>
@@ -399,8 +405,9 @@ export function CrimeDetailPage() {
               )}
             </tbody>
           </table>
-        </div>
-      </section>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

@@ -337,6 +337,16 @@ export function PatternCanvas({
         </div>
       </div>
 
+      {/* 경계선 조작 안내 — 이미지 위에 겹치지 않도록 뷰포트 밖(툴바 아래)에 둔다. */}
+      {image && (
+        <div className="flex items-center gap-2 border-b border-[#141D2C] bg-[#0D1420]/40 px-6 py-2">
+          <GripHorizontal className="size-3.5 text-[#4A9EFF]" aria-hidden="true" />
+          <span className="font-mono text-[11px] text-[#8A93A6]">
+            경계선을 드래그해 상·중·하를 나누세요
+          </span>
+        </div>
+      )}
+
       {/* 뷰포트: 이미지 + 경계선 오버레이 canvas.
           체커보드 눈금 바 / 모서리 십자선 / 하단 상태표시줄은 crime-register
           `EvidenceImagePanel` · 검색결과 `CrimeScenePanel`과 같은 뷰포트 언어로,
@@ -418,12 +428,6 @@ export function PatternCanvas({
                 </div>
               ))}
 
-            {/* 조작 안내 배지(레거시에 없던 힌트 — crime-register 모드 배지와 같은 톤). */}
-            {showOverlayChrome && (
-              <span className="pointer-events-none absolute top-2 left-1/2 z-10 -translate-x-1/2 rounded-md border border-[#1E2A3C] bg-[#0B121D]/90 px-3 py-1 font-mono text-[11px] text-[#8A93A6]">
-                경계선을 드래그해 상·중·하를 나누세요
-              </span>
-            )}
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3 text-[#5B6B85]">
