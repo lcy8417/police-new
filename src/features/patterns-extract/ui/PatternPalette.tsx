@@ -1,5 +1,5 @@
 import { useState, type DragEvent, type MouseEvent } from "react";
-import { Check, Database } from "lucide-react";
+import { ArrowRight, Check, Database, GripVertical } from "lucide-react";
 
 import { cn } from "@/shared/lib/utils";
 import { TechCorners } from "@/shared/ui/tech-corners";
@@ -47,11 +47,16 @@ export function PatternPalette({
 
       <div className="flex shrink-0 items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
         <span className="flex items-center gap-2 text-[15px] font-semibold text-[#E5E9F0]">
-          <Database className="size-4 text-[#4A9EFF]" aria-hidden="true" />
+          <Database className="size-4 text-[#2DD4BF]" aria-hidden="true" />
           문양 리스트
         </span>
-        <span className="font-mono text-[11px] tracking-[0.14em] text-[#5B6B85] uppercase">
-          Library
+        {/* 소스(집어드는 곳) 배지 — 문양 정보 패널의 "Target" 배지와 대비되는 역할 표식 */}
+        <span className="flex items-center gap-1.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-0.5 font-mono text-[10px] tracking-[0.14em] text-[#2DD4BF] uppercase">
+          <span
+            className="size-1.5 rounded-full bg-[#2DD4BF] shadow-[0_0_5px_rgba(45,212,191,0.7)]"
+            aria-hidden="true"
+          />
+          Source
         </span>
       </div>
 
@@ -68,8 +73,8 @@ export function PatternPalette({
             className={cn(
               "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
               activeKind === kind
-                ? "border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF]"
-                : "border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#3B82F6]/50 hover:bg-[#152238] hover:text-[#4A9EFF]"
+                ? "border-[#2DD4BF]/50 bg-[#123330] text-[#2DD4BF]"
+                : "border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#2DD4BF]/50 hover:bg-[#123330] hover:text-[#2DD4BF]"
             )}
           >
             {kind}
@@ -77,10 +82,15 @@ export function PatternPalette({
         ))}
       </div>
 
-      {/* 삽입 안내 — 문양 정보 패널에서 선택한 부위가 삽입 대상이 된다. */}
-      <div className="shrink-0 border-b border-[#141D2C] px-4 py-1.5">
+      {/* 삽입 안내 — "리스트 → 정보" 방향성을 아이콘으로 드러낸다(잡기 → 이동). */}
+      <div className="flex shrink-0 items-center gap-1.5 border-b border-[#141D2C] bg-[#0F2624]/30 px-4 py-1.5">
+        <GripVertical className="size-3 shrink-0 text-[#2DD4BF]/80" aria-hidden="true" />
+        <span className="font-mono text-[10px] tracking-wide text-[#5FE0D0]">
+          클릭 또는 드래그
+        </span>
+        <ArrowRight className="size-3 shrink-0 text-[#2DD4BF]" aria-hidden="true" />
         <span className="font-mono text-[10px] tracking-wide text-[#5B6B85]">
-          썸네일 클릭·드래그 시 문양 정보에서 선택한 부위에 삽입됩니다
+          문양 정보에서 선택한 부위로 삽입
         </span>
       </div>
 
@@ -101,10 +111,10 @@ export function PatternPalette({
                 e.dataTransfer.effectAllowed = "copy";
               }}
               className={cn(
-                "group relative aspect-square overflow-hidden rounded-lg border bg-[#05080D] transition-colors",
+                "group relative aspect-square overflow-hidden rounded-lg border bg-[#05080D] transition-all duration-150",
                 inserted
                   ? "cursor-not-allowed border-[#22C55E]/40 opacity-40"
-                  : "cursor-grab border-[#1E2A3C] hover:border-[#3B82F6]/60"
+                  : "cursor-grab border-[#1E2A3C] hover:-translate-y-1 hover:border-[#2DD4BF]/60 hover:shadow-[0_10px_22px_rgba(45,212,191,0.28)] active:cursor-grabbing active:translate-y-0"
               )}
             >
               <img
@@ -118,6 +128,15 @@ export function PatternPalette({
                     : "cursor-pointer group-hover:scale-105"
                 )}
               />
+              {/* 드래그 핸들 어포던스(점자 그립) — 호버 시에만 노출해 "잡을 수 있음"을 알린다. */}
+              {!inserted && (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute top-1 left-1 z-10 flex size-4 items-center justify-center rounded border border-[#2DD4BF]/40 bg-[#0B121D]/80 text-[#2DD4BF] opacity-0 shadow-[0_0_6px_rgba(45,212,191,0.4)] transition-opacity duration-150 group-hover:opacity-100"
+                >
+                  <GripVertical className="size-2.5" />
+                </span>
+              )}
               {inserted && (
                 <span
                   aria-label="삽입됨"
