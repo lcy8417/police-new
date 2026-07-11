@@ -158,6 +158,13 @@ export function CrimeDetailPage() {
   // 필수 문양 시그니처를 300ms 디바운스 → 쿼리 키에 실어 실시간 재검색을 구동한다.
   // 연속 토글 시 마지막 값만 요청되도록 안정 직렬화 문자열 하나로 관리한다.
   const patternsKey = useDebouncedValue(JSON.stringify(searchPatterns), 300)
+  // 검색 body는 쿼리 키와 "동일한" 디바운스 소스(patternsKey)에서 파생한다. 키(디바운스)와
+  // body(라이브 searchPatterns)가 어긋나면 데이터 로드 시점에 요청이 두 번 나가므로,
+  // 파싱해 하나의 소스로 통일한다.
+  const debouncedPatterns = useMemo(
+    () => JSON.parse(patternsKey) as typeof searchPatterns,
+    [patternsKey]
+  )
 
   // 1단계: 검색에 사용할 현장 이미지를 로드한다(검색모드 진입 시에만).
   const loadQuery = useQuery({
@@ -183,14 +190,15 @@ export function CrimeDetailPage() {
     queryFn: () =>
       imageSearch({
         crimeNumber,
-        body: { image: loadedImage, ...searchPatterns },
+        body: { image: loadedImage, ...debouncedPatterns },
         page: searchPage,
         binary,
         // 레거시(JS)는 유사부위 리터럴 문자열 또는 false를 그대로 넘겼다.
         similarity: similarity as unknown as boolean,
       }),
-    // 필수 문양이 없어도 빈 body로 검색을 발사한다(전체 검색). loadedImage만 있으면 실행.
-    enabled: searchActive && Boolean(loadedImage),
+    // 필수 문양이 없어도 빈 body로 검색을 발사한다(전체 검색). 단 currentCrimeData가
+    // 로드된 뒤에만 발사해, 비동기 로드 전 빈 요청이 먼저 나가는 이중 요청을 막는다.
+    enabled: searchActive && Boolean(loadedImage) && Boolean(currentCrimeData),
   })
 
   const results = (searchResultQuery.data?.result ?? []) as RetrievalResultItem[]
