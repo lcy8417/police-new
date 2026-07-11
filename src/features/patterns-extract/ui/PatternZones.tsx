@@ -33,7 +33,7 @@ function normalize(item: PatternEntry): [string, boolean] {
 
 /**
  * 문양 정보 패널(다크 커맨드센터 톤). 레거시 `PatternInfo`+`PatternItem`을 대체하는
- * 패턴추출 전용 신규 컴포넌트다(레거시 3종은 ShoesRegisterMain이 여전히 쓰므로 존치).
+ * 패턴추출 전용 신규 컴포넌트다(레거시 `PatternInfo`는 신발 편집 통합과 함께 제거됨).
  * 상/중/하/윤곽 4개 부위를 표시하며, 부위 헤더를 클릭하면 삽입 대상으로 선택되고,
  * 썸네일 클릭은 삭제, 우클릭은 "필수" 토글이다(레거시 상호작용 규약 보존).
  */

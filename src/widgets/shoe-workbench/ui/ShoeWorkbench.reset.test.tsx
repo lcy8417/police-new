@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import { mswServer } from "@/test/msw-server"
-import { ShoeRegisterPage } from "./ShoeRegisterPage"
+import { ShoeWorkbench } from "./ShoeWorkbench"
 
 // jsdom에는 ResizeObserver가 없어 PatternCanvas 마운트가 실패한다 — no-op 폴리필.
 class ResizeObserverStub {
@@ -18,18 +18,18 @@ beforeAll(() => mswServer.listen({ onUnhandledRequest: "bypass" }))
 afterEach(() => mswServer.resetHandlers())
 afterAll(() => mswServer.close())
 
-function renderPage() {
+function renderWorkbench() {
   const qc = new QueryClient()
   return render(
     <QueryClientProvider client={qc}>
-      <ShoeRegisterPage />
+      <ShoeWorkbench mode="new" />
     </QueryClientProvider>
   )
 }
 
-describe("ShoeRegisterPage 초기화", () => {
+describe("ShoeWorkbench 초기화(신규 등록)", () => {
   it("초기화 버튼이 입력 필드를 비운다", () => {
-    renderPage()
+    renderWorkbench()
     const modelInput = screen.getByPlaceholderText(
       "모델번호 입력 (필수)"
     ) as HTMLInputElement

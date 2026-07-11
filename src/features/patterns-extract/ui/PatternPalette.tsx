@@ -26,7 +26,7 @@ interface PatternPaletteProps {
 
 /**
  * 문양 리스트/팔레트(다크 커맨드센터 톤). 레거시 `PatternList`를 대체하는 패턴추출
- * 전용 신규 컴포넌트다(레거시 `PatternList`는 ShoesRegisterMain이 여전히 쓰므로 존치).
+ * 전용 신규 컴포넌트다(레거시 `PatternList`는 이제 `PartialPatterns`만 쓰므로 존치).
  * 종류 버튼으로 도형 폴더를 전환하고, 썸네일 클릭 시 `insertPattern`이 현재 선택된
  * 부위에 문양을 추가한다(`e.target.src`를 읽음).
  */
