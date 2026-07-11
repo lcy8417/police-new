@@ -138,10 +138,10 @@ export function PatternZones({
                       <div
                         key={i}
                         className={cn(
-                          "group relative aspect-square overflow-hidden rounded-lg border bg-[#05080D] transition-colors",
+                          "group relative aspect-square overflow-hidden rounded-lg bg-[#05080D] transition-all",
                           essential
-                            ? "border-[#EF4444]/40"
-                            : "border-[#1E2A3C] hover:border-[#3B82F6]/40"
+                            ? "border-2 border-[#EF4444] shadow-[0_0_14px_rgba(239,68,68,0.5)] ring-1 ring-[#EF4444]/60"
+                            : "border border-[#1E2A3C] hover:border-[#3B82F6]/40"
                         )}
                       >
                         <img
@@ -156,10 +156,9 @@ export function PatternZones({
                           className="absolute inset-0 size-full cursor-pointer object-contain p-1.5 transition-transform group-hover:scale-105"
                         />
                         {essential && (
-                          <span
-                            aria-hidden="true"
-                            className="absolute top-1 right-1 size-1.5 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
-                          />
+                          <span className="pointer-events-none absolute top-1 left-1 z-10 rounded border border-[#EF4444]/70 bg-[#EF4444] px-1 py-px font-mono text-[8px] font-bold tracking-wide text-white shadow-[0_0_8px_rgba(239,68,68,0.7)]">
+                            필수
+                          </span>
                         )}
                         {/* 삭제 어포던스(호버 전용) — 클릭 시 삭제됨을 시각적으로 예고한다. */}
                         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#05080D]/0 opacity-0 transition-all duration-150 group-hover:bg-[#05080D]/70 group-hover:opacity-100">

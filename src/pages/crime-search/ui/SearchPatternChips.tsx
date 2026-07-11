@@ -15,7 +15,7 @@ export interface SearchPatternChipsProps {
 
 /**
  * 현재 검색에 쓰인 필수 문양을 부위별 칩으로 요약한다. 하나도 없으면
- * "필수 문양을 선택하세요" 안내를 띄운다(이 경우 검색 자체가 비활성화된다).
+ * "필수 문양 없음 — 전체로 검색" 안내를 띄운다(빈 채로도 검색은 진행된다).
  */
 export function SearchPatternChips({ patterns }: SearchPatternChipsProps) {
   const groups = ZONE_LABELS.map(({ key, label }) => ({
@@ -25,9 +25,9 @@ export function SearchPatternChips({ patterns }: SearchPatternChipsProps) {
 
   if (groups.length === 0) {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-[#3B2A12] bg-[#1A130A]/60 px-4 py-2.5 text-[13px] text-[#FBBF24]">
-        <Info className="size-4 shrink-0" aria-hidden="true" />
-        <span>필수 문양을 선택하세요 — 문양 정보에서 필수 토글을 켜면 검색이 시작됩니다.</span>
+      <div className="flex items-center gap-2 rounded-xl border border-[#1E2A3C] bg-[#0D1420]/60 px-4 py-2.5 text-[13px] text-[#8A93A6]">
+        <Info className="size-4 shrink-0 text-[#4A9EFF]" aria-hidden="true" />
+        <span>필수 문양 없음 — 전체로 검색 중입니다. 문양 정보에서 필수를 켜면 결과가 좁혀집니다.</span>
       </div>
     )
   }

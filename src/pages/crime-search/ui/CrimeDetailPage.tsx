@@ -139,9 +139,10 @@ export function CrimeDetailPage() {
   // 인라인 신발 검색 상태(레거시 ShoesResultPage에서 이관). searchActive가 true면
   // 본문이 검색모드(이미지·문양정보·결과 그리드)로 전환된다.
   const [searchActive, setSearchActive] = useState(false)
-  // 검색 진입 시점의 편집 여부를 고정한다(imgRef.src는 리렌더를 유발하지 않으므로
-  // 쿼리 키로 쓰려면 상태로 승격해야 한다).
-  const [searchEdit, setSearchEdit] = useState(false)
+  // 현장/편집 스와퍼의 현재 표시 대상. 검색 edit 여부가 이 값에서 파생되므로,
+  // 검색모드에서 편집이미지로 전환하면 검색도 그 이미지로 자동 재실행된다.
+  const [sceneView, setSceneView] = useState<"origin" | "edit">("origin")
+  const searchEdit = sceneView === "edit"
   const [binary, setBinary] = useState<string>(BINARY_ON)
   const [similarity, setSimilarity] = useState<string | false>(SIMILARITY_ON)
   const [searchPage, setSearchPage] = useState(0)
@@ -150,14 +151,6 @@ export function CrimeDetailPage() {
   const searchPatterns = useMemo(
     () => filteredPatterns(currentCrimeData),
     [currentCrimeData]
-  )
-  // 필수 문양이 하나라도 있어야 검색을 발사한다(전부 비면 서버 400/빈결과 방지).
-  const hasEssential = useMemo(
-    () =>
-      Object.values(searchPatterns).some(
-        (names) => Array.isArray(names) && names.length > 0
-      ),
-    [searchPatterns]
   )
   // 필수 문양 시그니처를 300ms 디바운스 → 쿼리 키에 실어 실시간 재검색을 구동한다.
   // 연속 토글 시 마지막 값만 요청되도록 안정 직렬화 문자열 하나로 관리한다.
@@ -193,7 +186,8 @@ export function CrimeDetailPage() {
         // 레거시(JS)는 유사부위 리터럴 문자열 또는 false를 그대로 넘겼다.
         similarity: similarity as unknown as boolean,
       }),
-    enabled: searchActive && Boolean(loadedImage) && hasEssential,
+    // 필수 문양이 없어도 빈 body로 검색을 발사한다(전체 검색). loadedImage만 있으면 실행.
+    enabled: searchActive && Boolean(loadedImage),
   })
 
   const results = (searchResultQuery.data?.result ?? []) as RetrievalResultItem[]
@@ -212,15 +206,15 @@ export function CrimeDetailPage() {
     }
   }, [extractPattern])
 
-  // 현장/편집 이미지 스와퍼 — 레거시와 동일하게 imgRef.current.src를 직접 교체한다.
-  const showOrigin = useCallback(
-    () => imageChangeHandler("origin", imgRef, currentCrimeData),
-    [currentCrimeData]
-  )
-  const showEdit = useCallback(
-    () => imageChangeHandler("edit", imgRef, currentCrimeData),
-    [currentCrimeData]
-  )
+  // 현장/편집 이미지 스와퍼 — imgRef.src를 직접 교체하고, 검색 edit 판정용 sceneView도 갱신한다.
+  const showOrigin = useCallback(() => {
+    setSceneView("origin")
+    imageChangeHandler("origin", imgRef, currentCrimeData)
+  }, [currentCrimeData])
+  const showEdit = useCallback(() => {
+    setSceneView("edit")
+    imageChangeHandler("edit", imgRef, currentCrimeData)
+  }, [currentCrimeData])
 
   // 검색이력: 레거시의 ad hoc `fetch(/crime/:crimeNumber)`를 entities
   // `fetchCrimeDetail`(같은 엔드포인트, camelCase) + useQuery로 승격했다.
@@ -242,16 +236,13 @@ export function CrimeDetailPage() {
     )
   }
 
-  // 신발 검색: 레거시 `PatternExtract.jsx` 흐름과 동등 — 현재 문양을 서버에 저장(PUT)하고,
-  // 페이지 이동 없이 검색모드로 전환한다. 편집 여부(imgRef의 src가 data URL인지)는
-  // 쿼리 키로 고정하기 위해 상태로 승격한다.
+  // 신발 검색: 현재 문양을 서버에 저장(PUT)하고, 페이지 이동 없이 검색모드로 전환한다.
+  // 편집 여부는 스와퍼의 sceneView(파생 searchEdit)가 쿼리 키로 관리하므로 여기서 고정하지 않는다.
   const handleSearch = useCallback(() => {
     try {
-      const edit = imgRef.current?.src.startsWith("data:image") ?? false
       if (currentCrimeData) {
         void fetchPatterns(crimeNumber, currentCrimeData)
       }
-      setSearchEdit(edit)
       setSearchPage(0)
       setSearchActive(true)
     } catch (error) {
