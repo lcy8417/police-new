@@ -2,8 +2,12 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
+  type ChangeEvent,
+  type CSSProperties,
   type MouseEvent,
+  type ReactNode,
   type RefObject,
 } from "react";
 import {
@@ -37,6 +41,35 @@ type SetLineState = PatternManager["setLineState"];
 const VIEW_LABELS = ["현장이미지", "편집이미지"] as const;
 type ViewLabel = (typeof VIEW_LABELS)[number];
 
+/** 신발 영역(사각 마스크)의 canvas 픽셀 좌표. */
+interface Region {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** 영역 드래그 모드: 이동, 네 꼭짓점, 또는 네 엣지(상/하/좌/우) 리사이즈. */
+type RegionHandle = "move" | "nw" | "ne" | "sw" | "se" | "n" | "s" | "w" | "e";
+
+/** 영역 드래그 진행 상태 — 시작 시점의 마우스/영역/반전 스냅샷을 담는다.
+ * baseMirrored는 좌/우 엣지 크로스오버 반전 판정의 기준값이다(드래그 시작 시점의
+ * mirrored를 고정해두고, 현재 프레임의 "넘어감" 여부와 XOR해 절대값으로 계산한다). */
+interface RegionDrag {
+  mode: RegionHandle;
+  startX: number;
+  startY: number;
+  origin: Region;
+  baseMirrored: boolean;
+}
+
+/** 영역 최소 크기(canvas 픽셀). 이보다 작게 줄지 않도록 clamp한다. */
+const REGION_MIN_SIZE = 40;
+
+/** 값 v를 [min, max] 범위로 clamp한다. */
+const clampValue = (v: number, min: number, max: number) =>
+  Math.min(Math.max(v, min), max);
+
 interface PatternCanvasProps {
   /** usePatternManager가 소유한 canvasRef — extractPattern이 여기서 render_size를 읽는다. */
   canvasRef: RefObject<HTMLCanvasElement | null>;
@@ -52,6 +85,19 @@ interface PatternCanvasProps {
   onShowOrigin: () => void;
   onShowEdit: () => void;
   isExtracting?: boolean;
+  /**
+   * 표시 전용 확장(기본값은 모두 현재 검색화면 동작과 동일 — 좌표 수학 무관).
+   * 신발 등록 화면이 재사용할 때만 값을 넘긴다.
+   */
+  /** 현장/편집 스와퍼를 숨긴다(서버 이미지가 하나뿐인 등록 화면용). */
+  hideViewSwapper?: boolean;
+  /** 넘기면 빈 상태를 "업로드 드롭존"으로 바꾼다(클릭 시 파일 선택 → onUpload). */
+  onUpload?: (file: File) => void;
+  /** 헤더 아래에 얹는 툴바 밴드(예: 회전 슬라이더). */
+  topToolbar?: ReactNode;
+  /** 뷰포트 래퍼(img+경계선 canvas 공통)에 적용할 스타일 — 회전 미리보기 transform용.
+   *  래퍼째 회전하므로 이미지와 경계선이 함께 돌아 정합이 유지된다. */
+  viewportStyle?: CSSProperties;
 }
 
 /** 도크 툴바용 소형 버튼(crime-register EvidenceImagePanel 톤 준용). */
@@ -117,7 +163,19 @@ export function PatternCanvas({
   onShowOrigin,
   onShowEdit,
   isExtracting = false,
+  hideViewSwapper = false,
+  onUpload,
+  topToolbar,
+  viewportStyle,
 }: PatternCanvasProps) {
+  // 업로드 드롭존(onUpload가 있을 때만)용 숨은 파일 입력.
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const handleUploadChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) onUpload?.(file);
+    // 같은 파일을 다시 선택해도 onChange가 발화하도록 값을 비운다.
+    e.target.value = "";
+  };
   // canvas 리사이즈 시 선을 다시 그리기 위한 트리거.
   const [canvasSize, setCanvasSize] = useState<{ w: number; h: number }>({
     w: 0,
@@ -130,6 +188,16 @@ export function PatternCanvas({
     w: 0,
     h: 0,
   });
+
+  // 신발 영역(사각 마스크) — canvas 픽셀 공간의 사각 박스. 순수 UI 제약이며
+  // 추출로는 보내지 않는다(불변식: render_size/line_ys 전송 로직 무수정). null이면
+  // 아직 초기화 전. mirrored=false는 왼쪽 신발("L"), true는 오른쪽 신발("R").
+  const [region, setRegion] = useState<Region | null>(null);
+  const [mirrored, setMirrored] = useState(false);
+  // 비율 유지 재계산을 위한 직전 캔버스 크기 스냅샷.
+  const prevCanvasRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
+  // 영역 드래그(이동/꼭짓점 리사이즈) 진행 상태 — window 리스너가 참조한다.
+  const regionDragRef = useRef<RegionDrag | null>(null);
 
   // 표시된 이미지에 맞춰 canvas 비트맵 크기를 재측정한다. 마우스/canvas 좌표가
   // 1:1로 대응하도록 비트맵 크기를 표시 크기에 맞춘다(useImageEditor.recomputeOverlay 준용).
@@ -168,32 +236,193 @@ export function PatternCanvas({
     };
   }, [recompute, imgRef, image]);
 
-  // 상/중/하 경계선을 그린다. 레거시의 반투명 빨강 점선 가이드를 유지하되,
-  // 드래그 중인 선만 살짝 굵고 발광하도록 표시해 조작 대상을 명확히 한다
-  // (좌표·색상 값 자체는 변경하지 않음).
+  // 신발 영역 초기화/재계산. 캔버스 크기가 정해지면(w,h>0) 영역이 없을 때 왼쪽
+  // 신발 기준(좌측에 치우친 박스)으로 한 번 초기화하고, 리사이즈 시에는 직전 캔버스
+  // 대비 비율을 유지해 간단히 스케일한 뒤 캔버스 안으로 clamp한다.
+  useEffect(() => {
+    const { w, h } = canvasSize;
+    if (w <= 0 || h <= 0) return;
+    const prev = prevCanvasRef.current;
+    setRegion((current) => {
+      let next: Region;
+      if (current && prev.w > 0 && prev.h > 0) {
+        const sx = w / prev.w;
+        const sy = h / prev.h;
+        next = {
+          x: current.x * sx,
+          y: current.y * sy,
+          w: current.w * sx,
+          h: current.h * sy,
+        };
+      } else {
+        // 왼쪽 신발 기준 기본 박스(좌측 치우침).
+        next = { x: w * 0.08, y: h * 0.05, w: w * 0.6, h: h * 0.9 };
+      }
+      // 최소 크기 보장 후 캔버스 안으로 clamp.
+      const nw = clampValue(next.w, REGION_MIN_SIZE, w);
+      const nh = clampValue(next.h, REGION_MIN_SIZE, h);
+      const nx = clampValue(next.x, 0, w - nw);
+      const ny = clampValue(next.y, 0, h - nh);
+      return { x: nx, y: ny, w: nw, h: nh };
+    });
+    prevCanvasRef.current = { w, h };
+    // 캔버스 크기 "값"이 바뀔 때만 재계산한다(객체 정체성 대신 w/h 원시값 의존 —
+    // ResizeObserver의 잦은 setState로 인한 불필요한 재실행/영역 churn 방지).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasSize.w, canvasSize.h]);
+
+  // 영역이 바뀌면 경계선(lineYs)을 영역 세로 범위로 clamp한다(프로토타입 수준).
+  // 값이 그대로면 prev를 반환해 불필요한 재렌더/루프를 막는다.
+  useEffect(() => {
+    if (!region) return;
+    const top = region.y;
+    const bottom = region.y + region.h;
+    setLineState((prev) => {
+      const c0 = clampValue(prev.lineYs[0], top, bottom);
+      const c1 = clampValue(prev.lineYs[1], top, bottom);
+      if (c0 === prev.lineYs[0] && c1 === prev.lineYs[1]) return prev;
+      return { ...prev, lineYs: [c0, c1] as [number, number] };
+    });
+  }, [region, setLineState]);
+
+  // 영역 이동/리사이즈 드래그 — 핸들(또는 영역 내부 클릭)의 mousedown이
+  // regionDragRef를 세팅하면 window mousemove/mouseup가 캔버스 밖으로 나가도
+  // 추적한다. 마우스 이동량(clientX/Y)을 canvas 픽셀로 환산(canvas.width/rect.width)해
+  // 영역을 갱신한다.
+  //
+  // 좌/우 엣지(w/e, 및 그와 맞물린 nw/sw/ne/se의 가로 성분)는 반대편 엣지를
+  // 지나쳐도(크로스오버) 막지 않고 최소폭만 보장한다 — 지나친 상태(crossed)를
+  // 드래그 시작 시점의 mirrored(baseMirrored)와 XOR해 절대값으로 재계산하므로,
+  // 다시 반대로 끌어 원래 위치로 되돌리면 반전도 원상복구된다. 상/하 엣지는
+  // 세로 크로스오버를 허용하지 않는다(요청 범위 밖 — 상하 반전 없음).
+  useEffect(() => {
+    const onMove = (e: globalThis.MouseEvent) => {
+      const drag = regionDragRef.current;
+      if (!drag) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const sx = canvas.width / rect.width;
+      const sy = canvas.height / rect.height;
+      const dx = (e.clientX - drag.startX) * sx;
+      const dy = (e.clientY - drag.startY) * sy;
+      const W = canvas.width;
+      const H = canvas.height;
+      const o = drag.origin;
+
+      let nextRegion: Region;
+      let nextMirrored: boolean | null = null; // null = 이번 프레임에는 변경 없음
+
+      if (drag.mode === "move") {
+        nextRegion = {
+          x: clampValue(o.x + dx, 0, W - o.w),
+          y: clampValue(o.y + dy, 0, H - o.h),
+          w: o.w,
+          h: o.h,
+        };
+      } else {
+        const isW = drag.mode === "nw" || drag.mode === "sw" || drag.mode === "w";
+        const isE = drag.mode === "ne" || drag.mode === "se" || drag.mode === "e";
+        const isN = drag.mode === "nw" || drag.mode === "ne" || drag.mode === "n";
+        const isS = drag.mode === "sw" || drag.mode === "se" || drag.mode === "s";
+
+        let nx = o.x;
+        let ny = o.y;
+        let nw = o.w;
+        let nh = o.h;
+
+        if (isW || isE) {
+          const fx = isW ? o.x + o.w : o.x; // 고정 x(반대쪽 세로변)
+          let mx = (isW ? o.x : o.x + o.w) + dx;
+          // 최소폭은 보장하되 반대편을 넘어가는 것 자체는 막지 않는다(크로스오버 허용).
+          if (Math.abs(mx - fx) < REGION_MIN_SIZE) {
+            mx = mx < fx ? fx - REGION_MIN_SIZE : fx + REGION_MIN_SIZE;
+          }
+          mx = clampValue(mx, 0, W);
+          nx = Math.min(fx, mx);
+          nw = Math.abs(fx - mx);
+          // 잡은 엣지가 원래 있던 쪽(서/동)을 넘어갔는지로 반전 여부를 절대값 계산한다.
+          const crossed = isW ? mx > fx : mx < fx;
+          nextMirrored = drag.baseMirrored !== crossed;
+        }
+
+        if (isN || isS) {
+          const fy = isN ? o.y + o.h : o.y; // 고정 y(반대쪽 가로변)
+          let my = clampValue((isN ? o.y : o.y + o.h) + dy, 0, H);
+          // 상/하는 크로스오버를 허용하지 않는다(세로 반전은 요청 범위 밖).
+          my = isN ? Math.min(my, fy - REGION_MIN_SIZE) : Math.max(my, fy + REGION_MIN_SIZE);
+          ny = Math.min(fy, my);
+          nh = Math.abs(fy - my);
+        }
+
+        nextRegion = { x: nx, y: ny, w: nw, h: nh };
+      }
+
+      setRegion(nextRegion);
+      if (nextMirrored !== null) setMirrored(nextMirrored);
+    };
+    const onUp = () => {
+      regionDragRef.current = null;
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [canvasRef]);
+
+  // 영역 핸들 mousedown — 경계선 canvas 드래그와 충돌하지 않도록 stopPropagation.
+  // 드래그 시작 시점의 mirrored를 baseMirrored로 스냅샷해 크로스오버 반전 계산에 쓴다.
+  const beginRegionDrag = useCallback(
+    (mode: RegionHandle) => (e: MouseEvent<HTMLElement>) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (!region) return;
+      regionDragRef.current = {
+        mode,
+        startX: e.clientX,
+        startY: e.clientY,
+        origin: region,
+        baseMirrored: mirrored,
+      };
+    },
+    [region, mirrored]
+  );
+
+  // 상/중/하 경계선을 그린다. 의미색 레드(rgba(239,68,68,*))는 고정하되, 표현만
+  // 좌우 페이드 그라디언트 + 은은한 글로우 + 둥근 라인 캡으로 다듬어 하이테크
+  // 스캔라인처럼 보이게 한다. 드래그 중인 선은 굵기·글로우를 키워 조작 대상을
+  // 명확히 한다(좌표·색상 값 자체는 변경하지 않음).
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 경계선은 신발 영역 폭 안에서만 그린다(전폭 대신 영역 좌우변 사이).
+    const lineLeft = region ? region.x : 6;
+    const lineRight = region ? region.x + region.w : canvas.width - 6;
     lineState.lineYs.forEach((y, idx) => {
       const isDragging = lineState.draggingLine === idx;
       ctx.save();
-      ctx.strokeStyle = "rgba(239, 68, 68, 0.8)"; // 의미색 레드(경계 가이드) — 고정
-      ctx.lineWidth = isDragging ? 8 : 7;
-      ctx.setLineDash([5, 3]);
-      if (isDragging) {
-        ctx.shadowColor = "rgba(239, 68, 68, 0.9)";
-        ctx.shadowBlur = 10;
-      }
+      const gradient = ctx.createLinearGradient(lineLeft, 0, lineRight, 0);
+      gradient.addColorStop(0, "rgba(239, 68, 68, 0.1)");
+      gradient.addColorStop(0.5, isDragging ? "rgba(239, 68, 68, 1)" : "rgba(239, 68, 68, 0.85)");
+      gradient.addColorStop(1, "rgba(239, 68, 68, 0.1)");
+      ctx.strokeStyle = gradient; // 의미색 레드(경계 가이드) — 고정, 그라디언트로만 표현
+      ctx.lineCap = "round";
+      ctx.lineWidth = isDragging ? 3.5 : 2.5;
+      ctx.shadowColor = "rgba(239, 68, 68, 0.85)";
+      ctx.shadowBlur = isDragging ? 16 : 7;
       ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
+      ctx.moveTo(lineLeft, y);
+      ctx.lineTo(lineRight, y);
       ctx.stroke();
       ctx.restore();
     });
-  }, [canvasRef, lineState, canvasSize]);
+  }, [canvasRef, lineState, canvasSize, region]);
 
   // 마우스 clientY를 canvas 비트맵 y 좌표로 변환한다.
   const toCanvasY = useCallback(
@@ -207,17 +436,50 @@ export function PatternCanvas({
     [canvasRef]
   );
 
+  // 마우스 clientX를 canvas 비트맵 x 좌표로 변환한다(영역 내부 클릭 판정용).
+  const toCanvasX = useCallback(
+    (clientX: number): number | null => {
+      const canvas = canvasRef.current;
+      if (!canvas) return null;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0) return null;
+      return (clientX - rect.left) * (canvas.width / rect.width);
+    },
+    [canvasRef]
+  );
+
   const handleMouseDown = (e: MouseEvent<HTMLCanvasElement>) => {
     const y = toCanvasY(e.clientY);
     if (y === null) return;
     const idx = pickDraggableLine(lineState.lineYs, y);
-    if (idx === null) return;
-    // 잡은 지점의 오프셋을 저장해 드래그 중 상대 위치를 유지한다.
-    setLineState((prev) => ({
-      ...prev,
-      draggingLine: idx,
-      offsetY: prev.lineYs[idx] - y,
-    }));
+    if (idx !== null) {
+      // 경계선이 근처에 있으면 경계선 드래그가 우선한다(영역 이동보다 먼저 판정).
+      setLineState((prev) => ({
+        ...prev,
+        draggingLine: idx,
+        offsetY: prev.lineYs[idx] - y,
+      }));
+      return;
+    }
+    // 경계선이 아니면 영역 내부 클릭 시 영역 이동으로 폴백한다(박스 안 아무 곳이나 드래그).
+    if (region) {
+      const x = toCanvasX(e.clientX);
+      if (
+        x !== null &&
+        x >= region.x &&
+        x <= region.x + region.w &&
+        y >= region.y &&
+        y <= region.y + region.h
+      ) {
+        regionDragRef.current = {
+          mode: "move",
+          startX: e.clientX,
+          startY: e.clientY,
+          origin: region,
+          baseMirrored: mirrored,
+        };
+      }
+    }
   };
 
   const handleMouseMove = (e: MouseEvent<HTMLCanvasElement>) => {
@@ -225,17 +487,31 @@ export function PatternCanvas({
     if (y === null) return;
     const canvas = canvasRef.current;
     if (canvas) {
+      // 경계선 근처가 가장 우선, 아니면 영역 내부일 때 이동 가능함을 커서로 암시한다.
+      const x = toCanvasX(e.clientX);
+      const insideRegion =
+        !!region &&
+        x !== null &&
+        x >= region.x &&
+        x <= region.x + region.w &&
+        y >= region.y &&
+        y <= region.y + region.h;
       canvas.style.cursor = isNearAnyLine(lineState.lineYs, y)
         ? "pointer"
-        : "default";
+        : insideRegion
+          ? "move"
+          : "default";
     }
     if (lineState.draggingLine !== null) {
       setLineState((prev) => {
         const moved = moveLine(prev.lineYs, prev.draggingLine, y, prev.offsetY);
-        // 선을 canvas(=이미지) 세로 범위로 clamp한다. 벗어난 좌표를 그대로 두면
-        // 서버가 이미지 밖을 슬라이스하다 "tile cannot extend outside image"로 죽는다.
+        // 선을 신발 영역 세로 범위로 clamp한다(영역이 없으면 canvas 범위). 벗어난
+        // 좌표를 그대로 두면 서버가 이미지 밖을 슬라이스하다 "tile cannot extend
+        // outside image"로 죽는다.
         const h = canvas?.height ?? 0;
-        const clamp = (v: number) => Math.min(Math.max(v, 0), h);
+        const top = region ? region.y : 0;
+        const bottom = region ? region.y + region.h : h;
+        const clamp = (v: number) => Math.min(Math.max(v, top), bottom);
         return {
           ...prev,
           lineYs: [clamp(moved[0]), clamp(moved[1])] as [number, number],
@@ -265,116 +541,169 @@ export function PatternCanvas({
     return a <= b ? ([a, b] as const) : ([b, a] as const);
   }, [lineState.lineYs]);
 
+  // 영역 사각의 상하좌우 경계(영역이 없으면 캔버스 전체) — 틴트/라벨/핸들 배치용
+  // 표시 전용 파생값. 좌표 판정에는 관여하지 않는다.
+  const regionLeft = region ? region.x : 0;
+  const regionTop = region ? region.y : 0;
+  const regionWidth = region ? region.w : canvasSize.w;
+  const regionBottom = region ? region.y + region.h : canvasSize.h;
+
   const zoneBands = useMemo(
     () => [
-      { label: "상", center: minY / 2 },
+      { label: "상", center: (regionTop + minY) / 2 },
       { label: "중", center: (minY + maxY) / 2 },
-      { label: "하", center: (maxY + canvasSize.h) / 2 },
+      { label: "하", center: (maxY + regionBottom) / 2 },
     ],
-    [minY, maxY, canvasSize.h]
+    [minY, maxY, regionTop, regionBottom]
   );
 
   const showOverlayChrome = Boolean(image) && canvasSize.h > 0;
 
   return (
-    <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
+    <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)] backdrop-blur-sm">
       <TechCorners size={22} active={isExtracting} />
 
-      {/* 패널 헤더 */}
-      <div className="flex items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-6 py-3.5">
+      {/* 업로드 드롭존용 숨은 파일 입력(onUpload가 있을 때만 의미 있음). */}
+      {onUpload && (
+        <input
+          ref={uploadInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleUploadChange}
+        />
+      )}
+
+      {/* 패널 헤더 — 타이틀(왼쪽) + 현장/편집 스와퍼(오른쪽, 컴팩트). 기존에 별도
+          툴바 밴드에 있던 스와퍼를 여기로 옮기고, "PATTERN·EXTRACT" 라벨은 공간
+          확보를 위해 제거했다(뷰포트 세로 확장이 우선). 스와퍼는 서버 이미지가
+          둘(현장/편집)일 때만 의미가 있어, 등록 화면(단일 업로드 이미지)에서는
+          hideViewSwapper로 숨긴다. */}
+      <div className="flex items-center justify-between gap-3 border-b border-[#141D2C] bg-[#0D1420]/60 px-6 py-3">
         <span className="flex items-center gap-2 text-[15px] font-semibold text-[#E5E9F0]">
           <ScanSearch className="size-4 text-[#4A9EFF]" aria-hidden="true" />
           신발 이미지
         </span>
-        <span className="font-mono text-[11px] tracking-[0.14em] text-[#5B6B85] uppercase">
-          Pattern · Extract
-        </span>
+        {!hideViewSwapper && (
+          <ToggleGroup
+            type="single"
+            value={activeView}
+            onValueChange={(v) => {
+              if (v === "현장이미지") handleShowOrigin();
+              else if (v === "편집이미지") handleShowEdit();
+            }}
+            className="gap-0.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] p-0.5"
+          >
+            <ToggleGroupItem
+              value="현장이미지"
+              className="h-6 gap-1 rounded-[5px] px-2 text-[11px] font-medium text-[#8A93A6] hover:text-[#C7CEDB] data-[state=on]:border data-[state=on]:border-[#3B82F6]/50 data-[state=on]:bg-[#152238] data-[state=on]:text-[#4A9EFF]"
+            >
+              <Camera className="size-3" aria-hidden="true" />
+              현장
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="편집이미지"
+              className="h-6 gap-1 rounded-[5px] px-2 text-[11px] font-medium text-[#8A93A6] hover:text-[#C7CEDB] data-[state=on]:border data-[state=on]:border-[#3B82F6]/50 data-[state=on]:bg-[#152238] data-[state=on]:text-[#4A9EFF]"
+            >
+              <ImagePlus className="size-3" aria-hidden="true" />
+              편집
+            </ToggleGroupItem>
+          </ToggleGroup>
+        )}
       </div>
 
-      {/* 툴바: 이미지 스와퍼(세그먼트 토글) + 문양추출/초기화 */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-[#141D2C] bg-[#0D1420]/40 px-6 py-3">
-        <ToggleGroup
-          type="single"
-          value={activeView}
-          onValueChange={(v) => {
-            if (v === "현장이미지") handleShowOrigin();
-            else if (v === "편집이미지") handleShowEdit();
-          }}
-          className="gap-0.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] p-0.5"
-        >
-          <ToggleGroupItem
-            value="현장이미지"
-            className="h-7 gap-1.5 rounded-[5px] px-2.5 text-xs font-medium text-[#8A93A6] hover:text-[#C7CEDB] data-[state=on]:border data-[state=on]:border-[#3B82F6]/50 data-[state=on]:bg-[#152238] data-[state=on]:text-[#4A9EFF]"
-          >
-            <Camera className="size-3.5" aria-hidden="true" />
-            현장이미지
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="편집이미지"
-            className="h-7 gap-1.5 rounded-[5px] px-2.5 text-xs font-medium text-[#8A93A6] hover:text-[#C7CEDB] data-[state=on]:border data-[state=on]:border-[#3B82F6]/50 data-[state=on]:bg-[#152238] data-[state=on]:text-[#4A9EFF]"
-          >
-            <ImagePlus className="size-3.5" aria-hidden="true" />
-            편집이미지
-          </ToggleGroupItem>
-        </ToggleGroup>
-
-        <div className="mx-1 h-6 w-px bg-[#1E2A3C]" aria-hidden="true" />
-        <div className="flex items-center gap-2">
-          <ToolButton
-            icon={Radar}
-            label={isExtracting ? "추출 중..." : "문양추출"}
-            onClick={onExtract}
-            variant="accent"
-            disabled={isExtracting}
-            pending={isExtracting}
-          />
-          <ToolButton
-            icon={RotateCcw}
-            label="문양초기화"
-            onClick={onClear}
-            disabled={isExtracting}
-          />
-        </div>
-      </div>
+      {/* 헤더 아래 툴바 밴드(예: 회전 슬라이더) — 넘겨졌을 때만 렌더. */}
+      {topToolbar}
 
       {/* 뷰포트: 이미지 + 경계선 오버레이 canvas.
           체커보드 눈금 바 / 모서리 십자선 / 하단 상태표시줄은 crime-register
           `EvidenceImagePanel` · 검색결과 `CrimeScenePanel`과 같은 뷰포트 언어로,
           4개 화면이 하나의 시스템처럼 읽히게 한다. */}
-      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#05080D] p-4">
+      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#05080D]/70 px-2 py-3">
+        {/* 캔버스 네 모서리 포인트 마커(좌상·우상·좌하·우하). 순수 장식이라 좌표 판정에 관여하지 않는다. */}
+        <span className="pointer-events-none absolute top-2 left-2 z-10 size-1.5 rounded-full bg-[#4A9EFF] shadow-[0_0_6px_2px_rgba(74,158,255,0.7)]" aria-hidden="true" />
+        <span className="pointer-events-none absolute top-2 right-2 z-10 size-1.5 rounded-full bg-[#4A9EFF] shadow-[0_0_6px_2px_rgba(74,158,255,0.7)]" aria-hidden="true" />
+        <span className="pointer-events-none absolute bottom-2 left-2 z-10 size-1.5 rounded-full bg-[#4A9EFF] shadow-[0_0_6px_2px_rgba(74,158,255,0.7)]" aria-hidden="true" />
+        <span className="pointer-events-none absolute right-2 bottom-2 z-10 size-1.5 rounded-full bg-[#4A9EFF] shadow-[0_0_6px_2px_rgba(74,158,255,0.7)]" aria-hidden="true" />
+
         {image && (
           <>
             <div
-              className="absolute inset-x-2 top-2 h-[8px] rounded-sm opacity-70"
+              className="absolute inset-x-1.5 top-1.5 h-[6px] rounded-sm opacity-70"
               style={{
                 backgroundImage:
                   "repeating-linear-gradient(90deg, #E5E9F0 0 8px, #0B121D 8px 16px)",
               }}
             />
             <div
-              className="absolute inset-y-2 left-2 w-[8px] rounded-sm opacity-70"
+              className="absolute inset-y-1.5 left-1.5 w-[6px] rounded-sm opacity-70"
               style={{
                 backgroundImage:
                   "repeating-linear-gradient(180deg, #E5E9F0 0 8px, #0B121D 8px 16px)",
               }}
             />
-            <Crosshair className="absolute top-4 left-4 size-5 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
-            <Crosshair className="absolute top-4 right-4 size-5 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
-            <Crosshair className="absolute bottom-4 left-4 size-5 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
-            <Crosshair className="absolute right-4 bottom-4 size-5 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
+            <Crosshair className="absolute top-2.5 left-2 size-4 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
+            <Crosshair className="absolute top-2.5 right-2 size-4 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
+            <Crosshair className="absolute bottom-2.5 left-2 size-4 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
+            <Crosshair className="absolute right-2 bottom-2.5 size-4 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
           </>
         )}
 
+        {/* 이미지를 뷰포트 높이에 꽉 채운다: img는 h-full(높이 우선)·w-auto(종횡비 폭),
+            래퍼는 h-full·w-fit으로 표시 이미지에 딱 붙어 캔버스 오버레이가 정합된다.
+            높이 우선이라 세로 이미지가 위아래로 삐지지 않고 꽉 찬다. */}
         {image ? (
-          <div className="relative inline-flex max-h-full max-w-full items-center justify-center">
+          <div
+            className="relative flex h-full w-fit max-w-full items-center justify-center"
+            style={viewportStyle}
+          >
             <img
               ref={imgRef}
               src={image}
               alt="현장 신발 이미지"
               draggable={false}
               onLoad={handleImageLoad}
-              className="max-h-full max-w-full object-contain select-none"
+              className="h-full w-auto max-w-full object-contain select-none"
             />
+
+            {/* 상/중/하 영역 배경 틴트 — 같은 파란 계열에서 깊이(투명도/명도)만 달리해
+                세 구간을 은은히 구분한다(알록달록 X). canvas보다 아래(이미지 위)에 두어
+                경계선/문양은 그대로 위에 그려지고, 순수 장식이라 좌표 판정에 관여하지 않는다. */}
+            {showOverlayChrome && (
+              <>
+                <div
+                  className="pointer-events-none absolute bg-[#4A9EFF]/[0.06]"
+                  style={{
+                    left: regionLeft,
+                    width: regionWidth,
+                    top: regionTop,
+                    height: Math.max(0, minY - regionTop),
+                  }}
+                  aria-hidden="true"
+                />
+                <div
+                  className="pointer-events-none absolute bg-[#3B82F6]/[0.11]"
+                  style={{
+                    left: regionLeft,
+                    width: regionWidth,
+                    top: minY,
+                    height: Math.max(0, maxY - minY),
+                  }}
+                  aria-hidden="true"
+                />
+                <div
+                  className="pointer-events-none absolute bg-[#1D4ED8]/[0.15]"
+                  style={{
+                    left: regionLeft,
+                    width: regionWidth,
+                    top: maxY,
+                    height: Math.max(0, regionBottom - maxY),
+                  }}
+                  aria-hidden="true"
+                />
+              </>
+            )}
+
             <canvas
               ref={canvasRef}
               onMouseDown={handleMouseDown}
@@ -384,44 +713,207 @@ export function PatternCanvas({
               className="absolute inset-0 size-full"
             />
 
+            {/* 신발 영역(사각 마스크) 오버레이 — 테두리·틴트·신발 실루엣은
+                pointer-events-none, 엣지/꼭짓점 핸들만 pointer-events-auto로 드래그를
+                받는다(영역 내부 이동은 위 canvas의 mousedown이 처리). 실제 드래그는
+                window mousemove/mouseup가 처리(캔버스 밖 추적). 순수 UI 제약이며
+                추출로 보내지 않는다. */}
+            {showOverlayChrome && region && (
+              <>
+                {/* 사각 테두리(forensic 블루 글로우). 영역 내부 아무 곳이나 mousedown하면
+                    (경계선 근처가 아닌 한) canvas의 handleMouseDown이 영역 이동으로
+                    폴백한다(커서는 canvas.style.cursor로 handleMouseMove가 처리). */}
+                <div
+                  className="pointer-events-none absolute z-10 rounded-sm border border-dashed border-[#3B82F6]/70 shadow-[0_0_14px_rgba(59,130,246,0.35),inset_0_0_12px_rgba(59,130,246,0.12)]"
+                  style={{
+                    left: region.x,
+                    top: region.y,
+                    width: region.w,
+                    height: region.h,
+                  }}
+                  aria-hidden="true"
+                />
+
+                {/* 신발 밑창 실루엣 — 영역 사각을 그대로 채우는 SVG(viewBox를
+                    non-uniform 스케일로 늘려 박스 크기에 맞춘다). 반투명 채움+테두리라
+                    아래 이미지가 비치고, mirrored면 scaleX(-1)로 좌우가 뒤집혀
+                    왼쪽/오른쪽 신발 방향이 시각적으로 드러난다. 좌우 비대칭 윤곽이라
+                    반전이 실제로 눈에 보인다. */}
+                <svg
+                  className="pointer-events-none absolute z-10"
+                  style={{
+                    left: region.x,
+                    top: region.y,
+                    width: region.w,
+                    height: region.h,
+                    transform: mirrored ? "scaleX(-1)" : undefined,
+                    transformOrigin: "center",
+                  }}
+                  viewBox="0 0 100 300"
+                  preserveAspectRatio="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M50,2 C70,2 88,25 90,60 C92,95 80,110 78,140 C76,175 88,195 86,230 C84,258 70,280 50,296 C36,286 22,265 18,235 C14,205 24,180 22,145 C20,112 8,95 10,60 C12,25 30,2 50,2 Z"
+                    fill="#3B82F6"
+                    fillOpacity={0.16}
+                    stroke="#4A9EFF"
+                    strokeOpacity={0.75}
+                    strokeWidth={2}
+                  />
+                </svg>
+
+                {/* L/R 배지 — 영역 좌상단 안쪽. mirrored에 따라 왼쪽/오른쪽 신발 표시. */}
+                <div
+                  className="pointer-events-none absolute z-20 flex items-center gap-1 rounded-full border border-[#3B82F6]/50 bg-[#0B121D]/90 px-2 py-0.5 shadow-[0_0_10px_rgba(59,130,246,0.3)]"
+                  style={{ left: region.x + 8, top: region.y + 8 }}
+                >
+                  <span className="font-mono text-[11px] font-bold tracking-[0.12em] text-[#4A9EFF]">
+                    {mirrored ? "R" : "L"}
+                  </span>
+                </div>
+
+                {/* 좌·우/상·하 엣지 핸들 — 그 방향에서만 리사이즈된다(반대 엣지 고정).
+                    좌/우 엣지는 반대편을 지나쳐도 막지 않고(크로스오버) 넘어가면
+                    mirrored가 반전된다(handleMouseMove 이펙트에서 계산). */}
+                {([
+                  { mode: "n", left: region.x + region.w / 2, top: region.y, cursor: "cursor-ns-resize", horizontal: true },
+                  { mode: "s", left: region.x + region.w / 2, top: region.y + region.h, cursor: "cursor-ns-resize", horizontal: true },
+                  { mode: "w", left: region.x, top: region.y + region.h / 2, cursor: "cursor-ew-resize", horizontal: false },
+                  { mode: "e", left: region.x + region.w, top: region.y + region.h / 2, cursor: "cursor-ew-resize", horizontal: false },
+                ] as const).map((edge) => (
+                  <button
+                    key={edge.mode}
+                    type="button"
+                    onMouseDown={beginRegionDrag(edge.mode)}
+                    className={cn(
+                      "pointer-events-auto absolute z-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#3B82F6] bg-[#0B121D] shadow-[0_0_8px_rgba(59,130,246,0.6)] transition-colors hover:bg-[#152238]",
+                      edge.horizontal ? "h-2.5 w-7" : "h-7 w-2.5",
+                      edge.cursor
+                    )}
+                    style={{ left: edge.left, top: edge.top }}
+                    aria-label="신발 영역 가장자리 크기 조절"
+                  />
+                ))}
+
+                {/* 네 꼭짓점 리사이즈 핸들 */}
+                {([
+                  { mode: "nw", left: region.x, top: region.y, cursor: "cursor-nwse-resize" },
+                  { mode: "ne", left: region.x + region.w, top: region.y, cursor: "cursor-nesw-resize" },
+                  { mode: "sw", left: region.x, top: region.y + region.h, cursor: "cursor-nesw-resize" },
+                  { mode: "se", left: region.x + region.w, top: region.y + region.h, cursor: "cursor-nwse-resize" },
+                ] as const).map((corner) => (
+                  <button
+                    key={corner.mode}
+                    type="button"
+                    onMouseDown={beginRegionDrag(corner.mode)}
+                    className={cn(
+                      "pointer-events-auto absolute z-20 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#3B82F6] bg-[#0B121D] shadow-[0_0_8px_rgba(59,130,246,0.6)] transition-colors hover:bg-[#152238]",
+                      corner.cursor
+                    )}
+                    style={{ left: corner.left, top: corner.top }}
+                    aria-label="신발 영역 크기 조절"
+                  />
+                ))}
+              </>
+            )}
+
             {/* 상/중/하 부위 라벨 — 두 경계선이 만드는 세 구간의 중심에 배치한다.
-                순수 표시용 파생값(minY/maxY)만 사용하며 lineState는 읽기만 한다. */}
+                순수 표시용 파생값(minY/maxY)만 사용하며 lineState는 읽기만 한다.
+                PatternZones의 "필수" 배지와 같은 점+텍스트 필 언어로 통일했다. */}
             {showOverlayChrome &&
               zoneBands.map((band) => (
-                <span
-                  key={band.label}
-                  className="pointer-events-none absolute left-1.5 z-10 -translate-y-1/2 rounded border border-[#1E2A3C] bg-[#0B121D]/85 px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wide text-[#8A93A6]"
-                  style={{ top: band.center }}
-                >
-                  {band.label}
-                </span>
-              ))}
-
-            {/* 경계선 핸들 태그 — 드래그 가능함을 알리고, 드래그 중인 선을 강조한다. */}
-            {showOverlayChrome &&
-              lineState.lineYs.map((y, idx) => (
                 <div
-                  key={idx}
-                  className={cn(
-                    "pointer-events-none absolute right-1.5 z-10 flex -translate-y-1/2 items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-[10px] tabular-nums transition-colors",
-                    lineState.draggingLine === idx
-                      ? "border-[#EF4444]/60 bg-[#2a1214]/90 text-[#EF4444] shadow-[0_0_10px_rgba(239,68,68,0.4)]"
-                      : "border-[#1E2A3C] bg-[#0B121D]/85 text-[#8A93A6]"
-                  )}
-                  style={{ top: y }}
+                  key={band.label}
+                  className="pointer-events-none absolute z-10 flex -translate-y-1/2 items-center gap-1.5 rounded-full border border-[#3B82F6]/40 bg-[#0B121D]/90 py-1 pr-2.5 pl-1.5 shadow-[0_0_10px_rgba(37,99,235,0.2)]"
+                  style={{ top: band.center, left: regionLeft + 6 }}
                 >
-                  <GripHorizontal className="size-3" aria-hidden="true" />
-                  {Math.round(y)}
+                  <span
+                    className="size-1.5 rounded-full bg-[#4A9EFF] shadow-[0_0_6px_rgba(74,158,255,0.85)]"
+                    aria-hidden="true"
+                  />
+                  <span className="font-mono text-[10px] font-bold tracking-[0.15em] text-[#E5E9F0]">
+                    {band.label}
+                  </span>
                 </div>
               ))}
 
-            {/* 조작 안내 배지(레거시에 없던 힌트 — crime-register 모드 배지와 같은 톤). */}
-            {showOverlayChrome && (
-              <span className="pointer-events-none absolute top-2 left-1/2 z-10 -translate-x-1/2 rounded-md border border-[#1E2A3C] bg-[#0B121D]/90 px-3 py-1 font-mono text-[11px] text-[#8A93A6]">
-                경계선을 드래그해 상·중·하를 나누세요
-              </span>
-            )}
+            {/* 경계선 핸들 — 라인 양 끝의 노브(드래그 가능함을 암시)와 우측 y값 배지로
+                구성한다. 노브는 순수 장식(pointer-events-none)이며, 실제 드래그는
+                canvas의 mousedown/mousemove가 라인 전체 폭에서 판정한다. */}
+            {showOverlayChrome &&
+              lineState.lineYs.map((y, idx) => {
+                const isDragging = lineState.draggingLine === idx;
+                return (
+                  <div
+                    key={idx}
+                    className="pointer-events-none absolute z-10"
+                    style={{ top: y, left: regionLeft, width: regionWidth }}
+                  >
+                    <span
+                      className={cn(
+                        "absolute left-0 flex size-3 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border transition-all",
+                        isDragging
+                          ? "border-[#EF4444] bg-[#EF4444] shadow-[0_0_10px_rgba(239,68,68,0.9)]"
+                          : "border-[#EF4444]/70 bg-[#0B121D] shadow-[0_0_5px_rgba(239,68,68,0.5)]"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "size-1 rounded-full",
+                          isDragging ? "bg-white" : "bg-[#EF4444]"
+                        )}
+                      />
+                    </span>
+                    <span
+                      className={cn(
+                        "absolute right-0 flex size-3 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border transition-all",
+                        isDragging
+                          ? "border-[#EF4444] bg-[#EF4444] shadow-[0_0_10px_rgba(239,68,68,0.9)]"
+                          : "border-[#EF4444]/70 bg-[#0B121D] shadow-[0_0_5px_rgba(239,68,68,0.5)]"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "size-1 rounded-full",
+                          isDragging ? "bg-white" : "bg-[#EF4444]"
+                        )}
+                      />
+                    </span>
+                    <div
+                      className={cn(
+                        "absolute right-4 flex -translate-y-1/2 items-center gap-1.5 rounded-full border py-0.5 pr-2 pl-1 font-mono text-[10px] tabular-nums transition-colors",
+                        isDragging
+                          ? "border-[#EF4444]/70 bg-[#2a1214]/95 text-[#EF4444] shadow-[0_0_10px_rgba(239,68,68,0.4)]"
+                          : "border-[#1E2A3C] bg-[#0B121D]/85 text-[#8A93A6]"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex size-4 items-center justify-center rounded-full",
+                          isDragging ? "bg-[#EF4444]/20" : "bg-[#1E2A3C]"
+                        )}
+                      >
+                        <GripHorizontal className="size-2.5" aria-hidden="true" />
+                      </span>
+                      {Math.round(y)}
+                    </div>
+                  </div>
+                );
+              })}
+
           </div>
+        ) : onUpload ? (
+          // 업로드 드롭존 — crime-register EvidenceImagePanel의 빈 상태와 같은 언어.
+          <button
+            type="button"
+            onClick={() => uploadInputRef.current?.click()}
+            className="relative flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#26334A] px-10 py-8 text-[#5B6B85] transition-colors hover:border-[#3B82F6]/60 hover:text-[#4A9EFF]"
+          >
+            <ImagePlus className="size-9" aria-hidden="true" />
+            <span className="text-sm font-medium">신발 이미지를 업로드하세요</span>
+            <span className="text-[11px] text-[#4C5670]">클릭하여 이미지 파일 선택</span>
+          </button>
         ) : (
           <div className="flex flex-col items-center gap-3 text-[#5B6B85]">
             <ImageOff className="size-9" aria-hidden="true" />
@@ -451,17 +943,37 @@ export function PatternCanvas({
         )}
       </div>
 
-      {/* 하단 상태표시줄 — EvidenceImagePanel/CrimeScenePanel과 같은 톤으로
-          치수·현재 뷰·경계선 개수를 요약한다(표시 전용, 파생값만 사용). */}
-      <div className="flex flex-wrap items-center gap-3 border-t border-[#141D2C] px-6 py-3">
-        <span className="rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2.5 py-1 font-mono text-[11px] tabular-nums text-[#8A93A6]">
-          {naturalSize.w} x {naturalSize.h} px
+      {/* 하단 상태표시줄 — 기존 툴바 밴드의 문양추출/초기화 버튼을 여기로 옮겨와
+          컴팩트하게 재구성했다. activeView는 위 헤더 스와퍼의 선택 상태 자체가
+          표시 역할을 겸하므로 별도 배지는 생략해 폭을 확보했다(기능은 동일하게
+          유지 — onShowOrigin/onShowEdit/activeView 상태 변경 로직 무수정).
+          경계선 안내 문구는 좁은 열에서 줄바꿈으로 행이 늘지 않도록 md 이상에서만
+          보이고 truncate로 흘러넘치지 않게 한다. */}
+      <div className="flex items-center gap-2 border-t border-[#141D2C] px-4 py-2">
+        <ToolButton
+          icon={Radar}
+          label={isExtracting ? "추출중" : "추출"}
+          onClick={onExtract}
+          variant="accent"
+          disabled={isExtracting}
+          pending={isExtracting}
+        />
+        <ToolButton
+          icon={RotateCcw}
+          label="초기화"
+          onClick={onClear}
+          disabled={isExtracting}
+        />
+        <div className="h-5 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
+        <span className="shrink-0 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-1 font-mono text-[10px] tabular-nums text-[#8A93A6]">
+          {naturalSize.w}×{naturalSize.h}
         </span>
-        <span className="rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-0.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase">
-          {activeView}
+        <span className="hidden min-w-0 flex-1 items-center gap-1 truncate font-mono text-[10px] text-[#8A93A6] md:flex">
+          <GripHorizontal className="size-3 shrink-0 text-[#4A9EFF]" aria-hidden="true" />
+          <span className="truncate">경계선 드래그로 상/중/하 분할</span>
         </span>
-        <span className="ml-auto font-mono text-[11px] tracking-wide text-[#6B7688] uppercase">
-          Line Edit · {lineState.lineYs.length} Boundaries
+        <span className="ml-auto shrink-0 font-mono text-[11px] tracking-wide text-[#6B7688] uppercase">
+          {lineState.lineYs.length} Boundaries
         </span>
       </div>
     </section>

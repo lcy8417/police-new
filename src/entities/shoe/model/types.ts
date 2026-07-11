@@ -68,3 +68,26 @@ export interface UpdateShoeInput {
   modelNumber: string;
   body: Shoe;
 }
+
+/**
+ * POST /shoes/register body. Mirror of legacy `ShoesRegister.jsx`'s inline
+ * fetch: every pattern zone is stripped to bare names (`onlyPatternName` →
+ * typed `stripPatternPath`) and `image` keeps its base64 payload with the
+ * `data:image/...;base64,` prefix removed (`stripDataUrlPrefix`). Unlike
+ * `ShoesEditBody`, register KEEPS `image` (edit drops it). Field names stay
+ * camelCase on the wire — the backend accepts the camelCase CRUD write shape,
+ * so there is no re-conversion to snake_case before sending.
+ */
+export interface ShoesRegisterBody {
+  id?: number;
+  modelNumber?: string;
+  findLocation?: string;
+  manufacturer?: string;
+  findYear?: number | string;
+  emblem?: string;
+  image: string;
+  top: string[];
+  mid: string[];
+  bottom: string[];
+  outline: string[];
+}

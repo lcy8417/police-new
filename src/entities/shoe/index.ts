@@ -1,3 +1,10 @@
-export { fetchShoesList, fetchShoeDetail, updateShoe } from "./api/shoe-api";
+export { fetchShoesList, fetchShoeDetail, updateShoe, registerShoe } from "./api/shoe-api";
 export { shoeKeys } from "./api/query-keys";
-export type { Shoe, ShoeDto, ShoePattern, ShoesEditBody, UpdateShoeInput } from "./model/types";
+export type {
+  Shoe,
+  ShoeDto,
+  ShoePattern,
+  ShoesEditBody,
+  ShoesRegisterBody,
+  UpdateShoeInput,
+} from "./model/types";

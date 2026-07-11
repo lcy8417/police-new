@@ -1,7 +1,13 @@
-import { apiGet, apiSend } from "@/shared/api";
+import { apiGet, apiSend, stripDataUrlPrefix } from "@/shared/api";
 import { convertKeysToCamelCase } from "@/shared/lib";
 import { stripPatternPath } from "@/entities/pattern";
-import type { Shoe, ShoeDto, ShoesEditBody, UpdateShoeInput } from "../model/types";
+import type {
+  Shoe,
+  ShoeDto,
+  ShoesEditBody,
+  ShoesRegisterBody,
+  UpdateShoeInput,
+} from "../model/types";
 
 const stripZone = (entries: string[]): string[] =>
   entries.map((entry) => stripPatternPath(entry) as string);
@@ -38,4 +44,28 @@ export async function updateShoe({ modelNumber, body }: UpdateShoeInput): Promis
   const response = await apiSend(`/shoes/${modelNumber}`, "PUT", editBody);
   const data = await response.json();
   return convertKeysToCamelCase<Shoe>(data);
+}
+
+/**
+ * POST /shoes/register — register a new shoe. Typed successor to legacy
+ * `ShoesRegister.jsx`'s inline `fetch(POST /shoes/register)`:
+ *  - strips every pattern zone to bare names (`stripPatternPath`),
+ *  - removes the `data:image/...;base64,` prefix from `image` (`stripDataUrlPrefix`),
+ *    but — unlike `updateShoe` — KEEPS the image in the body,
+ *  - leaves the remaining field names camelCase on the wire (CRUD write shape).
+ * Returns `void` (mirrors the legacy call, which discarded the response body).
+ */
+export async function registerShoe(input: Shoe): Promise<void> {
+  const { image, ...rest } = input;
+
+  const body: ShoesRegisterBody = {
+    ...rest,
+    image: stripDataUrlPrefix(image ?? ""),
+    top: stripZone(rest.top),
+    mid: stripZone(rest.mid),
+    bottom: stripZone(rest.bottom),
+    outline: stripZone(rest.outline),
+  };
+
+  await apiSend("/shoes/register", "POST", body);
 }

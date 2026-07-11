@@ -45,7 +45,15 @@ export interface ShoesResultPathOptions {
   page?: number
 }
 
-/** 신발 검색 결과: `/search/:crimeNumber/shoesResult` (?edit&page) */
+/**
+ * 신발 검색 결과: `/search/:crimeNumber/shoesResult` (?edit&page)
+ *
+ * 검색 결과가 `CrimeDetailPage`의 검색모드로 인라인화되면서 이 경로로의
+ * 페이지 이동은 더 이상 필요하지 않다(`/shoesResult` 라우트는 `App.jsx`에서
+ * detail로 즉시 리다이렉트된다). 다만 `CrimeDetailPage`의 `handleSearch`가
+ * 아직 이 함수로 navigate하고 있어 지금은 제거하지 않는다 — 그 호출이
+ * `setSearchActive(true)`로 대체되면 `@deprecated` 처리 후 제거를 검토할 것.
+ */
 export function shoesResultPath(
   crimeNumber: string,
   { edit, page }: ShoesResultPathOptions = {}
