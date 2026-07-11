@@ -125,7 +125,7 @@ export function PatternZones({
                     </span>
                   )}
                 </span>
-                <span className="font-mono text-[10px] tabular-nums text-[#5B6B85]">
+                <span className="min-w-[20px] rounded-full border border-[#3B82F6]/40 bg-[#152238]/70 px-1.5 py-0.5 text-center font-mono text-[10px] font-semibold tabular-nums text-[#4A9EFF]">
                   {patterns.length}
                 </span>
               </button>

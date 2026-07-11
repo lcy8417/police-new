@@ -397,6 +397,30 @@ export function PatternCanvas({
               onLoad={handleImageLoad}
               className="h-full w-auto max-w-full object-contain select-none"
             />
+
+            {/* 상/중/하 영역 배경 틴트 — 같은 파란 계열에서 깊이(투명도/명도)만 달리해
+                세 구간을 은은히 구분한다(알록달록 X). canvas보다 아래(이미지 위)에 두어
+                경계선/문양은 그대로 위에 그려지고, 순수 장식이라 좌표 판정에 관여하지 않는다. */}
+            {showOverlayChrome && (
+              <>
+                <div
+                  className="pointer-events-none absolute inset-x-0 bg-[#4A9EFF]/[0.06]"
+                  style={{ top: 0, height: minY }}
+                  aria-hidden="true"
+                />
+                <div
+                  className="pointer-events-none absolute inset-x-0 bg-[#3B82F6]/[0.11]"
+                  style={{ top: minY, height: Math.max(0, maxY - minY) }}
+                  aria-hidden="true"
+                />
+                <div
+                  className="pointer-events-none absolute inset-x-0 bg-[#1D4ED8]/[0.15]"
+                  style={{ top: maxY, height: Math.max(0, canvasSize.h - maxY) }}
+                  aria-hidden="true"
+                />
+              </>
+            )}
+
             <canvas
               ref={canvasRef}
               onMouseDown={handleMouseDown}
