@@ -1,3 +1,4 @@
+import { useState, type DragEvent } from "react";
 import { Crosshair, ImageOff, Target, Trash2 } from "lucide-react";
 
 import type { Crime } from "@/entities/crime";
@@ -21,6 +22,8 @@ interface PatternZonesProps {
   essentialCheck: (kind: PatternZone, src: string) => void;
   /** 현재 사건 데이터(store 파생). 각 부위의 문양 튜플 배열을 읽는다. */
   currentData: Crime | null | undefined;
+  /** 문양 리스트에서 드래그한 문양을 해당 부위로 삽입한다(현재 선택과 무관). */
+  onDropToZone?: (kind: PatternZone, src: string) => void;
 }
 
 /** 범죄 패턴 튜플 `[경로, 필수플래그]` / 신발 문자열 어느 표현이든 [경로, 필수]로 정규화. */
@@ -40,7 +43,18 @@ export function PatternZones({
   deletePattern,
   essentialCheck,
   currentData,
+  onDropToZone,
 }: PatternZonesProps) {
+  // 드래그 오버 중인 부위 — 시각 피드백(하이라이트)에만 쓰는 표시 전용 상태.
+  const [dragOverKey, setDragOverKey] = useState<PatternZone | null>(null);
+
+  const handleDrop = (kind: PatternZone) => (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOverKey(null);
+    const src = e.dataTransfer.getData("text/plain");
+    if (src) onDropToZone?.(kind, src);
+  };
+
   return (
     <section className="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
       <TechCorners size={20} active={selected !== null} />
@@ -67,15 +81,29 @@ export function PatternZones({
       <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-2.5 p-3">
         {ZONES.map(({ label, key }, index) => {
           const isSelected = selected === index;
+          const isDragOver = dragOverKey === key;
           const patterns = currentData?.[key] ?? [];
           return (
             <div
               key={key}
+              // 각 부위를 드롭 타깃으로 만든다. onDragOver의 preventDefault가
+              // 있어야 onDrop이 발생한다.
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "copy";
+                if (dragOverKey !== key) setDragOverKey(key);
+              }}
+              onDragLeave={() => {
+                if (dragOverKey === key) setDragOverKey(null);
+              }}
+              onDrop={handleDrop(key)}
               className={cn(
                 "flex min-h-0 flex-col overflow-hidden rounded-xl border bg-[#0F1826] transition-colors",
-                isSelected
-                  ? "border-[#3B82F6]/60 shadow-[0_0_16px_rgba(37,99,235,0.2)]"
-                  : "border-[#1E2A3C]"
+                isDragOver
+                  ? "border-[#4A9EFF] shadow-[0_0_18px_rgba(74,158,255,0.35)]"
+                  : isSelected
+                    ? "border-[#3B82F6]/60 shadow-[0_0_16px_rgba(37,99,235,0.2)]"
+                    : "border-[#1E2A3C]"
               )}
             >
               <button

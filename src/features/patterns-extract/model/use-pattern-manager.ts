@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 
 import { useCrimeStore, type Crime } from "@/entities/crime";
-import type { PatternEntry, PatternZone } from "@/entities/pattern";
+import {
+  stripPatternPath,
+  type PatternEntry,
+  type PatternZone,
+} from "@/entities/pattern";
 import type { Shoe } from "@/entities/shoe";
 import filesLoad from "@/hooks/useFileLoad";
 import { patternsExtract } from "@/services/api";
@@ -33,7 +37,6 @@ export const usePatternManager = ({
 
   const [patterns, setPatterns] = useState<string[]>([]);
   const [selected, setSelected] = useState<number | null>(null);
-  const crimeData = useCrimeStore((s) => s.crimeData);
   const setCrimeData = useCrimeStore((s) => s.setCrimeData);
   const [lineState, setLineState] = useState<LineState>({
     lineYs: [100, 200],
@@ -164,6 +167,50 @@ export const usePatternManager = ({
     filesLoad(kind, setPatterns);
   };
 
+  // 패턴 경로의 이름(basename)만 비교해 중복 여부를 판정한다. 추출 저장 경로
+  // (`${VITE_API_URL}/patterns/<이름>.png`)와 팔레트 썸네일 경로
+  // (Vite glob `/src/assets/Patterns/<폴더>/<이름>.png`)는 표현이 달라 전체
+  // 경로로는 항상 불일치하므로, stripPatternPath로 이름만 뽑아 통일해 비교한다.
+  const patternName = (src: string): string => stripPatternPath(src) as string;
+
+  // 지정한 부위(kind)에 문양을 삽입하는 공통 로직. 이름 기준 중복 검사로 팔레트
+  // 클릭/드래그·문양추출 어느 경로로 들어온 문양이든 한 번만 추가되게 한다.
+  const addPattern = (kind: PatternZone, src: string) => {
+    const name = patternName(src);
+
+    if (setFormData) {
+      // shoesRegister에서 호출되는 경우(신발 패턴은 경로 문자열)
+      setFormData((prev) => {
+        if (prev[kind].some((prevSrc) => patternName(prevSrc) === name)) {
+          return prev;
+        }
+        return { ...prev, [kind]: [...prev[kind], src] };
+      });
+      return;
+    }
+
+    // crimeExtract에서 호출되는 경우(범죄 패턴은 [경로, 필수] 튜플)
+    if (index === -1) return; // id가 없는 경우 함수 종료
+
+    setCrimeData((prev) => {
+      if (index === -1) return prev; // id가 없는 경우 기존 상태 반환
+
+      return prev.map((item, i) => {
+        if (i !== index) return item;
+
+        const exists = item[kind]?.some(
+          (entry) => patternName(entry[0]) === name
+        );
+        if (exists) return item;
+
+        return {
+          ...item,
+          [kind]: [...item[kind], [src, 0] as PatternEntry], // 새로운 데이터 추가
+        };
+      });
+    });
+  };
+
   const insertPattern = (e: React.MouseEvent<HTMLImageElement>) => {
     // Selected zone index -> zone name. When `selected` is null this yields
     // `undefined`, matching the original JS `arr[null]` lookup (also
@@ -174,36 +221,13 @@ export const usePatternManager = ({
     ] as PatternZone;
     const src = (e.target as HTMLImageElement).src;
 
-    if (setFormData) {
-      // shoesRegister에서 호출되는 경우
-      if (selected !== null && !formData![kind].includes(src)) {
-        setFormData((prev) => ({
-          ...prev,
-          [kind]: [...prev[kind], src],
-        }));
-      }
-      return;
-    }
+    if (selected === null) return; // 대상 부위가 없으면 삽입하지 않음
+    addPattern(kind, src);
+  };
 
-    // crimeExtract에서 호출되는 경우
-    if (index === -1) return; // id가 없는 경우 함수 종료
-
-    const exists = crimeData[index][kind]?.some((item) => item[0] === src);
-
-    if (selected !== null && !exists) {
-      setCrimeData((prev) => {
-        if (index === -1) return prev; // id가 없는 경우 기존 상태 반환
-
-        return prev.map((item, i) =>
-          i === index
-            ? {
-                ...item,
-                [kind]: [...item[kind], [src, 0] as PatternEntry], // 새로운 데이터 추가
-              }
-            : item
-        );
-      });
-    }
+  // 드래그앤드롭 등에서 현재 선택과 무관하게 특정 부위로 직접 삽입한다.
+  const insertPatternToZone = (kind: PatternZone, src: string) => {
+    addPattern(kind, src);
   };
 
   const deletePattern = (kind: PatternZone, src: string) => {
@@ -268,6 +292,7 @@ export const usePatternManager = ({
     clearPattern,
     patternsKindSelect,
     insertPattern,
+    insertPatternToZone,
     deletePattern,
     essentialCheck,
     setPatterns, // 추가: 패턴을 외부에서 설정할 수 있도록

@@ -1,5 +1,5 @@
-import { useState, type MouseEvent } from "react";
-import { Database } from "lucide-react";
+import { useState, type DragEvent, type MouseEvent } from "react";
+import { Check, Database } from "lucide-react";
 
 import { cn } from "@/shared/lib/utils";
 import { TechCorners } from "@/shared/ui/tech-corners";
@@ -17,6 +17,11 @@ interface PatternPaletteProps {
   patterns: string[];
   patternsKindSelect: (e: MouseEvent<HTMLButtonElement>) => void;
   insertPattern: (e: MouseEvent<HTMLImageElement>) => void;
+  /**
+   * 현재 선택된 부위에 이미 삽입된 문양인지 이름 기준으로 판정한다. 삽입된
+   * 문양은 비활성화(클릭 불가·흐림·체크 뱃지)된다. 기본값은 항상 false.
+   */
+  isInserted?: (src: string) => boolean;
 }
 
 /**
@@ -29,6 +34,7 @@ export function PatternPalette({
   patterns,
   patternsKindSelect,
   insertPattern,
+  isInserted = () => false,
 }: PatternPaletteProps) {
   // 표시 전용 — 어느 종류 버튼이 활성인지 로컬로 추적한다(usePatternManager는
   // 이 상태를 소유하지 않으므로 계약을 바꾸지 않는다). 마운트 시 훅이 "무늬"를
@@ -74,26 +80,55 @@ export function PatternPalette({
       {/* 삽입 안내 — 문양 정보 패널에서 선택한 부위가 삽입 대상이 된다. */}
       <div className="shrink-0 border-b border-[#141D2C] px-4 py-1.5">
         <span className="font-mono text-[10px] tracking-wide text-[#5B6B85]">
-          썸네일 클릭 시 문양 정보에서 선택한 부위에 삽입됩니다
+          썸네일 클릭·드래그 시 문양 정보에서 선택한 부위에 삽입됩니다
         </span>
       </div>
 
       {/* 문양 썸네일 그리드 */}
       <div className="grid min-h-0 flex-1 auto-rows-max grid-cols-4 gap-2.5 overflow-y-auto p-4 sm:grid-cols-5 lg:grid-cols-6">
-        {patterns.map((src, index) => (
-          <button
-            key={index}
-            type="button"
-            className="group relative aspect-square overflow-hidden rounded-lg border border-[#1E2A3C] bg-[#05080D] transition-colors hover:border-[#3B82F6]/60"
-          >
-            <img
-              src={src}
-              alt={`문양 ${index + 1}`}
-              onClick={insertPattern}
-              className="absolute inset-0 size-full cursor-pointer object-contain p-1.5 transition-transform group-hover:scale-105"
-            />
-          </button>
-        ))}
+        {patterns.map((src, index) => {
+          const inserted = isInserted(src);
+          return (
+            <button
+              key={index}
+              type="button"
+              disabled={inserted}
+              // 드래그 시작 시 문양 경로를 dataTransfer에 실어 문양 정보 존이
+              // 드롭으로 받을 수 있게 한다. 이미 삽입된 문양은 드래그 불가.
+              draggable={!inserted}
+              onDragStart={(e: DragEvent<HTMLButtonElement>) => {
+                e.dataTransfer.setData("text/plain", src);
+                e.dataTransfer.effectAllowed = "copy";
+              }}
+              className={cn(
+                "group relative aspect-square overflow-hidden rounded-lg border bg-[#05080D] transition-colors",
+                inserted
+                  ? "cursor-not-allowed border-[#22C55E]/40 opacity-40"
+                  : "cursor-grab border-[#1E2A3C] hover:border-[#3B82F6]/60"
+              )}
+            >
+              <img
+                src={src}
+                alt={`문양 ${index + 1}`}
+                onClick={inserted ? undefined : insertPattern}
+                className={cn(
+                  "absolute inset-0 size-full object-contain p-1.5 transition-transform",
+                  inserted
+                    ? "pointer-events-none"
+                    : "cursor-pointer group-hover:scale-105"
+                )}
+              />
+              {inserted && (
+                <span
+                  aria-label="삽입됨"
+                  className="absolute top-1 right-1 flex size-4 items-center justify-center rounded-full border border-[#22C55E]/50 bg-[#0B121D]/80 text-[#4ADE80] shadow-[0_0_6px_rgba(34,197,94,0.4)]"
+                >
+                  <Check className="size-2.5" aria-hidden="true" />
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </section>
   );

@@ -24,19 +24,23 @@ interface StackFieldProps {
 function StackField({ label, value, emphasis = false }: StackFieldProps) {
   const isEmpty = value === null || value === undefined || value === ""
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="font-mono text-[10px] tracking-wide text-[#5B6B85] uppercase">
+    <div className="flex min-w-0 flex-col gap-1">
+      {/* 라벨: #5B6B85(대비 3.5:1)는 #0B121D 배경에서 너무 어두워 #8A93A6(대비 6.1:1)로 상향. */}
+      <span className="font-mono text-[10px] font-medium tracking-wider text-[#8A93A6] uppercase">
         {label}
       </span>
       {isEmpty ? (
-        // 값 없음 — 라벨과 같은 muted 톤(#5B6B85)으로 떨어뜨려 실제 값과 위계를 준다.
-        <span className="text-[13px] font-semibold text-[#5B6B85]">-</span>
+        // 값 없음 — 라벨(#8A93A6)보다 한 톤 낮은 #75829B로 떨어뜨려 위계는 유지하되,
+        // 대비비 4.85:1을 확보해 안 보일 만큼 어둡지 않게 한다.
+        <span className="text-[13px] font-semibold text-[#75829B]">-</span>
       ) : emphasis ? (
-        <span className="inline-flex w-fit items-center rounded-full border border-[#3B82F6]/40 bg-[#152238]/60 px-2 py-0.5 text-[12px] font-semibold text-[#4A9EFF]">
+        <span className="inline-flex w-fit max-w-full items-center rounded-full border border-[#3B82F6]/40 bg-[#152238]/60 px-2 py-0.5 text-[12px] font-semibold break-words text-[#4A9EFF]">
           {value}
         </span>
       ) : (
-        <span className="text-[13px] font-semibold text-[#C7CEDB]">{value}</span>
+        // 값: #C7CEDB는 #0B121D 배경 대비 11.9:1로 이미 충분히 밝음 — 색은 유지, 좁은 열에서
+        // 긴 값(사건 이름·의뢰관서 등)이 잘리지 않도록 break-words로 줄바꿈만 보강.
+        <span className="text-[13px] font-semibold break-words text-[#C7CEDB]">{value}</span>
       )}
     </div>
   )
@@ -50,7 +54,7 @@ function StackField({ label, value, emphasis = false }: StackFieldProps) {
  */
 export function CaseInfoStrip({ crimeNumber, currentData }: CaseInfoStripProps) {
   return (
-    <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
+    <section className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
       <TechCorners size={18} />
 
       <div className="flex items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-3">
@@ -58,18 +62,18 @@ export function CaseInfoStrip({ crimeNumber, currentData }: CaseInfoStripProps) 
           <Fingerprint className="size-4 text-[#4A9EFF]" aria-hidden="true" />
           사건 정보
         </span>
-        <span className="font-mono text-[10px] tracking-[0.14em] text-[#5B6B85] uppercase">
+        <span className="font-mono text-[10px] font-medium tracking-[0.14em] text-[#8A93A6] uppercase">
           Case
         </span>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-4 py-4">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-5">
         {/* 사건등록번호는 기본 식별자라 필드 나열이 아닌 스탬프로 고정해 각인한다. */}
-        <div className="flex flex-col gap-1">
-          <span className="font-mono text-[10px] tracking-wide text-[#5B6B85] uppercase">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="font-mono text-[10px] font-medium tracking-wide text-[#8A93A6] uppercase">
             사건등록번호
           </span>
-          <span className="w-fit rounded-md border border-[#3B82F6]/40 bg-[#152238]/60 px-2.5 py-1 font-mono text-[12px] font-semibold tracking-wide text-[#4A9EFF]">
+          <span className="w-fit max-w-full rounded-md border border-[#3B82F6]/40 bg-[#152238]/60 px-2.5 py-1 font-mono text-[12px] font-semibold tracking-wide break-words text-[#4A9EFF]">
             {currentData?.crimeNumber ?? crimeNumber}
           </span>
         </div>

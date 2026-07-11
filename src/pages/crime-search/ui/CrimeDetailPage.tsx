@@ -22,6 +22,7 @@ import {
   PatternZones,
   usePatternManager,
 } from "@/features/patterns-extract"
+import { stripPatternPath, type PatternZone } from "@/entities/pattern"
 import { usePageHeader } from "@/widgets/app-shell"
 import { Badge } from "@/shared/ui/badge"
 import { Button } from "@/shared/ui/button"
@@ -47,6 +48,9 @@ const HEADER_TITLE = (
 
 /** 검색이력 테이블 헤더(레거시 `SearchResults`의 4열과 동일). */
 const HISTORY_COLUMNS = ["ID", "등록일시", "순위", "매칭된 신발 정보"] as const
+
+/** 부위 인덱스(0~3) → 데이터 키. PatternZones의 ZONES 순서와 일치해야 한다. */
+const ZONE_KEYS: PatternZone[] = ["top", "mid", "bottom", "outline"]
 
 /**
  * 통합 커맨드센터 `/search/:crimeNumber`. 기존 사건상세(사건정보·검색이력)와 패턴추출
@@ -80,6 +84,7 @@ export function CrimeDetailPage() {
     clearPattern,
     patternsKindSelect,
     insertPattern,
+    insertPatternToZone,
     deletePattern,
     essentialCheck,
   } = usePatternManager({
@@ -87,6 +92,24 @@ export function CrimeDetailPage() {
     currentData: currentCrimeData ?? null,
     imgRef,
   })
+
+  // 현재 선택된 부위에 이미 삽입된 문양 이름 집합. 팔레트가 이 이름의 썸네일을
+  // 비활성화하도록 이름 기준(경로 표현 차이 무시)으로 계산한다.
+  const insertedNames = useMemo(() => {
+    if (selected === null || !currentCrimeData) return new Set<string>()
+    const key = ZONE_KEYS[selected]
+    const entries = currentCrimeData[key] ?? []
+    return new Set(
+      entries.map(
+        (entry) =>
+          stripPatternPath(typeof entry === "string" ? entry : entry[0]) as string
+      )
+    )
+  }, [selected, currentCrimeData])
+  const isInserted = useCallback(
+    (src: string) => insertedNames.has(stripPatternPath(src) as string),
+    [insertedNames]
+  )
 
   const [isExtracting, setIsExtracting] = useState(false)
   // 검색이력은 기본 접힘 — 문양 작업이 주 흐름이라 필요할 때만 펼친다.
@@ -228,6 +251,7 @@ export function CrimeDetailPage() {
             deletePattern={deletePattern}
             essentialCheck={essentialCheck}
             currentData={currentCrimeData}
+            onDropToZone={insertPatternToZone}
           />
         </div>
 
@@ -236,6 +260,7 @@ export function CrimeDetailPage() {
             patterns={patterns}
             patternsKindSelect={patternsKindSelect}
             insertPattern={insertPattern}
+            isInserted={isInserted}
           />
         </div>
 
