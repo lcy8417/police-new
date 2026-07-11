@@ -1,7 +1,20 @@
-import { useCallback, useRef, useState, type ReactNode } from "react"
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { ImagePlus, RotateCcw, RotateCw, type LucideIcon } from "lucide-react"
+import {
+  FilePlus2,
+  ImagePlus,
+  Pencil,
+  RotateCcw,
+  RotateCw,
+  type LucideIcon,
+} from "lucide-react"
 
 import {
   EMPTY_SHOE_FORM,
@@ -18,7 +31,15 @@ import {
   usePatternManager,
 } from "@/features/patterns-extract"
 import { rotateArbitrary } from "@/features/crime-register"
+import { Button } from "@/shared/ui/button"
 import { Slider } from "@/shared/ui/slider"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/shared/ui/sheet"
 import { resizeImage } from "@/utils/get-input-change"
 
 import { ShoeInfoPanel } from "./ShoeInfoPanel"
@@ -74,8 +95,13 @@ interface ShoeWorkbenchProps {
   /** view 모드 [편집] 버튼 클릭 — 페이지가 편집 모드로 라우팅한다. */
   onEdit?: () => void
   /**
-   * 4번째 열 하단에 신발 정보 패널과 함께 세로로 스택할 목록 패널(공간 절약 —
-   * 정보 + 목록을 한 열로 합친다). 없으면 정보 패널만 렌더한다.
+   * 기존 신발 편집 중 "신규 신발 등록" 버튼 클릭 — 페이지가 ?mode=new로 라우팅해
+   * 전체를 초기화한다. 편집 모드에서는 이미지 교체 대신 신규 등록으로 유도한다.
+   */
+  onNewRegister?: () => void
+  /**
+   * 기존 신발 모드(view/edit)의 4번째 열에 렌더할 신발 목록 패널. 신규 등록 모드
+   * (mode="new")에서는 무시하고 신발 정보 폼을 인라인으로 렌더한다.
    */
   listPanel?: ReactNode
 }
@@ -97,8 +123,11 @@ export function ShoeWorkbench({
   initialShoe,
   onSaved,
   onEdit,
+  onNewRegister,
   listPanel,
 }: ShoeWorkbenchProps) {
+  // 기존 신발 기본정보 편집 Sheet 개폐 상태(우측 드로어).
+  const [infoSheetOpen, setInfoSheetOpen] = useState(false)
   // 편집 = hydrate된 initialShoe, 신규 = 빈 폼. 페이지가 신발 전환 시 key로
   // 리마운트하므로 지연 초기화로 충분하다.
   const [formData, setFormData] = useState<Shoe>(
@@ -115,10 +144,37 @@ export function ShoeWorkbench({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const isEdit = mode === "edit"
+  const isNew = mode === "new"
   const readOnly = mode === "view"
 
   // 문양·경계선·추출 상태는 features 훅이 소유한다(신발 모드: formData/setFormData).
   const pm = usePatternManager({ formData, setFormData, imgRef })
+
+  // 기존(서버) 이미지 회전 버그 대응: 신규 업로드는 canvas 재그리기(resizeImage)로
+  // 만든 깨끗한 same-origin data URL이라 rotateArbitrary가 잘 돌지만, 서버 이미지는
+  // 회전(canvas.toDataURL) 시 taint되거나 포맷이 달라 회전이 조용히 실패할 수 있다.
+  // 편집/조회 진입 시(key 리마운트로 신발마다 1회) 동일 파이프라인으로 정규화한다.
+  useEffect(() => {
+    const src = initialShoe?.image
+    if (!src) return
+    let cancelled = false
+    void resizeImage(src)
+      .then((clean) => {
+        if (cancelled || uploadedRef.current !== src) return
+        uploadedRef.current = clean
+        setFormData((prev) =>
+          prev.image === src ? { ...prev, image: clean } : prev
+        )
+      })
+      .catch(() => {
+        // 실패(예: CORS 없는 교차출처 서버 이미지)면 원본 유지 — 이 경우 회전은
+        // 백엔드 CORS 헤더 또는 data URL 응답이 필요하다(프론트 단독 해결 불가).
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleFieldChange = useCallback((name: keyof Shoe, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -275,15 +331,27 @@ export function ShoeWorkbench({
   // 캔버스 헤더 아래에 얹는 회전 툴바 밴드(EvidenceImagePanel 회전 툴바 언어).
   const rotationToolbar = (
     <div className="flex items-center gap-3 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
-      {/* 이미지 교체 — 이미지 유무와 무관하게 새 이미지로 재업로드한다. */}
-      <button
-        type="button"
-        onClick={handleUploadClick}
-        className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-3 text-xs font-medium text-[#C7CEDB] transition-colors hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
-      >
-        <ImagePlus className="size-3.5" aria-hidden="true" />
-        {formData.image ? "이미지 교체" : "이미지 등록"}
-      </button>
+      {/* 신규 모드: 이미지 업로드/교체. 편집 모드: 이미지는 교체하지 않고 "신규 신발
+          등록"으로 유도한다(기존 신발 이미지 교체 대신 새 등록 — 전체 초기화). */}
+      {isNew ? (
+        <button
+          type="button"
+          onClick={handleUploadClick}
+          className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-3 text-xs font-medium text-[#C7CEDB] transition-colors hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
+        >
+          <ImagePlus className="size-3.5" aria-hidden="true" />
+          {formData.image ? "이미지 교체" : "이미지 등록"}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onNewRegister}
+          className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-[#2DD4BF]/40 bg-[#0F2624] px-3 text-xs font-medium text-[#5FE0D0] transition-colors hover:border-[#2DD4BF]/60 hover:bg-[#123330] hover:text-[#2DD4BF]"
+        >
+          <FilePlus2 className="size-3.5" aria-hidden="true" />
+          신규 신발 등록
+        </button>
+      )}
 
       <div className="h-6 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
 
@@ -356,8 +424,26 @@ export function ShoeWorkbench({
     />
   )
 
+  // 4번째 열: 신규 등록은 정보 폼을 인라인으로, 기존 신발은 목록 + [정보 편집](→ Sheet).
+  const col4 = isNew ? (
+    infoPanel
+  ) : (
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      <Button
+        type="button"
+        onClick={() => setInfoSheetOpen(true)}
+        className="h-10 shrink-0 justify-center border border-[#3B82F6]/40 bg-[#152238] text-[#4A9EFF] shadow-[0_0_16px_rgba(37,99,235,0.3)] hover:bg-[#182b45]"
+      >
+        <Pencil className="size-4" aria-hidden="true" />
+        {readOnly ? "정보 보기" : "정보 편집"}
+      </Button>
+      <div className="min-h-0 flex-1">{listPanel}</div>
+    </div>
+  )
+
   return (
-    <div className="relative grid h-full grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.85fr)]">
+    <>
+      <div className="relative grid h-full grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.85fr)]">
       {/* "이미지 교체" 버튼용 숨은 파일 입력(캔버스 드롭존과 별개 진입점). */}
       <input
         ref={fileInputRef}
@@ -409,15 +495,26 @@ export function ShoeWorkbench({
         isInserted={isInserted}
         readOnly={readOnly}
       />
-      {/* 4번째 열: 신발 정보(위) + 신발 목록(아래)을 한 열로 합쳐 공간을 절약한다. */}
-      {listPanel ? (
-        <div className="grid min-h-0 grid-rows-[minmax(0,1.05fr)_minmax(0,0.95fr)] gap-4">
-          {infoPanel}
-          {listPanel}
-        </div>
-      ) : (
-        infoPanel
+      {col4}
+      </div>
+
+      {/* 기존 신발 기본정보 편집 Sheet(우측 드로어) — [정보 편집/보기]로 연다. */}
+      {!isNew && (
+        <Sheet open={infoSheetOpen} onOpenChange={setInfoSheetOpen}>
+          <SheetContent
+            side="right"
+            className="w-full border-l border-[#1E2A3C] bg-[#0B121D] p-4 sm:max-w-md"
+          >
+            <SheetHeader className="sr-only">
+              <SheetTitle>신발 기본 정보</SheetTitle>
+              <SheetDescription>
+                모델번호·제조사 등 신발 메타 정보를 편집하고 저장합니다.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="h-full pt-2">{infoPanel}</div>
+          </SheetContent>
+        </Sheet>
       )}
-    </div>
+    </>
   )
 }

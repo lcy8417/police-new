@@ -31,9 +31,9 @@ test("app-shell persists across route navigation", async ({ page }) => {
   // Screenshot for manual visual review against the reference design.
   await page.screenshot({ path: "test-results/app-shell-crimeRegister.png" });
 
-  // Client-side navigate via the sidebar.
-  await page.getByRole("link", { name: "신발 등록" }).click();
-  await expect(page).toHaveURL(/shoesRegister/);
+  // Client-side navigate via the sidebar. 신발 등록/조회는 단일 "신발" 탭으로 통합됐다.
+  await page.getByRole("link", { name: "신발", exact: true }).click();
+  await expect(page).toHaveURL(/shoesRepository/);
 
   // The very same shell node must still be mounted → shell did not remount.
   const stillConnected = await shellHandle!.evaluate((el) => el.isConnected);

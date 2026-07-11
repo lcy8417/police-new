@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowLeft, Pencil, Plus } from "lucide-react"
+import { ArrowLeft, Plus } from "lucide-react"
 
 import {
   fetchShoeDetail,
@@ -149,28 +149,16 @@ export function ShoeRepositoryPage() {
         </Button>
       )
     }
-    // 조회(read-only/idle): [+ 새 신발] 상시 + 선택 시 [편집].
+    // 조회(read-only/idle): [+ 새 신발]. 편집 진입은 목록 클릭 또는 정보 Sheet의 [편집].
     return (
-      <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => navigate(shoeRegisterNewPath())}
-          className="border border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#2DD4BF]/50 hover:bg-[#141F30] hover:text-white"
-        >
-          <Plus className="size-4" aria-hidden="true" />새 신발
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          disabled={!modelNumber}
-          onClick={() => navigate(shoeEditModePath(modelNumber))}
-          className="border border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_18px_rgba(37,99,235,0.35)] hover:bg-[#182b45] disabled:border-[#1E2A3C] disabled:bg-[#0F1826] disabled:text-[#5B6B85] disabled:shadow-none"
-        >
-          <Pencil className="size-4" aria-hidden="true" />
-          편집
-        </Button>
-      </div>
+      <Button
+        type="button"
+        size="sm"
+        onClick={() => navigate(shoeRegisterNewPath())}
+        className="border border-[#2DD4BF]/40 bg-[#0F2624] text-[#5FE0D0] hover:border-[#2DD4BF]/60 hover:bg-[#123330] hover:text-[#2DD4BF]"
+      >
+        <Plus className="size-4" aria-hidden="true" />새 신발
+      </Button>
     )
   }, [isNew, isEdit, modelNumber, navigate])
 
@@ -224,6 +212,7 @@ export function ShoeRepositoryPage() {
             ? () => navigate(shoeEditModePath(modelNumber))
             : undefined
         }
+        onNewRegister={() => navigate(shoeRegisterNewPath())}
         listPanel={shoeListPanel}
       />
     </div>
