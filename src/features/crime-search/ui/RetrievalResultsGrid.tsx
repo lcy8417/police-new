@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { ChevronLeft, ChevronRight, LayoutGrid, Loader2, Radar } from "lucide-react"
+import { ChevronLeft, ChevronRight, LayoutGrid, Loader2, Radar, SearchX } from "lucide-react"
 
 import { Badge } from "@/shared/ui/badge"
 import { Button } from "@/shared/ui/button"
@@ -138,17 +138,30 @@ export function RetrievalResultsGrid({
         className="relative grid min-h-0 flex-1 auto-rows-max grid-cols-2 gap-4 overflow-y-auto p-5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5"
       >
         {isLoading && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[#05080D]/80 backdrop-blur-sm">
-            <div className="relative flex size-12 items-center justify-center">
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-[#05080D]/85 backdrop-blur-md">
+            <div className="relative flex size-24 items-center justify-center">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4A9EFF]/20" />
-              <Radar className="absolute size-11 text-[#4A9EFF]/25" aria-hidden="true" />
-              <Loader2 className="size-5 animate-spin text-[#4A9EFF]" aria-hidden="true" />
+              <span className="absolute inline-flex size-20 rounded-full border border-[#4A9EFF]/20" />
+              <Radar className="absolute size-[88px] text-[#4A9EFF]/25" aria-hidden="true" />
+              <Loader2 className="size-9 animate-spin text-[#4A9EFF]" aria-hidden="true" />
             </div>
-            <span className="font-mono text-xs tracking-[0.14em] text-[#4A9EFF] uppercase">
+            <span className="font-mono text-[15px] tracking-[0.2em] text-[#4A9EFF] uppercase">
               신발 검색 중
             </span>
-            <span className="font-mono text-[10px] tracking-wide text-[#5B6B85]">
+            <span className="font-mono text-[12px] tracking-wide text-[#5B6B85]">
               DB 매칭 분석 진행 중...
+            </span>
+          </div>
+        )}
+
+        {!isLoading && results.length === 0 && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 text-[#5B6B85]">
+            <SearchX className="size-14" aria-hidden="true" />
+            <span className="text-[16px] font-semibold text-[#8A93A6]">
+              검색 결과가 없습니다
+            </span>
+            <span className="font-mono text-[12px] tracking-wide text-[#5B6B85]">
+              필수 문양을 조정해 다시 검색해 보세요
             </span>
           </div>
         )}
