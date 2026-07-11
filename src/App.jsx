@@ -12,10 +12,8 @@ import {
   CrimeHistoryPage as CrimeHistory,
   ResultDetailPage as ResultDetail,
 } from "@/pages/crime-search";
-import { ShoeRegisterPage } from "@/pages/shoe-register";
 import CrimeEdit from "./pages/CrimeEdit";
 import { ShoeRepositoryPage } from "@/pages/shoe-repository";
-import ShoesEdit from "./pages/ShoesEdit";
 import EditorMode from "./pages/EditorMode";
 
 import { useEffect } from "react";
@@ -34,6 +32,20 @@ function PatternExtractRedirect() {
 function ShoesResultRedirect() {
   const { crimeNumber = "" } = useParams();
   return <Navigate to={`/search/${crimeNumber}`} replace />;
+}
+
+// 신발 등록·조회·편집은 통합 커맨드센터(`/shoesRepository`)로 흡수됐다. 레거시
+// `/shoesRegister`·`/shoesEdit/:modelNumber` 경로(사이드바·북마크·레거시 링크)는
+// 각각 등록 모드·편집 모드 URL로 리다이렉트해 하위 호환을 유지한다.
+function ShoeRegisterRedirect() {
+  return <Navigate to="/shoesRepository?mode=new" replace />;
+}
+
+function ShoesEditRedirect() {
+  const { modelNumber = "" } = useParams();
+  return (
+    <Navigate to={`/shoesRepository/${modelNumber}?mode=edit`} replace />
+  );
 }
 
 function App() {
@@ -77,13 +89,16 @@ function App() {
               element={<ResultDetail />}
             />
             <Route path="/edit/:crimeNumber" element={<CrimeEdit />} />
-            <Route path="/shoesRegister" element={<ShoeRegisterPage />} />
+            <Route path="/shoesRegister" element={<ShoeRegisterRedirect />} />
             <Route path="/shoesRepository" element={<ShoeRepositoryPage />} />
             <Route
               path="/shoesRepository/:modelNumber"
               element={<ShoeRepositoryPage />}
             />
-            <Route path="/shoesEdit/:modelNumber" element={<ShoesEdit />} />
+            <Route
+              path="/shoesEdit/:modelNumber"
+              element={<ShoesEditRedirect />}
+            />
           </Route>
           {/* Standalone image editor — intentionally outside the shell. */}
           <Route path="/editormode" element={<EditorMode />} />
