@@ -168,9 +168,10 @@ export function PatternCanvas({
     };
   }, [recompute, imgRef, image]);
 
-  // 상/중/하 경계선을 그린다. 레거시의 반투명 빨강 점선 가이드를 유지하되,
-  // 드래그 중인 선만 살짝 굵고 발광하도록 표시해 조작 대상을 명확히 한다
-  // (좌표·색상 값 자체는 변경하지 않음).
+  // 상/중/하 경계선을 그린다. 의미색 레드(rgba(239,68,68,*))는 고정하되, 표현만
+  // 좌우 페이드 그라디언트 + 은은한 글로우 + 둥근 라인 캡으로 다듬어 하이테크
+  // 스캔라인처럼 보이게 한다. 드래그 중인 선은 굵기·글로우를 키워 조작 대상을
+  // 명확히 한다(좌표·색상 값 자체는 변경하지 않음).
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -180,16 +181,18 @@ export function PatternCanvas({
     lineState.lineYs.forEach((y, idx) => {
       const isDragging = lineState.draggingLine === idx;
       ctx.save();
-      ctx.strokeStyle = "rgba(239, 68, 68, 0.8)"; // 의미색 레드(경계 가이드) — 고정
-      ctx.lineWidth = isDragging ? 8 : 7;
-      ctx.setLineDash([5, 3]);
-      if (isDragging) {
-        ctx.shadowColor = "rgba(239, 68, 68, 0.9)";
-        ctx.shadowBlur = 10;
-      }
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      gradient.addColorStop(0, "rgba(239, 68, 68, 0.1)");
+      gradient.addColorStop(0.5, isDragging ? "rgba(239, 68, 68, 1)" : "rgba(239, 68, 68, 0.85)");
+      gradient.addColorStop(1, "rgba(239, 68, 68, 0.1)");
+      ctx.strokeStyle = gradient; // 의미색 레드(경계 가이드) — 고정, 그라디언트로만 표현
+      ctx.lineCap = "round";
+      ctx.lineWidth = isDragging ? 3.5 : 2.5;
+      ctx.shadowColor = "rgba(239, 68, 68, 0.85)";
+      ctx.shadowBlur = isDragging ? 16 : 7;
       ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
+      ctx.moveTo(6, y);
+      ctx.lineTo(canvas.width - 6, y);
       ctx.stroke();
       ctx.restore();
     });
@@ -351,27 +354,27 @@ export function PatternCanvas({
           체커보드 눈금 바 / 모서리 십자선 / 하단 상태표시줄은 crime-register
           `EvidenceImagePanel` · 검색결과 `CrimeScenePanel`과 같은 뷰포트 언어로,
           4개 화면이 하나의 시스템처럼 읽히게 한다. */}
-      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#05080D] p-4">
+      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#05080D] px-2 py-3">
         {image && (
           <>
             <div
-              className="absolute inset-x-2 top-2 h-[8px] rounded-sm opacity-70"
+              className="absolute inset-x-1.5 top-1.5 h-[6px] rounded-sm opacity-70"
               style={{
                 backgroundImage:
                   "repeating-linear-gradient(90deg, #E5E9F0 0 8px, #0B121D 8px 16px)",
               }}
             />
             <div
-              className="absolute inset-y-2 left-2 w-[8px] rounded-sm opacity-70"
+              className="absolute inset-y-1.5 left-1.5 w-[6px] rounded-sm opacity-70"
               style={{
                 backgroundImage:
                   "repeating-linear-gradient(180deg, #E5E9F0 0 8px, #0B121D 8px 16px)",
               }}
             />
-            <Crosshair className="absolute top-4 left-4 size-5 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
-            <Crosshair className="absolute top-4 right-4 size-5 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
-            <Crosshair className="absolute bottom-4 left-4 size-5 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
-            <Crosshair className="absolute right-4 bottom-4 size-5 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
+            <Crosshair className="absolute top-2.5 left-2 size-4 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
+            <Crosshair className="absolute top-2.5 right-2 size-4 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
+            <Crosshair className="absolute bottom-2.5 left-2 size-4 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
+            <Crosshair className="absolute right-2 bottom-2.5 size-4 text-[#4A9EFF]/70 drop-shadow-[0_0_4px_rgba(74,158,255,0.6)]" aria-hidden="true" />
           </>
         )}
 
@@ -398,35 +401,88 @@ export function PatternCanvas({
             />
 
             {/* 상/중/하 부위 라벨 — 두 경계선이 만드는 세 구간의 중심에 배치한다.
-                순수 표시용 파생값(minY/maxY)만 사용하며 lineState는 읽기만 한다. */}
+                순수 표시용 파생값(minY/maxY)만 사용하며 lineState는 읽기만 한다.
+                PatternZones의 "필수" 배지와 같은 점+텍스트 필 언어로 통일했다. */}
             {showOverlayChrome &&
               zoneBands.map((band) => (
-                <span
+                <div
                   key={band.label}
-                  className="pointer-events-none absolute left-1.5 z-10 -translate-y-1/2 rounded border border-[#1E2A3C] bg-[#0B121D]/85 px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wide text-[#8A93A6]"
+                  className="pointer-events-none absolute left-1.5 z-10 flex -translate-y-1/2 items-center gap-1.5 rounded-full border border-[#3B82F6]/40 bg-[#0B121D]/90 py-1 pr-2.5 pl-1.5 shadow-[0_0_10px_rgba(37,99,235,0.2)]"
                   style={{ top: band.center }}
                 >
-                  {band.label}
-                </span>
-              ))}
-
-            {/* 경계선 핸들 태그 — 드래그 가능함을 알리고, 드래그 중인 선을 강조한다. */}
-            {showOverlayChrome &&
-              lineState.lineYs.map((y, idx) => (
-                <div
-                  key={idx}
-                  className={cn(
-                    "pointer-events-none absolute right-1.5 z-10 flex -translate-y-1/2 items-center gap-1 rounded border px-1.5 py-0.5 font-mono text-[10px] tabular-nums transition-colors",
-                    lineState.draggingLine === idx
-                      ? "border-[#EF4444]/60 bg-[#2a1214]/90 text-[#EF4444] shadow-[0_0_10px_rgba(239,68,68,0.4)]"
-                      : "border-[#1E2A3C] bg-[#0B121D]/85 text-[#8A93A6]"
-                  )}
-                  style={{ top: y }}
-                >
-                  <GripHorizontal className="size-3" aria-hidden="true" />
-                  {Math.round(y)}
+                  <span
+                    className="size-1.5 rounded-full bg-[#4A9EFF] shadow-[0_0_6px_rgba(74,158,255,0.85)]"
+                    aria-hidden="true"
+                  />
+                  <span className="font-mono text-[10px] font-bold tracking-[0.15em] text-[#E5E9F0]">
+                    {band.label}
+                  </span>
                 </div>
               ))}
+
+            {/* 경계선 핸들 — 라인 양 끝의 노브(드래그 가능함을 암시)와 우측 y값 배지로
+                구성한다. 노브는 순수 장식(pointer-events-none)이며, 실제 드래그는
+                canvas의 mousedown/mousemove가 라인 전체 폭에서 판정한다. */}
+            {showOverlayChrome &&
+              lineState.lineYs.map((y, idx) => {
+                const isDragging = lineState.draggingLine === idx;
+                return (
+                  <div
+                    key={idx}
+                    className="pointer-events-none absolute inset-x-0 z-10"
+                    style={{ top: y }}
+                  >
+                    <span
+                      className={cn(
+                        "absolute left-0 flex size-3 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border transition-all",
+                        isDragging
+                          ? "border-[#EF4444] bg-[#EF4444] shadow-[0_0_10px_rgba(239,68,68,0.9)]"
+                          : "border-[#EF4444]/70 bg-[#0B121D] shadow-[0_0_5px_rgba(239,68,68,0.5)]"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "size-1 rounded-full",
+                          isDragging ? "bg-white" : "bg-[#EF4444]"
+                        )}
+                      />
+                    </span>
+                    <span
+                      className={cn(
+                        "absolute right-0 flex size-3 translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border transition-all",
+                        isDragging
+                          ? "border-[#EF4444] bg-[#EF4444] shadow-[0_0_10px_rgba(239,68,68,0.9)]"
+                          : "border-[#EF4444]/70 bg-[#0B121D] shadow-[0_0_5px_rgba(239,68,68,0.5)]"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "size-1 rounded-full",
+                          isDragging ? "bg-white" : "bg-[#EF4444]"
+                        )}
+                      />
+                    </span>
+                    <div
+                      className={cn(
+                        "absolute right-4 flex -translate-y-1/2 items-center gap-1.5 rounded-full border py-0.5 pr-2 pl-1 font-mono text-[10px] tabular-nums transition-colors",
+                        isDragging
+                          ? "border-[#EF4444]/70 bg-[#2a1214]/95 text-[#EF4444] shadow-[0_0_10px_rgba(239,68,68,0.4)]"
+                          : "border-[#1E2A3C] bg-[#0B121D]/85 text-[#8A93A6]"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "flex size-4 items-center justify-center rounded-full",
+                          isDragging ? "bg-[#EF4444]/20" : "bg-[#1E2A3C]"
+                        )}
+                      >
+                        <GripHorizontal className="size-2.5" aria-hidden="true" />
+                      </span>
+                      {Math.round(y)}
+                    </div>
+                  </div>
+                );
+              })}
 
           </div>
         ) : (
