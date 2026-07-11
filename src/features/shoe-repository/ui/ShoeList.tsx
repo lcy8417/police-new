@@ -42,13 +42,25 @@ export function ShoeList({
   onEdit,
   onPageChange,
 }: ShoeListProps) {
+  // 총 페이지 수 API가 없어(GET /shoes?page=N만 존재) 현재 페이지 기준 5칸
+  // 페이지 번호 윈도우를 보여준다(현재를 가운데 가깝게, 앞쪽은 0에서 clamp).
+  const PAGE_WINDOW = 5
+  const windowStart = Math.max(0, page - 2)
+  const pageNumbers = Array.from(
+    { length: PAGE_WINDOW },
+    (_, i) => windowStart + i
+  )
+
   return (
     <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
       <TechCorners size={22} />
 
-      {/* 헤더 */}
+      {/* 헤더 — 현재 페이지에 로드된 신발 갯수를 함께 표시한다. */}
       <div className="flex items-center justify-between gap-3 border-b border-[#141D2C] bg-[#0D1420]/60 px-6 py-3.5">
         <span className="text-[15px] font-semibold text-[#E5E9F0]">신발 목록</span>
+        <span className="rounded-md border border-[#3B82F6]/40 bg-[#152238] px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums text-[#4A9EFF]">
+          {shoes.length}건
+        </span>
       </div>
 
       {/* 테이블 */}
@@ -131,7 +143,7 @@ export function ShoeList({
         </table>
       </div>
 
-      {/* 푸터: [이전][현재 page][다음] */}
+      {/* 푸터: [이전] [최대 5개 페이지 번호] [다음] */}
       <div className="flex items-center justify-center gap-1.5 border-t border-[#141D2C] bg-[#0D1420]/60 px-6 py-3">
         <Button
           type="button"
@@ -144,12 +156,28 @@ export function ShoeList({
           <ChevronLeft className="size-4" aria-hidden="true" />
         </Button>
 
-        <span
-          aria-current="page"
-          className="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-[#3B82F6]/60 bg-[#152238] px-3 font-mono text-[12px] font-semibold tabular-nums text-[#4A9EFF] shadow-[0_0_14px_rgba(37,99,235,0.3)]"
-        >
-          {page + 1}
-        </span>
+        {pageNumbers.map((p) =>
+          p === page ? (
+            <span
+              key={p}
+              aria-current="page"
+              className="inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-[#3B82F6]/60 bg-[#152238] px-3 font-mono text-[12px] font-semibold tabular-nums text-[#4A9EFF] shadow-[0_0_14px_rgba(37,99,235,0.3)]"
+            >
+              {p + 1}
+            </span>
+          ) : (
+            <Button
+              key={p}
+              type="button"
+              size="icon-sm"
+              onClick={() => onPageChange(p)}
+              aria-label={`${p + 1} 페이지`}
+              className={cn(PAGINATION_BUTTON_CLASS, "min-w-8 px-2 font-mono tabular-nums")}
+            >
+              {p + 1}
+            </Button>
+          )
+        )}
 
         <Button
           type="button"

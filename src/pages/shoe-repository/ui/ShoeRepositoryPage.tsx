@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { ArrowLeft, Footprints, Loader2, Pencil, Plus } from "lucide-react"
+import { ArrowLeft, Pencil, Plus } from "lucide-react"
 
 import {
   fetchShoeDetail,
@@ -15,7 +15,6 @@ import { ShoeWorkbench } from "@/widgets/shoe-workbench"
 import { usePageHeader } from "@/widgets/app-shell"
 import { Button } from "@/shared/ui/button"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
-import { TechCorners } from "@/shared/ui/tech-corners"
 import { ShoeList } from "@/features/shoe-repository/ui/ShoeList"
 
 import {
@@ -42,16 +41,6 @@ function hydrateShoe(shoe: Shoe): Shoe {
     bottom: hydrateZone(shoe.bottom),
     outline: hydrateZone(shoe.outline),
   }
-}
-
-/** 워크벤치 자리에 로딩/미발견 상태를 채우는 다크 패널(read-only 폴백과 톤 통일). */
-function StatusPanel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="relative flex h-full min-h-0 flex-col items-center justify-center overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
-      <TechCorners size={22} />
-      <div className="flex flex-col items-center gap-3 text-[#5B6B85]">{children}</div>
-    </div>
-  )
 }
 
 /**
@@ -187,47 +176,36 @@ export function ShoeRepositoryPage() {
 
   usePageHeader({ title: headerTitle, actions: headerActions })
 
-  // 작업 영역 — 국면에 따라 같은 워크벤치 구조를 view/edit/new로 렌더한다.
-  // 신발을 클릭하면 컴포넌트를 바꾸지 않고 워크벤치에 그 신발의 이미지·문양·정보만
-  // 채워 read-only로 보여준다(구조 유지). [편집]을 눌러야 편집이 활성화된다.
-  let workArea: React.ReactNode
+  // 목록 패널 — 워크벤치 4번째 열 하단에 신발 정보와 한 열로 합쳐 렌더한다(항상 표시).
+  // 행 클릭·더블클릭 모두 곧바로 편집 모드로 진입한다(read-only 2단계 생략).
+  const shoeListPanel = (
+    <ShoeList
+      shoes={shoes}
+      selectedModelNumber={modelNumber}
+      page={page}
+      isLoading={shoesQuery.isFetching}
+      onSelect={(value) => navigate(shoeEditModePath(value))}
+      onEdit={(value) => navigate(shoeEditModePath(value))}
+      onPageChange={setPage}
+    />
+  )
+
+  // 국면 → 워크벤치 모드/초기값. 신규=빈 등록, 선택 신발=편집(mode=edit) 또는 저장
+  // 후 조회(view), 미선택·딥링크 로딩=빈 조회 상태(목록에서 고르게 한다).
+  let workbenchMode: "view" | "edit" | "new"
+  let initialShoe: Shoe | undefined
   if (isNew) {
-    workArea = <ShoeWorkbench key="new" mode="new" onSaved={handleSaved} />
-  } else if (!modelNumber) {
-    workArea = (
-      <StatusPanel>
-        <Footprints className="size-9" aria-hidden="true" />
-        <span className="text-sm font-medium">
-          신발을 선택하거나 새 신발을 등록하세요
-        </span>
-      </StatusPanel>
-    )
+    workbenchMode = "new"
+    initialShoe = undefined
   } else if (currentShoe) {
-    // view/edit는 같은 데이터로 시드되므로, 모드를 key에 넣어 전환 시 리마운트한다
-    // (편집 시작 = 저장본에서 새로, lineState/uploadedRef 잔상 방지).
-    workArea = (
-      <ShoeWorkbench
-        key={`${modelNumber}-${isEdit ? "edit" : "view"}`}
-        mode={isEdit ? "edit" : "view"}
-        initialShoe={currentShoe}
-        onSaved={handleSaved}
-        onEdit={() => navigate(shoeEditModePath(modelNumber))}
-      />
-    )
+    workbenchMode = isEdit ? "edit" : "view"
+    initialShoe = currentShoe
   } else {
-    workArea = (
-      <StatusPanel>
-        {detailQuery.isLoading ? (
-          <>
-            <Loader2 className="size-8 animate-spin text-[#4A9EFF]" aria-hidden="true" />
-            <span className="text-sm font-medium">신발 정보를 불러오는 중...</span>
-          </>
-        ) : (
-          <span className="text-sm font-medium">신발을 찾을 수 없습니다.</span>
-        )}
-      </StatusPanel>
-    )
+    workbenchMode = "view"
+    initialShoe = undefined
   }
+  // 모드/신발 전환 시 리마운트해 formData·lineState·uploadedRef 잔상을 없앤다.
+  const workbenchKey = isNew ? "new" : `${modelNumber || "none"}-${workbenchMode}`
 
   return (
     <div className="relative h-[calc(100vh-110px)] w-full overflow-hidden bg-background px-6 py-6">
@@ -235,21 +213,19 @@ export function ShoeRepositoryPage() {
       <GlowOrb className="-top-24 right-1/4 h-72 w-72 bg-[#2563EB]/10" />
       <GlowOrb className="bottom-0 left-1/3 h-64 w-64 bg-[#4A9EFF]/8" />
 
-      {/* 좌: 국면별 작업 영역(조회·편집·등록) / 우: 신발 목록 레일(상시, 맨 오른쪽) */}
-      <div className="relative grid h-full min-h-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)]">
-        <div className="min-h-0">{workArea}</div>
-        <div className="min-h-0">
-          <ShoeList
-            shoes={shoes}
-            selectedModelNumber={modelNumber}
-            page={page}
-            isLoading={shoesQuery.isFetching}
-            onSelect={(value) => navigate(shoeRepositoryPath(value))}
-            onEdit={(value) => navigate(shoeEditModePath(value))}
-            onPageChange={setPage}
-          />
-        </div>
-      </div>
+      {/* 4열 커맨드센터: 캔버스 · 문양정보 · 문양리스트 + [신발정보 위 / 신발목록 아래] */}
+      <ShoeWorkbench
+        key={workbenchKey}
+        mode={workbenchMode}
+        initialShoe={initialShoe}
+        onSaved={handleSaved}
+        onEdit={
+          modelNumber
+            ? () => navigate(shoeEditModePath(modelNumber))
+            : undefined
+        }
+        listPanel={shoeListPanel}
+      />
     </div>
   )
 }

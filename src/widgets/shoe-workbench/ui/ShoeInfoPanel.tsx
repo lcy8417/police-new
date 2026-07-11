@@ -139,7 +139,8 @@ export function ShoeInfoPanel({
           <Button
             type="button"
             onClick={onEdit}
-            className="h-11 w-full bg-gradient-to-b from-[#2563EB] to-[#1D4ED8] text-white shadow-[0_0_20px_rgba(37,99,235,0.45)] hover:from-[#3b74f2] hover:to-[#2154d8]"
+            disabled={!onEdit}
+            className="h-11 w-full bg-gradient-to-b from-[#2563EB] to-[#1D4ED8] text-white shadow-[0_0_20px_rgba(37,99,235,0.45)] hover:from-[#3b74f2] hover:to-[#2154d8] disabled:cursor-not-allowed disabled:from-[#1E2A3C] disabled:to-[#1E2A3C] disabled:text-[#5B6B85] disabled:shadow-none"
           >
             <Pencil className="size-4" aria-hidden="true" />
             편집

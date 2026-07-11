@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useRef, useState, type ReactNode } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { ImagePlus, RotateCcw, RotateCw, type LucideIcon } from "lucide-react"
@@ -73,6 +73,11 @@ interface ShoeWorkbenchProps {
   onSaved?: (savedModelNumber: string) => void
   /** view 모드 [편집] 버튼 클릭 — 페이지가 편집 모드로 라우팅한다. */
   onEdit?: () => void
+  /**
+   * 4번째 열 하단에 신발 정보 패널과 함께 세로로 스택할 목록 패널(공간 절약 —
+   * 정보 + 목록을 한 열로 합친다). 없으면 정보 패널만 렌더한다.
+   */
+  listPanel?: ReactNode
 }
 
 /**
@@ -92,6 +97,7 @@ export function ShoeWorkbench({
   initialShoe,
   onSaved,
   onEdit,
+  listPanel,
 }: ShoeWorkbenchProps) {
   // 편집 = hydrate된 initialShoe, 신규 = 빈 폼. 페이지가 신발 전환 시 key로
   // 리마운트하므로 지연 초기화로 충분하다.
@@ -334,8 +340,24 @@ export function ShoeWorkbench({
     </div>
   )
 
+  const infoPanel = (
+    <ShoeInfoPanel
+      formData={formData}
+      onFieldChange={handleFieldChange}
+      onSubmit={handleSubmit}
+      onReset={handleReset}
+      isSubmitting={saveMutation.isPending}
+      submitLabel={isEdit ? "저장" : "등록"}
+      submitPendingLabel={isEdit ? "저장 중..." : "등록 중..."}
+      resetLabel={isEdit ? "되돌리기" : "초기화"}
+      modelNumberReadOnly={isEdit}
+      readOnly={readOnly}
+      onEdit={onEdit}
+    />
+  )
+
   return (
-    <div className="relative grid h-full grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.7fr)]">
+    <div className="relative grid h-full grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.85fr)]">
       {/* "이미지 교체" 버튼용 숨은 파일 입력(캔버스 드롭존과 별개 진입점). */}
       <input
         ref={fileInputRef}
@@ -387,19 +409,15 @@ export function ShoeWorkbench({
         isInserted={isInserted}
         readOnly={readOnly}
       />
-      <ShoeInfoPanel
-        formData={formData}
-        onFieldChange={handleFieldChange}
-        onSubmit={handleSubmit}
-        onReset={handleReset}
-        isSubmitting={saveMutation.isPending}
-        submitLabel={isEdit ? "저장" : "등록"}
-        submitPendingLabel={isEdit ? "저장 중..." : "등록 중..."}
-        resetLabel={isEdit ? "되돌리기" : "초기화"}
-        modelNumberReadOnly={isEdit}
-        readOnly={readOnly}
-        onEdit={onEdit}
-      />
+      {/* 4번째 열: 신발 정보(위) + 신발 목록(아래)을 한 열로 합쳐 공간을 절약한다. */}
+      {listPanel ? (
+        <div className="grid min-h-0 grid-rows-[minmax(0,1.05fr)_minmax(0,0.95fr)] gap-4">
+          {infoPanel}
+          {listPanel}
+        </div>
+      ) : (
+        infoPanel
+      )}
     </div>
   )
 }
