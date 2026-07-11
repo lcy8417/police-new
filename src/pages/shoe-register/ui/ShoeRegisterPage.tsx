@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { RotateCcw, RotateCw, type LucideIcon } from "lucide-react"
+import { ImagePlus, RotateCcw, RotateCw, type LucideIcon } from "lucide-react"
 
 import { registerShoe, type Shoe } from "@/entities/shoe"
 import type { Crime } from "@/entities/crime"
@@ -81,6 +81,9 @@ export function ShoeRegisterPage() {
   const imgRef = useRef<HTMLImageElement>(null)
   // 회전 원본(누적 방지) — 항상 여기서 절대각으로 굽는다. null이면 이미지 없음.
   const uploadedRef = useRef<string | null>(null)
+  // "이미지 교체" 버튼이 여는 파일 입력(이미지가 이미 있어 드롭존이 사라진 뒤에도
+  // 언제든 재업로드할 수 있게 한다).
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 문양·경계선·추출 상태는 features 훅이 소유한다(신발 모드: formData/setFormData).
   const pm = usePatternManager({ formData, setFormData, imgRef })
@@ -110,6 +113,21 @@ export function ShoeRegisterPage() {
     }
     reader.readAsDataURL(file)
   }, [])
+
+  // "이미지 교체" 버튼 → 숨은 파일 입력 열기.
+  const handleUploadClick = useCallback(() => {
+    fileInputRef.current?.click()
+  }, [])
+
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) void handleFileSelect(file)
+      // 같은 파일을 다시 선택해도 onChange가 발화하도록 값을 비운다.
+      e.target.value = ""
+    },
+    [handleFileSelect]
+  )
 
   // 절대각 회전 적용 — 항상 원본(uploadedRef)에서 deg로 한 번만 굽는다(누적 방지).
   // await 중 초기화/재업로드로 원본이 바뀌면 가드로 결과를 버린다(초기화가 이긴다).
@@ -199,6 +217,18 @@ export function ShoeRegisterPage() {
   // 캔버스 헤더 아래에 얹는 회전 툴바 밴드(EvidenceImagePanel 회전 툴바 언어).
   const rotationToolbar = (
     <div className="flex items-center gap-3 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
+      {/* 이미지 교체 — 이미지 유무와 무관하게 새 이미지로 재업로드한다. */}
+      <button
+        type="button"
+        onClick={handleUploadClick}
+        className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-3 text-xs font-medium text-[#C7CEDB] transition-colors hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
+      >
+        <ImagePlus className="size-3.5" aria-hidden="true" />
+        {formData.image ? "이미지 교체" : "이미지 등록"}
+      </button>
+
+      <div className="h-6 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
+
       <div className="flex shrink-0 items-center gap-0.5 rounded-md border border-[#1E2A3C] bg-[#0F1826] p-0.5">
         <ToolbarIconButton
           icon={RotateCcw}
@@ -259,6 +289,15 @@ export function ShoeRegisterPage() {
       <DotGrid />
       <GlowOrb className="-top-24 right-1/4 h-72 w-72 bg-[#2563EB]/10" />
       <GlowOrb className="bottom-0 left-1/3 h-64 w-64 bg-[#4A9EFF]/8" />
+
+      {/* "이미지 교체" 버튼용 숨은 파일 입력(캔버스 드롭존과 별개 진입점). */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileInputChange}
+      />
 
       <div className="relative grid h-full grid-cols-1 gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_minmax(0,0.7fr)]">
         <PatternCanvas
