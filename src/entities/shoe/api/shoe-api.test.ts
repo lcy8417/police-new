@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { mswServer } from "@/test/msw-server";
 import { PATTERNS_ROOT } from "@/entities/pattern";
-import { fetchShoeDetail, fetchShoesList, updateShoe } from "./shoe-api";
+import { fetchShoeDetail, fetchShoesList, registerShoe, updateShoe } from "./shoe-api";
 
 beforeAll(() => mswServer.listen({ onUnhandledRequest: "error" }));
 afterEach(() => mswServer.resetHandlers());
@@ -197,5 +197,70 @@ describe("updateShoe (PUT /shoes/:modelNumber)", () => {
       bottom: [],
       outline: [],
     });
+  });
+});
+
+describe("registerShoe (POST /shoes/register)", () => {
+  it("strips patterns to bare names, drops the image data-URL prefix (but KEEPS image), and keeps other fields camelCase", async () => {
+    let captured: unknown;
+    mswServer.use(
+      http.post("*/shoes/register", async ({ request }) => {
+        captured = await request.json();
+        return new HttpResponse(null, { status: 200 });
+      })
+    );
+
+    await registerShoe({
+      id: 7,
+      modelNumber: "SHOE-9",
+      findLocation: "인천",
+      manufacturer: "뉴발란스",
+      findYear: 2025,
+      emblem: "N",
+      // hydrated full asset paths — as they appear in the live register form state
+      image: "data:image/png;base64,KEEPME",
+      top: [`${PATTERNS_ROOT}무늬1.png`, `${PATTERNS_ROOT}무늬2.png`],
+      mid: [],
+      bottom: [`${PATTERNS_ROOT}삼각5.png`],
+      outline: [`${PATTERNS_ROOT}원3.png`],
+    });
+
+    // Golden shape: unlike updateShoe, `image` is PRESENT but with the
+    // `data:image/...;base64,` prefix removed; patterns are bare-name strings;
+    // other fields pass through camelCase, unconverted.
+    expect(captured).toEqual({
+      id: 7,
+      modelNumber: "SHOE-9",
+      findLocation: "인천",
+      manufacturer: "뉴발란스",
+      findYear: 2025,
+      emblem: "N",
+      image: "KEEPME",
+      top: ["무늬1", "무늬2"],
+      mid: [],
+      bottom: ["삼각5"],
+      outline: ["원3"],
+    });
+  });
+
+  it("sends an empty-string image when the form image is null", async () => {
+    let captured: Record<string, unknown> | undefined;
+    mswServer.use(
+      http.post("*/shoes/register", async ({ request }) => {
+        captured = (await request.json()) as Record<string, unknown>;
+        return new HttpResponse(null, { status: 200 });
+      })
+    );
+
+    await registerShoe({
+      modelNumber: "SHOE-10",
+      image: null,
+      top: [],
+      mid: [],
+      bottom: [],
+      outline: [],
+    });
+
+    expect(captured?.image).toBe("");
   });
 });

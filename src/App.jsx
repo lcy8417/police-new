@@ -13,7 +13,7 @@ import {
   CrimeHistoryPage as CrimeHistory,
   ResultDetailPage as ResultDetail,
 } from "@/pages/crime-search";
-import ShoesRegister from "./pages/ShoesRegister";
+import { ShoeRegisterPage } from "@/pages/shoe-register";
 import CrimeEdit from "./pages/CrimeEdit";
 import { ShoeRepositoryPage } from "@/pages/shoe-repository";
 import ShoesEdit from "./pages/ShoesEdit";
@@ -73,7 +73,7 @@ function App() {
               element={<ResultDetail />}
             />
             <Route path="/edit/:crimeNumber" element={<CrimeEdit />} />
-            <Route path="/shoesRegister" element={<ShoesRegister />} />
+            <Route path="/shoesRegister" element={<ShoeRegisterPage />} />
             <Route path="/shoesRepository" element={<ShoeRepositoryPage />} />
             <Route
               path="/shoesRepository/:modelNumber"
