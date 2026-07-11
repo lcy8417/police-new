@@ -280,7 +280,7 @@ export function PatternCanvas({
   const showOverlayChrome = Boolean(image) && canvasSize.h > 0;
 
   return (
-    <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
+    <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)] backdrop-blur-sm">
       <TechCorners size={22} active={isExtracting} />
 
       {/* 패널 헤더 */}
@@ -354,7 +354,13 @@ export function PatternCanvas({
           체커보드 눈금 바 / 모서리 십자선 / 하단 상태표시줄은 crime-register
           `EvidenceImagePanel` · 검색결과 `CrimeScenePanel`과 같은 뷰포트 언어로,
           4개 화면이 하나의 시스템처럼 읽히게 한다. */}
-      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#05080D] px-2 py-3">
+      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#05080D]/70 px-2 py-3">
+        {/* 캔버스 네 모서리 포인트 마커(좌상·우상·좌하·우하). 순수 장식이라 좌표 판정에 관여하지 않는다. */}
+        <span className="pointer-events-none absolute top-2 left-2 z-10 size-1.5 rounded-full bg-[#4A9EFF] shadow-[0_0_6px_2px_rgba(74,158,255,0.7)]" aria-hidden="true" />
+        <span className="pointer-events-none absolute top-2 right-2 z-10 size-1.5 rounded-full bg-[#4A9EFF] shadow-[0_0_6px_2px_rgba(74,158,255,0.7)]" aria-hidden="true" />
+        <span className="pointer-events-none absolute bottom-2 left-2 z-10 size-1.5 rounded-full bg-[#4A9EFF] shadow-[0_0_6px_2px_rgba(74,158,255,0.7)]" aria-hidden="true" />
+        <span className="pointer-events-none absolute right-2 bottom-2 z-10 size-1.5 rounded-full bg-[#4A9EFF] shadow-[0_0_6px_2px_rgba(74,158,255,0.7)]" aria-hidden="true" />
+
         {image && (
           <>
             <div
