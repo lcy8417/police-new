@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type MouseEvent,
   type RefObject,
@@ -9,9 +10,11 @@ import {
 import {
   Camera,
   Crosshair,
+  Footprints,
   GripHorizontal,
   ImageOff,
   ImagePlus,
+  Move,
   Radar,
   RotateCcw,
   ScanSearch,
@@ -36,6 +39,32 @@ type SetLineState = PatternManager["setLineState"];
 /** 이미지 스와퍼 세그먼트의 한국어 라벨(레거시 규약 유지). */
 const VIEW_LABELS = ["현장이미지", "편집이미지"] as const;
 type ViewLabel = (typeof VIEW_LABELS)[number];
+
+/** 신발 영역(사각 마스크)의 canvas 픽셀 좌표. */
+interface Region {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** 영역 드래그 모드: 이동 또는 네 꼭짓점 리사이즈. */
+type RegionHandle = "move" | "nw" | "ne" | "sw" | "se";
+
+/** 영역 드래그 진행 상태 — 시작 시점의 마우스/영역 스냅샷을 담는다. */
+interface RegionDrag {
+  mode: RegionHandle;
+  startX: number;
+  startY: number;
+  origin: Region;
+}
+
+/** 영역 최소 크기(canvas 픽셀). 이보다 작게 줄지 않도록 clamp한다. */
+const REGION_MIN_SIZE = 40;
+
+/** 값 v를 [min, max] 범위로 clamp한다. */
+const clampValue = (v: number, min: number, max: number) =>
+  Math.min(Math.max(v, min), max);
 
 interface PatternCanvasProps {
   /** usePatternManager가 소유한 canvasRef — extractPattern이 여기서 render_size를 읽는다. */
@@ -131,6 +160,16 @@ export function PatternCanvas({
     h: 0,
   });
 
+  // 신발 영역(사각 마스크) — canvas 픽셀 공간의 사각 박스. 순수 UI 제약이며
+  // 추출로는 보내지 않는다(불변식: render_size/line_ys 전송 로직 무수정). null이면
+  // 아직 초기화 전. mirrored=false는 왼쪽 신발("L"), true는 오른쪽 신발("R").
+  const [region, setRegion] = useState<Region | null>(null);
+  const [mirrored, setMirrored] = useState(false);
+  // 비율 유지 재계산을 위한 직전 캔버스 크기 스냅샷.
+  const prevCanvasRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
+  // 영역 드래그(이동/꼭짓점 리사이즈) 진행 상태 — window 리스너가 참조한다.
+  const regionDragRef = useRef<RegionDrag | null>(null);
+
   // 표시된 이미지에 맞춰 canvas 비트맵 크기를 재측정한다. 마우스/canvas 좌표가
   // 1:1로 대응하도록 비트맵 크기를 표시 크기에 맞춘다(useImageEditor.recomputeOverlay 준용).
   const recompute = useCallback(() => {
@@ -168,6 +207,136 @@ export function PatternCanvas({
     };
   }, [recompute, imgRef, image]);
 
+  // 신발 영역 초기화/재계산. 캔버스 크기가 정해지면(w,h>0) 영역이 없을 때 왼쪽
+  // 신발 기준(좌측에 치우친 박스)으로 한 번 초기화하고, 리사이즈 시에는 직전 캔버스
+  // 대비 비율을 유지해 간단히 스케일한 뒤 캔버스 안으로 clamp한다.
+  useEffect(() => {
+    const { w, h } = canvasSize;
+    if (w <= 0 || h <= 0) return;
+    const prev = prevCanvasRef.current;
+    setRegion((current) => {
+      let next: Region;
+      if (current && prev.w > 0 && prev.h > 0) {
+        const sx = w / prev.w;
+        const sy = h / prev.h;
+        next = {
+          x: current.x * sx,
+          y: current.y * sy,
+          w: current.w * sx,
+          h: current.h * sy,
+        };
+      } else {
+        // 왼쪽 신발 기준 기본 박스(좌측 치우침).
+        next = { x: w * 0.08, y: h * 0.05, w: w * 0.6, h: h * 0.9 };
+      }
+      // 최소 크기 보장 후 캔버스 안으로 clamp.
+      const nw = clampValue(next.w, REGION_MIN_SIZE, w);
+      const nh = clampValue(next.h, REGION_MIN_SIZE, h);
+      const nx = clampValue(next.x, 0, w - nw);
+      const ny = clampValue(next.y, 0, h - nh);
+      return { x: nx, y: ny, w: nw, h: nh };
+    });
+    prevCanvasRef.current = { w, h };
+    // 캔버스 크기 "값"이 바뀔 때만 재계산한다(객체 정체성 대신 w/h 원시값 의존 —
+    // ResizeObserver의 잦은 setState로 인한 불필요한 재실행/영역 churn 방지).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasSize.w, canvasSize.h]);
+
+  // 영역이 바뀌면 경계선(lineYs)을 영역 세로 범위로 clamp한다(프로토타입 수준).
+  // 값이 그대로면 prev를 반환해 불필요한 재렌더/루프를 막는다.
+  useEffect(() => {
+    if (!region) return;
+    const top = region.y;
+    const bottom = region.y + region.h;
+    setLineState((prev) => {
+      const c0 = clampValue(prev.lineYs[0], top, bottom);
+      const c1 = clampValue(prev.lineYs[1], top, bottom);
+      if (c0 === prev.lineYs[0] && c1 === prev.lineYs[1]) return prev;
+      return { ...prev, lineYs: [c0, c1] as [number, number] };
+    });
+  }, [region, setLineState]);
+
+  // 영역 이동/리사이즈 드래그 — 핸들의 onMouseDown이 regionDragRef를 세팅하면
+  // window mousemove/mouseup가 캔버스 밖으로 나가도 추적한다. 마우스 이동량(clientX/Y)을
+  // canvas 픽셀로 환산(canvas.width/rect.width)해 영역을 갱신하고, 이동 시 영역 중심 x가
+  // 캔버스 가로 중앙을 넘으면 좌/우 신발(mirrored)을 토글한다.
+  useEffect(() => {
+    const onMove = (e: globalThis.MouseEvent) => {
+      const drag = regionDragRef.current;
+      if (!drag) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      const sx = canvas.width / rect.width;
+      const sy = canvas.height / rect.height;
+      const dx = (e.clientX - drag.startX) * sx;
+      const dy = (e.clientY - drag.startY) * sy;
+      const W = canvas.width;
+      const H = canvas.height;
+      const o = drag.origin;
+
+      let nextRegion: Region;
+      if (drag.mode === "move") {
+        nextRegion = {
+          x: clampValue(o.x + dx, 0, W - o.w),
+          y: clampValue(o.y + dy, 0, H - o.h),
+          w: o.w,
+          h: o.h,
+        };
+      } else {
+        // 꼭짓점 리사이즈: 반대 꼭짓점(fixed)을 고정하고, 잡은 꼭짓점만 이동한다.
+        const isW = drag.mode === "nw" || drag.mode === "sw";
+        const isN = drag.mode === "nw" || drag.mode === "ne";
+        const fx = isW ? o.x + o.w : o.x; // 고정 x(반대쪽 세로변)
+        const fy = isN ? o.y + o.h : o.y; // 고정 y(반대쪽 가로변)
+        let mx = clampValue((isW ? o.x : o.x + o.w) + dx, 0, W);
+        let my = clampValue((isN ? o.y : o.y + o.h) + dy, 0, H);
+        // 최소 크기 보장(중앙으로 당겨 축소해도 40px 유지).
+        mx = isW ? Math.min(mx, fx - REGION_MIN_SIZE) : Math.max(mx, fx + REGION_MIN_SIZE);
+        my = isN ? Math.min(my, fy - REGION_MIN_SIZE) : Math.max(my, fy + REGION_MIN_SIZE);
+        nextRegion = {
+          x: Math.min(mx, fx),
+          y: Math.min(my, fy),
+          w: Math.abs(fx - mx),
+          h: Math.abs(fy - my),
+        };
+      }
+
+      setRegion(nextRegion);
+      if (drag.mode === "move") {
+        // 중심 x가 캔버스 가로 중앙을 넘으면 오른쪽 신발("R")로 반전.
+        const centerX = nextRegion.x + nextRegion.w / 2;
+        setMirrored(centerX > W / 2);
+      }
+    };
+    const onUp = () => {
+      regionDragRef.current = null;
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [canvasRef]);
+
+  // 영역 핸들 mousedown — 경계선 canvas 드래그와 충돌하지 않도록 stopPropagation.
+  const beginRegionDrag = useCallback(
+    (mode: RegionHandle) => (e: MouseEvent<HTMLElement>) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (!region) return;
+      regionDragRef.current = {
+        mode,
+        startX: e.clientX,
+        startY: e.clientY,
+        origin: region,
+      };
+    },
+    [region]
+  );
+
   // 상/중/하 경계선을 그린다. 의미색 레드(rgba(239,68,68,*))는 고정하되, 표현만
   // 좌우 페이드 그라디언트 + 은은한 글로우 + 둥근 라인 캡으로 다듬어 하이테크
   // 스캔라인처럼 보이게 한다. 드래그 중인 선은 굵기·글로우를 키워 조작 대상을
@@ -178,10 +347,13 @@ export function PatternCanvas({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // 경계선은 신발 영역 폭 안에서만 그린다(전폭 대신 영역 좌우변 사이).
+    const lineLeft = region ? region.x : 6;
+    const lineRight = region ? region.x + region.w : canvas.width - 6;
     lineState.lineYs.forEach((y, idx) => {
       const isDragging = lineState.draggingLine === idx;
       ctx.save();
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      const gradient = ctx.createLinearGradient(lineLeft, 0, lineRight, 0);
       gradient.addColorStop(0, "rgba(239, 68, 68, 0.1)");
       gradient.addColorStop(0.5, isDragging ? "rgba(239, 68, 68, 1)" : "rgba(239, 68, 68, 0.85)");
       gradient.addColorStop(1, "rgba(239, 68, 68, 0.1)");
@@ -191,12 +363,12 @@ export function PatternCanvas({
       ctx.shadowColor = "rgba(239, 68, 68, 0.85)";
       ctx.shadowBlur = isDragging ? 16 : 7;
       ctx.beginPath();
-      ctx.moveTo(6, y);
-      ctx.lineTo(canvas.width - 6, y);
+      ctx.moveTo(lineLeft, y);
+      ctx.lineTo(lineRight, y);
       ctx.stroke();
       ctx.restore();
     });
-  }, [canvasRef, lineState, canvasSize]);
+  }, [canvasRef, lineState, canvasSize, region]);
 
   // 마우스 clientY를 canvas 비트맵 y 좌표로 변환한다.
   const toCanvasY = useCallback(
@@ -235,10 +407,13 @@ export function PatternCanvas({
     if (lineState.draggingLine !== null) {
       setLineState((prev) => {
         const moved = moveLine(prev.lineYs, prev.draggingLine, y, prev.offsetY);
-        // 선을 canvas(=이미지) 세로 범위로 clamp한다. 벗어난 좌표를 그대로 두면
-        // 서버가 이미지 밖을 슬라이스하다 "tile cannot extend outside image"로 죽는다.
+        // 선을 신발 영역 세로 범위로 clamp한다(영역이 없으면 canvas 범위). 벗어난
+        // 좌표를 그대로 두면 서버가 이미지 밖을 슬라이스하다 "tile cannot extend
+        // outside image"로 죽는다.
         const h = canvas?.height ?? 0;
-        const clamp = (v: number) => Math.min(Math.max(v, 0), h);
+        const top = region ? region.y : 0;
+        const bottom = region ? region.y + region.h : h;
+        const clamp = (v: number) => Math.min(Math.max(v, top), bottom);
         return {
           ...prev,
           lineYs: [clamp(moved[0]), clamp(moved[1])] as [number, number],
@@ -268,13 +443,20 @@ export function PatternCanvas({
     return a <= b ? ([a, b] as const) : ([b, a] as const);
   }, [lineState.lineYs]);
 
+  // 영역 사각의 상하좌우 경계(영역이 없으면 캔버스 전체) — 틴트/라벨/핸들 배치용
+  // 표시 전용 파생값. 좌표 판정에는 관여하지 않는다.
+  const regionLeft = region ? region.x : 0;
+  const regionTop = region ? region.y : 0;
+  const regionWidth = region ? region.w : canvasSize.w;
+  const regionBottom = region ? region.y + region.h : canvasSize.h;
+
   const zoneBands = useMemo(
     () => [
-      { label: "상", center: minY / 2 },
+      { label: "상", center: (regionTop + minY) / 2 },
       { label: "중", center: (minY + maxY) / 2 },
-      { label: "하", center: (maxY + canvasSize.h) / 2 },
+      { label: "하", center: (maxY + regionBottom) / 2 },
     ],
-    [minY, maxY, canvasSize.h]
+    [minY, maxY, regionTop, regionBottom]
   );
 
   const showOverlayChrome = Boolean(image) && canvasSize.h > 0;
@@ -404,18 +586,33 @@ export function PatternCanvas({
             {showOverlayChrome && (
               <>
                 <div
-                  className="pointer-events-none absolute inset-x-0 bg-[#4A9EFF]/[0.06]"
-                  style={{ top: 0, height: minY }}
+                  className="pointer-events-none absolute bg-[#4A9EFF]/[0.06]"
+                  style={{
+                    left: regionLeft,
+                    width: regionWidth,
+                    top: regionTop,
+                    height: Math.max(0, minY - regionTop),
+                  }}
                   aria-hidden="true"
                 />
                 <div
-                  className="pointer-events-none absolute inset-x-0 bg-[#3B82F6]/[0.11]"
-                  style={{ top: minY, height: Math.max(0, maxY - minY) }}
+                  className="pointer-events-none absolute bg-[#3B82F6]/[0.11]"
+                  style={{
+                    left: regionLeft,
+                    width: regionWidth,
+                    top: minY,
+                    height: Math.max(0, maxY - minY),
+                  }}
                   aria-hidden="true"
                 />
                 <div
-                  className="pointer-events-none absolute inset-x-0 bg-[#1D4ED8]/[0.15]"
-                  style={{ top: maxY, height: Math.max(0, canvasSize.h - maxY) }}
+                  className="pointer-events-none absolute bg-[#1D4ED8]/[0.15]"
+                  style={{
+                    left: regionLeft,
+                    width: regionWidth,
+                    top: maxY,
+                    height: Math.max(0, regionBottom - maxY),
+                  }}
                   aria-hidden="true"
                 />
               </>
@@ -430,6 +627,72 @@ export function PatternCanvas({
               className="absolute inset-0 size-full"
             />
 
+            {/* 신발 영역(사각 마스크) 오버레이 — 테두리·틴트는 pointer-events-none,
+                이동 그립·꼭짓점 핸들만 pointer-events-auto로 드래그를 받는다. 실제
+                드래그는 window mousemove/mouseup가 처리(캔버스 밖 추적). 순수 UI
+                제약이며 추출로 보내지 않는다. */}
+            {showOverlayChrome && region && (
+              <>
+                {/* 사각 테두리(forensic 블루 글로우) */}
+                <div
+                  className="pointer-events-none absolute z-10 rounded-sm border border-dashed border-[#3B82F6]/70 shadow-[0_0_14px_rgba(59,130,246,0.35),inset_0_0_12px_rgba(59,130,246,0.12)]"
+                  style={{
+                    left: region.x,
+                    top: region.y,
+                    width: region.w,
+                    height: region.h,
+                  }}
+                  aria-hidden="true"
+                />
+
+                {/* L/R 배지 + 반전 방향 글리프(mirrored면 scaleX(-1)로 뒤집힘) */}
+                <div
+                  className="pointer-events-none absolute z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-[#3B82F6]/50 bg-[#0B121D]/90 py-1 pr-2.5 pl-2 shadow-[0_0_12px_rgba(59,130,246,0.3)]"
+                  style={{ left: region.x + region.w / 2, top: region.y + region.h - 16 }}
+                >
+                  <span className="font-mono text-[11px] font-bold tracking-[0.12em] text-[#4A9EFF]">
+                    {mirrored ? "R" : "L"}
+                  </span>
+                  <Footprints
+                    className="size-3.5 text-[#4A9EFF]"
+                    style={{ transform: mirrored ? "scaleX(-1)" : undefined }}
+                    aria-hidden="true"
+                  />
+                </div>
+
+                {/* 이동 그립 — 영역 상단 중앙 */}
+                <button
+                  type="button"
+                  onMouseDown={beginRegionDrag("move")}
+                  className="pointer-events-auto absolute z-20 flex size-6 -translate-x-1/2 -translate-y-1/2 cursor-move items-center justify-center rounded-full border border-[#3B82F6]/60 bg-[#152238] text-[#4A9EFF] shadow-[0_0_10px_rgba(59,130,246,0.4)] transition-colors hover:bg-[#182b45]"
+                  style={{ left: region.x + region.w / 2, top: region.y }}
+                  aria-label="신발 영역 이동"
+                >
+                  <Move className="size-3.5" aria-hidden="true" />
+                </button>
+
+                {/* 네 꼭짓점 리사이즈 핸들 */}
+                {([
+                  { mode: "nw", left: region.x, top: region.y, cursor: "cursor-nwse-resize" },
+                  { mode: "ne", left: region.x + region.w, top: region.y, cursor: "cursor-nesw-resize" },
+                  { mode: "sw", left: region.x, top: region.y + region.h, cursor: "cursor-nesw-resize" },
+                  { mode: "se", left: region.x + region.w, top: region.y + region.h, cursor: "cursor-nwse-resize" },
+                ] as const).map((corner) => (
+                  <button
+                    key={corner.mode}
+                    type="button"
+                    onMouseDown={beginRegionDrag(corner.mode)}
+                    className={cn(
+                      "pointer-events-auto absolute z-20 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#3B82F6] bg-[#0B121D] shadow-[0_0_8px_rgba(59,130,246,0.6)] transition-colors hover:bg-[#152238]",
+                      corner.cursor
+                    )}
+                    style={{ left: corner.left, top: corner.top }}
+                    aria-label="신발 영역 크기 조절"
+                  />
+                ))}
+              </>
+            )}
+
             {/* 상/중/하 부위 라벨 — 두 경계선이 만드는 세 구간의 중심에 배치한다.
                 순수 표시용 파생값(minY/maxY)만 사용하며 lineState는 읽기만 한다.
                 PatternZones의 "필수" 배지와 같은 점+텍스트 필 언어로 통일했다. */}
@@ -437,8 +700,8 @@ export function PatternCanvas({
               zoneBands.map((band) => (
                 <div
                   key={band.label}
-                  className="pointer-events-none absolute left-1.5 z-10 flex -translate-y-1/2 items-center gap-1.5 rounded-full border border-[#3B82F6]/40 bg-[#0B121D]/90 py-1 pr-2.5 pl-1.5 shadow-[0_0_10px_rgba(37,99,235,0.2)]"
-                  style={{ top: band.center }}
+                  className="pointer-events-none absolute z-10 flex -translate-y-1/2 items-center gap-1.5 rounded-full border border-[#3B82F6]/40 bg-[#0B121D]/90 py-1 pr-2.5 pl-1.5 shadow-[0_0_10px_rgba(37,99,235,0.2)]"
+                  style={{ top: band.center, left: regionLeft + 6 }}
                 >
                   <span
                     className="size-1.5 rounded-full bg-[#4A9EFF] shadow-[0_0_6px_rgba(74,158,255,0.85)]"
@@ -459,8 +722,8 @@ export function PatternCanvas({
                 return (
                   <div
                     key={idx}
-                    className="pointer-events-none absolute inset-x-0 z-10"
-                    style={{ top: y }}
+                    className="pointer-events-none absolute z-10"
+                    style={{ top: y, left: regionLeft, width: regionWidth }}
                   >
                     <span
                       className={cn(
