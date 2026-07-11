@@ -535,19 +535,14 @@ export function PatternCanvas({
     <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)] backdrop-blur-sm">
       <TechCorners size={22} active={isExtracting} />
 
-      {/* 패널 헤더 */}
-      <div className="flex items-center justify-between border-b border-[#141D2C] bg-[#0D1420]/60 px-6 py-3.5">
+      {/* 패널 헤더 — 타이틀(왼쪽) + 현장/편집 스와퍼(오른쪽, 컴팩트). 기존에 별도
+          툴바 밴드에 있던 스와퍼를 여기로 옮기고, "PATTERN·EXTRACT" 라벨은 공간
+          확보를 위해 제거했다(뷰포트 세로 확장이 우선). */}
+      <div className="flex items-center justify-between gap-3 border-b border-[#141D2C] bg-[#0D1420]/60 px-6 py-3">
         <span className="flex items-center gap-2 text-[15px] font-semibold text-[#E5E9F0]">
           <ScanSearch className="size-4 text-[#4A9EFF]" aria-hidden="true" />
           신발 이미지
         </span>
-        <span className="font-mono text-[11px] tracking-[0.14em] text-[#5B6B85] uppercase">
-          Pattern · Extract
-        </span>
-      </div>
-
-      {/* 툴바: 이미지 스와퍼(세그먼트 토글) + 문양추출/초기화 */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-[#141D2C] bg-[#0D1420]/40 px-6 py-3">
         <ToggleGroup
           type="single"
           value={activeView}
@@ -559,48 +554,20 @@ export function PatternCanvas({
         >
           <ToggleGroupItem
             value="현장이미지"
-            className="h-7 gap-1.5 rounded-[5px] px-2.5 text-xs font-medium text-[#8A93A6] hover:text-[#C7CEDB] data-[state=on]:border data-[state=on]:border-[#3B82F6]/50 data-[state=on]:bg-[#152238] data-[state=on]:text-[#4A9EFF]"
+            className="h-6 gap-1 rounded-[5px] px-2 text-[11px] font-medium text-[#8A93A6] hover:text-[#C7CEDB] data-[state=on]:border data-[state=on]:border-[#3B82F6]/50 data-[state=on]:bg-[#152238] data-[state=on]:text-[#4A9EFF]"
           >
-            <Camera className="size-3.5" aria-hidden="true" />
-            현장이미지
+            <Camera className="size-3" aria-hidden="true" />
+            현장
           </ToggleGroupItem>
           <ToggleGroupItem
             value="편집이미지"
-            className="h-7 gap-1.5 rounded-[5px] px-2.5 text-xs font-medium text-[#8A93A6] hover:text-[#C7CEDB] data-[state=on]:border data-[state=on]:border-[#3B82F6]/50 data-[state=on]:bg-[#152238] data-[state=on]:text-[#4A9EFF]"
+            className="h-6 gap-1 rounded-[5px] px-2 text-[11px] font-medium text-[#8A93A6] hover:text-[#C7CEDB] data-[state=on]:border data-[state=on]:border-[#3B82F6]/50 data-[state=on]:bg-[#152238] data-[state=on]:text-[#4A9EFF]"
           >
-            <ImagePlus className="size-3.5" aria-hidden="true" />
-            편집이미지
+            <ImagePlus className="size-3" aria-hidden="true" />
+            편집
           </ToggleGroupItem>
         </ToggleGroup>
-
-        <div className="mx-1 h-6 w-px bg-[#1E2A3C]" aria-hidden="true" />
-        <div className="flex items-center gap-2">
-          <ToolButton
-            icon={Radar}
-            label={isExtracting ? "추출 중..." : "문양추출"}
-            onClick={onExtract}
-            variant="accent"
-            disabled={isExtracting}
-            pending={isExtracting}
-          />
-          <ToolButton
-            icon={RotateCcw}
-            label="문양초기화"
-            onClick={onClear}
-            disabled={isExtracting}
-          />
-        </div>
       </div>
-
-      {/* 경계선 조작 안내 — 이미지 위에 겹치지 않도록 뷰포트 밖(툴바 아래)에 둔다. */}
-      {image && (
-        <div className="flex items-center gap-2 border-b border-[#141D2C] bg-[#0D1420]/40 px-6 py-2">
-          <GripHorizontal className="size-3.5 text-[#4A9EFF]" aria-hidden="true" />
-          <span className="font-mono text-[11px] text-[#8A93A6]">
-            경계선을 드래그해 상·중·하를 나누세요
-          </span>
-        </div>
-      )}
 
       {/* 뷰포트: 이미지 + 경계선 오버레이 canvas.
           체커보드 눈금 바 / 모서리 십자선 / 하단 상태표시줄은 crime-register
@@ -916,17 +883,37 @@ export function PatternCanvas({
         )}
       </div>
 
-      {/* 하단 상태표시줄 — EvidenceImagePanel/CrimeScenePanel과 같은 톤으로
-          치수·현재 뷰·경계선 개수를 요약한다(표시 전용, 파생값만 사용). */}
-      <div className="flex flex-wrap items-center gap-3 border-t border-[#141D2C] px-6 py-3">
-        <span className="rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2.5 py-1 font-mono text-[11px] tabular-nums text-[#8A93A6]">
-          {naturalSize.w} x {naturalSize.h} px
+      {/* 하단 상태표시줄 — 기존 툴바 밴드의 문양추출/초기화 버튼을 여기로 옮겨와
+          컴팩트하게 재구성했다. activeView는 위 헤더 스와퍼의 선택 상태 자체가
+          표시 역할을 겸하므로 별도 배지는 생략해 폭을 확보했다(기능은 동일하게
+          유지 — onShowOrigin/onShowEdit/activeView 상태 변경 로직 무수정).
+          경계선 안내 문구는 좁은 열에서 줄바꿈으로 행이 늘지 않도록 md 이상에서만
+          보이고 truncate로 흘러넘치지 않게 한다. */}
+      <div className="flex items-center gap-2 border-t border-[#141D2C] px-4 py-2">
+        <ToolButton
+          icon={Radar}
+          label={isExtracting ? "추출중" : "추출"}
+          onClick={onExtract}
+          variant="accent"
+          disabled={isExtracting}
+          pending={isExtracting}
+        />
+        <ToolButton
+          icon={RotateCcw}
+          label="초기화"
+          onClick={onClear}
+          disabled={isExtracting}
+        />
+        <div className="h-5 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
+        <span className="shrink-0 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-1 font-mono text-[10px] tabular-nums text-[#8A93A6]">
+          {naturalSize.w}×{naturalSize.h}
         </span>
-        <span className="rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-0.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase">
-          {activeView}
+        <span className="hidden min-w-0 flex-1 items-center gap-1 truncate font-mono text-[10px] text-[#8A93A6] md:flex">
+          <GripHorizontal className="size-3 shrink-0 text-[#4A9EFF]" aria-hidden="true" />
+          <span className="truncate">경계선 드래그로 상/중/하 분할</span>
         </span>
-        <span className="ml-auto font-mono text-[11px] tracking-wide text-[#6B7688] uppercase">
-          Line Edit · {lineState.lineYs.length} Boundaries
+        <span className="ml-auto shrink-0 font-mono text-[11px] tracking-wide text-[#6B7688] uppercase">
+          {lineState.lineYs.length} Boundaries
         </span>
       </div>
     </section>
