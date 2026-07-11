@@ -10,7 +10,6 @@ import { CrimeRegisterRedesign as CrimeRegister } from "@/pages/crime-register";
 import {
   CrimeSearchPage as CrimeSearch,
   CrimeDetailPage as CrimeDetail,
-  ShoesResultPage as ShoesResult,
   CrimeHistoryPage as CrimeHistory,
   ResultDetailPage as ResultDetail,
 } from "@/pages/crime-search";
@@ -26,6 +25,14 @@ import { useCrimeStore } from "@/entities/crime";
 // 패턴추출 화면은 통합 커맨드센터(`/search/:crimeNumber`)로 흡수됐다. 기존
 // `/patternExtract` 경로는 detail URL로 리다이렉트해 하위 호환을 유지한다.
 function PatternExtractRedirect() {
+  const { crimeNumber = "" } = useParams();
+  return <Navigate to={`/search/${crimeNumber}`} replace />;
+}
+
+// 검색 결과는 이제 통합 커맨드센터(`/search/:crimeNumber`) 안에 인라인으로
+// 표시된다(검색모드). 기존 `/search/:crimeNumber/shoesResult` 경로(북마크·
+// 레거시 링크)는 detail URL로 리다이렉트해 하위 호환을 유지한다.
+function ShoesResultRedirect() {
   const { crimeNumber = "" } = useParams();
   return <Navigate to={`/search/${crimeNumber}`} replace />;
 }
@@ -59,7 +66,7 @@ function App() {
             />
             <Route
               path="/search/:crimeNumber/shoesResult"
-              element={<ShoesResult />}
+              element={<ShoesResultRedirect />}
             />
             <Route
               path="/search/:crimeNumber/shoesResult/detail/:modelNumber"
