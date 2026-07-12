@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 
+import { cn } from "@/shared/lib/utils";
+
 import type { Point } from "../lib/polygon-geometry";
 import type { EditTool } from "../model/use-image-edit";
 
@@ -23,6 +25,12 @@ export interface PolygonOverlayProps {
 const TOOL_ACCENT: Record<"background" | "inpaint", { stroke: string; fill: string }> = {
   background: { stroke: "#4A9EFF", fill: "rgba(74,158,255,0.22)" },
   inpaint: { stroke: "#2DD4BF", fill: "rgba(45,212,191,0.2)" },
+};
+
+/** 툴별 배지 점 색·글로우 — 인라인 style 대신 Tailwind로(색은 Tailwind 규약, 좌표만 인라인). */
+const TOOL_DOT_CLASS: Record<"background" | "inpaint", string> = {
+  background: "bg-[#4A9EFF] shadow-[0_0_6px_#4A9EFF]",
+  inpaint: "bg-[#2DD4BF] shadow-[0_0_6px_#2DD4BF]",
 };
 
 /** 첫 정점 근접 "닫기" 판정 반경(px). 이 안이면 첫 정점을 강조해 닫힘을 어포던스. */
@@ -152,10 +160,7 @@ export function PolygonOverlay({ points, activeTool }: PolygonOverlayProps) {
           className="absolute flex -translate-y-1/2 translate-x-3 items-center gap-1.5 rounded-full border border-[#1E2A3C] bg-[#0B121D]/90 py-0.5 pr-2.5 pl-1.5 font-mono text-[10px] tabular-nums whitespace-nowrap text-[#C7CEDB] shadow-[0_0_10px_rgba(0,0,0,0.5)]"
           style={{ left: last[0], top: last[1] }}
         >
-          <span
-            className="size-1.5 rounded-full"
-            style={{ backgroundColor: accent.stroke, boxShadow: `0 0 6px ${accent.stroke}` }}
-          />
+          <span className={cn("size-1.5 rounded-full", TOOL_DOT_CLASS[activeTool])} />
           {count}점
           {canClose && <span className="text-[#8A93A6]">· 우클릭 닫기</span>}
         </div>

@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import {
   bakeThreshold,
@@ -48,6 +49,16 @@ const PROCESSING_LABELS: Record<Exclude<EditTool, "threshold">, string> = {
   background: "배경 분리 중…",
   denoise: "노이즈 제거 중… (AI 처리)",
   inpaint: "장애물 복원 중… (AI 인페인팅)",
+};
+
+/** 저장 진행 중 오버레이 문구. */
+const SAVING_LABEL = "저장 중…";
+
+/** 툴별 서버 처리 실패 시 사용자 안내(toast) 문구. */
+const PROCESSING_ERROR_LABELS: Record<Exclude<EditTool, "threshold">, string> = {
+  background: "배경 분리에 실패했습니다. 다시 시도해 주세요.",
+  denoise: "노이즈 제거에 실패했습니다. 다시 시도해 주세요.",
+  inpaint: "장애물 복원에 실패했습니다. 다시 시도해 주세요.",
 };
 
 export interface UseImageEditParams {
@@ -220,6 +231,9 @@ export function useImageEdit({ crimeNumber, seedImage }: UseImageEditParams): Us
         commit(next);
         setPoints([]);
         setActiveToolState(null);
+      } catch {
+        // 실패 시 points·activeTool을 보존해 재시도 가능하게 두고(workingImage 미변경) 사용자에게 알린다.
+        toast.error(PROCESSING_ERROR_LABELS[activeTool]);
       } finally {
         setIsProcessing(false);
       }
@@ -227,15 +241,19 @@ export function useImageEdit({ crimeNumber, seedImage }: UseImageEditParams): Us
     [activeTool, points, crimeNumber, segmentation, inpainting, commit]
   );
 
+  // 현재 threshold/mode로 workingImage를 즉석 이진화해 반환한다(부수효과 없는 순수 bake).
+  // applyThreshold(편집 상태 리셋 포함)와 save(리셋 없이 저장물=표시물 커밋)가 공유한다.
+  const bakeCurrentThreshold = useCallback(
+    () => bakeThreshold(workingImageRef.current, { threshold, mode: thresholdMode }),
+    [threshold, thresholdMode]
+  );
+
   const applyThreshold = useCallback(async () => {
-    const baked = await bakeThreshold(workingImageRef.current, {
-      threshold,
-      mode: thresholdMode,
-    });
+    const baked = await bakeCurrentThreshold();
     commit(baked);
     setThreshold(DEFAULT_THRESHOLD);
     setActiveToolState(null);
-  }, [threshold, thresholdMode, commit]);
+  }, [bakeCurrentThreshold, commit]);
 
   const runDenoise = useCallback(async () => {
     const image = prepareImage(workingImageRef.current, crimeNumber);
@@ -245,6 +263,9 @@ export function useImageEdit({ crimeNumber, seedImage }: UseImageEditParams): Us
       const next = await denoising.mutateAsync({ image });
       commit(next);
       setActiveToolState(null);
+    } catch {
+      // 실패 시 workingImage·activeTool 미변경(재시도 가능)하고 사용자에게 알린다.
+      toast.error(PROCESSING_ERROR_LABELS.denoise);
     } finally {
       setIsProcessing(false);
     }
@@ -252,12 +273,28 @@ export function useImageEdit({ crimeNumber, seedImage }: UseImageEditParams): Us
 
   const save = useCallback(
     async (onSaved?: (finalImage: string) => void) => {
-      const finalImage = workingImageRef.current;
-      await saveMutation.mutateAsync({ image: finalImage });
-      onSaved?.(finalImage);
-      return finalImage;
+      setProcessingLabel(SAVING_LABEL);
+      setIsProcessing(true);
+      try {
+        // 이진화 툴 활성 중이면 화면(displayImage)은 미커밋 프리뷰다. 저장물=표시물을 보장하려고
+        // 디바운스 결과에 의존하지 않고 현재 threshold/mode로 fresh bake해 커밋한 뒤 그 결과를 저장한다.
+        // (편집 상태 리셋은 하지 않는다 — save는 저장이 목적.)
+        let finalImage = workingImageRef.current;
+        if (activeTool === "threshold") {
+          finalImage = await bakeCurrentThreshold();
+          commit(finalImage);
+        }
+        await saveMutation.mutateAsync({ image: finalImage });
+        onSaved?.(finalImage);
+        return finalImage;
+      } catch (error) {
+        toast.error("이미지 저장에 실패했습니다. 다시 시도해 주세요.");
+        throw error;
+      } finally {
+        setIsProcessing(false);
+      }
     },
-    [saveMutation]
+    [activeTool, bakeCurrentThreshold, commit, saveMutation]
   );
 
   const canUndo = useMemo(() => history.length > 0, [history.length]);

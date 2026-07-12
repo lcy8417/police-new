@@ -28,7 +28,12 @@ export function EditWorkbench({ crimeNumber, seedImage, onSaved }: EditWorkbench
   const edit = useImageEdit({ crimeNumber, seedImage })
 
   const handleSave = async () => {
-    await edit.save(onSaved)
+    // save 내부에서 실패 시 toast로 안내하고 rethrow하므로, 여기서는 미처리 rejection만 흡수한다.
+    try {
+      await edit.save(onSaved)
+    } catch {
+      // 사용자 피드백은 save 내부 toast가 담당 — 여기선 상태 유지만.
+    }
   }
 
   return (
