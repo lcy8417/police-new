@@ -22,11 +22,13 @@ interface PatternPaletteProps {
    * 문양은 비활성화(클릭 불가·흐림·체크 뱃지)된다. 기본값은 항상 false.
    */
   isInserted?: (src: string) => boolean;
+  /** view(조회) 모드: 삽입·드래그를 비활성화한다(라이브러리 열람만 가능). */
+  readOnly?: boolean;
 }
 
 /**
  * 문양 리스트/팔레트(다크 커맨드센터 톤). 레거시 `PatternList`를 대체하는 패턴추출
- * 전용 신규 컴포넌트다(레거시 `PatternList`는 ShoesRegisterMain이 여전히 쓰므로 존치).
+ * 전용 신규 컴포넌트다(레거시 `PatternList`는 이제 `PartialPatterns`만 쓰므로 존치).
  * 종류 버튼으로 도형 폴더를 전환하고, 썸네일 클릭 시 `insertPattern`이 현재 선택된
  * 부위에 문양을 추가한다(`e.target.src`를 읽음).
  */
@@ -35,6 +37,7 @@ export function PatternPalette({
   patternsKindSelect,
   insertPattern,
   isInserted = () => false,
+  readOnly = false,
 }: PatternPaletteProps) {
   // 표시 전용 — 어느 종류 버튼이 활성인지 로컬로 추적한다(usePatternManager는
   // 이 상태를 소유하지 않으므로 계약을 바꾸지 않는다). 마운트 시 훅이 "무늬"를
@@ -86,11 +89,11 @@ export function PatternPalette({
       <div className="flex shrink-0 items-center gap-1.5 border-b border-[#141D2C] bg-[#0F2624]/30 px-4 py-1.5">
         <GripVertical className="size-3 shrink-0 text-[#2DD4BF]/80" aria-hidden="true" />
         <span className="font-mono text-[10px] tracking-wide text-[#5FE0D0]">
-          클릭 또는 드래그
+          {readOnly ? "라이브러리" : "클릭 또는 드래그"}
         </span>
         <ArrowRight className="size-3 shrink-0 text-[#2DD4BF]" aria-hidden="true" />
         <span className="font-mono text-[10px] tracking-wide text-[#5B6B85]">
-          문양 정보에서 선택한 부위로 삽입
+          {readOnly ? "조회 모드 · 편집 시 삽입 가능" : "문양 정보에서 선택한 부위로 삽입"}
         </span>
       </div>
 
@@ -102,11 +105,12 @@ export function PatternPalette({
             <button
               key={index}
               type="button"
-              disabled={inserted}
+              disabled={inserted || readOnly}
               // 드래그 시작 시 문양 경로를 dataTransfer에 실어 문양 정보 존이
-              // 드롭으로 받을 수 있게 한다. 이미 삽입된 문양은 드래그 불가.
-              draggable={!inserted}
+              // 드롭으로 받을 수 있게 한다. 이미 삽입된 문양·조회 모드는 드래그 불가.
+              draggable={!inserted && !readOnly}
               onDragStart={(e: DragEvent<HTMLButtonElement>) => {
+                if (readOnly) return;
                 e.dataTransfer.setData("text/plain", src);
                 e.dataTransfer.effectAllowed = "copy";
               }}
@@ -114,22 +118,24 @@ export function PatternPalette({
                 "group relative aspect-square overflow-hidden rounded-lg border bg-[#05080D] transition-all duration-150",
                 inserted
                   ? "cursor-not-allowed border-[#22C55E]/40 opacity-40"
-                  : "cursor-grab border-[#1E2A3C] hover:-translate-y-1 hover:border-[#2DD4BF]/60 hover:shadow-[0_10px_22px_rgba(45,212,191,0.28)] active:cursor-grabbing active:translate-y-0"
+                  : readOnly
+                    ? "cursor-default border-[#1E2A3C] opacity-60"
+                    : "cursor-grab border-[#1E2A3C] hover:-translate-y-1 hover:border-[#2DD4BF]/60 hover:shadow-[0_10px_22px_rgba(45,212,191,0.28)] active:cursor-grabbing active:translate-y-0"
               )}
             >
               <img
                 src={src}
                 alt={`문양 ${index + 1}`}
-                onClick={inserted ? undefined : insertPattern}
+                onClick={inserted || readOnly ? undefined : insertPattern}
                 className={cn(
                   "absolute inset-0 size-full object-contain p-1.5 transition-transform",
-                  inserted
+                  inserted || readOnly
                     ? "pointer-events-none"
                     : "cursor-pointer group-hover:scale-105"
                 )}
               />
               {/* 드래그 핸들 어포던스(점자 그립) — 호버 시에만 노출해 "잡을 수 있음"을 알린다. */}
-              {!inserted && (
+              {!inserted && !readOnly && (
                 <span
                   aria-hidden="true"
                   className="pointer-events-none absolute top-1 left-1 z-10 flex size-4 items-center justify-center rounded border border-[#2DD4BF]/40 bg-[#0B121D]/80 text-[#2DD4BF] opacity-0 shadow-[0_0_6px_rgba(45,212,191,0.4)] transition-opacity duration-150 group-hover:opacity-100"

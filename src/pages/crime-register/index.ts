@@ -1,1 +1,1 @@
-export { CrimeRegisterRedesign } from "./ui/CrimeRegisterRedesign"
+export { CrimeRegisterPage } from "./ui/CrimeRegisterPage";

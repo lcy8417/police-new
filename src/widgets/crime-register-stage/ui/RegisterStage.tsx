@@ -4,27 +4,27 @@ import { toast } from "sonner"
 
 import { registerCrime, useCrimeStore } from "@/entities/crime"
 import { rotateArbitrary, useImageAdjustments, useImageEditor } from "@/features/crime-register"
-import { usePageHeader } from "@/widgets/app-shell"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 import { rotateImage, resizeImage } from "@/utils/get-input-change"
 
 import { EMPTY_FORM, type CrimeFormData } from "../model/form"
-import { HeaderTitle } from "./HeaderContent"
 import { EvidenceImagePanel } from "./EvidenceImagePanel"
 import { CaseInfoPanel } from "./CaseInfoPanel"
 
-// 제목은 정적이다 — 이 값 때문에 헤더 effect가 다시 실행되지 않도록 엘리먼트를
-// 한 번만 생성한다.
-const HEADER_TITLE = <HeaderTitle />
+interface RegisterStageProps {
+  /** 저장 성공·취소(초기화) 시 호출 — 페이지가 조회 모드로 복귀한다. */
+  onExit: () => void
+}
 
 /**
- * 커맨드 센터 `/crimeRegister`. 등록 `formData`를 소유하고, 업로드 / ±90도·자유각
- * 회전 / 크롭 / 4점 각도보정 / 가시성 보정(밝기·대비·감마·임계값·반전·흑백) / 저장 /
- * 초기화를 crime 엔티티 계층과 연결한다. `TopNav`에는 제목만 게시하고, 편집
- * 도구(크롭·각도보정·초기화)는 이미지 옆 도크로 내렸다.
+ * 신규 사건 등록 스테이지 위젯(`/search?mode=register`). 등록 `formData`를 소유하고,
+ * 업로드 / ±90도·자유각 회전 / 크롭 / 4점 각도보정 / 가시성 보정(밝기·대비·감마·
+ * 임계값·반전·흑백) / 저장 / 초기화를 crime 엔티티 계층과 연결한다. `TopNav`에는
+ * 제목만 게시하고, 편집 도구(크롭·각도보정·초기화)는 이미지 옆 도크로 내렸다.
  * 회전·가시성 보정은 비파괴로 미리보기하다가 저장 시점에만 픽셀로 굽는다.
+ * 저장 성공·취소 시 `onExit`로 조회 모드에 복귀한다.
  */
-export function CrimeRegisterRedesign() {
+export function RegisterStage({ onExit }: RegisterStageProps) {
   const [formData, setFormData] = useState<CrimeFormData>(EMPTY_FORM)
   const adjust = useImageAdjustments(formData.image)
   // 안정적인 콜백(아래 메모이즈된 핸들러에서 참조됨).
@@ -69,11 +69,13 @@ export function CrimeRegisterRedesign() {
     [formData.image]
   )
 
+  // 초기화(취소): 작성 중이던 상태를 비우고 조회 모드(목록)로 복귀한다.
   const handleReset = useCallback(() => {
     setFormData(EMPTY_FORM)
     resetAdjustments()
     setRotation(0)
-  }, [resetAdjustments, setRotation])
+    onExit()
+  }, [resetAdjustments, setRotation, onExit])
 
   const handleImageChange = useCallback((next: string) => {
     setFormData((prev) => ({ ...prev, image: next }))
@@ -116,7 +118,9 @@ export function CrimeRegisterRedesign() {
       setFormData(EMPTY_FORM)
       resetAdjustments()
       setRotation(0)
+      // 낙관적 갱신 트리거(store refetch) 유지 + 등록 후 조회 모드로 복귀.
       useCrimeStore.getState().setRegisterFlag([])
+      onExit()
     },
   })
 
@@ -143,10 +147,8 @@ export function CrimeRegisterRedesign() {
     })
   }, [formData, registerMutation, bakeAdjustments])
 
-  // 편집 도구(크롭·각도보정·초기화)는 앱셸 헤더가 아니라 이미지 옆 도크로
-  // 내렸으므로, 헤더에는 제목만 게시한다.
-  usePageHeader({ title: HEADER_TITLE })
-
+  // 앱셸 헤더 제목은 페이지(`CrimeSearchPage`)가 모드에 따라 게시한다 —
+  // 이 위젯은 편집 스테이지만 렌더한다.
   return (
     <div className="relative h-[calc(100vh-110px)] w-full overflow-hidden bg-background px-6 py-6">
       <DotGrid />

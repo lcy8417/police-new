@@ -98,6 +98,8 @@ interface PatternCanvasProps {
   /** 뷰포트 래퍼(img+경계선 canvas 공통)에 적용할 스타일 — 회전 미리보기 transform용.
    *  래퍼째 회전하므로 이미지와 경계선이 함께 돌아 정합이 유지된다. */
   viewportStyle?: CSSProperties;
+  /** view(조회) 모드: 하단의 추출/초기화 액션을 숨긴다(좌표 수학 무관, 표시 전용). */
+  readOnly?: boolean;
 }
 
 /** 도크 툴바용 소형 버튼(crime-register EvidenceImagePanel 톤 준용). */
@@ -167,6 +169,7 @@ export function PatternCanvas({
   onUpload,
   topToolbar,
   viewportStyle,
+  readOnly = false,
 }: PatternCanvasProps) {
   // 업로드 드롭존(onUpload가 있을 때만)용 숨은 파일 입력.
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
@@ -950,27 +953,34 @@ export function PatternCanvas({
           경계선 안내 문구는 좁은 열에서 줄바꿈으로 행이 늘지 않도록 md 이상에서만
           보이고 truncate로 흘러넘치지 않게 한다. */}
       <div className="flex items-center gap-2 border-t border-[#141D2C] px-4 py-2">
-        <ToolButton
-          icon={Radar}
-          label={isExtracting ? "추출중" : "추출"}
-          onClick={onExtract}
-          variant="accent"
-          disabled={isExtracting}
-          pending={isExtracting}
-        />
-        <ToolButton
-          icon={RotateCcw}
-          label="초기화"
-          onClick={onClear}
-          disabled={isExtracting}
-        />
-        <div className="h-5 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
+        {/* 조회(readOnly) 모드에서는 추출/초기화 액션을 숨긴다 — 편집은 [편집] 진입 후에만. */}
+        {!readOnly && (
+          <>
+            <ToolButton
+              icon={Radar}
+              label={isExtracting ? "추출중" : "추출"}
+              onClick={onExtract}
+              variant="accent"
+              disabled={isExtracting}
+              pending={isExtracting}
+            />
+            <ToolButton
+              icon={RotateCcw}
+              label="초기화"
+              onClick={onClear}
+              disabled={isExtracting}
+            />
+            <div className="h-5 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
+          </>
+        )}
         <span className="shrink-0 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-1 font-mono text-[10px] tabular-nums text-[#8A93A6]">
           {naturalSize.w}×{naturalSize.h}
         </span>
         <span className="hidden min-w-0 flex-1 items-center gap-1 truncate font-mono text-[10px] text-[#8A93A6] md:flex">
           <GripHorizontal className="size-3 shrink-0 text-[#4A9EFF]" aria-hidden="true" />
-          <span className="truncate">경계선 드래그로 상/중/하 분할</span>
+          <span className="truncate">
+            {readOnly ? "조회 모드 · 편집하려면 [편집]" : "경계선 드래그로 상/중/하 분할"}
+          </span>
         </span>
         <span className="ml-auto shrink-0 font-mono text-[11px] tracking-wide text-[#6B7688] uppercase">
           {lineState.lineYs.length} Boundaries
