@@ -102,8 +102,11 @@ export async function saveCrimeEditImage({
   crimeNumber,
   scrollState,
 }: SaveCrimeEditImageInput): Promise<Response> {
+  // 백엔드는 image로 string을 요구한다(null이면 422). data URL이면 base64 payload만 떼고,
+  // 접두어 없는 raw base64면 그대로 보낸다. 이미지가 아예 없을 때만 null.
+  const { image } = scrollState;
   const body: EditImageSaveBody = {
-    image: stripDataUrl(scrollState.image),
+    image: image?.startsWith("data:image/") ? image.split(",")[1] : (image ?? null),
   };
 
   return apiSend(`/crime/edit_image/${crimeNumber}`, "PUT", body);

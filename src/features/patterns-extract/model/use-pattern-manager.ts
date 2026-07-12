@@ -45,8 +45,10 @@ export const usePatternManager = ({
   });
 
   const extractPattern = async () => {
-    //const patternsRoot = "/src/assets/Patterns/전체/";
-    const patternsRoot = `${import.meta.env.VITE_API_URL}/patterns/`;
+    // 추출 문양 루트는 앱 전체가 쓰는 canonical 로컬 에셋 루트와 일치해야 한다. 이 값을
+    // 백엔드 URL(`${VITE_API_URL}/patterns/`)로 바꾸면 추출 문양만 404가 나 렌더되지 않는다
+    // (기존 로드 문양은 `/src/assets/Patterns/전체/`를 쓴다 — pattern.ts PATTERNS_ROOT).
+    const patternsRoot = "/src/assets/Patterns/전체/";
 
     // 패턴 이미지 경로를 생성하는 함수. 족적과 신발은 필수 문양 여부에 따라 다르게 처리
     const format = (src: string): PatternEntry => {

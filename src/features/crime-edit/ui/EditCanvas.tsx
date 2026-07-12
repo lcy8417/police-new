@@ -49,6 +49,9 @@ export interface EditCanvasProps {
   processingLabel: string;
 }
 
+// 첫 정점 근처(px)를 클릭하면 폴리곤을 자동으로 닫고 제출한다(3점 이상 확보 시).
+const POLYGON_CLOSE_THRESHOLD = 12;
+
 export function EditCanvas({
   displayImage,
   activeTool,
@@ -110,6 +113,16 @@ export function EditCanvas({
     if (!isPolygonTool || e.detail > 1) return;
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
+    // 3점 이상 확보한 상태에서 첫 정점 근처를 클릭하면 정점 추가 대신 자동으로 닫고 제출한다.
+    if (points.length >= 3) {
+      const [firstX, firstY] = points[0];
+      const localX = e.clientX - rect.left;
+      const localY = e.clientY - rect.top;
+      if (Math.hypot(localX - firstX, localY - firstY) <= POLYGON_CLOSE_THRESHOLD) {
+        onSubmitPolygon(rect);
+        return;
+      }
+    }
     onAddPoint(e.clientX, e.clientY, rect);
   };
 

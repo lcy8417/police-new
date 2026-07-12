@@ -25,6 +25,20 @@ const imageProcessing = imageProcessingRaw as (
   params?: URLSearchParams | null
 ) => Promise<string>;
 
+/**
+ * 서버 이미지 처리 결과를 표시·저장 양쪽이 가정하는 형태로 정규화한다.
+ * canvas(`toDataURL`)는 `data:image/...` data URL을 주지만 서버는 접두어 없는 raw base64로 줄 수 있다.
+ * `<img>` 표시와 저장(`stripDataUrl` prefix 제거)이 모두 data URL을 가정하므로 API 경계에서 감싼다.
+ * 이미 data URL이거나 서버 URL/경로면 그대로 둔다(멱등 — bare base64만 data URL로 변환).
+ */
+function ensureImageDataUrl(image: string): string {
+  if (!image) return image;
+  if (image.startsWith("data:") || /^(https?:)?\/\//.test(image) || image.startsWith("/")) {
+    return image;
+  }
+  return `data:image/png;base64,${image}`;
+}
+
 /** 폴리곤 기반 서버 처리(segmentation/inpainting) 뮤테이션 입력. */
 export interface PolygonProcessInput {
   /** 서버 전송용으로 직렬화된 폴리곤(`serializePolygon` 결과 `[[x, y], ...]`). */
@@ -69,7 +83,7 @@ export function useSegmentation(
         "segmentation",
         { polygon, image },
         buildRenderSizeParams(renderSize)
-      ),
+      ).then(ensureImageDataUrl),
   });
 }
 
@@ -84,7 +98,7 @@ export function useInpainting(
         "inpainting",
         { polygon, image },
         buildRenderSizeParams(renderSize)
-      ),
+      ).then(ensureImageDataUrl),
   });
 }
 
@@ -96,7 +110,8 @@ export function useDenoising(
   crimeNumber: string
 ): UseMutationResult<string, Error, DenoiseInput> {
   return useMutation<string, Error, DenoiseInput>({
-    mutationFn: ({ image }) => imageProcessing(crimeNumber, "denoising", image),
+    mutationFn: ({ image }) =>
+      imageProcessing(crimeNumber, "denoising", image).then(ensureImageDataUrl),
   });
 }
 
