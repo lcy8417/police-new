@@ -311,7 +311,11 @@ export function CrimeDetailPage() {
   }, [setSearchParams])
 
   // 편집 저장 완료 콜백 — EditWorkbench가 서버 PUT을 이미 수행했으므로 여기선 store
-  // 로컬 갱신(낙관적) + 서버 재조회 + Sheet 닫기만 한다(docs architecture §2: 낙관적↔서버저장 분리).
+  // editImage를 낙관적으로 갱신하고 편집 뷰로 전환한다.
+  // 주의: 여기서 refetch()를 부르지 않는다. GET /crime 목록 응답이 항목별 editImage를
+  // 보장하지 않아(또는 PUT 커밋 전에 GET이 나가) 방금 저장한 값을 덮어써 재진입 반영이
+  // 깨질 수 있기 때문(레거시 저장 흐름도 낙관적 store 갱신만 했다).
+  // 또한 Sheet를 닫지 않는다 — 여러 편집을 연속으로 스택(되돌리기 가능)하며 이어가도록.
   const handleEditSaved = useCallback(
     (finalImage: string) => {
       // 해당 사건 레코드의 editImage를 낙관적으로 치환.
@@ -322,11 +326,9 @@ export function CrimeDetailPage() {
             : item
         )
       )
-      // 서버 반영 동기화.
-      void useCrimeStore.getState().refetch()
-      setEditSheetOpen(false)
       // 편집 뷰로 전환 → searchEdit 검색이 새 편집 이미지로 자동 재실행된다.
       setSceneView("edit")
+      toast.success("편집 이미지가 저장되었습니다.")
     },
     [crimeNumber, setCrimeData]
   )

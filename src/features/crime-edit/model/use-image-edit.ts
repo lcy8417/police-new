@@ -149,11 +149,21 @@ export function useImageEdit({ crimeNumber, seedImage }: UseImageEditParams): Us
   const historyRef = useRef(history);
   historyRef.current = history;
 
-  // seedImage가 바뀌면(새 편집 세션·비동기 로드 완료) 상태를 초기화한다.
+  // 세션 초기화 트리거는 둘뿐이다: (1) 최초/비동기 로드로 seedImage가 빈 값→실제 값이
+  // 되거나, (2) 편집 대상 사건(crimeNumber)이 바뀔 때. 저장 후 낙관적 editImage 갱신처럼
+  // 세션 진행 중 seedImage가 값→값으로 바뀌는 경우엔 편집 스택(undo 히스토리)을 보존한다
+  // — 그렇지 않으면 저장 직후 진행 중이던 편집·되돌리기 스택이 통째로 날아간다.
   const lastSeedRef = useRef(seedImage);
+  const sessionCrimeRef = useRef(crimeNumber);
   useEffect(() => {
-    if (seedImage === lastSeedRef.current) return;
+    const seedChanged = seedImage !== lastSeedRef.current;
+    const crimeChanged = crimeNumber !== sessionCrimeRef.current;
+    if (!seedChanged && !crimeChanged) return;
+    const wasEmpty = !lastSeedRef.current;
     lastSeedRef.current = seedImage;
+    sessionCrimeRef.current = crimeNumber;
+    // 같은 사건에서 이미 seed가 있던 상태의 값→값 변경(낙관적 갱신)은 초기화하지 않는다.
+    if (!crimeChanged && !wasEmpty) return;
     setWorkingImage(seedImage ?? "");
     setDisplayImage(seedImage ?? "");
     setHistory([]);
@@ -161,7 +171,7 @@ export function useImageEdit({ crimeNumber, seedImage }: UseImageEditParams): Us
     setActiveToolState(null);
     setThreshold(DEFAULT_THRESHOLD);
     setThresholdMode(DEFAULT_THRESHOLD_MODE);
-  }, [seedImage]);
+  }, [seedImage, crimeNumber]);
 
   // 새 workingImage 커밋 + 직전값 history push(undo용).
   const commit = useCallback((next: string) => {
