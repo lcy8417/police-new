@@ -34,6 +34,7 @@ import {
   RetrievalResultsGrid,
   type RetrievalResultItem,
 } from "@/features/crime-search"
+import { EditWorkbench } from "@/features/crime-edit"
 import { stripPatternPath, type PatternZone } from "@/entities/pattern"
 import { usePageHeader } from "@/widgets/app-shell"
 import { Badge } from "@/shared/ui/badge"
@@ -99,6 +100,7 @@ export function CrimeDetailPage() {
 
   // Context 브리지 대신 store 셀렉터로 현장 데이터에 접근한다.
   const crimeData = useCrimeStore((s) => s.crimeData)
+  const setCrimeData = useCrimeStore((s) => s.setCrimeData)
   const index = crimeData.findIndex(
     (item) => String(item.crimeNumber) === String(crimeNumber)
   )
@@ -147,6 +149,8 @@ export function CrimeDetailPage() {
   const [isExtracting, setIsExtracting] = useState(false)
   // 검색이력은 기본 접힘 — 문양 작업이 주 흐름이라 필요할 때만 펼친다.
   const [historyOpen, setHistoryOpen] = useState(false)
+  // 이미지 편집 워크벤치를 담는 우측 Sheet — 헤더 [편집] 버튼으로 연다.
+  const [editSheetOpen, setEditSheetOpen] = useState(false)
 
   // 인라인 신발 검색 상태(레거시 ShoesResultPage에서 이관). searchActive가 true면
   // 본문이 검색모드(이미지·문양정보·결과 그리드)로 전환된다.
@@ -306,6 +310,27 @@ export function CrimeDetailPage() {
     })
   }, [setSearchParams])
 
+  // 편집 저장 완료 콜백 — EditWorkbench가 서버 PUT을 이미 수행했으므로 여기선 store
+  // 로컬 갱신(낙관적) + 서버 재조회 + Sheet 닫기만 한다(docs architecture §2: 낙관적↔서버저장 분리).
+  const handleEditSaved = useCallback(
+    (finalImage: string) => {
+      // 해당 사건 레코드의 editImage를 낙관적으로 치환.
+      setCrimeData((prev) =>
+        prev.map((item) =>
+          String(item.crimeNumber) === String(crimeNumber)
+            ? { ...item, editImage: finalImage }
+            : item
+        )
+      )
+      // 서버 반영 동기화.
+      void useCrimeStore.getState().refetch()
+      setEditSheetOpen(false)
+      // 편집 뷰로 전환 → searchEdit 검색이 새 편집 이미지로 자동 재실행된다.
+      setSceneView("edit")
+    },
+    [crimeNumber, setCrimeData]
+  )
+
   const headerActions = useMemo(() => {
     // 두 모드 공통: [목록으로][편집].
     const commonActions = (
@@ -322,13 +347,7 @@ export function CrimeDetailPage() {
         <Button
           type="button"
           size="sm"
-          onClick={() =>
-            window.open(
-              `${window.location.origin}/edit/${crimeNumber}`,
-              "_blank",
-              "noopener,noreferrer"
-            )
-          }
+          onClick={() => setEditSheetOpen(true)}
           className="border border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
         >
           <Pencil className="size-4" aria-hidden="true" />
@@ -394,7 +413,6 @@ export function CrimeDetailPage() {
     )
   }, [
     navigate,
-    crimeNumber,
     handleSearch,
     historyRows.length,
     searchActive,
@@ -634,6 +652,29 @@ export function CrimeDetailPage() {
             </tbody>
           </table>
           </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* 이미지 편집 — 넓은 우측 슬라이드 시트(Sheet). 헤더 [편집] 버튼으로 연다.
+          EditWorkbench가 h-full을 채우므로 SheetContent가 flex 컬럼으로 높이를 제공한다. */}
+      <Sheet open={editSheetOpen} onOpenChange={setEditSheetOpen}>
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col border-l border-[#1E2A3C] bg-[#0B121D] p-4 text-[#C7CEDB] sm:max-w-[min(1100px,95vw)]"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>이미지 편집</SheetTitle>
+            <SheetDescription>검색 성능을 위한 현장 이미지 보정</SheetDescription>
+          </SheetHeader>
+          {currentCrimeData && (
+            <div className="min-h-0 flex-1">
+              <EditWorkbench
+                crimeNumber={crimeNumber}
+                seedImage={currentCrimeData.editImage ?? currentCrimeData.image}
+                onSaved={handleEditSaved}
+              />
+            </div>
+          )}
         </SheetContent>
       </Sheet>
     </div>
