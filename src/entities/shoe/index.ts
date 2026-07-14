@@ -1,6 +1,6 @@
 export {
   fetchShoesList,
-  fetchAllShoes,
+  fetchShoesCount,
   fetchShoeDetail,
   updateShoe,
   registerShoe,
