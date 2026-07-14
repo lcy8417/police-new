@@ -25,15 +25,11 @@ import { fetchCurrentShoes } from "@/services/crud"
 import { fetchSimilarity } from "@/services/api"
 import { toPatternPaths } from "@/utils/path-utils"
 
+import type { SimilarityResponse } from "../model/similarity"
+import { MatchViewer } from "./MatchViewer"
 import { PartialPatternsCompare, type PatternCompareGroup } from "./PartialPatternsCompare"
 
 const url = import.meta.env.VITE_API_URL
-
-/** 유사도 응답의 어텐션 맵 2종(현장 질의맵 / DB 참조맵). */
-interface SimilarityResult {
-  query_attn_map?: string | null
-  ref_attn_map?: string | null
-}
 
 /**
  * 결과상세 이미지 3종 URL을 조립하는 로컬 헬퍼(services 미수정).
@@ -45,7 +41,7 @@ interface SimilarityResult {
  */
 function buildDetailImages(
   modelNumber: string,
-  attns: SimilarityResult | undefined,
+  attns: SimilarityResponse | undefined,
   sceneImage: string | null | undefined
 ) {
   return {
@@ -371,7 +367,7 @@ export function ShoeDetailContent({
     queryFn: async () => {
       const [shoesInfo, attns] = await Promise.all([
         fetchCurrentShoes(modelNumber),
-        fetchSimilarity({ crimeNumber, modelNumber }) as Promise<SimilarityResult>,
+        fetchSimilarity({ crimeNumber, modelNumber }) as Promise<SimilarityResponse>,
       ])
 
       const shoesData = {
@@ -559,41 +555,18 @@ export function ShoeDetailContent({
           <TechCorners size={20} />
           <div className="absolute inset-0 flex flex-col gap-4 overflow-y-auto p-4">
 
-          {/* 유사부위 히트맵 — 족적/신발을 좌우로 넓게. 로딩 중엔 원본 폴백 대신 스피너.
-              shrink-0 필수: 본문이 flex-col이라 이게 없으면 자식이 눌려 본문이 스크롤되지 않는다. */}
-          <section className="flex shrink-0 flex-col gap-2.5">
-            {/* 섹션 제목 — 아래 문양 비교 카드와 위계를 맞춘 라벨 + 하단 룰. */}
-            <div className="flex items-center gap-2">
-              <Radar className="size-4 text-[#4A9EFF]" aria-hidden="true" />
-              <span className="text-[13px] font-semibold text-[#E5E9F0]">유사부위 히트맵</span>
-              <span className="ml-1 h-px flex-1 bg-[#1E2A3C]" aria-hidden="true" />
-              <span className="font-mono text-[10px] tracking-[0.14em] text-[#5B6B85] uppercase">
-                Attention
-              </span>
-            </div>
-            {/* 족적(현장) ↔ 신발 좌우 비교 — 가운데 대응 배지로 '비교'임을 명시. */}
-            <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
-              <AttentionTile
-                code=""
-                label="족적 이미지 유사부위"
-                image={images.query}
-                emphasis
-                icon={Camera}
-                fill={false}
-                loading={detailQuery.isLoading}
-              />
-              <CompareConnector />
-              <AttentionTile
-                code=""
-                label="신발 이미지 유사부위"
-                image={images.bottom}
-                emphasis
-                icon={Database}
-                fill={false}
-                loading={detailQuery.isLoading}
-              />
-            </div>
-          </section>
+          {/* 유사부위 대응 뷰어 — 강화 /similarity 응답(query/ref/matches)을 소비해 대응
+              지도(A) + 크로스 줌(B)으로 "어디에·얼마나·어떻게 매칭됐는지"를 보인다.
+              matches 없거나 구버전 응답이면 MatchViewer가 폴백(원본/히트맵)으로 처리.
+              shrink-0 필수: 본문이 flex-col이라 이게 없으면 눌려 본문 스크롤이 안 된다. */}
+          <div className="shrink-0">
+            <MatchViewer
+              data={detailQuery.data?.attns}
+              loading={detailQuery.isLoading}
+              fallbackQuery={images.query}
+              fallbackRef={images.bottom}
+            />
+          </div>
 
           {/* 문양 비교 — 부위별로 묶고 각 부위 안에서 현장|DB를 좌우로.
               shrink-0 필수: 본문 flex-col에서 눌리면 overflow-hidden이 하단 부위를 잘라 스크롤 불가. */}

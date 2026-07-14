@@ -1,0 +1,124 @@
+import { useState } from "react"
+import { ImageOff, Loader2, Radar, SearchX } from "lucide-react"
+
+import { cn } from "@/shared/lib/utils"
+import type { SimilarityResponse } from "../model/similarity"
+import { CorrespondenceMap } from "./CorrespondenceMap"
+import { CrossZoomRows } from "./CrossZoomRows"
+
+export interface MatchViewerProps {
+  /** 강화 `/similarity` 응답(query/ref/matches 또는 구버전 attn_map). */
+  data?: SimilarityResponse
+  /** 유사도 쿼리 진행 중 — 스피너로 대기. */
+  loading?: boolean
+  /** 폴백용 족적(질의) 이미지(matches 없을 때 원본 표시). */
+  fallbackQuery?: string | null
+  /** 폴백용 신발(참조) 이미지. */
+  fallbackRef?: string | null
+  className?: string
+}
+
+/** 스피너(유사도 분석 대기) — 기존 AttentionTile의 문구를 유지한다. */
+function LoadingState() {
+  return (
+    <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 rounded-xl border border-[#1E2A3C] bg-[#0B121D] text-[#5B6B85]">
+      <Loader2 className="size-7 animate-spin text-[#4A9EFF]" aria-hidden="true" />
+      <span className="text-[12px] font-medium">국소 대응 분석 중…</span>
+    </div>
+  )
+}
+
+/** 폴백 이미지 한 장(구버전 히트맵 또는 원본). */
+function FallbackTile({ label, image }: { label: string; image?: string | null }) {
+  return (
+    <figure className="flex flex-1 flex-col gap-1.5">
+      <figcaption className="font-mono text-[10px] tracking-[0.12em] text-[#8A93A6] uppercase">
+        {label}
+      </figcaption>
+      <div className="relative flex min-h-[160px] flex-1 items-center justify-center overflow-hidden rounded-lg border border-[#1E2A3C] bg-[#05080D]">
+        {image ? (
+          <img src={image} alt={label} className="mx-auto block max-h-[300px] w-auto object-contain p-2" />
+        ) : (
+          <div className="flex flex-col items-center gap-1.5 text-[#5B6B85]">
+            <ImageOff className="size-6" aria-hidden="true" />
+            <span className="text-[11px] font-medium">이미지 없음</span>
+          </div>
+        )}
+      </div>
+    </figure>
+  )
+}
+
+/**
+ * 컴팩트 Sheet의 "유사부위" 섹션 본체 — 화면 A(대응 지도) + 화면 B(크로스 줌)를 조립하고,
+ * 선택 index를 두 화면이 공유해 핀↔행을 양방향으로 강조·스크롤한다.
+ *
+ * 폴백 3단:
+ *  1) 로딩 중 → 스피너.
+ *  2) `matches`가 있으면 → A + B 대응 뷰어.
+ *  3) `matches`가 없고 구버전 attn_map만 있으면 → 히트맵 쌍(질의/참조).
+ *  4) 아무것도 없으면 → "대응 부위를 찾지 못했습니다" + 원본 족적/신발(폴백 이미지).
+ */
+export function MatchViewer({ data, loading = false, fallbackQuery, fallbackRef, className }: MatchViewerProps) {
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const [showEdge, setShowEdge] = useState(false)
+
+  const matches = data?.matches ?? []
+  const hasCorrespondence = Boolean(data?.query && data?.ref && matches.length > 0)
+  const hasAttnFallback = Boolean(data?.query_attn_map || data?.ref_attn_map)
+
+  return (
+    <section className={cn("flex flex-col gap-2.5", className)}>
+      {/* 섹션 제목 — 아래 문양 비교 카드와 위계를 맞춘 라벨 + 하단 룰. */}
+      <div className="flex items-center gap-2">
+        <Radar className="size-4 text-[#4A9EFF]" aria-hidden="true" />
+        <span className="text-[13px] font-semibold text-[#E5E9F0]">유사부위 대응</span>
+        <span className="ml-1 h-px flex-1 bg-[#1E2A3C]" aria-hidden="true" />
+        <span className="font-mono text-[10px] tracking-[0.14em] text-[#5B6B85] uppercase">
+          Correspondence
+        </span>
+      </div>
+
+      {loading ? (
+        <LoadingState />
+      ) : hasCorrespondence && data?.query && data?.ref ? (
+        <div className="flex flex-col gap-3">
+          <CorrespondenceMap
+            query={data.query}
+            ref={data.ref}
+            matches={matches}
+            selectedIndex={selectedIndex}
+            onSelect={setSelectedIndex}
+          />
+          <CrossZoomRows
+            matches={matches}
+            selectedIndex={selectedIndex}
+            onSelect={setSelectedIndex}
+            showEdge={showEdge}
+            onToggleEdge={setShowEdge}
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2.5 rounded-xl border border-[#1E2A3C] bg-[#0B121D] p-3">
+          {/* 대응을 못 찾음 — 안내 + 원본(또는 구버전 히트맵) 표시로 회귀 안전. */}
+          <div className="flex items-center gap-2 rounded-lg border border-[#1E2A3C] bg-[#0F1826] px-3 py-2 text-[#8A93A6]">
+            <SearchX className="size-4 shrink-0 text-[#5B6B85]" aria-hidden="true" />
+            <span className="text-[12px] font-medium">
+              대응 부위를 찾지 못했습니다 — 원본 이미지를 표시합니다.
+            </span>
+          </div>
+          <div className="flex items-stretch gap-3">
+            <FallbackTile
+              label={hasAttnFallback ? "질의 어텐션" : "족적 · 질의"}
+              image={data?.query_attn_map || data?.query?.image || fallbackQuery}
+            />
+            <FallbackTile
+              label={hasAttnFallback ? "참조 어텐션" : "신발 · 참조"}
+              image={data?.ref_attn_map || data?.ref?.image || fallbackRef}
+            />
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}

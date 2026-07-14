@@ -115,9 +115,24 @@ export const fetchPerspective = async (image, points) => {
   return data;
 };
 
-export const fetchSimilarity = async ({ crimeNumber, modelNumber }) => {
+export const fetchSimilarity = async ({
+  crimeNumber,
+  modelNumber,
+  maxMatches = 6,
+  minScore = 0.25,
+  verify = true,
+  filterUninformative = true,
+  edge = true,
+}) => {
+  // 이미지 처리 API라 camelCase 변환은 하지 않는다(응답은 서버 원형 snake_case 그대로).
+  // 강화 응답(query/ref/matches[])을 받기 위한 파라미터를 추가한다.
   const queryString = new URLSearchParams({
     model_number: modelNumber,
+    max_matches: maxMatches,
+    min_score: minScore,
+    verify,
+    filter_uninformative: filterUninformative,
+    edge,
   }).toString();
 
   const fullUrl = `${url}/crime/${crimeNumber}/similarity?${queryString}`;

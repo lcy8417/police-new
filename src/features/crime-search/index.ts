@@ -15,3 +15,10 @@ export type {
 } from "./ui/PartialPatternsCompare";
 export { ShoeDetailContent } from "./ui/ShoeDetailContent";
 export type { ShoeDetailContentProps } from "./ui/ShoeDetailContent";
+export { MatchViewer } from "./ui/MatchViewer";
+export type { MatchViewerProps } from "./ui/MatchViewer";
+export type {
+  SimilarityImage,
+  SimilarityMatch,
+  SimilarityResponse,
+} from "./model/similarity";
