@@ -411,16 +411,10 @@ export function ShoeDetailContent({
             </div>
           </div>
 
-          <SectionRule label="참고 이미지" />
-          {/* 측면 신발 사진(정적) — 참고용, 와이드로 세로 축소. */}
-          <div className="aspect-[3/2] w-full shrink-0">
-            <AttentionTile code="SOLE-S" label="측면 이미지" image={images.side} />
-          </div>
-
           <SectionRule label="문양 비교" />
           {/* 스크롤 컨테이너 안이라 자연 높이면 내부 flex-1이 0으로 접혀 썸네일이
               사라진다 → 고정 높이를 줘 내부 자체 스크롤로 표시한다. */}
-          <PartialPatternsCompare patternItems={patternItems} className="h-[360px] shrink-0" />
+          <PartialPatternsCompare patternItems={patternItems} className="h-[440px] shrink-0" />
 
           <SectionRule label="사건 정보" />
           <div className="grid grid-cols-2 gap-x-6 gap-y-3">{infoFields}</div>

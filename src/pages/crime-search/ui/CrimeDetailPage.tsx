@@ -717,7 +717,7 @@ export function CrimeDetailPage() {
       >
         <SheetContent
           side="right"
-          className="flex w-full flex-col gap-0 border-l border-[#1E2A3C] bg-[#0B121D] p-0 text-[#C7CEDB] sm:max-w-[min(560px,92vw)]"
+          className="flex w-full flex-col gap-0 border-l border-[#1E2A3C] bg-[#0B121D] p-0 text-[#C7CEDB] sm:max-w-[min(880px,95vw)]"
         >
           <SheetHeader className="sr-only">
             <SheetTitle>신발 결과 상세</SheetTitle>
