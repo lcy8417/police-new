@@ -63,6 +63,8 @@ interface AttentionTileProps {
   emphasis?: boolean
   /** 라벨 아이콘 — 출처(현장=Camera, DB=Database)를 구분한다. 없으면 emphasis일 때 Radar로 대체. */
   icon?: LucideIcon
+  /** true(기본): 부모 높이를 채우는 절대배치(page). false: 이미지 자연비율로 높이 결정(compact). */
+  fill?: boolean
 }
 
 /**
@@ -70,7 +72,7 @@ interface AttentionTileProps {
  * 파란 테두리·글로우를 입혀 시각적으로 강조하고, 정적 측면 사진은 절제한 톤으로
  * 둔다. 이미지가 없으면 안내 문구를 보인다.
  */
-function AttentionTile({ code, label, image, emphasis = false, icon }: AttentionTileProps) {
+function AttentionTile({ code, label, image, emphasis = false, icon, fill = true }: AttentionTileProps) {
   const Icon = icon ?? (emphasis ? Radar : null)
   return (
     <div
@@ -97,12 +99,22 @@ function AttentionTile({ code, label, image, emphasis = false, icon }: Attention
           {code}
         </span>
       </div>
-      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#05080D]">
+      <div
+        className={cn(
+          "relative flex items-center justify-center overflow-hidden bg-[#05080D]",
+          // page: 부모 높이를 채운다 / compact: 이미지 자연비율로 높이가 정해지도록 최소높이만.
+          fill ? "min-h-0 flex-1" : "min-h-[140px]"
+        )}
+      >
         {image ? (
           <img
             src={image}
             alt={label}
-            className="absolute inset-0 size-full object-contain p-3"
+            className={cn(
+              "object-contain p-3",
+              // page: 절대배치로 타일을 꽉 채움 / compact: 폭에 맞춰 이미지 원본 비율 유지.
+              fill ? "absolute inset-0 size-full" : "block h-auto w-full"
+            )}
           />
         ) : (
           <div className="flex flex-col items-center gap-2 text-[#5B6B85]">
@@ -356,16 +368,24 @@ export function ShoeDetailContent({
   if (variant === "compact") {
     return (
       <>
-        {/* ① 고정 시각 헤더 — 모델번호 + ranking 뱃지. 자동 X버튼(top-4 right-4) 회피 pr-12. */}
+        {/* ① 고정 시각 헤더 — 사건명·모델·사건번호(2줄) + ranking 뱃지. 자동 X버튼(top-4 right-4) 회피 pr-12. */}
         <div className="flex shrink-0 items-center gap-3 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-3 pr-12">
-          <span className="flex min-w-0 items-center gap-2 text-[15px] font-semibold text-[#E5E9F0]">
-            <Footprints className="size-4 shrink-0 text-[#4A9EFF]" aria-hidden="true" />
-            <span className="truncate">{modelNumber}</span>
-          </span>
+          <Footprints className="size-5 shrink-0 text-[#4A9EFF]" aria-hidden="true" />
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-[15px] font-semibold text-[#E5E9F0]">
+              {currentCrimeData?.crimeName
+                ? `${currentCrimeData.crimeName} · 신발 매칭 상세`
+                : "신발 매칭 상세"}
+            </span>
+            <span className="truncate font-mono text-[11px] tracking-wide text-[#5B6B85]">
+              모델 {modelNumber}
+              {currentCrimeData?.crimeNumber ? ` · 사건 ${currentCrimeData.crimeNumber}` : ""}
+            </span>
+          </div>
           {ranking != null && ranking !== "" && (
             <span
               className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-[12px] font-semibold",
+                "ml-auto flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-[12px] font-semibold",
                 isTopRank
                   ? "border-[#22C55E]/50 bg-[#12241A] text-[#4ADE80] shadow-[0_0_14px_rgba(34,197,94,0.35)]"
                   : "border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_14px_rgba(37,99,235,0.3)]"
@@ -386,29 +406,28 @@ export function ShoeDetailContent({
           <TechCorners size={20} />
 
           <SectionRule label="질의 · 참조 쌍" />
-          {/* 어텐션 쌍 — 스크롤 컨테이너 안에선 부모 높이가 없어 타일의 h-full이
-              0으로 접힌다. 각 타일을 aspect-square로 감싸 고유 높이를 준다
-              (page variant는 grid-rows가 높이를 잡아주므로 공유 attentionPair 사용). */}
+          {/* 어텐션 쌍 — 스크롤 컨테이너 안에선 부모 높이가 없어 타일 h-full이
+              0으로 접힌다. fill={false}로 이미지 원본 비율에 맞춰 높이를 잡아
+              신발 밑창 비율을 그대로 유지한다(page variant는 grid-rows가 높이를
+              잡아주므로 공유 attentionPair 사용). */}
           <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] gap-1">
-            <div className="aspect-square">
-              <AttentionTile
-                code="SCENE-ATTN"
-                label="질의 어텐션"
-                image={images.query}
-                emphasis
-                icon={Camera}
-              />
-            </div>
+            <AttentionTile
+              code="SCENE-ATTN"
+              label="질의 어텐션"
+              image={images.query}
+              emphasis
+              icon={Camera}
+              fill={false}
+            />
             <PairConnector />
-            <div className="aspect-square">
-              <AttentionTile
-                code="SOLE-B"
-                label="바닥 어텐션"
-                image={images.bottom}
-                emphasis
-                icon={Database}
-              />
-            </div>
+            <AttentionTile
+              code="SOLE-B"
+              label="바닥 어텐션"
+              image={images.bottom}
+              emphasis
+              icon={Database}
+              fill={false}
+            />
           </div>
 
           <SectionRule label="문양 비교" />
