@@ -98,16 +98,18 @@ function AttentionTile({
           {Icon && <Icon className="size-3.5 text-[#4A9EFF]" aria-hidden="true" />}
           {label}
         </span>
-        <span
-          className={cn(
-            "rounded border px-1.5 py-0.5 font-mono text-[9px] tracking-wide uppercase",
-            emphasis
-              ? "border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF]"
-              : "border-[#1E2A3C] bg-[#0F1826] text-[#8A93A6]"
-          )}
-        >
-          {code}
-        </span>
+        {code && (
+          <span
+            className={cn(
+              "rounded border px-1.5 py-0.5 font-mono text-[9px] tracking-wide uppercase",
+              emphasis
+                ? "border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF]"
+                : "border-[#1E2A3C] bg-[#0F1826] text-[#8A93A6]"
+            )}
+          >
+            {code}
+          </span>
+        )}
       </div>
       <div
         className={cn(
@@ -188,6 +190,101 @@ function InfoField({ label, value }: InfoFieldProps) {
         {label}
       </span>
       <span className="text-[13px] font-semibold text-[#C7CEDB]">{value}</span>
+    </div>
+  )
+}
+
+/** 문양 한 건의 표현(신발=문자열, 범죄=[경로,필수] 튜플)에서 경로·필수 여부를 뽑는다. */
+type PatternSrc = PatternCompareGroup["top"][number]
+function patternSrcPath(src: PatternSrc): string {
+  return typeof src === "string" ? src : src[0]
+}
+function patternEssential(src: PatternSrc): boolean {
+  return typeof src !== "string" && Boolean(src[1])
+}
+
+/** 부위(상/중/하/윤곽) 순서·라벨. */
+const PATTERN_ZONES = [
+  { key: "top", label: "상" },
+  { key: "mid", label: "중" },
+  { key: "bottom", label: "하" },
+  { key: "outline", label: "윤곽" },
+] as const
+
+/** 한 출처(현장/DB)의 문양 썸네일 줄. 필수 문양은 붉은 코너 점으로 표시. */
+function PatternRow({
+  icon: Icon,
+  label,
+  patterns,
+}: {
+  icon: LucideIcon
+  label: string
+  patterns: PatternSrc[]
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase">
+        <Icon className="size-3 text-[#4A9EFF]" aria-hidden="true" />
+        {label}
+      </span>
+      {patterns.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {patterns.map((src, i) => (
+            <div
+              key={i}
+              className={cn(
+                "relative size-24 overflow-hidden rounded-lg border bg-[#05080D]",
+                patternEssential(src) ? "border-[#EF4444]/40" : "border-[#1E2A3C]"
+              )}
+            >
+              <img
+                src={patternSrcPath(src)}
+                alt={`${label} 문양 ${i + 1}`}
+                className="absolute inset-0 size-full object-contain p-2"
+              />
+              {patternEssential(src) && (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-1.5 right-1.5 size-2 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <span className="text-[11px] text-[#5B6B85]">없음</span>
+      )}
+    </div>
+  )
+}
+
+/**
+ * 컴팩트 Sheet 전용 문양 그룹 뷰 — 부위별(상/중/하/윤곽)로 묶고, 각 부위 안에서
+ * 현장/DB 문양을 함께 보여 한눈에 대조한다(공유 PartialPatternsCompare는 부위를
+ * 화살표로 넘기지만, 여기선 모두 펼쳐 큰 썸네일로 보인다). scene/db는 patternItems[0/1].
+ */
+function PatternGroups({
+  scene,
+  db,
+}: {
+  scene?: PatternCompareGroup
+  db?: PatternCompareGroup
+}) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+      {PATTERN_ZONES.map((zone) => (
+        <div key={zone.key} className="rounded-xl border border-[#1E2A3C] bg-[#0F1826] p-3">
+          <div className="mb-2.5 flex items-center gap-2">
+            <span className="rounded-md border border-[#3B82F6]/50 bg-[#152238] px-2 py-0.5 font-mono text-[12px] font-semibold text-[#4A9EFF]">
+              {zone.label}
+            </span>
+          </div>
+          <div className="flex flex-col gap-3">
+            <PatternRow icon={Camera} label="현장" patterns={scene?.[zone.key] ?? []} />
+            <PatternRow icon={Database} label="DB" patterns={db?.[zone.key] ?? []} />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -417,18 +514,16 @@ export function ShoeDetailContent({
           )}
         </div>
 
-        {/* ② 본문 — 가로 3단(질의·참조 어텐션 | 문양 비교 | 사건 정보). 각 열이
-            독립 스크롤한다. 그리드 셀이 높이를 잡아주므로 내부는 h-full/flex-1로
-            안전하게 채운다. */}
-        <div className="relative grid min-h-0 flex-1 grid-cols-[1fr_1.3fr_0.9fr] gap-3 overflow-hidden p-4">
+        {/* ② 본문 — 가로 2단(족적/신발 유사부위 | 문양 비교). 사건 정보는 헤더로
+            대체해 제거했다. 각 열 독립 스크롤. */}
+        <div className="relative grid min-h-0 flex-1 grid-cols-[minmax(0,340px)_minmax(0,1fr)] gap-3 overflow-hidden p-4">
           <TechCorners size={20} />
 
-          {/* 1단: 질의·바닥 어텐션(세로 적층). 로딩 중엔 원본 폴백 대신 스피너. */}
+          {/* 1단: 유사부위 히트맵(족적/신발). 로딩 중엔 원본 폴백 대신 스피너. */}
           <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
-            <SectionRule label="질의 · 참조 어텐션" />
             <AttentionTile
-              code="SCENE-ATTN"
-              label="질의 어텐션"
+              code=""
+              label="족적 이미지 유사부위"
               image={images.query}
               emphasis
               icon={Camera}
@@ -436,8 +531,8 @@ export function ShoeDetailContent({
               loading={detailQuery.isLoading}
             />
             <AttentionTile
-              code="SOLE-B"
-              label="바닥 어텐션"
+              code=""
+              label="신발 이미지 유사부위"
               image={images.bottom}
               emphasis
               icon={Database}
@@ -446,15 +541,19 @@ export function ShoeDetailContent({
             />
           </div>
 
-          {/* 2단: 문양 비교 — 셀이 높이를 잡아주므로 h-full로 내부 자체 스크롤. */}
-          <div className="flex min-h-0 flex-col">
-            <PartialPatternsCompare patternItems={patternItems} className="h-full" />
-          </div>
-
-          {/* 3단: 사건 정보(단일 열). */}
-          <div className="flex min-h-0 flex-col gap-3 overflow-y-auto">
-            <SectionRule label="사건 정보" />
-            <div className="grid grid-cols-1 gap-y-3">{infoFields}</div>
+          {/* 2단: 문양 비교 — 부위별로 묶어 큰 썸네일로 펼쳐 표시. */}
+          <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]">
+            <div className="flex shrink-0 items-center gap-2.5 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
+              <span className="text-[13px] font-semibold text-[#E5E9F0]">문양 비교</span>
+              <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase">
+                <span
+                  className="size-1.5 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
+                  aria-hidden="true"
+                />
+                필수
+              </span>
+            </div>
+            <PatternGroups scene={patternItems[0]} db={patternItems[1]} />
           </div>
         </div>
 
