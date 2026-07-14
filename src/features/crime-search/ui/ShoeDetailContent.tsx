@@ -65,6 +65,8 @@ interface AttentionTileProps {
   icon?: LucideIcon
   /** true(기본): 부모 높이를 채우는 절대배치(page). false: 이미지 자연비율로 높이 결정(compact). */
   fill?: boolean
+  /** 어텐션 분석(유사도 쿼리) 진행 중 — 원본 폴백 대신 스피너를 보인다. */
+  loading?: boolean
 }
 
 /**
@@ -72,7 +74,15 @@ interface AttentionTileProps {
  * 파란 테두리·글로우를 입혀 시각적으로 강조하고, 정적 측면 사진은 절제한 톤으로
  * 둔다. 이미지가 없으면 안내 문구를 보인다.
  */
-function AttentionTile({ code, label, image, emphasis = false, icon, fill = true }: AttentionTileProps) {
+function AttentionTile({
+  code,
+  label,
+  image,
+  emphasis = false,
+  icon,
+  fill = true,
+  loading = false,
+}: AttentionTileProps) {
   const Icon = icon ?? (emphasis ? Radar : null)
   return (
     <div
@@ -106,7 +116,13 @@ function AttentionTile({ code, label, image, emphasis = false, icon, fill = true
           fill ? "min-h-0 flex-1" : "min-h-[140px]"
         )}
       >
-        {image ? (
+        {loading ? (
+          // 유사도 쿼리 진행 중 — 원본 이미지로 폴백하지 않고 스피너로 대기시킨다.
+          <div className="flex flex-col items-center gap-2 text-[#5B6B85]">
+            <Loader2 className="size-6 animate-spin text-[#4A9EFF]" aria-hidden="true" />
+            <span className="text-[11px] font-medium">어텐션 분석 중…</span>
+          </div>
+        ) : image ? (
           <img
             src={image}
             alt={label}
@@ -401,16 +417,15 @@ export function ShoeDetailContent({
           )}
         </div>
 
-        {/* ② 본문(스크롤) — 세로 스택: 어텐션 쌍 → 측면 → 문양비교 → 사건정보. */}
-        <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+        {/* ② 본문 — 가로 3단(질의·참조 어텐션 | 문양 비교 | 사건 정보). 각 열이
+            독립 스크롤한다. 그리드 셀이 높이를 잡아주므로 내부는 h-full/flex-1로
+            안전하게 채운다. */}
+        <div className="relative grid min-h-0 flex-1 grid-cols-[1fr_1.3fr_0.9fr] gap-3 overflow-hidden p-4">
           <TechCorners size={20} />
 
-          <SectionRule label="질의 · 참조 쌍" />
-          {/* 어텐션 쌍 — 스크롤 컨테이너 안에선 부모 높이가 없어 타일 h-full이
-              0으로 접힌다. fill={false}로 이미지 원본 비율에 맞춰 높이를 잡아
-              신발 밑창 비율을 그대로 유지한다(page variant는 grid-rows가 높이를
-              잡아주므로 공유 attentionPair 사용). */}
-          <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] gap-1">
+          {/* 1단: 질의·바닥 어텐션(세로 적층). 로딩 중엔 원본 폴백 대신 스피너. */}
+          <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+            <SectionRule label="질의 · 참조 어텐션" />
             <AttentionTile
               code="SCENE-ATTN"
               label="질의 어텐션"
@@ -418,8 +433,8 @@ export function ShoeDetailContent({
               emphasis
               icon={Camera}
               fill={false}
+              loading={detailQuery.isLoading}
             />
-            <PairConnector />
             <AttentionTile
               code="SOLE-B"
               label="바닥 어텐션"
@@ -427,16 +442,20 @@ export function ShoeDetailContent({
               emphasis
               icon={Database}
               fill={false}
+              loading={detailQuery.isLoading}
             />
           </div>
 
-          <SectionRule label="문양 비교" />
-          {/* 스크롤 컨테이너 안이라 자연 높이면 내부 flex-1이 0으로 접혀 썸네일이
-              사라진다 → 고정 높이를 줘 내부 자체 스크롤로 표시한다. */}
-          <PartialPatternsCompare patternItems={patternItems} className="h-[440px] shrink-0" />
+          {/* 2단: 문양 비교 — 셀이 높이를 잡아주므로 h-full로 내부 자체 스크롤. */}
+          <div className="flex min-h-0 flex-col">
+            <PartialPatternsCompare patternItems={patternItems} className="h-full" />
+          </div>
 
-          <SectionRule label="사건 정보" />
-          <div className="grid grid-cols-2 gap-x-6 gap-y-3">{infoFields}</div>
+          {/* 3단: 사건 정보(단일 열). */}
+          <div className="flex min-h-0 flex-col gap-3 overflow-y-auto">
+            <SectionRule label="사건 정보" />
+            <div className="grid grid-cols-1 gap-y-3">{infoFields}</div>
+          </div>
         </div>
 
         {/* ③ 고정 판정바 — 하단 border-t. */}
