@@ -10,3 +10,4 @@ export {
   type ThresholdMode,
 } from './image/threshold'
 export { bakeThreshold, type BakeThresholdOptions } from './image/bake'
+export { resolveImageToDataUrl, isDataUrl } from './image/resolve-image'

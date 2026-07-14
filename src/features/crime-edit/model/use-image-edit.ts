@@ -14,6 +14,8 @@ import { toast } from "sonner";
 
 import {
   bakeThreshold,
+  isDataUrl,
+  resolveImageToDataUrl,
   type ThresholdMode,
 } from "@/shared/lib";
 
@@ -172,6 +174,27 @@ export function useImageEdit({ crimeNumber, seedImage }: UseImageEditParams): Us
     setThreshold(DEFAULT_THRESHOLD);
     setThresholdMode(DEFAULT_THRESHOLD_MODE);
   }, [seedImage, crimeNumber]);
+
+  // workingImage가 data URL이 아니면(서버가 URL/경로로 준 이미지) canvas 이진화·저장을 위해
+  // data URL로 변환해 교체한다. 교차 출처 URL을 canvas에 그리면 taint되어 getImageData(이진화)가
+  // 실패하기 때문. 표시는 URL로도 되므로 변환 완료 전에는 그대로 보이고, 완료되면 self-contained
+  // data URL로 바뀐다. seed(원본)·서버 결과(배경제거 등) URL을 여기 한 곳에서 통일 처리한다.
+  useEffect(() => {
+    if (!workingImage || isDataUrl(workingImage)) return;
+    let cancelled = false;
+    resolveImageToDataUrl(workingImage)
+      .then((dataUrl) => {
+        if (!cancelled) setWorkingImage(dataUrl);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          toast.error("이미지를 편집용으로 불러오지 못했습니다. 서버 CORS 설정을 확인해 주세요.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [workingImage]);
 
   // 새 workingImage 커밋 + 직전값 history push(undo용).
   const commit = useCallback((next: string) => {
