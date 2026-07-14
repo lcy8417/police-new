@@ -32,6 +32,7 @@ import {
 } from "@/features/patterns-extract"
 import {
   RetrievalResultsGrid,
+  ShoeDetailContent,
   type RetrievalResultItem,
 } from "@/features/crime-search"
 import { EditWorkbench } from "@/features/crime-edit"
@@ -46,7 +47,7 @@ import { filteredPatterns, imageChangeHandler } from "@/utils/get-input-change"
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value"
 import { cn } from "@/shared/lib/utils"
 
-import { crimeHistoryPath, resultDetailPath, searchDetailPath } from "../model/search-paths"
+import { crimeHistoryPath, searchDetailPath } from "../model/search-paths"
 import { CaseExplorerPanel } from "./CaseExplorerPanel"
 
 // 제목은 정적 — 헤더 effect가 매 렌더 재실행되지 않도록 한 번만 생성한다.
@@ -151,6 +152,14 @@ export function CrimeDetailPage() {
   const [historyOpen, setHistoryOpen] = useState(false)
   // 이미지 편집 워크벤치를 담는 우측 Sheet — 헤더 [편집] 버튼으로 연다.
   const [editSheetOpen, setEditSheetOpen] = useState(false)
+  // 신발 결과 상세를 담는 우측 컴팩트 Sheet — 검색 결과 카드 클릭으로 연다.
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detailTarget, setDetailTarget] = useState<{
+    modelNumber: string
+    ranking: number
+  } | null>(null)
+  // 상세 저장 진행 상태 — 저장 중에는 Sheet 강제 닫기(오버레이·Esc)를 무시한다.
+  const [detailSaving, setDetailSaving] = useState(false)
 
   // 인라인 신발 검색 상태(레거시 ShoesResultPage에서 이관). searchActive가 true면
   // 본문이 검색모드(이미지·문양정보·결과 그리드)로 전환된다.
@@ -293,12 +302,13 @@ export function CrimeDetailPage() {
     }
   }, [crimeNumber, currentCrimeData, setSearchParams])
 
-  // 결과 카드 클릭 → 기존과 동일하게 결과 상세로 이동한다.
+  // 결과 카드 클릭 → 페이지 이동 대신 우측 컴팩트 Sheet에 상세를 인라인 표시한다.
   const handleSelect = useCallback(
     (item: RetrievalResultItem, ranking: number) => {
-      navigate(resultDetailPath(crimeNumber, item.shoesName, { ranking }))
+      setDetailTarget({ modelNumber: item.shoesName, ranking })
+      setDetailOpen(true)
     },
-    [navigate, crimeNumber]
+    []
   )
 
   const toggleBinary = useCallback(() => {
@@ -316,7 +326,7 @@ export function CrimeDetailPage() {
   }, [setSearchParams])
 
   // 편집 저장 완료 콜백 — EditWorkbench가 서버 PUT을 이미 수행했으므로 여기선 store
-  // editImage를 낙관적으로 갱신하고 편집 뷰로 전환한다.
+  // editImage를 낙관적으로 갱신하고, "편집" 뷰일 때만 캔버스·검색을 즉시 반영한다.
   // 주의: 여기서 refetch()를 부르지 않는다. GET /crime 목록 응답이 항목별 editImage를
   // 보장하지 않아(또는 PUT 커밋 전에 GET이 나가) 방금 저장한 값을 덮어써 재진입 반영이
   // 깨질 수 있기 때문(레거시 저장 흐름도 낙관적 store 갱신만 했다).
@@ -331,19 +341,21 @@ export function CrimeDetailPage() {
             : item
         )
       )
-      // 편집 뷰로 전환 → searchEdit 검색이 새 편집 이미지로 자동 재실행된다.
-      setSceneView("edit")
-      // 캔버스 편집 뷰를 즉시 새 이미지로 갱신한다. img.src는 imageChangeHandler가 명령형으로
-      // 바꾸는 값이라 store 갱신·sceneView 전환만으로는 다시 적용되지 않는다(이미 "편집" 뷰였다면
-      // no-op). 저장 콜백이 쥔 finalImage를 직접 꽂아야 바로 반영된다.
-      if (imgRef.current) imgRef.current.src = finalImage
-      // 저장 즉시 그 편집 이미지로 검색을 재실행한다. 이미 "편집" 뷰였으면 searchEdit 키가 안 바뀌어
-      // 자동 재조회되지 않으므로, 검색 쿼리를 무효화해 강제 재조회한다(서버 image_load?edit가 방금
-      // 저장한 편집 이미지를 반환 → 그 이미지로 재검색). 검색모드가 아니면 쿼리가 비활성이라 무해.
-      void queryClient.invalidateQueries({ queryKey: ["crimeSearch"] })
+      // 현재 "편집" 뷰일 때만 캔버스·검색을 새 편집 이미지로 즉시 반영·재실행한다.
+      // "현장" 뷰였다면 저장만 하고 뷰·캔버스·검색은 건드리지 않는다(현장 기준 검색 유지) —
+      // 편집 결과를 보려면 사용자가 "편집" 토글을 누르면 된다. (뷰 전환은 토글이 단독 제어.)
+      if (searchEdit) {
+        // 캔버스 편집 뷰를 즉시 새 이미지로 갱신한다. img.src는 imageChangeHandler가 명령형으로
+        // 바꾸는 값이라 store 갱신만으로는 다시 적용되지 않으므로(이미 "편집" 뷰라 재적용 없음),
+        // 저장 콜백이 쥔 finalImage를 직접 꽂는다.
+        if (imgRef.current) imgRef.current.src = finalImage
+        // 이미 "편집" 뷰면 searchEdit 키가 안 바뀌어 자동 재조회되지 않으므로 검색 쿼리를 무효화해
+        // 강제 재조회한다(서버 image_load?edit가 방금 저장한 편집 이미지 반환 → 그 이미지로 재검색).
+        void queryClient.invalidateQueries({ queryKey: ["crimeSearch"] })
+      }
       toast.success("편집 이미지가 저장되었습니다.")
     },
-    [crimeNumber, setCrimeData, queryClient]
+    [crimeNumber, setCrimeData, searchEdit, queryClient]
   )
 
   const headerActions = useMemo(() => {
@@ -689,6 +701,40 @@ export function CrimeDetailPage() {
                 onSaved={handleEditSaved}
               />
             </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* 신발 결과 상세 — 우측 컴팩트 Sheet(3층: 고정 헤더/본문 스크롤/고정 판정바).
+          검색 결과 카드 클릭으로 열고, 이력 저장 성공 시 닫으며 store를 refetch한다.
+          저장 중에는 강제 닫기를 무시해 이중 제출·유실을 막는다. */}
+      <Sheet
+        open={detailOpen}
+        onOpenChange={(open) => {
+          if (!open && detailSaving) return
+          setDetailOpen(open)
+        }}
+      >
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col gap-0 border-l border-[#1E2A3C] bg-[#0B121D] p-0 text-[#C7CEDB] sm:max-w-[min(560px,92vw)]"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>신발 결과 상세</SheetTitle>
+            <SheetDescription>어텐션 맵·문양 비교·사건 정보와 발견 판정</SheetDescription>
+          </SheetHeader>
+          {detailTarget && (
+            <ShoeDetailContent
+              variant="compact"
+              crimeNumber={crimeNumber}
+              modelNumber={detailTarget.modelNumber}
+              ranking={detailTarget.ranking}
+              onPendingChange={setDetailSaving}
+              onSaved={() => {
+                setDetailOpen(false)
+                useCrimeStore.getState().refetch()
+              }}
+            />
           )}
         </SheetContent>
       </Sheet>
