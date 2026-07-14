@@ -150,8 +150,9 @@ export function CrimeDetailPage() {
   const [isExtracting, setIsExtracting] = useState(false)
   // 검색이력은 기본 접힘 — 문양 작업이 주 흐름이라 필요할 때만 펼친다.
   const [historyOpen, setHistoryOpen] = useState(false)
-  // 이미지 편집 워크벤치를 담는 우측 Sheet — 헤더 [편집] 버튼으로 연다.
-  const [editSheetOpen, setEditSheetOpen] = useState(false)
+  // 이미지 편집 인라인 모드 — 헤더 [편집] 버튼으로 토글한다. 문양 UI를 숨기고 캔버스
+  // 자리(col1-2)에 편집 워크벤치를 인라인으로 띄운다(예전 우측 Sheet 방식을 대체).
+  const [editActive, setEditActive] = useState(false)
   // 신발 결과 상세를 담는 우측 컴팩트 Sheet — 검색 결과 카드 클릭으로 연다.
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailTarget, setDetailTarget] = useState<{
@@ -374,11 +375,19 @@ export function CrimeDetailPage() {
         <Button
           type="button"
           size="sm"
-          onClick={() => setEditSheetOpen(true)}
-          className="border border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
+          onClick={() => setEditActive((v) => !v)}
+          className={cn(
+            editActive
+              ? "border border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_18px_rgba(37,99,235,0.35)] hover:bg-[#182b45]"
+              : "border border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
+          )}
         >
-          <Pencil className="size-4" aria-hidden="true" />
-          편집
+          {editActive ? (
+            <X className="size-4" aria-hidden="true" />
+          ) : (
+            <Pencil className="size-4" aria-hidden="true" />
+          )}
+          {editActive ? "편집 종료" : "편집"}
         </Button>
       </>
     )
@@ -446,6 +455,7 @@ export function CrimeDetailPage() {
     binary,
     toggleBinary,
     exitSearch,
+    editActive,
   ])
 
   usePageHeader({
@@ -474,6 +484,37 @@ export function CrimeDetailPage() {
         {/* 각 열 래퍼: 내부 grid-rows로 자식 section이 열 높이를 꽉 채우게 하고,
             xl 미만에서는 min-h로 최소 높이를 확보해 캔버스가 붕괴하지 않게 한다. */}
         {currentCrimeData ? (
+          editActive ? (
+            // 편집 모드: 문양 UI를 숨기고 col1-2에 인라인 편집 워크벤치를 띄운다.
+            // 검색모드면 오른쪽 결과 그리드(col-span-2)는 그대로 유지, 아니면 편집기가 전체폭.
+            <>
+              <div
+                className={cn(
+                  "grid min-h-[560px] grid-rows-[minmax(0,1fr)] xl:h-full xl:min-h-0",
+                  searchActive ? "xl:col-span-2" : "xl:col-span-4"
+                )}
+              >
+                <EditWorkbench
+                  crimeNumber={crimeNumber}
+                  seedImage={currentCrimeData.editImage ?? currentCrimeData.image}
+                  originalImage={currentCrimeData.image}
+                  onSaved={handleEditSaved}
+                />
+              </div>
+              {searchActive && (
+                <div className="min-h-[420px] min-w-0 xl:col-span-2 xl:h-full xl:min-h-0">
+                  <RetrievalResultsGrid
+                    results={results}
+                    totalCount={totalCount}
+                    page={searchPage}
+                    onPageChange={setSearchPage}
+                    onSelect={handleSelect}
+                    isLoading={isSearching}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
           <>
         <div className="grid min-h-[560px] grid-rows-[minmax(0,1fr)] xl:h-full xl:min-h-0">
           <PatternCanvas
@@ -536,6 +577,7 @@ export function CrimeDetailPage() {
           </>
         )}
           </>
+          )
         ) : (
           <>
             {/* 사건 미선택(빈 `/search`): 1~3열 자리에 중앙 힌트, 4열 탐색 패널은
@@ -679,29 +721,6 @@ export function CrimeDetailPage() {
             </tbody>
           </table>
           </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* 이미지 편집 — 넓은 우측 슬라이드 시트(Sheet). 헤더 [편집] 버튼으로 연다.
-          EditWorkbench가 h-full을 채우므로 SheetContent가 flex 컬럼으로 높이를 제공한다. */}
-      <Sheet open={editSheetOpen} onOpenChange={setEditSheetOpen}>
-        <SheetContent
-          side="right"
-          className="flex w-full flex-col border-l border-[#1E2A3C] bg-[#0B121D] p-4 text-[#C7CEDB] sm:max-w-[min(1100px,95vw)]"
-        >
-          <SheetHeader className="sr-only">
-            <SheetTitle>이미지 편집</SheetTitle>
-            <SheetDescription>검색 성능을 위한 현장 이미지 보정</SheetDescription>
-          </SheetHeader>
-          {currentCrimeData && (
-            <div className="min-h-0 flex-1">
-              <EditWorkbench
-                crimeNumber={crimeNumber}
-                seedImage={currentCrimeData.editImage ?? currentCrimeData.image}
-                onSaved={handleEditSaved}
-              />
-            </div>
-          )}
         </SheetContent>
       </Sheet>
 

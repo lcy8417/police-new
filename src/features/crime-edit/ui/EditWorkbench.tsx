@@ -1,6 +1,6 @@
-import { Wand2 } from "lucide-react"
+import { RefreshCcw, Save } from "lucide-react"
 
-import { TechCorners } from "@/shared/ui/tech-corners"
+import { Button } from "@/shared/ui/button"
 
 import { useImageEdit } from "../model/use-image-edit"
 import { EditCanvas } from "./EditCanvas"
@@ -12,20 +12,27 @@ export interface EditWorkbenchProps {
   crimeNumber: string
   /** 편집 시작 원본(currentCrimeData.editImage ?? image). */
   seedImage: string | null | undefined
-  /** 저장 성공 후 호출(최종 이미지 전달). store 갱신·refetch·Sheet 닫기는 호출자 몫. */
+  /** "원본 복원"이 되돌아갈 raw 원본 이미지(currentCrimeData.image). */
+  originalImage?: string | null | undefined
+  /** 저장 성공 후 호출(최종 이미지 전달). store 갱신·refetch는 호출자 몫. */
   onSaved?: (finalImage: string) => void
 }
 
 /**
- * 현장 이미지 편집 워크벤치 — CrimeDetailPage의 우측 Sheet 안에 들어가는 조립 셸.
+ * 현장 이미지 편집 워크벤치 — CrimeDetailPage 본문에 **인라인**으로 들어가는 조립 셸.
  * 상태는 `useImageEdit`이 소유하고, 이 컴포넌트는 그 값을 `EditCanvas`(좌측, 크게) ·
- * `ToolDock`(우측, 고정폭) · `ThresholdControls`(이진화 툴 활성 시 도크 슬롯)에 배선만 한다.
+ * `ToolDock`(우측, 고정폭) · `ThresholdControls`(이진화 툴 활성 시 도크 슬롯)에 배선한다.
  *
- * 상단 헤더 밴드는 이 워크벤치의 조립 정체성을 알리는 것으로, `EditCanvas` 내부 헤더(폴리곤
- * 툴 활성 안내)와는 역할이 다르다 — 둘 다 유지한다.
+ * 하단 푸터에 편집 액션(원본 복원 · 저장)을 둔다 — 문양추출 캔버스의 추출/초기화 푸터
+ * 위치에 대응한다. "되돌리기"는 그대로 ToolDock 안에 유지한다.
  */
-export function EditWorkbench({ crimeNumber, seedImage, onSaved }: EditWorkbenchProps) {
-  const edit = useImageEdit({ crimeNumber, seedImage })
+export function EditWorkbench({
+  crimeNumber,
+  seedImage,
+  originalImage,
+  onSaved,
+}: EditWorkbenchProps) {
+  const edit = useImageEdit({ crimeNumber, seedImage, originalImage })
 
   const handleSave = async () => {
     // save 내부에서 실패 시 toast로 안내하고 rethrow하므로, 여기서는 미처리 rejection만 흡수한다.
@@ -37,22 +44,9 @@ export function EditWorkbench({ crimeNumber, seedImage, onSaved }: EditWorkbench
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
-      {/* 헤더 밴드 — 워크벤치 정체성(제목 + 부제) */}
-      <header className="relative flex shrink-0 items-center gap-3 rounded-xl border border-[#1E2A3C] bg-[#0B121D] px-5 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-        <TechCorners size={18} />
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-[#3B82F6]/40 bg-[#152238] text-[#4A9EFF]">
-          <Wand2 className="size-4" aria-hidden="true" />
-        </span>
-        <div className="min-w-0">
-          <h2 className="truncate text-[15px] font-semibold text-[#E5E9F0]">이미지 편집</h2>
-          <p className="truncate font-mono text-[11px] tracking-wide text-[#6B7688]">
-            검색 성능을 위한 현장 이미지 보정
-          </p>
-        </div>
-      </header>
-
-      {/* 본문 — 좌측 캔버스(가변폭) + 우측 도구 도크(고정폭) */}
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      {/* 본문 — 좌측 캔버스(가변폭) + 우측 도구 도크(고정폭). EditCanvas가 자체 헤더를 가지므로
+          별도 헤더 밴드는 두지 않는다(인라인에서 이중 헤더 방지). */}
       <div className="flex min-h-0 flex-1 gap-4">
         <div className="min-w-0 flex-1">
           <EditCanvas
@@ -72,7 +66,6 @@ export function EditWorkbench({ crimeNumber, seedImage, onSaved }: EditWorkbench
             canUndo={edit.canUndo}
             onUndo={edit.undo}
             onRunDenoise={edit.runDenoise}
-            onSave={handleSave}
             isProcessing={edit.isProcessing}
             thresholdSlot={
               <ThresholdControls
@@ -86,6 +79,29 @@ export function EditWorkbench({ crimeNumber, seedImage, onSaved }: EditWorkbench
             }
           />
         </div>
+      </div>
+
+      {/* 푸터 — 편집 액션(원본 복원 · 저장). 저장 시 호출자가 검색을 재실행한다. */}
+      <div className="flex shrink-0 items-center gap-2 rounded-xl border border-[#141D2C] bg-[#0D1420]/60 px-4 py-3">
+        <Button
+          type="button"
+          onClick={edit.restoreOriginal}
+          disabled={edit.isProcessing}
+          className="h-9 border border-[#1E2A3C] bg-[#0F1826] text-[#8A93A6] hover:border-[#2A3B54] hover:text-white"
+        >
+          <RefreshCcw className="size-3.5" aria-hidden="true" />
+          원본 복원
+        </Button>
+        <div className="min-w-0 flex-1" />
+        <Button
+          type="button"
+          onClick={handleSave}
+          disabled={edit.isProcessing}
+          className="h-9 min-w-28 border border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_18px_rgba(37,99,235,0.35)] hover:bg-[#182b45]"
+        >
+          <Save className="size-3.5" aria-hidden="true" />
+          저장
+        </Button>
       </div>
     </div>
   )

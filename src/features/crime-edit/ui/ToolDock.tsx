@@ -4,7 +4,6 @@ import {
   Loader2,
   MousePointerClick,
   RotateCcw,
-  Save,
   Scissors,
   Sparkles,
   Stamp,
@@ -28,8 +27,6 @@ export interface ToolDockProps {
   onUndo: () => void
   /** "노이즈 제거 실행" 클릭 시 호출. */
   onRunDenoise: () => void
-  /** "저장" 클릭 시 호출. */
-  onSave: () => void
   /** 서버 처리(배경제거/노이즈제거/접합장애물제거) 진행 중 여부 — 전체 비활성. */
   isProcessing: boolean
   /** threshold 활성 시 렌더할 ThresholdControls(조립 워커 주입). */
@@ -58,9 +55,9 @@ const ACCENT_ACTIVE: Record<ToolMeta["accent"], string> = {
 
 /**
  * 4기능 편집 도크 — 배경제거·이진화·노이즈제거·접합장애물제거 툴 버튼 + 활성 툴별
- * 파라미터 패널(폴리곤 안내 문구 / thresholdSlot / 노이즈제거 실행 버튼) + 공통
- * 되돌리기·저장 액션. 폴리곤 좌표 판정·전송은 이 컴포넌트 밖(EditCanvas/model)이 소유 —
- * 여기서는 안내 문구와 버튼만 다룬다.
+ * 파라미터 패널(폴리곤 안내 문구 / thresholdSlot / 노이즈제거 실행 버튼) + 되돌리기.
+ * 저장·원본복원은 워크벤치 푸터가 담당한다. 폴리곤 좌표 판정·전송은 이 컴포넌트
+ * 밖(EditCanvas/model)이 소유 — 여기서는 안내 문구와 버튼만 다룬다.
  */
 export function ToolDock({
   activeTool,
@@ -68,7 +65,6 @@ export function ToolDock({
   canUndo,
   onUndo,
   onRunDenoise,
-  onSave,
   isProcessing,
   thresholdSlot,
 }: ToolDockProps) {
@@ -155,19 +151,10 @@ export function ToolDock({
           type="button"
           onClick={onUndo}
           disabled={!canUndo || isProcessing}
-          className="h-9 flex-1 border border-[#1E2A3C] bg-[#0F1826] text-[#8A93A6] hover:border-[#2A3B54] hover:text-white"
+          className="h-9 w-full border border-[#1E2A3C] bg-[#0F1826] text-[#8A93A6] hover:border-[#2A3B54] hover:text-white"
         >
           <RotateCcw className="size-3.5" aria-hidden="true" />
           되돌리기
-        </Button>
-        <Button
-          type="button"
-          onClick={onSave}
-          disabled={isProcessing}
-          className="h-9 flex-1 border border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_18px_rgba(37,99,235,0.35)] hover:bg-[#182b45]"
-        >
-          <Save className="size-3.5" aria-hidden="true" />
-          저장
         </Button>
       </div>
     </aside>
