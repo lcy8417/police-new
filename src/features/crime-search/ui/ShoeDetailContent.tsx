@@ -551,10 +551,13 @@ export function ShoeDetailContent({
           )}
         </div>
 
-        {/* ② 본문(세로 스크롤) — 유사부위(족적|신발 좌우) → 문양 비교(부위별 현장|DB 좌우).
-            사건 정보는 헤더로 대체해 제거했다. */}
-        <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+        {/* ② 본문 — 바깥은 스크롤되지 않는 프레임(모서리 브래킷을 고정), 안쪽 div만
+            세로 스크롤한다. TechCorners를 스크롤 컨테이너 안에 두면 콘텐츠와 함께
+            떠내려가므로, 프레임(바깥)에 두어 패널 네 모서리에 고정한다. 사건 정보는
+            헤더로 대체해 제거했다. */}
+        <div className="relative min-h-0 flex-1">
           <TechCorners size={20} />
+          <div className="absolute inset-0 flex flex-col gap-4 overflow-y-auto p-4">
 
           {/* 유사부위 히트맵 — 족적/신발을 좌우로 넓게. 로딩 중엔 원본 폴백 대신 스피너.
               shrink-0 필수: 본문이 flex-col이라 이게 없으면 자식이 눌려 본문이 스크롤되지 않는다. */}
@@ -608,6 +611,7 @@ export function ShoeDetailContent({
             </div>
             <PatternGroups scene={patternItems[0]} db={patternItems[1]} />
           </section>
+          </div>
         </div>
 
         {/* ③ 고정 판정바 — 하단 border-t. */}
