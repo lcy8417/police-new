@@ -1,8 +1,16 @@
 import { useCallback, useMemo, useState } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query"
 
-import { fetchAllShoes, type Shoe, type ShoePattern } from "@/entities/shoe"
+import {
+  fetchShoeDetail,
+  fetchShoesCount,
+  fetchShoesList,
+  shoeKeys,
+  SHOES_PAGE_SIZE,
+  type Shoe,
+  type ShoePattern,
+} from "@/entities/shoe"
 import { insertPatternPath } from "@/entities/pattern"
 import { ShoeWorkbench } from "@/widgets/shoe-workbench"
 import { usePageHeader } from "@/widgets/app-shell"
@@ -14,9 +22,6 @@ import {
   shoeRegisterNewPath,
   shoeRepositoryPath,
 } from "../model/shoe-paths"
-
-/** 전체 신발 목록 쿼리 키(모든 페이지 집계 — 총 건수·전체 브라우징용). */
-const ALL_SHOES_KEY = ["shoes", "all"] as const
 
 /**
  * 신발 밑창 문양 zone 하나를 전체 경로로 hydrate한다. 서버는 패턴 이름만 주므로
@@ -45,8 +50,9 @@ function hydrateShoe(shoe: Shoe): Shoe {
  *    한 번 더 클릭하면 우측 Sheet에서 기본정보 편집 + 저장(PUT).
  *  - `/shoesRepository`(무선택) → 기존 신발 목록 브라우즈(신발을 고르면 편집).
  *
- * 신발 목록은 총 개수를 위해 모든 페이지를 집계(`fetchAllShoes`)한다. 밑창 문양은
- * 서버가 이름만 주므로 이 페이지에서 경로를 hydrate해 편집 시드로 넘긴다.
+ * 신발 목록은 서버 페이징(페이지당 50개)으로 가져오고, 전체 건수는 count 엔드포인트로
+ * 조회한다. 편집 대상은 개별 상세(`fetchShoeDetail`)로 가져오며, 밑창 문양은 서버가
+ * 이름만 주므로 이 페이지에서 경로를 hydrate해 편집 시드로 넘긴다.
  */
 export function ShoeRepositoryPage() {
   const { modelNumber = "" } = useParams()
@@ -57,20 +63,51 @@ export function ShoeRepositoryPage() {
   // 기본정보 Sheet 개폐 — 목록의 선택된 행을 한 번 더 클릭하면 연다.
   const [infoSheetOpen, setInfoSheetOpen] = useState(false)
 
-  const shoesQuery = useQuery({
-    queryKey: ALL_SHOES_KEY,
-    queryFn: fetchAllShoes,
-  })
-  const shoes = useMemo(() => shoesQuery.data ?? [], [shoesQuery.data])
+  // 현재 페이지 상태(서버 페이징). 목록은 페이지당 50개만 가져오고, 전체 건수는 별도
+  // count 엔드포인트로 조회한다(예전엔 전체 페이지를 순회 집계해 서버 페이징을 무력화했다).
+  const [page, setPage] = useState(0)
 
-  // 편집 대상 신발(전체 목록에서 매칭 후 문양 hydrate).
-  const currentShoe = useMemo<Shoe | undefined>(() => {
-    if (isNew || !modelNumber) return undefined
-    const found = shoes.find(
-      (item) => String(item.modelNumber) === String(modelNumber)
-    )
-    return found ? hydrateShoe(found) : undefined
-  }, [isNew, modelNumber, shoes])
+  const countQuery = useQuery({
+    queryKey: shoeKeys.count(),
+    queryFn: fetchShoesCount,
+  })
+  const total = countQuery.data ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / SHOES_PAGE_SIZE))
+  // 건수가 줄어(삭제 등) 현재 페이지가 범위를 벗어나도 안전하게 clamp한다.
+  const safePage = Math.min(page, totalPages - 1)
+
+  const shoesQuery = useQuery({
+    queryKey: shoeKeys.list(safePage),
+    queryFn: () => fetchShoesList(safePage),
+    // 페이지 이동 시 이전 페이지 데이터를 유지해 깜빡임을 줄인다.
+    placeholderData: keepPreviousData,
+  })
+  const pageShoes = useMemo(() => shoesQuery.data ?? [], [shoesQuery.data])
+
+  // 편집 대상 신발 — 서버 페이징이라 전체 목록이 없으므로 개별 상세로 조회한다.
+  // 이미 캐시된 목록 페이지에 있으면 placeholderData로 즉시 시드(행 클릭 시 무플리커),
+  // 없으면(콜드 진입) 상세를 새로 가져온다. 문양 경로 hydrate는 아래 useMemo에서.
+  const detailQuery = useQuery({
+    queryKey: shoeKeys.detail(modelNumber),
+    queryFn: () => fetchShoeDetail(modelNumber),
+    enabled: !isNew && !!modelNumber,
+    placeholderData: () => {
+      const cachedPages = queryClient.getQueriesData<Shoe[]>({
+        queryKey: ["shoes", "list"],
+      })
+      for (const [, data] of cachedPages) {
+        const hit = data?.find(
+          (item) => String(item.modelNumber) === String(modelNumber)
+        )
+        if (hit) return hit
+      }
+      return undefined
+    },
+  })
+  const currentShoe = useMemo<Shoe | undefined>(
+    () => (detailQuery.data ? hydrateShoe(detailQuery.data) : undefined),
+    [detailQuery.data]
+  )
 
   // 저장(등록/수정) 성공 → Sheet 닫고 목록 캐시 무효화 후 해당 신발 편집으로.
   const handleSaved = useCallback(
@@ -124,10 +161,14 @@ export function ShoeRepositoryPage() {
 
   const shoeListPanel = (
     <ShoeList
-      shoes={shoes}
+      shoes={pageShoes}
+      total={total}
+      page={safePage}
+      totalPages={totalPages}
       selectedModelNumber={modelNumber}
       isLoading={shoesQuery.isFetching}
       onSelect={handleListSelect}
+      onPageChange={setPage}
     />
   )
 
@@ -135,7 +176,14 @@ export function ShoeRepositoryPage() {
   const workbenchMode = isNew ? "new" : "edit"
   const initialShoe = isNew ? undefined : currentShoe
   // 모드/신발 전환 시 리마운트해 formData·lineState·uploadedRef 잔상을 없앤다.
-  const workbenchKey = isNew ? "new" : `${modelNumber || "none"}-edit`
+  // 추가로 currentShoe 로드 여부를 key에 실어, 상세가 도착하면 워크벤치를 remount해
+  // initialShoe를 seed한다(ShoeWorkbench는 마운트 시점 lazy state로만 시드하므로,
+  // 콜드 진입 시 상세가 늦게 와도 빈 폼에 갇히지 않는다).
+  const workbenchKey = isNew
+    ? "new"
+    : currentShoe
+      ? `${modelNumber}-edit`
+      : `${modelNumber || "none"}-loading`
 
   return (
     <div className="relative h-[calc(100vh-110px)] w-full overflow-hidden bg-background px-6 py-6">

@@ -1,4 +1,4 @@
-import { apiGet, apiSend, stripDataUrlPrefix } from "@/shared/api";
+import { apiGet, apiSend, stripDataUrlPrefix, ApiError } from "@/shared/api";
 import { convertKeysToCamelCase } from "@/shared/lib";
 import { stripPatternPath } from "@/entities/pattern";
 import type {
@@ -12,28 +12,28 @@ import type {
 const stripZone = (entries: string[]): string[] =>
   entries.map((entry) => stripPatternPath(entry) as string);
 
-/** GET /shoes?page=N — a page of the shoe list. Mirror of crud.js#fetchShoesData. */
+/**
+ * GET /shoes?page=N — 신발 목록 한 페이지(서버 페이지 크기 50). Mirror of
+ * crud.js#fetchShoesData. 백엔드는 빈 페이지(데이터 없음/범위 밖)를 404로 응답하므로
+ * 이를 빈 목록으로 흡수한다(전체 개수는 fetchShoesCount로 따로 조회한다).
+ */
 export async function fetchShoesList(page = 0): Promise<Shoe[]> {
-  const data = await apiGet<ShoeDto[]>(`/shoes?page=${page}`);
-  return convertKeysToCamelCase<Shoe[]>(data);
+  try {
+    const data = await apiGet<ShoeDto[]>(`/shoes?page=${page}`);
+    return convertKeysToCamelCase<Shoe[]>(data);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return [];
+    throw error;
+  }
 }
 
 /** 서버 페이지 크기(GET /shoes?page=N이 페이지당 반환하는 최대 개수). */
 export const SHOES_PAGE_SIZE = 50;
 
-/**
- * 전체 신발을 모은다 — 백엔드에 총 개수/전체 목록 엔드포인트가 없어(`?page=N`만
- * 존재) 페이지를 순회하며 집계한다. 한 페이지가 `SHOES_PAGE_SIZE`보다 적게 오면
- * 마지막 페이지로 보고 멈춘다. 폭주 방지로 페이지 상한을 둔다.
- */
-export async function fetchAllShoes(): Promise<Shoe[]> {
-  const all: Shoe[] = [];
-  for (let page = 0; page < 1000; page++) {
-    const chunk = await fetchShoesList(page);
-    all.push(...chunk);
-    if (chunk.length < SHOES_PAGE_SIZE) break;
-  }
-  return all;
+/** GET /shoes/count — 전체 신발 개수. 서버 페이징의 총 페이지 수 계산용. */
+export async function fetchShoesCount(): Promise<number> {
+  const data = await apiGet<{ count: number }>(`/shoes/count`);
+  return data.count;
 }
 
 /** GET /shoes/:modelNumber. Mirror of crud.js#fetchCurrentShoes. */

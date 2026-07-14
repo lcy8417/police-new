@@ -72,10 +72,13 @@ describe("luminance", () => {
 })
 
 describe("binarizeByte", () => {
-  it("splits at the threshold, inclusive of the threshold value", () => {
+  // 서버(OpenCV) 정합을 위해 strict `>` 로 통일. 경계 픽셀(gray === threshold)은
+  // 과거 `>=`에서 255였으나 이제 0이다(THRESH_BINARY: gray > t ? 255 : 0).
+  it("splits at the threshold with strict `>` (OpenCV BINARY)", () => {
     expect(binarizeByte(200, 127)).toBe(255)
     expect(binarizeByte(100, 127)).toBe(0)
-    expect(binarizeByte(127, 127)).toBe(255)
+    expect(binarizeByte(127, 127)).toBe(0)
+    expect(binarizeByte(128, 127)).toBe(255)
   })
 })
 

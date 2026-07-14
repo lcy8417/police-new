@@ -183,7 +183,7 @@ describe("saveCrimeEditImage (PUT /crime/edit_image/:crimeNumber)", () => {
     expect(captured).toEqual({ image: "EDITBASE64==" });
   });
 
-  it("nulls out a missing or non-data-URL image", async () => {
+  it("nulls out only a missing image", async () => {
     let captured: unknown;
     mswServer.use(
       http.put("*/crime/edit_image/2024-003", async ({ request }) => {
@@ -198,6 +198,23 @@ describe("saveCrimeEditImage (PUT /crime/edit_image/:crimeNumber)", () => {
     });
 
     expect(captured).toEqual({ image: null });
+  });
+
+  it("passes a prefix-less raw base64 image through unchanged (백엔드는 string 요구 — null 금지)", async () => {
+    let captured: unknown;
+    mswServer.use(
+      http.put("*/crime/edit_image/2024-004", async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({});
+      })
+    );
+
+    await saveCrimeEditImage({
+      crimeNumber: "2024-004",
+      scrollState: { image: "RAWBASE64==" },
+    });
+
+    expect(captured).toEqual({ image: "RAWBASE64==" });
   });
 });
 

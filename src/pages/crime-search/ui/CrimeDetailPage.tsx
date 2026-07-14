@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   ArrowLeft,
   Award,
@@ -32,8 +32,10 @@ import {
 } from "@/features/patterns-extract"
 import {
   RetrievalResultsGrid,
+  ShoeDetailContent,
   type RetrievalResultItem,
 } from "@/features/crime-search"
+import { EditWorkbench } from "@/features/crime-edit"
 import { stripPatternPath, type PatternZone } from "@/entities/pattern"
 import { usePageHeader } from "@/widgets/app-shell"
 import { Badge } from "@/shared/ui/badge"
@@ -45,7 +47,7 @@ import { filteredPatterns, imageChangeHandler } from "@/utils/get-input-change"
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value"
 import { cn } from "@/shared/lib/utils"
 
-import { crimeHistoryPath, resultDetailPath, searchDetailPath } from "../model/search-paths"
+import { crimeHistoryPath, searchDetailPath } from "../model/search-paths"
 import { CaseExplorerPanel } from "./CaseExplorerPanel"
 
 // 제목은 정적 — 헤더 effect가 매 렌더 재실행되지 않도록 한 번만 생성한다.
@@ -99,6 +101,7 @@ export function CrimeDetailPage() {
 
   // Context 브리지 대신 store 셀렉터로 현장 데이터에 접근한다.
   const crimeData = useCrimeStore((s) => s.crimeData)
+  const setCrimeData = useCrimeStore((s) => s.setCrimeData)
   const index = crimeData.findIndex(
     (item) => String(item.crimeNumber) === String(crimeNumber)
   )
@@ -147,6 +150,16 @@ export function CrimeDetailPage() {
   const [isExtracting, setIsExtracting] = useState(false)
   // 검색이력은 기본 접힘 — 문양 작업이 주 흐름이라 필요할 때만 펼친다.
   const [historyOpen, setHistoryOpen] = useState(false)
+  // 이미지 편집 워크벤치를 담는 우측 Sheet — 헤더 [편집] 버튼으로 연다.
+  const [editSheetOpen, setEditSheetOpen] = useState(false)
+  // 신발 결과 상세를 담는 우측 컴팩트 Sheet — 검색 결과 카드 클릭으로 연다.
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detailTarget, setDetailTarget] = useState<{
+    modelNumber: string
+    ranking: number
+  } | null>(null)
+  // 상세 저장 진행 상태 — 저장 중에는 Sheet 강제 닫기(오버레이·Esc)를 무시한다.
+  const [detailSaving, setDetailSaving] = useState(false)
 
   // 인라인 신발 검색 상태(레거시 ShoesResultPage에서 이관). searchActive가 true면
   // 본문이 검색모드(이미지·문양정보·결과 그리드)로 전환된다.
@@ -157,6 +170,9 @@ export function CrimeDetailPage() {
   // 검색모드에서 편집이미지로 전환하면 검색도 그 이미지로 자동 재실행된다.
   const [sceneView, setSceneView] = useState<"origin" | "edit">("origin")
   const searchEdit = sceneView === "edit"
+  // 편집 이미지 존재 여부 — 편집 뷰 검색은 편집 이미지가 있을 때만 돌린다(없으면 검색 무의미).
+  const hasEditImage = Boolean(currentCrimeData?.editImage)
+  const queryClient = useQueryClient()
   const [binary, setBinary] = useState<string>(BINARY_ON)
   const [similarity, setSimilarity] = useState<string | false>(SIMILARITY_ON)
   const [searchPage, setSearchPage] = useState(0)
@@ -182,7 +198,8 @@ export function CrimeDetailPage() {
   const loadQuery = useQuery({
     queryKey: ["crimeSearch", "image", crimeNumber, searchEdit],
     queryFn: () => imageLoad({ crimeNumber, edit: searchEdit }),
-    enabled: searchActive && Boolean(crimeNumber),
+    // 편집 뷰인데 편집 이미지가 없으면 로드하지 않는다(편집 이미지 없음 → 검색 미실행).
+    enabled: searchActive && Boolean(crimeNumber) && (!searchEdit || hasEditImage),
   })
   const loadedImage = loadQuery.data ?? null
 
@@ -215,6 +232,7 @@ export function CrimeDetailPage() {
       searchActive &&
       Boolean(loadedImage) &&
       Boolean(currentCrimeData) &&
+      (!searchEdit || hasEditImage) &&
       patternsKey === patternsSignature,
   })
 
@@ -284,12 +302,13 @@ export function CrimeDetailPage() {
     }
   }, [crimeNumber, currentCrimeData, setSearchParams])
 
-  // 결과 카드 클릭 → 기존과 동일하게 결과 상세로 이동한다.
+  // 결과 카드 클릭 → 페이지 이동 대신 우측 컴팩트 Sheet에 상세를 인라인 표시한다.
   const handleSelect = useCallback(
     (item: RetrievalResultItem, ranking: number) => {
-      navigate(resultDetailPath(crimeNumber, item.shoesName, { ranking }))
+      setDetailTarget({ modelNumber: item.shoesName, ranking })
+      setDetailOpen(true)
     },
-    [navigate, crimeNumber]
+    []
   )
 
   const toggleBinary = useCallback(() => {
@@ -305,6 +324,39 @@ export function CrimeDetailPage() {
       return next
     })
   }, [setSearchParams])
+
+  // 편집 저장 완료 콜백 — EditWorkbench가 서버 PUT을 이미 수행했으므로 여기선 store
+  // editImage를 낙관적으로 갱신하고, "편집" 뷰일 때만 캔버스·검색을 즉시 반영한다.
+  // 주의: 여기서 refetch()를 부르지 않는다. GET /crime 목록 응답이 항목별 editImage를
+  // 보장하지 않아(또는 PUT 커밋 전에 GET이 나가) 방금 저장한 값을 덮어써 재진입 반영이
+  // 깨질 수 있기 때문(레거시 저장 흐름도 낙관적 store 갱신만 했다).
+  // 또한 Sheet를 닫지 않는다 — 여러 편집을 연속으로 스택(되돌리기 가능)하며 이어가도록.
+  const handleEditSaved = useCallback(
+    (finalImage: string) => {
+      // 해당 사건 레코드의 editImage를 낙관적으로 치환.
+      setCrimeData((prev) =>
+        prev.map((item) =>
+          String(item.crimeNumber) === String(crimeNumber)
+            ? { ...item, editImage: finalImage }
+            : item
+        )
+      )
+      // 현재 "편집" 뷰일 때만 캔버스·검색을 새 편집 이미지로 즉시 반영·재실행한다.
+      // "현장" 뷰였다면 저장만 하고 뷰·캔버스·검색은 건드리지 않는다(현장 기준 검색 유지) —
+      // 편집 결과를 보려면 사용자가 "편집" 토글을 누르면 된다. (뷰 전환은 토글이 단독 제어.)
+      if (searchEdit) {
+        // 캔버스 편집 뷰를 즉시 새 이미지로 갱신한다. img.src는 imageChangeHandler가 명령형으로
+        // 바꾸는 값이라 store 갱신만으로는 다시 적용되지 않으므로(이미 "편집" 뷰라 재적용 없음),
+        // 저장 콜백이 쥔 finalImage를 직접 꽂는다.
+        if (imgRef.current) imgRef.current.src = finalImage
+        // 이미 "편집" 뷰면 searchEdit 키가 안 바뀌어 자동 재조회되지 않으므로 검색 쿼리를 무효화해
+        // 강제 재조회한다(서버 image_load?edit가 방금 저장한 편집 이미지 반환 → 그 이미지로 재검색).
+        void queryClient.invalidateQueries({ queryKey: ["crimeSearch"] })
+      }
+      toast.success("편집 이미지가 저장되었습니다.")
+    },
+    [crimeNumber, setCrimeData, searchEdit, queryClient]
+  )
 
   const headerActions = useMemo(() => {
     // 두 모드 공통: [목록으로][편집].
@@ -322,13 +374,7 @@ export function CrimeDetailPage() {
         <Button
           type="button"
           size="sm"
-          onClick={() =>
-            window.open(
-              `${window.location.origin}/edit/${crimeNumber}`,
-              "_blank",
-              "noopener,noreferrer"
-            )
-          }
+          onClick={() => setEditSheetOpen(true)}
           className="border border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
         >
           <Pencil className="size-4" aria-hidden="true" />
@@ -394,7 +440,6 @@ export function CrimeDetailPage() {
     )
   }, [
     navigate,
-    crimeNumber,
     handleSearch,
     historyRows.length,
     searchActive,
@@ -634,6 +679,63 @@ export function CrimeDetailPage() {
             </tbody>
           </table>
           </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* 이미지 편집 — 넓은 우측 슬라이드 시트(Sheet). 헤더 [편집] 버튼으로 연다.
+          EditWorkbench가 h-full을 채우므로 SheetContent가 flex 컬럼으로 높이를 제공한다. */}
+      <Sheet open={editSheetOpen} onOpenChange={setEditSheetOpen}>
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col border-l border-[#1E2A3C] bg-[#0B121D] p-4 text-[#C7CEDB] sm:max-w-[min(1100px,95vw)]"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>이미지 편집</SheetTitle>
+            <SheetDescription>검색 성능을 위한 현장 이미지 보정</SheetDescription>
+          </SheetHeader>
+          {currentCrimeData && (
+            <div className="min-h-0 flex-1">
+              <EditWorkbench
+                crimeNumber={crimeNumber}
+                seedImage={currentCrimeData.editImage ?? currentCrimeData.image}
+                onSaved={handleEditSaved}
+              />
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* 신발 결과 상세 — 우측 컴팩트 Sheet(3층: 고정 헤더/본문 스크롤/고정 판정바).
+          검색 결과 카드 클릭으로 열고, 이력 저장 성공 시 닫으며 store를 refetch한다.
+          저장 중에는 강제 닫기를 무시해 이중 제출·유실을 막는다. */}
+      <Sheet
+        open={detailOpen}
+        onOpenChange={(open) => {
+          if (!open && detailSaving) return
+          setDetailOpen(open)
+        }}
+      >
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col gap-0 border-l border-[#1E2A3C] bg-[#0B121D] p-0 text-[#C7CEDB] sm:max-w-[min(1100px,96vw)]"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>신발 결과 상세</SheetTitle>
+            <SheetDescription>어텐션 맵·문양 비교·사건 정보와 발견 판정</SheetDescription>
+          </SheetHeader>
+          {detailTarget && (
+            <ShoeDetailContent
+              variant="compact"
+              crimeNumber={crimeNumber}
+              modelNumber={detailTarget.modelNumber}
+              ranking={detailTarget.ranking}
+              onPendingChange={setDetailSaving}
+              onSaved={() => {
+                setDetailOpen(false)
+                useCrimeStore.getState().refetch()
+              }}
+            />
+          )}
         </SheetContent>
       </Sheet>
     </div>

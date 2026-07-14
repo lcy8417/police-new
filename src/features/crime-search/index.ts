@@ -13,3 +13,5 @@ export type {
   PartialPatternsCompareProps,
   PatternCompareGroup,
 } from "./ui/PartialPatternsCompare";
+export { ShoeDetailContent } from "./ui/ShoeDetailContent";
+export type { ShoeDetailContentProps } from "./ui/ShoeDetailContent";

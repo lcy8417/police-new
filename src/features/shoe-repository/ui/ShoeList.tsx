@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { ChevronLeft, ChevronRight, Footprints, Loader2 } from "lucide-react"
 
 import type { Shoe } from "@/entities/shoe"
@@ -7,14 +6,20 @@ import { TechCorners } from "@/shared/ui/tech-corners"
 import { cn } from "@/shared/lib/utils"
 
 export interface ShoeListProps {
-  /** 전체 신발 목록(모든 페이지를 집계한 배열). 페이지네이션은 이 컴포넌트가 내부에서 한다. */
+  /** 현재 페이지의 신발(서버 페이징 — 페이지당 최대 50). */
   shoes: Shoe[]
+  /** 전체 신발 건수(count 엔드포인트). 헤더 배지에 표시한다. */
+  total: number
+  /** 0-base 현재 페이지. */
+  page: number
+  /** 전체 페이지 수(ceil(total / 서버 페이지 크기)). */
+  totalPages: number
   selectedModelNumber: string
   isLoading: boolean
   /** 행 클릭 — 선택(편집 진입) 또는 이미 선택된 행이면 정보 Sheet 열기(페이지가 판단). */
   onSelect: (modelNumber: string) => void
-  /** 한 페이지에 보여줄 행 수. */
-  pageSize?: number
+  /** 페이지 이동 — 서버 재조회는 상위(페이지)가 담당한다. */
+  onPageChange: (page: number) => void
 }
 
 /** 테이블 컬럼 정의(레거시 `SearchResults.jsx:41` 신발 매핑과 동일한 5열). */
@@ -33,26 +38,22 @@ const PAGINATION_BUTTON_CLASS =
 const PAGE_WINDOW = 5
 
 /**
- * 신발 목록 카드(프레젠테이셔널). 전체 신발을 받아 내부에서 클라이언트 페이지네이션
- * 한다. 헤더에 전체 건수를 표시하고, 하단은 [이전][최대 5개 페이지 번호][다음].
+ * 신발 목록 카드(프레젠테이셔널). 현재 페이지의 신발만 받아 그대로 표시하고,
+ * 페이지 이동은 `onPageChange`로 상위에 위임한다(서버 페이징 — 페이지마다 재조회).
+ * 헤더에 전체 건수(`total`)를 표시하고, 하단은 [이전][최대 5개 페이지 번호][다음].
  * 행 클릭은 `onSelect`(선택된 행 재클릭 시 페이지가 정보 Sheet를 연다).
  */
 export function ShoeList({
   shoes,
+  total,
+  page,
+  totalPages,
   selectedModelNumber,
   isLoading,
   onSelect,
-  pageSize = 12,
+  onPageChange,
 }: ShoeListProps) {
-  const [page, setPage] = useState(0)
-
-  const total = shoes.length
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
-  // 목록이 줄어들어도 안전하도록 현재 페이지를 총 페이지 내로 clamp한다.
-  const safePage = Math.min(page, totalPages - 1)
-  const pageShoes = shoes.slice(safePage * pageSize, safePage * pageSize + pageSize)
-
-  const windowStart = Math.max(0, Math.min(safePage - 2, totalPages - PAGE_WINDOW))
+  const windowStart = Math.max(0, Math.min(page - 2, totalPages - PAGE_WINDOW))
   const pageNumbers = Array.from(
     { length: Math.min(PAGE_WINDOW, totalPages) },
     (_, i) => Math.max(0, windowStart) + i
@@ -95,7 +96,7 @@ export function ShoeList({
                   </div>
                 </td>
               </tr>
-            ) : pageShoes.length === 0 ? (
+            ) : shoes.length === 0 ? (
               <tr>
                 <td colSpan={COLUMNS.length} className="px-4 py-16 text-center">
                   <div className="flex flex-col items-center gap-2 text-[#5B6B85]">
@@ -105,7 +106,7 @@ export function ShoeList({
                 </td>
               </tr>
             ) : (
-              pageShoes.map((shoe, rowIndex) => {
+              shoes.map((shoe, rowIndex) => {
                 const modelNumber = String(shoe.modelNumber ?? "")
                 const isSelected =
                   selectedModelNumber !== "" && modelNumber === String(selectedModelNumber)
@@ -155,8 +156,8 @@ export function ShoeList({
         <Button
           type="button"
           size="icon-sm"
-          onClick={() => setPage(safePage - 1)}
-          disabled={safePage <= 0}
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 0}
           aria-label="이전 페이지"
           className={PAGINATION_BUTTON_CLASS}
         >
@@ -164,7 +165,7 @@ export function ShoeList({
         </Button>
 
         {pageNumbers.map((p) =>
-          p === safePage ? (
+          p === page ? (
             <span
               key={p}
               aria-current="page"
@@ -177,7 +178,7 @@ export function ShoeList({
               key={p}
               type="button"
               size="icon-sm"
-              onClick={() => setPage(p)}
+              onClick={() => onPageChange(p)}
               aria-label={`${p + 1} 페이지`}
               className={cn(PAGINATION_BUTTON_CLASS, "min-w-8 px-2 font-mono tabular-nums")}
             >
@@ -189,8 +190,8 @@ export function ShoeList({
         <Button
           type="button"
           size="icon-sm"
-          onClick={() => setPage(safePage + 1)}
-          disabled={safePage >= totalPages - 1}
+          onClick={() => onPageChange(page + 1)}
+          disabled={page >= totalPages - 1}
           aria-label="다음 페이지"
           className={PAGINATION_BUTTON_CLASS}
         >

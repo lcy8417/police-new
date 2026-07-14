@@ -12,7 +12,6 @@ import {
   ResultDetailPage as ResultDetail,
 } from "@/pages/crime-search";
 import { CrimeRegisterPage } from "@/pages/crime-register";
-import CrimeEdit from "./pages/CrimeEdit";
 import { ShoeRepositoryPage } from "@/pages/shoe-repository";
 import EditorMode from "./pages/EditorMode";
 
@@ -46,6 +45,14 @@ function ShoesEditRedirect() {
   return (
     <Navigate to={`/shoesRepository/${modelNumber}?mode=edit`} replace />
   );
+}
+
+// 현장 이미지 편집은 통합 커맨드센터(`/search/:crimeNumber`)의 우측 편집 Sheet로
+// 흡수됐다(신규 `features/crime-edit`). 레거시 `/edit/:crimeNumber` 경로(북마크·
+// 외부 링크)는 detail URL로 리다이렉트해 하위 호환을 유지한다.
+function EditRedirect() {
+  const { crimeNumber = "" } = useParams();
+  return <Navigate to={`/search/${crimeNumber}`} replace />;
 }
 
 function App() {
@@ -88,7 +95,7 @@ function App() {
               path="/search/:crimeNumber/shoesResult/detail/:modelNumber"
               element={<ResultDetail />}
             />
-            <Route path="/edit/:crimeNumber" element={<CrimeEdit />} />
+            <Route path="/edit/:crimeNumber" element={<EditRedirect />} />
             <Route path="/shoesRegister" element={<ShoeRegisterRedirect />} />
             <Route path="/shoesRepository" element={<ShoeRepositoryPage />} />
             <Route

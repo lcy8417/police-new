@@ -2,7 +2,13 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { mswServer } from "@/test/msw-server";
 import { PATTERNS_ROOT } from "@/entities/pattern";
-import { fetchShoeDetail, fetchShoesList, registerShoe, updateShoe } from "./shoe-api";
+import {
+  fetchShoeDetail,
+  fetchShoesCount,
+  fetchShoesList,
+  registerShoe,
+  updateShoe,
+} from "./shoe-api";
 
 beforeAll(() => mswServer.listen({ onUnhandledRequest: "error" }));
 afterEach(() => mswServer.resetHandlers());
@@ -63,6 +69,32 @@ describe("fetchShoesList (GET /shoes?page=N)", () => {
     const result = await fetchShoesList();
 
     expect(result).toEqual([]);
+  });
+
+  it("treats a 404 page (empty/out-of-range) as an empty list", async () => {
+    // 백엔드는 빈 페이지를 404 JSON으로 응답한다 — 이를 빈 목록으로 흡수해야 한다.
+    mswServer.use(
+      http.get("*/shoes", () =>
+        HttpResponse.json(
+          { message: "등록된 신발 정보가 없습니다." },
+          { status: 404 }
+        )
+      )
+    );
+
+    const result = await fetchShoesList(99);
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe("fetchShoesCount (GET /shoes/count)", () => {
+  it("returns the count field from the response", async () => {
+    mswServer.use(
+      http.get("*/shoes/count", () => HttpResponse.json({ count: 123 }))
+    );
+
+    expect(await fetchShoesCount()).toBe(123);
   });
 });
 

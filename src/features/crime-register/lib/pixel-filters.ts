@@ -14,7 +14,17 @@
  * 실시간 미리보기와 베이크(즉 `ctx.filter`) 양쪽을 모두 구동한다.
  * gamma와 threshold는 CSS로 표현할 수 없으므로 베이크 시에만
  * `getImageData`/`putImageData`를 통해 픽셀 단위로 적용된다.
+ *
+ * 이진화 원시 헬퍼(`luminance`/`buildGammaLut`/`clampByte`/`thresholdByte`)는
+ * 여러 슬라이스가 공유하도록 `shared/lib/image`로 승격되었다. 이 파일은 그 정본을
+ * 재사용하며, `Adjustments`/`buildCssFilter`/`isIdentityAdjustments`는 이 슬라이스
+ * 도메인이므로 여기 남긴다.
  */
+
+import { buildGammaLut, clampByte, luminance, thresholdByte } from "@/shared/lib/image/threshold"
+
+// 하위 호환을 위한 재노출(외부·테스트가 이 슬라이스에서 계속 import).
+export { buildGammaLut, clampByte, luminance }
 
 export interface Adjustments {
   /** -100..100 → CSS `brightness(100 + v %)`. 0 = 중립값. */
@@ -64,31 +74,13 @@ export function buildCssFilter(a: Adjustments): string {
   return parts.join(" ")
 }
 
-/** 숫자를 반올림한 뒤 0..255 범위의 단일 바이트로 clamp한다. */
-export function clampByte(v: number): number {
-  return Math.max(0, Math.min(255, Math.round(v)))
-}
-
 /**
- * 256개 항목의 감마 룩업 테이블: `out = 255 * (i/255) ** (1/gamma)`.
- * gamma > 1이면 중간톤을 끌어올리고(희미한 먼지 지문), gamma < 1이면 더 어둡게 만든다.
- * 양 끝값은 고정(0→0, 255→255)이며, gamma = 1은 항등 램프다.
+ * 전역 임계값: 그레이 레벨을 완전한 흰색 또는 완전한 검은색으로 매핑한다.
+ * shared `thresholdByte`의 standard(BINARY) 모드에 위임한다 — 서버(OpenCV) 정합을 위해
+ * 경계 판정은 strict `>`로 통일(과거 이 슬라이스의 `>=`에서 변경, 경계 픽셀 1개 값만 다름).
  */
-export function buildGammaLut(gamma: number): Uint8ClampedArray {
-  const lut = new Uint8ClampedArray(256)
-  const inv = 1 / gamma
-  for (let i = 0; i < 256; i++) lut[i] = clampByte(255 * (i / 255) ** inv)
-  return lut
-}
-
-/** RGB 트리플렛(각각 0..255)의 Rec.601 휘도(luma). */
-export function luminance(r: number, g: number, b: number): number {
-  return 0.299 * r + 0.587 * g + 0.114 * b
-}
-
-/** 전역 임계값: 그레이 레벨을 완전한 흰색 또는 완전한 검은색으로 매핑한다. */
-export function binarizeByte(gray: number, threshold: number): 0 | 255 {
-  return gray >= threshold ? 255 : 0
+export function binarizeByte(gray: number, threshold: number): number {
+  return thresholdByte(gray, threshold, "standard")
 }
 
 /**
