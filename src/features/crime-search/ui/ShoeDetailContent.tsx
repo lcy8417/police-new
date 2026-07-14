@@ -130,8 +130,9 @@ function AttentionTile({
             alt={label}
             className={cn(
               "object-contain p-3",
-              // page: 절대배치로 타일을 꽉 채움 / compact: 폭에 맞춰 이미지 원본 비율 유지.
-              fill ? "absolute inset-0 size-full" : "block h-auto w-full"
+              // page: 절대배치로 타일을 꽉 채움 / compact: 원본 비율 유지 + 높이 상한(좌우
+              // 배치 시 세로로 과하게 길어지지 않게) 후 가운데 정렬.
+              fill ? "absolute inset-0 size-full" : "mx-auto block max-h-[440px] w-auto max-w-full"
             )}
           />
         ) : (
@@ -211,8 +212,8 @@ const PATTERN_ZONES = [
   { key: "outline", label: "윤곽" },
 ] as const
 
-/** 한 출처(현장/DB)의 문양 썸네일 줄. 필수 문양은 붉은 코너 점으로 표시. */
-function PatternRow({
+/** 한 출처(현장/DB)의 문양 셀 — 라벨 + 큰 썸네일 그리드. 필수 문양은 붉은 코너 점. */
+function PatternCell({
   icon: Icon,
   label,
   patterns,
@@ -222,7 +223,7 @@ function PatternRow({
   patterns: PatternSrc[]
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex min-w-0 flex-col gap-2 rounded-lg border border-[#1E2A3C] bg-[#0F1826] p-2.5">
       <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase">
         <Icon className="size-3 text-[#4A9EFF]" aria-hidden="true" />
         {label}
@@ -252,15 +253,15 @@ function PatternRow({
           ))}
         </div>
       ) : (
-        <span className="text-[11px] text-[#5B6B85]">없음</span>
+        <span className="py-3 text-center text-[11px] text-[#5B6B85]">없음</span>
       )}
     </div>
   )
 }
 
 /**
- * 컴팩트 Sheet 전용 문양 그룹 뷰 — 부위별(상/중/하/윤곽)로 묶고, 각 부위 안에서
- * 현장/DB 문양을 함께 보여 한눈에 대조한다(공유 PartialPatternsCompare는 부위를
+ * 컴팩트 Sheet 전용 문양 비교 — 부위별(상/중/하/윤곽)로 묶고, 각 부위 안에서
+ * 현장/DB 문양을 좌우로 나란히 대조한다(공유 PartialPatternsCompare는 부위를
  * 화살표로 넘기지만, 여기선 모두 펼쳐 큰 썸네일로 보인다). scene/db는 patternItems[0/1].
  */
 function PatternGroups({
@@ -271,17 +272,21 @@ function PatternGroups({
   db?: PatternCompareGroup
 }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+    <div className="flex flex-col gap-3 p-4">
       {PATTERN_ZONES.map((zone) => (
-        <div key={zone.key} className="rounded-xl border border-[#1E2A3C] bg-[#0F1826] p-3">
+        <div
+          key={zone.key}
+          className="rounded-xl border border-[#1E2A3C] bg-[#0D1420]/40 p-3"
+        >
           <div className="mb-2.5 flex items-center gap-2">
             <span className="rounded-md border border-[#3B82F6]/50 bg-[#152238] px-2 py-0.5 font-mono text-[12px] font-semibold text-[#4A9EFF]">
               {zone.label}
             </span>
           </div>
-          <div className="flex flex-col gap-3">
-            <PatternRow icon={Camera} label="현장" patterns={scene?.[zone.key] ?? []} />
-            <PatternRow icon={Database} label="DB" patterns={db?.[zone.key] ?? []} />
+          {/* 현장 | DB 좌우 비교 */}
+          <div className="grid grid-cols-2 gap-3">
+            <PatternCell icon={Camera} label="현장" patterns={scene?.[zone.key] ?? []} />
+            <PatternCell icon={Database} label="DB" patterns={db?.[zone.key] ?? []} />
           </div>
         </div>
       ))}
@@ -514,13 +519,13 @@ export function ShoeDetailContent({
           )}
         </div>
 
-        {/* ② 본문 — 가로 2단(족적/신발 유사부위 | 문양 비교). 사건 정보는 헤더로
-            대체해 제거했다. 각 열 독립 스크롤. */}
-        <div className="relative grid min-h-0 flex-1 grid-cols-[minmax(0,340px)_minmax(0,1fr)] gap-3 overflow-hidden p-4">
+        {/* ② 본문(세로 스크롤) — 유사부위(족적|신발 좌우) → 문양 비교(부위별 현장|DB 좌우).
+            사건 정보는 헤더로 대체해 제거했다. */}
+        <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
           <TechCorners size={20} />
 
-          {/* 1단: 유사부위 히트맵(족적/신발). 로딩 중엔 원본 폴백 대신 스피너. */}
-          <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pr-1">
+          {/* 유사부위 히트맵 — 족적/신발을 좌우로 넓게. 로딩 중엔 원본 폴백 대신 스피너. */}
+          <div className="grid grid-cols-2 gap-3">
             <AttentionTile
               code=""
               label="족적 이미지 유사부위"
@@ -541,9 +546,9 @@ export function ShoeDetailContent({
             />
           </div>
 
-          {/* 2단: 문양 비교 — 부위별로 묶어 큰 썸네일로 펼쳐 표시. */}
-          <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]">
-            <div className="flex shrink-0 items-center gap-2.5 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
+          {/* 문양 비교 — 부위별로 묶고 각 부위 안에서 현장|DB를 좌우로. */}
+          <div className="overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]">
+            <div className="flex items-center gap-2.5 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
               <span className="text-[13px] font-semibold text-[#E5E9F0]">문양 비교</span>
               <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase">
                 <span
