@@ -328,6 +328,10 @@ export function CrimeDetailPage() {
       )
       // 편집 뷰로 전환 → searchEdit 검색이 새 편집 이미지로 자동 재실행된다.
       setSceneView("edit")
+      // 캔버스 편집 뷰를 즉시 새 이미지로 갱신한다. img.src는 imageChangeHandler가 명령형으로
+      // 바꾸는 값이라 store 갱신·sceneView 전환만으로는 다시 적용되지 않는다(이미 "편집" 뷰였다면
+      // no-op). 저장 콜백이 쥔 finalImage를 직접 꽂아야 바로 반영된다.
+      if (imgRef.current) imgRef.current.src = finalImage
       toast.success("편집 이미지가 저장되었습니다.")
     },
     [crimeNumber, setCrimeData]
