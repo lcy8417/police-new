@@ -100,6 +100,19 @@ interface PatternCanvasProps {
   viewportStyle?: CSSProperties;
   /** view(조회) 모드: 하단의 추출/초기화 액션을 숨긴다(좌표 수학 무관, 표시 전용). */
   readOnly?: boolean;
+  /**
+   * 편집 모드 — 경계선·영역·부위라벨·추출/초기화 등 문양추출 UI를 숨기고, 이미지 위에
+   * editOverlay를, 하단에 editFooter를 렌더한다. 좌표 수학(recompute/toCanvasY/line 전송)은
+   * 그대로 두고 렌더만 분기하는 순수 가산 확장이다. 편집 로직은 페이지(crime-edit)가 소유하고
+   * 슬롯으로 주입한다(FSD: patterns-extract는 crime-edit를 import하지 않는다).
+   */
+  editMode?: boolean;
+  /** 편집 모드에서 표시할 이미지(useImageEdit.displayImage). 없으면 image로 폴백. */
+  editImage?: string | null;
+  /** 편집 모드에서 이미지 위에 얹는 오버레이(폴리곤 입력 등, 페이지 주입). */
+  editOverlay?: ReactNode;
+  /** 편집 모드에서 하단에 렌더할 도구 푸터(페이지 주입). */
+  editFooter?: ReactNode;
 }
 
 /** 도크 툴바용 소형 버튼(crime-register EvidenceImagePanel 톤 준용). */
@@ -170,6 +183,10 @@ export function PatternCanvas({
   topToolbar,
   viewportStyle,
   readOnly = false,
+  editMode = false,
+  editImage = null,
+  editOverlay,
+  editFooter,
 }: PatternCanvasProps) {
   // 업로드 드롭존(onUpload가 있을 때만)용 숨은 파일 입력.
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
@@ -560,7 +577,10 @@ export function PatternCanvas({
     [minY, maxY, regionTop, regionBottom]
   );
 
-  const showOverlayChrome = Boolean(image) && canvasSize.h > 0;
+  // 편집 모드에서는 문양추출 chrome(틴트·영역·부위라벨·경계선 핸들)을 모두 숨긴다.
+  const showOverlayChrome = !editMode && Boolean(image) && canvasSize.h > 0;
+  // 편집 모드에서는 편집 표시 이미지를, 아니면 현장 이미지를 보여준다.
+  const shownImage = editMode ? editImage ?? image : image;
 
   return (
     <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)] backdrop-blur-sm">
@@ -662,7 +682,7 @@ export function PatternCanvas({
           >
             <img
               ref={imgRef}
-              src={image}
+              src={shownImage ?? image}
               alt="현장 신발 이미지"
               draggable={false}
               onLoad={handleImageLoad}
@@ -707,14 +727,20 @@ export function PatternCanvas({
               </>
             )}
 
-            <canvas
-              ref={canvasRef}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={stopDragging}
-              onMouseLeave={stopDragging}
-              className="absolute inset-0 size-full"
-            />
+            {/* 경계선 편집 canvas — 편집 모드에서는 렌더하지 않는다(문양추출 전용). */}
+            {!editMode && (
+              <canvas
+                ref={canvasRef}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={stopDragging}
+                onMouseLeave={stopDragging}
+                className="absolute inset-0 size-full"
+              />
+            )}
+
+            {/* 편집 모드 오버레이(폴리곤 입력 등) — 페이지가 주입한다. */}
+            {editMode && editOverlay}
 
             {/* 신발 영역(사각 마스크) 오버레이 — 테두리·틴트·신발 실루엣은
                 pointer-events-none, 엣지/꼭짓점 핸들만 pointer-events-auto로 드래그를
@@ -952,40 +978,46 @@ export function PatternCanvas({
           유지 — onShowOrigin/onShowEdit/activeView 상태 변경 로직 무수정).
           경계선 안내 문구는 좁은 열에서 줄바꿈으로 행이 늘지 않도록 md 이상에서만
           보이고 truncate로 흘러넘치지 않게 한다. */}
-      <div className="flex items-center gap-2 border-t border-[#141D2C] px-4 py-2">
-        {/* 조회(readOnly) 모드에서는 추출/초기화 액션을 숨긴다 — 편집은 [편집] 진입 후에만. */}
-        {!readOnly && (
-          <>
-            <ToolButton
-              icon={Radar}
-              label={isExtracting ? "추출중" : "추출"}
-              onClick={onExtract}
-              variant="accent"
-              disabled={isExtracting}
-              pending={isExtracting}
-            />
-            <ToolButton
-              icon={RotateCcw}
-              label="초기화"
-              onClick={onClear}
-              disabled={isExtracting}
-            />
-            <div className="h-5 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
-          </>
-        )}
-        <span className="shrink-0 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-1 font-mono text-[10px] tabular-nums text-[#8A93A6]">
-          {naturalSize.w}×{naturalSize.h}
-        </span>
-        <span className="hidden min-w-0 flex-1 items-center gap-1 truncate font-mono text-[10px] text-[#8A93A6] md:flex">
-          <GripHorizontal className="size-3 shrink-0 text-[#4A9EFF]" aria-hidden="true" />
-          <span className="truncate">
-            {readOnly ? "조회 모드 · 편집하려면 [편집]" : "경계선 드래그로 상/중/하 분할"}
+      {/* 편집 모드: 하단 푸터를 편집 도구(editFooter)로 대체한다. 아니면 문양추출
+          상태표시줄(추출/초기화 + 치수/안내/경계선 수). */}
+      {editMode ? (
+        <div className="border-t border-[#141D2C]">{editFooter}</div>
+      ) : (
+        <div className="flex items-center gap-2 border-t border-[#141D2C] px-4 py-2">
+          {/* 조회(readOnly) 모드에서는 추출/초기화 액션을 숨긴다 — 편집은 [편집] 진입 후에만. */}
+          {!readOnly && (
+            <>
+              <ToolButton
+                icon={Radar}
+                label={isExtracting ? "추출중" : "추출"}
+                onClick={onExtract}
+                variant="accent"
+                disabled={isExtracting}
+                pending={isExtracting}
+              />
+              <ToolButton
+                icon={RotateCcw}
+                label="초기화"
+                onClick={onClear}
+                disabled={isExtracting}
+              />
+              <div className="h-5 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
+            </>
+          )}
+          <span className="shrink-0 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-1 font-mono text-[10px] tabular-nums text-[#8A93A6]">
+            {naturalSize.w}×{naturalSize.h}
           </span>
-        </span>
-        <span className="ml-auto shrink-0 font-mono text-[11px] tracking-wide text-[#6B7688] uppercase">
-          {lineState.lineYs.length} Boundaries
-        </span>
-      </div>
+          <span className="hidden min-w-0 flex-1 items-center gap-1 truncate font-mono text-[10px] text-[#8A93A6] md:flex">
+            <GripHorizontal className="size-3 shrink-0 text-[#4A9EFF]" aria-hidden="true" />
+            <span className="truncate">
+              {readOnly ? "조회 모드 · 편집하려면 [편집]" : "경계선 드래그로 상/중/하 분할"}
+            </span>
+          </span>
+          <span className="ml-auto shrink-0 font-mono text-[11px] tracking-wide text-[#6B7688] uppercase">
+            {lineState.lineYs.length} Boundaries
+          </span>
+        </div>
+      )}
     </section>
   );
 }

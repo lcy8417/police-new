@@ -9,7 +9,6 @@ import {
   History,
   ListTree,
   Loader2,
-  Pencil,
   Search,
   X,
 } from "lucide-react"
@@ -35,7 +34,11 @@ import {
   ShoeDetailContent,
   type RetrievalResultItem,
 } from "@/features/crime-search"
-import { EditWorkbench } from "@/features/crime-edit"
+import {
+  EditToolbar,
+  PolygonCaptureCanvas,
+  useImageEdit,
+} from "@/features/crime-edit"
 import { stripPatternPath, type PatternZone } from "@/entities/pattern"
 import { usePageHeader } from "@/widgets/app-shell"
 import { Badge } from "@/shared/ui/badge"
@@ -150,9 +153,16 @@ export function CrimeDetailPage() {
   const [isExtracting, setIsExtracting] = useState(false)
   // 검색이력은 기본 접힘 — 문양 작업이 주 흐름이라 필요할 때만 펼친다.
   const [historyOpen, setHistoryOpen] = useState(false)
-  // 이미지 편집 인라인 모드 — 헤더 [편집] 버튼으로 토글한다. 문양 UI를 숨기고 캔버스
-  // 자리(col1-2)에 편집 워크벤치를 인라인으로 띄운다(예전 우측 Sheet 방식을 대체).
+  // 이미지 편집 인라인 모드 — 우상단 [현장|편집] 스와퍼의 "편집"으로 진입한다.
+  // 편집 모드에서는 문양추출 UI를 숨기고 신발 이미지 캔버스에서 바로 편집한다.
   const [editActive, setEditActive] = useState(false)
+  // 이미지 편집 상태(useImageEdit 소유). 편집 대상은 editImage ?? image에서 시작하고,
+  // "원본 복원"은 raw image로 되돌린다. 편집 모드가 아니어도 훅은 유지된다.
+  const edit = useImageEdit({
+    crimeNumber,
+    seedImage: currentCrimeData?.editImage ?? currentCrimeData?.image,
+    originalImage: currentCrimeData?.image,
+  })
   // 신발 결과 상세를 담는 우측 컴팩트 Sheet — 검색 결과 카드 클릭으로 연다.
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailTarget, setDetailTarget] = useState<{
@@ -256,10 +266,12 @@ export function CrimeDetailPage() {
   // 현장/편집 이미지 스와퍼 — imgRef.src를 직접 교체하고, 검색 edit 판정용 sceneView도 갱신한다.
   const showOrigin = useCallback(() => {
     setSceneView("origin")
+    setEditActive(false)
     imageChangeHandler("origin", imgRef, currentCrimeData)
   }, [currentCrimeData])
   const showEdit = useCallback(() => {
     setSceneView("edit")
+    setEditActive(true)
     imageChangeHandler("edit", imgRef, currentCrimeData)
   }, [currentCrimeData])
 
@@ -359,6 +371,16 @@ export function CrimeDetailPage() {
     [crimeNumber, setCrimeData, searchEdit, queryClient]
   )
 
+  // 편집 푸터의 [저장] — useImageEdit.save가 서버 PUT을 수행하고, 성공 시 handleEditSaved로
+  // store 갱신·검색 재실행을 잇는다. 실패 안내는 save 내부 toast가 담당한다.
+  const handleEditSave = useCallback(async () => {
+    try {
+      await edit.save(handleEditSaved)
+    } catch {
+      // 상태 유지 — 사용자 피드백은 edit.save 내부 toast.
+    }
+  }, [edit, handleEditSaved])
+
   const headerActions = useMemo(() => {
     // 두 모드 공통: [목록으로][편집].
     const commonActions = (
@@ -371,23 +393,6 @@ export function CrimeDetailPage() {
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
           목록으로
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => setEditActive((v) => !v)}
-          className={cn(
-            editActive
-              ? "border border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_18px_rgba(37,99,235,0.35)] hover:bg-[#182b45]"
-              : "border border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
-          )}
-        >
-          {editActive ? (
-            <X className="size-4" aria-hidden="true" />
-          ) : (
-            <Pencil className="size-4" aria-hidden="true" />
-          )}
-          {editActive ? "편집 종료" : "편집"}
         </Button>
       </>
     )
@@ -455,7 +460,6 @@ export function CrimeDetailPage() {
     binary,
     toggleBinary,
     exitSearch,
-    editActive,
   ])
 
   usePageHeader({
@@ -484,37 +488,6 @@ export function CrimeDetailPage() {
         {/* 각 열 래퍼: 내부 grid-rows로 자식 section이 열 높이를 꽉 채우게 하고,
             xl 미만에서는 min-h로 최소 높이를 확보해 캔버스가 붕괴하지 않게 한다. */}
         {currentCrimeData ? (
-          editActive ? (
-            // 편집 모드: 문양 UI를 숨기고 col1-2에 인라인 편집 워크벤치를 띄운다.
-            // 검색모드면 오른쪽 결과 그리드(col-span-2)는 그대로 유지, 아니면 편집기가 전체폭.
-            <>
-              <div
-                className={cn(
-                  "grid min-h-[560px] grid-rows-[minmax(0,1fr)] xl:h-full xl:min-h-0",
-                  searchActive ? "xl:col-span-2" : "xl:col-span-4"
-                )}
-              >
-                <EditWorkbench
-                  crimeNumber={crimeNumber}
-                  seedImage={currentCrimeData.editImage ?? currentCrimeData.image}
-                  originalImage={currentCrimeData.image}
-                  onSaved={handleEditSaved}
-                />
-              </div>
-              {searchActive && (
-                <div className="min-h-[420px] min-w-0 xl:col-span-2 xl:h-full xl:min-h-0">
-                  <RetrievalResultsGrid
-                    results={results}
-                    totalCount={totalCount}
-                    page={searchPage}
-                    onPageChange={setSearchPage}
-                    onSelect={handleSelect}
-                    isLoading={isSearching}
-                  />
-                </div>
-              )}
-            </>
-          ) : (
           <>
         <div className="grid min-h-[560px] grid-rows-[minmax(0,1fr)] xl:h-full xl:min-h-0">
           <PatternCanvas
@@ -528,6 +501,39 @@ export function CrimeDetailPage() {
             onShowOrigin={showOrigin}
             onShowEdit={showEdit}
             isExtracting={isExtracting}
+            editMode={editActive}
+            editImage={edit.displayImage}
+            editOverlay={
+              editActive ? (
+                <PolygonCaptureCanvas
+                  activeTool={edit.activeTool}
+                  points={edit.points}
+                  onAddPoint={edit.addPoint}
+                  onSubmitPolygon={edit.submitPolygon}
+                  isProcessing={edit.isProcessing}
+                  processingLabel={edit.processingLabel}
+                />
+              ) : undefined
+            }
+            editFooter={
+              editActive ? (
+                <EditToolbar
+                  activeTool={edit.activeTool}
+                  onToolChange={edit.setActiveTool}
+                  canUndo={edit.canUndo}
+                  onUndo={edit.undo}
+                  onRestore={edit.restoreOriginal}
+                  onSave={handleEditSave}
+                  onRunDenoise={edit.runDenoise}
+                  isProcessing={edit.isProcessing}
+                  threshold={edit.threshold}
+                  thresholdMode={edit.thresholdMode}
+                  onThresholdChange={edit.setThreshold}
+                  onThresholdModeChange={edit.setThresholdMode}
+                  onApplyThreshold={edit.applyThreshold}
+                />
+              ) : undefined
+            }
           />
         </div>
 
@@ -577,7 +583,6 @@ export function CrimeDetailPage() {
           </>
         )}
           </>
-          )
         ) : (
           <>
             {/* 사건 미선택(빈 `/search`): 1~3열 자리에 중앙 힌트, 4열 탐색 패널은
