@@ -213,6 +213,23 @@ const PATTERN_ZONES = [
   { key: "outline", label: "윤곽", full: "윤곽선" },
 ] as const
 
+/**
+ * 좌우 비교(현장 ↔ 신발) 사이에 놓는 대응 배지. 두 항목이 '나란한 목록'이 아니라
+ * '비교 대상'임을 시각적으로 잇는다(어텐션 쌍의 PairConnector와 같은 시각 언어).
+ */
+function CompareConnector() {
+  return (
+    <div
+      className="flex w-6 shrink-0 items-center justify-center self-stretch"
+      aria-hidden="true"
+    >
+      <span className="flex size-7 items-center justify-center rounded-full border border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_10px_rgba(37,99,235,0.4)]">
+        <ArrowLeftRight className="size-3.5" aria-hidden="true" />
+      </span>
+    </div>
+  )
+}
+
 /** 한 출처(현장/DB)의 문양 셀 — 라벨 + 큰 썸네일 그리드. 필수 문양은 붉은 코너 점. */
 function PatternCell({
   icon: Icon,
@@ -297,10 +314,11 @@ function PatternGroups({
             </span>
             <span className="h-px flex-1 bg-[#1E2A3C]" aria-hidden="true" />
           </div>
-          {/* 현장 | DB 좌우 비교 */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* 현장 ↔ 신발 좌우 비교(가운데 대응 배지로 '비교'임을 명시). */}
+          <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
             <PatternCell icon={Camera} label="현장" patterns={scene?.[zone.key] ?? []} />
-            <PatternCell icon={Database} label="DB" patterns={db?.[zone.key] ?? []} />
+            <CompareConnector />
+            <PatternCell icon={Database} label="신발" patterns={db?.[zone.key] ?? []} />
           </div>
         </div>
       ))}
@@ -550,7 +568,8 @@ export function ShoeDetailContent({
                 Attention
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            {/* 족적(현장) ↔ 신발 좌우 비교 — 가운데 대응 배지로 '비교'임을 명시. */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
               <AttentionTile
                 code=""
                 label="족적 이미지 유사부위"
@@ -560,6 +579,7 @@ export function ShoeDetailContent({
                 fill={false}
                 loading={detailQuery.isLoading}
               />
+              <CompareConnector />
               <AttentionTile
                 code=""
                 label="신발 이미지 유사부위"
