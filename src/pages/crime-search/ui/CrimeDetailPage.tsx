@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   ArrowLeft,
   Award,
@@ -161,6 +161,9 @@ export function CrimeDetailPage() {
   // 검색모드에서 편집이미지로 전환하면 검색도 그 이미지로 자동 재실행된다.
   const [sceneView, setSceneView] = useState<"origin" | "edit">("origin")
   const searchEdit = sceneView === "edit"
+  // 편집 이미지 존재 여부 — 편집 뷰 검색은 편집 이미지가 있을 때만 돌린다(없으면 검색 무의미).
+  const hasEditImage = Boolean(currentCrimeData?.editImage)
+  const queryClient = useQueryClient()
   const [binary, setBinary] = useState<string>(BINARY_ON)
   const [similarity, setSimilarity] = useState<string | false>(SIMILARITY_ON)
   const [searchPage, setSearchPage] = useState(0)
@@ -186,7 +189,8 @@ export function CrimeDetailPage() {
   const loadQuery = useQuery({
     queryKey: ["crimeSearch", "image", crimeNumber, searchEdit],
     queryFn: () => imageLoad({ crimeNumber, edit: searchEdit }),
-    enabled: searchActive && Boolean(crimeNumber),
+    // 편집 뷰인데 편집 이미지가 없으면 로드하지 않는다(편집 이미지 없음 → 검색 미실행).
+    enabled: searchActive && Boolean(crimeNumber) && (!searchEdit || hasEditImage),
   })
   const loadedImage = loadQuery.data ?? null
 
@@ -219,6 +223,7 @@ export function CrimeDetailPage() {
       searchActive &&
       Boolean(loadedImage) &&
       Boolean(currentCrimeData) &&
+      (!searchEdit || hasEditImage) &&
       patternsKey === patternsSignature,
   })
 
@@ -332,9 +337,13 @@ export function CrimeDetailPage() {
       // 바꾸는 값이라 store 갱신·sceneView 전환만으로는 다시 적용되지 않는다(이미 "편집" 뷰였다면
       // no-op). 저장 콜백이 쥔 finalImage를 직접 꽂아야 바로 반영된다.
       if (imgRef.current) imgRef.current.src = finalImage
+      // 저장 즉시 그 편집 이미지로 검색을 재실행한다. 이미 "편집" 뷰였으면 searchEdit 키가 안 바뀌어
+      // 자동 재조회되지 않으므로, 검색 쿼리를 무효화해 강제 재조회한다(서버 image_load?edit가 방금
+      // 저장한 편집 이미지를 반환 → 그 이미지로 재검색). 검색모드가 아니면 쿼리가 비활성이라 무해.
+      void queryClient.invalidateQueries({ queryKey: ["crimeSearch"] })
       toast.success("편집 이미지가 저장되었습니다.")
     },
-    [crimeNumber, setCrimeData]
+    [crimeNumber, setCrimeData, queryClient]
   )
 
   const headerActions = useMemo(() => {
