@@ -9,6 +9,7 @@ import {
   ImageOff,
   Loader2,
   Radar,
+  Shapes,
   ShieldCheck,
   Target,
   XCircle,
@@ -204,12 +205,12 @@ function patternEssential(src: PatternSrc): boolean {
   return typeof src !== "string" && Boolean(src[1])
 }
 
-/** 부위(상/중/하/윤곽) 순서·라벨. */
+/** 부위(상/중/하/윤곽) 순서·라벨·전체 이름(섹션 헤더 부제). */
 const PATTERN_ZONES = [
-  { key: "top", label: "상" },
-  { key: "mid", label: "중" },
-  { key: "bottom", label: "하" },
-  { key: "outline", label: "윤곽" },
+  { key: "top", label: "상", full: "상단부" },
+  { key: "mid", label: "중", full: "중단부" },
+  { key: "bottom", label: "하", full: "하단부" },
+  { key: "outline", label: "윤곽", full: "윤곽선" },
 ] as const
 
 /** 한 출처(현장/DB)의 문양 셀 — 라벨 + 큰 썸네일 그리드. 필수 문양은 붉은 코너 점. */
@@ -223,19 +224,27 @@ function PatternCell({
   patterns: PatternSrc[]
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-2 rounded-lg border border-[#1E2A3C] bg-[#0F1826] p-2.5">
-      <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase">
-        <Icon className="size-3 text-[#4A9EFF]" aria-hidden="true" />
-        {label}
-      </span>
+    <div className="flex min-w-0 flex-col gap-2.5 rounded-lg border border-[#1E2A3C] bg-[#0F1826] p-2.5">
+      {/* 셀 헤더: 출처 라벨(좌) + 문양 수(우) — 좌우로 균형을 잡는다. */}
+      <div className="flex items-center justify-between gap-2 border-b border-[#141D2C] pb-2">
+        <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.1em] text-[#8A93A6] uppercase">
+          <Icon className="size-3 text-[#4A9EFF]" aria-hidden="true" />
+          {label}
+        </span>
+        <span className="font-mono text-[10px] tabular-nums text-[#5B6B85]">
+          {patterns.length}
+        </span>
+      </div>
       {patterns.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {patterns.map((src, i) => (
             <div
               key={i}
               className={cn(
-                "relative size-24 overflow-hidden rounded-lg border bg-[#05080D]",
-                patternEssential(src) ? "border-[#EF4444]/40" : "border-[#1E2A3C]"
+                "relative size-24 overflow-hidden rounded-md border bg-[#05080D]",
+                patternEssential(src)
+                  ? "border-[#EF4444]/45 shadow-[0_0_0_1px_rgba(239,68,68,0.12)]"
+                  : "border-[#1E2A3C]"
               )}
             >
               <img
@@ -253,7 +262,7 @@ function PatternCell({
           ))}
         </div>
       ) : (
-        <span className="py-3 text-center text-[11px] text-[#5B6B85]">없음</span>
+        <span className="py-4 text-center text-[11px] text-[#5B6B85]">없음</span>
       )}
     </div>
   )
@@ -276,12 +285,17 @@ function PatternGroups({
       {PATTERN_ZONES.map((zone) => (
         <div
           key={zone.key}
-          className="rounded-xl border border-[#1E2A3C] bg-[#0D1420]/40 p-3"
+          className="rounded-xl border border-[#1E2A3C] bg-[#0D1420]/40 p-3.5"
         >
-          <div className="mb-2.5 flex items-center gap-2">
+          {/* 부위 헤더: 약칭 배지 + 전체 이름 + 하단 룰 → 네 섹션이 제목처럼 읽히게. */}
+          <div className="mb-3 flex items-center gap-2.5">
             <span className="rounded-md border border-[#3B82F6]/50 bg-[#152238] px-2 py-0.5 font-mono text-[12px] font-semibold text-[#4A9EFF]">
               {zone.label}
             </span>
+            <span className="font-mono text-[10px] tracking-[0.14em] text-[#8A93A6] uppercase">
+              {zone.full}
+            </span>
+            <span className="h-px flex-1 bg-[#1E2A3C]" aria-hidden="true" />
           </div>
           {/* 현장 | DB 좌우 비교 */}
           <div className="grid grid-cols-2 gap-3">
@@ -524,33 +538,47 @@ export function ShoeDetailContent({
         <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
           <TechCorners size={20} />
 
-          {/* 유사부위 히트맵 — 족적/신발을 좌우로 넓게. 로딩 중엔 원본 폴백 대신 스피너. */}
-          <div className="grid grid-cols-2 gap-3">
-            <AttentionTile
-              code=""
-              label="족적 이미지 유사부위"
-              image={images.query}
-              emphasis
-              icon={Camera}
-              fill={false}
-              loading={detailQuery.isLoading}
-            />
-            <AttentionTile
-              code=""
-              label="신발 이미지 유사부위"
-              image={images.bottom}
-              emphasis
-              icon={Database}
-              fill={false}
-              loading={detailQuery.isLoading}
-            />
-          </div>
+          {/* 유사부위 히트맵 — 족적/신발을 좌우로 넓게. 로딩 중엔 원본 폴백 대신 스피너.
+              shrink-0 필수: 본문이 flex-col이라 이게 없으면 자식이 눌려 본문이 스크롤되지 않는다. */}
+          <section className="flex shrink-0 flex-col gap-2.5">
+            {/* 섹션 제목 — 아래 문양 비교 카드와 위계를 맞춘 라벨 + 하단 룰. */}
+            <div className="flex items-center gap-2">
+              <Radar className="size-4 text-[#4A9EFF]" aria-hidden="true" />
+              <span className="text-[13px] font-semibold text-[#E5E9F0]">유사부위 히트맵</span>
+              <span className="ml-1 h-px flex-1 bg-[#1E2A3C]" aria-hidden="true" />
+              <span className="font-mono text-[10px] tracking-[0.14em] text-[#5B6B85] uppercase">
+                Attention
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <AttentionTile
+                code=""
+                label="족적 이미지 유사부위"
+                image={images.query}
+                emphasis
+                icon={Camera}
+                fill={false}
+                loading={detailQuery.isLoading}
+              />
+              <AttentionTile
+                code=""
+                label="신발 이미지 유사부위"
+                image={images.bottom}
+                emphasis
+                icon={Database}
+                fill={false}
+                loading={detailQuery.isLoading}
+              />
+            </div>
+          </section>
 
-          {/* 문양 비교 — 부위별로 묶고 각 부위 안에서 현장|DB를 좌우로. */}
-          <div className="overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]">
-            <div className="flex items-center gap-2.5 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
+          {/* 문양 비교 — 부위별로 묶고 각 부위 안에서 현장|DB를 좌우로.
+              shrink-0 필수: 본문 flex-col에서 눌리면 overflow-hidden이 하단 부위를 잘라 스크롤 불가. */}
+          <section className="shrink-0 overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]">
+            <div className="flex items-center gap-2 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
+              <Shapes className="size-4 text-[#4A9EFF]" aria-hidden="true" />
               <span className="text-[13px] font-semibold text-[#E5E9F0]">문양 비교</span>
-              <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase">
+              <span className="ml-auto flex items-center gap-1.5 rounded-md border border-[#EF4444]/30 bg-[#1A1013] px-2 py-0.5 font-mono text-[10px] tracking-[0.1em] text-[#8A93A6] uppercase">
                 <span
                   className="size-1.5 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
                   aria-hidden="true"
@@ -559,7 +587,7 @@ export function ShoeDetailContent({
               </span>
             </div>
             <PatternGroups scene={patternItems[0]} db={patternItems[1]} />
-          </div>
+          </section>
         </div>
 
         {/* ③ 고정 판정바 — 하단 border-t. */}
