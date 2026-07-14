@@ -386,16 +386,41 @@ export function ShoeDetailContent({
           <TechCorners size={20} />
 
           <SectionRule label="질의 · 참조 쌍" />
-          {attentionPair}
+          {/* 어텐션 쌍 — 스크롤 컨테이너 안에선 부모 높이가 없어 타일의 h-full이
+              0으로 접힌다. 각 타일을 aspect-square로 감싸 고유 높이를 준다
+              (page variant는 grid-rows가 높이를 잡아주므로 공유 attentionPair 사용). */}
+          <div className="grid shrink-0 grid-cols-[1fr_auto_1fr] gap-1">
+            <div className="aspect-square">
+              <AttentionTile
+                code="SCENE-ATTN"
+                label="질의 어텐션"
+                image={images.query}
+                emphasis
+                icon={Camera}
+              />
+            </div>
+            <PairConnector />
+            <div className="aspect-square">
+              <AttentionTile
+                code="SOLE-B"
+                label="바닥 어텐션"
+                image={images.bottom}
+                emphasis
+                icon={Database}
+              />
+            </div>
+          </div>
 
           <SectionRule label="참고 이미지" />
           {/* 측면 신발 사진(정적) — 참고용, 와이드로 세로 축소. */}
-          <div className="aspect-[3/2] w-full">
+          <div className="aspect-[3/2] w-full shrink-0">
             <AttentionTile code="SOLE-S" label="측면 이미지" image={images.side} />
           </div>
 
           <SectionRule label="문양 비교" />
-          <PartialPatternsCompare patternItems={patternItems} />
+          {/* 스크롤 컨테이너 안이라 자연 높이면 내부 flex-1이 0으로 접혀 썸네일이
+              사라진다 → 고정 높이를 줘 내부 자체 스크롤로 표시한다. */}
+          <PartialPatternsCompare patternItems={patternItems} className="h-[360px] shrink-0" />
 
           <SectionRule label="사건 정보" />
           <div className="grid grid-cols-2 gap-x-6 gap-y-3">{infoFields}</div>
