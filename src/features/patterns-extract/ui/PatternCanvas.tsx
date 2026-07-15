@@ -113,6 +113,22 @@ interface PatternCanvasProps {
   editOverlay?: ReactNode;
   /** 편집 모드에서 하단에 렌더할 도구 푸터(페이지 주입). */
   editFooter?: ReactNode;
+  /**
+   * 문양추출 활성 여부 — 경계선·영역·부위라벨 오버레이와 추출/초기화 노출을 게이트한다.
+   * 기본값 true(하위호환): 등록/편집 화면(ShoeWorkbench)은 이 프롭을 넘기지 않아
+   * 기존처럼 항상 표시된다. 검색화면은 상단 토글로 이 값을 제어한다.
+   */
+  patternActive?: boolean;
+  /**
+   * 넘어오면 헤더에 "문양추출" 활성화 토글을 렌더하고, 추출/초기화를 상단 액션 밴드로
+   * 올린다(하단 상태표시줄에서는 제거). 없으면 레거시 레이아웃(하단 버튼 · 상시 표시).
+   */
+  onTogglePatternActive?: () => void;
+  /**
+   * 편집 도구가 아닐 때 표시 이미지를 편집본으로 볼지 여부(현장/편집 뷰 소스). 문양추출을
+   * 편집 이미지 위에서 켤 수 있도록, 표시 이미지를 editMode가 아니라 이 값에서 파생한다.
+   */
+  viewIsEdit?: boolean;
 }
 
 /** 도크 툴바용 소형 버튼(crime-register EvidenceImagePanel 톤 준용). */
@@ -187,6 +203,9 @@ export function PatternCanvas({
   editImage = null,
   editOverlay,
   editFooter,
+  patternActive = true,
+  onTogglePatternActive,
+  viewIsEdit = false,
 }: PatternCanvasProps) {
   // 업로드 드롭존(onUpload가 있을 때만)용 숨은 파일 입력.
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
@@ -577,10 +596,19 @@ export function PatternCanvas({
     [minY, maxY, regionTop, regionBottom]
   );
 
-  // 편집 모드에서는 문양추출 chrome(틴트·영역·부위라벨·경계선 핸들)을 모두 숨긴다.
-  const showOverlayChrome = !editMode && Boolean(image) && canvasSize.h > 0;
-  // 편집 모드에서는 편집 표시 이미지를, 아니면 현장 이미지를 보여준다.
-  const shownImage = editMode ? editImage ?? image : image;
+  // 문양추출이 꺼졌거나 편집 모드면 chrome(틴트·영역·부위라벨·경계선 핸들)을 숨긴다.
+  const showOverlayChrome =
+    patternActive && !editMode && Boolean(image) && canvasSize.h > 0;
+  // 표시 이미지: 편집 도구 중에는 라이브 편집본, 그 외에는 뷰 소스(현장/편집)에서 파생한다.
+  // → 편집 도구를 끄고 문양추출을 켜도 보던 이미지(현장 원본 또는 편집본)가 유지된다.
+  const shownImage = editMode
+    ? editImage ?? image
+    : viewIsEdit
+      ? editImage ?? image
+      : image;
+  // onTogglePatternActive가 있으면 "활성화 토글" 레이아웃(상단 토글 + 상단 추출/초기화)을
+  // 쓴다. 없으면(등록/편집 화면) 레거시 레이아웃(하단 버튼 · 상시 표시)을 유지한다.
+  const activatable = Boolean(onTogglePatternActive);
 
   return (
     <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)] backdrop-blur-sm">
@@ -607,7 +635,24 @@ export function PatternCanvas({
           <ScanSearch className="size-4 text-[#4A9EFF]" aria-hidden="true" />
           신발 이미지
         </span>
-        {!hideViewSwapper && (
+        <div className="flex items-center gap-2">
+          {activatable && (
+            <button
+              type="button"
+              onClick={onTogglePatternActive}
+              aria-pressed={patternActive}
+              className={cn(
+                "flex h-6 items-center gap-1 rounded-[5px] border px-2 text-[11px] font-medium transition-colors",
+                patternActive
+                  ? "border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF]"
+                  : "border-[#1E2A3C] bg-[#0F1826] text-[#8A93A6] hover:border-[#3B82F6]/40 hover:text-[#C7CEDB]"
+              )}
+            >
+              <ScanSearch className="size-3" aria-hidden="true" />
+              문양추출
+            </button>
+          )}
+          {!hideViewSwapper && (
           <ToggleGroup
             type="single"
             value={activeView}
@@ -632,11 +677,33 @@ export function PatternCanvas({
               편집
             </ToggleGroupItem>
           </ToggleGroup>
-        )}
+          )}
+        </div>
       </div>
 
       {/* 헤더 아래 툴바 밴드(예: 회전 슬라이더) — 넘겨졌을 때만 렌더. */}
       {topToolbar}
+
+      {/* 문양추출 상단 액션 밴드 — 활성화 토글 레이아웃에서만, 켜졌을 때 추출/초기화를
+          여기(상단)에 노출한다. 하단 상태표시줄의 동일 버튼은 이 경로에서 제거된다. */}
+      {activatable && patternActive && !editMode && (
+        <div className="flex items-center gap-2 border-b border-[#141D2C] bg-[#0D1420]/40 px-4 py-2">
+          <ToolButton
+            icon={Radar}
+            label={isExtracting ? "추출중" : "추출"}
+            onClick={onExtract}
+            variant="accent"
+            disabled={isExtracting}
+            pending={isExtracting}
+          />
+          <ToolButton
+            icon={RotateCcw}
+            label="초기화"
+            onClick={onClear}
+            disabled={isExtracting}
+          />
+        </div>
+      )}
 
       {/* 뷰포트: 이미지 + 경계선 오버레이 canvas.
           체커보드 눈금 바 / 모서리 십자선 / 하단 상태표시줄은 crime-register
@@ -727,8 +794,9 @@ export function PatternCanvas({
               </>
             )}
 
-            {/* 경계선 편집 canvas — 편집 모드에서는 렌더하지 않는다(문양추출 전용). */}
-            {!editMode && (
+            {/* 경계선 편집 canvas — 편집 모드이거나 문양추출이 꺼지면 렌더하지 않는다
+                (문양추출 전용). 꺼진 상태에서는 이미지 위 클릭이 순수하게 통과한다. */}
+            {!editMode && patternActive && (
               <canvas
                 ref={canvasRef}
                 onMouseDown={handleMouseDown}
@@ -984,8 +1052,9 @@ export function PatternCanvas({
         <div className="border-t border-[#141D2C]">{editFooter}</div>
       ) : (
         <div className="flex items-center gap-2 border-t border-[#141D2C] px-4 py-2">
-          {/* 조회(readOnly) 모드에서는 추출/초기화 액션을 숨긴다 — 편집은 [편집] 진입 후에만. */}
-          {!readOnly && (
+          {/* 조회(readOnly) 모드 또는 활성화 토글 레이아웃(추출/초기화가 상단으로 이동)에서는
+              하단 추출/초기화를 숨긴다. 레거시 레이아웃(등록/편집 화면)만 여기 유지. */}
+          {!readOnly && !activatable && (
             <>
               <ToolButton
                 icon={Radar}
@@ -1010,7 +1079,11 @@ export function PatternCanvas({
           <span className="hidden min-w-0 flex-1 items-center gap-1 truncate font-mono text-[10px] text-[#8A93A6] md:flex">
             <GripHorizontal className="size-3 shrink-0 text-[#4A9EFF]" aria-hidden="true" />
             <span className="truncate">
-              {readOnly ? "조회 모드 · 편집하려면 [편집]" : "경계선 드래그로 상/중/하 분할"}
+              {readOnly
+                ? "조회 모드 · 편집하려면 [편집]"
+                : activatable && !patternActive
+                  ? "상단 [문양추출]을 켜면 경계선·추출이 표시됩니다"
+                  : "경계선 드래그로 상/중/하 분할"}
             </span>
           </span>
           <span className="ml-auto shrink-0 font-mono text-[11px] tracking-wide text-[#6B7688] uppercase">

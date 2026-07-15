@@ -156,6 +156,9 @@ export function CrimeDetailPage() {
   // 이미지 편집 인라인 모드 — 우상단 [현장|편집] 스와퍼의 "편집"으로 진입한다.
   // 편집 모드에서는 문양추출 UI를 숨기고 신발 이미지 캔버스에서 바로 편집한다.
   const [editActive, setEditActive] = useState(false)
+  // 문양추출 활성 여부 — 상단 [문양추출] 토글로 제어(기본 꺼짐). 현장/편집과 독립이며,
+  // 이미지 편집 도구(editActive)와는 배타적으로 전환한다(둘 중 하나만 활성).
+  const [patternActive, setPatternActive] = useState(false)
   // 이미지 편집 상태(useImageEdit 소유). 편집 대상은 editImage ?? image에서 시작하고,
   // "원본 복원"은 raw image로 되돌린다. 편집 모드가 아니어도 훅은 유지된다.
   const edit = useImageEdit({
@@ -272,8 +275,17 @@ export function CrimeDetailPage() {
   const showEdit = useCallback(() => {
     setSceneView("edit")
     setEditActive(true)
+    // 이미지 편집 도구 진입 → 문양추출 배타 종료.
+    setPatternActive(false)
     imageChangeHandler("edit", imgRef, currentCrimeData)
   }, [currentCrimeData])
+
+  // 문양추출 토글 — 켜면 이미지 편집 도구를 끈다(배타). 현장/편집 뷰 소스는 유지되므로
+  // 지금 보고 있는 이미지(현장 원본 또는 편집본) 위에서 경계선·추출이 동작한다.
+  const handleTogglePattern = useCallback(() => {
+    setPatternActive((prev) => !prev)
+    setEditActive(false)
+  }, [])
 
   // 검색이력: 레거시의 ad hoc `fetch(/crime/:crimeNumber)`를 entities
   // `fetchCrimeDetail`(같은 엔드포인트, camelCase) + useQuery로 승격했다.
@@ -501,6 +513,9 @@ export function CrimeDetailPage() {
             onShowOrigin={showOrigin}
             onShowEdit={showEdit}
             isExtracting={isExtracting}
+            patternActive={patternActive}
+            onTogglePatternActive={handleTogglePattern}
+            viewIsEdit={sceneView === "edit"}
             editMode={editActive}
             editImage={edit.displayImage}
             editOverlay={
