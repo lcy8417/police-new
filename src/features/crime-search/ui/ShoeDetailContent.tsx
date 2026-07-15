@@ -237,7 +237,7 @@ function PatternCell({
   patterns: PatternSrc[]
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-2.5 rounded-lg border border-[#1E2A3C] bg-[#0F1826] p-2.5">
+    <div className="flex min-w-0 flex-col gap-2 rounded-lg border border-[#1E2A3C] bg-[#0F1826] p-2.5">
       {/* 셀 헤더: 출처 라벨(좌) + 문양 수(우) — 좌우로 균형을 잡는다. */}
       <div className="flex items-center justify-between gap-2 border-b border-[#141D2C] pb-2">
         <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.1em] text-[#8A93A6] uppercase">
@@ -249,12 +249,12 @@ function PatternCell({
         </span>
       </div>
       {patterns.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {patterns.map((src, i) => (
             <div
               key={i}
               className={cn(
-                "relative size-24 overflow-hidden rounded-md border bg-[#05080D]",
+                "relative size-16 overflow-hidden rounded-md border bg-[#05080D]",
                 patternEssential(src)
                   ? "border-[#EF4444]/45 shadow-[0_0_0_1px_rgba(239,68,68,0.12)]"
                   : "border-[#1E2A3C]"
@@ -263,19 +263,19 @@ function PatternCell({
               <img
                 src={patternSrcPath(src)}
                 alt={`${label} 문양 ${i + 1}`}
-                className="absolute inset-0 size-full object-contain p-2"
+                className="absolute inset-0 size-full object-contain p-1.5"
               />
               {patternEssential(src) && (
                 <span
                   aria-hidden="true"
-                  className="absolute top-1.5 right-1.5 size-2 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
+                  className="absolute top-1 right-1 size-1.5 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
                 />
               )}
             </div>
           ))}
         </div>
       ) : (
-        <span className="py-4 text-center text-[11px] text-[#5B6B85]">없음</span>
+        <span className="py-3 text-center text-[11px] text-[#5B6B85]">없음</span>
       )}
     </div>
   )

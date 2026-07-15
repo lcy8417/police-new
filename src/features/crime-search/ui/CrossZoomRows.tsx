@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import { ArrowLeftRight, Layers } from "lucide-react"
+import { ArrowLeftRight } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
 import { matchColor, type SimilarityMatch } from "../model/similarity"
@@ -70,22 +70,29 @@ export function CrossZoomRows({ matches, selectedIndex, onSelect, onHover }: Cro
   }, [selectedIndex])
 
   return (
-    <div className="flex min-w-0 flex-col gap-2.5 rounded-xl border border-[#1E2A3C] bg-[#0B121D] p-3">
-      <div className="flex items-center gap-2">
-        <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#C7CEDB]">
-          <Layers className="size-3.5 text-[#4A9EFF]" aria-hidden="true" />
-          국소 대응 크로스 줌
-          <span className="ml-1 rounded border border-[#1E2A3C] bg-[#0F1826] px-1.5 py-0.5 font-mono text-[9px] tabular-nums text-[#5B6B85]">
-            {matches.length}
-          </span>
+    <div className="@container flex min-w-0 flex-col gap-2.5 rounded-xl border border-[#1E2A3C] bg-[#0D1420]/40 p-3">
+      {/* 존카드 헤더 — A(대응 지도)와 같은 배지+이름+룰 문법. B 배지로 하위 카드임을 명시하고,
+          룰 뒤에 부제(족적↔신발·코사인)를 둔다. */}
+      <div className="flex items-center gap-2.5">
+        <span className="rounded-md border border-[#3B82F6]/50 bg-[#152238] px-2 py-0.5 font-mono text-[12px] font-semibold text-[#4A9EFF]">
+          B
         </span>
-        <span className="ml-auto font-mono text-[9px] tracking-[0.14em] text-[#5B6B85] uppercase">
+        <span className="font-mono text-[10px] tracking-[0.14em] text-[#8A93A6] uppercase">
+          크로스 줌
+        </span>
+        <span className="rounded border border-[#1E2A3C] bg-[#0F1826] px-1.5 py-0.5 font-mono text-[9px] tabular-nums text-[#5B6B85]">
+          {matches.length}
+        </span>
+        <span className="h-px flex-1 bg-[#1E2A3C]" aria-hidden="true" />
+        <span className="shrink-0 font-mono text-[9px] tracking-[0.14em] text-[#5B6B85] uppercase">
           족적 ↔ 신발 · 코사인
         </span>
       </div>
 
-      {/* 대응 그리드 — 열 너비에 맞춰 자동 채움(오른쪽 열이 넓으면 2~3열, 좁으면 1열). */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2">
+      {/* 대응 그리드 — 최대 2열로 제한(자체 @container 폭 기준)해 대응이 적어도 여러 행이
+          만들어져 A(대응 지도)의 세로 높이를 채우게 한다. min-h-0 flex-1 + 내부 스크롤로
+          높이를 A에 맞추고, 대응이 많으면 이 격자만 스크롤한다. */}
+      <div className="grid min-h-0 flex-1 content-start grid-cols-1 gap-2 overflow-y-auto @[300px]:grid-cols-2">
         {matches.map((m) => {
           const color = matchColor(m.index)
           const selected = selectedIndex === m.index

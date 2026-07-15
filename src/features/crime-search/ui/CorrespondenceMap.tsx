@@ -170,15 +170,24 @@ export function CorrespondenceMap({
   }, [measure, query.image, refImg.image])
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-[#1E2A3C] bg-[#0B121D] p-3">
+    <div className="flex flex-col gap-2 rounded-xl border border-[#1E2A3C] bg-[#0D1420]/40 p-3">
+      {/* 존카드 헤더 — 문양 비교의 부위 카드(상/중/하/윤곽)와 같은 배지+이름+룰 문법.
+          A/B 배지로 대응 지도(A)·크로스 줌(B)을 한 시스템의 두 하위 카드로 읽히게 한다. */}
+      <div className="flex items-center gap-2.5">
+        <span className="rounded-md border border-[#3B82F6]/50 bg-[#152238] px-2 py-0.5 font-mono text-[12px] font-semibold text-[#4A9EFF]">
+          A
+        </span>
+        <span className="font-mono text-[10px] tracking-[0.14em] text-[#8A93A6] uppercase">
+          대응 지도
+        </span>
+        <span className="h-px flex-1 bg-[#1E2A3C]" aria-hidden="true" />
+      </div>
+
       {/* 두 이미지 위 라벨 — 좌 족적 · 우 신발. */}
       <div className="flex items-center justify-between px-0.5">
         <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.12em] text-[#8A93A6] uppercase">
           <Camera className="size-3 text-[#4A9EFF]" aria-hidden="true" />
           족적 · 질의
-        </span>
-        <span className="font-mono text-[9px] tracking-[0.14em] text-[#5B6B85] uppercase">
-          Correspondence
         </span>
         <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.12em] text-[#8A93A6] uppercase">
           신발 · 참조
@@ -198,7 +207,7 @@ export function CorrespondenceMap({
             alt="족적 질의 이미지"
             onLoad={measure}
             draggable={false}
-            className="block h-[260px] w-auto select-none rounded-md sm:h-[300px]"
+            className="block h-[228px] w-auto select-none rounded-md sm:h-[264px]"
           />
           <BoxLayer
             size={query.size}
@@ -219,7 +228,7 @@ export function CorrespondenceMap({
             alt="신발 참조 이미지"
             onLoad={measure}
             draggable={false}
-            className="block h-[260px] w-auto select-none rounded-md sm:h-[300px]"
+            className="block h-[228px] w-auto select-none rounded-md sm:h-[264px]"
           />
           <BoxLayer
             size={refImg.size}
