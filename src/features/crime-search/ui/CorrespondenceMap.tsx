@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react"
-import { Camera, Database } from "lucide-react"
+import { ArrowLeftRight, Camera, Database } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
 import { scaleBbox } from "../lib/match-geometry"
@@ -102,6 +102,26 @@ function BoxLayer({
 }
 
 /**
+ * 두 이미지 사이에 놓는 세로 대응 배지(↔). 족적·신발이 '나란한 두 장'이 아니라
+ * '비교 쌍'임을 시각적으로 잇는다(ShoeDetailContent의 CompareConnector와 같은 시각
+ * 언어). 순수 장식이므로 pointer-events-none — 좌표 판정·박스 클릭을 막지 않는다.
+ */
+function CompareConnector() {
+  return (
+    <div
+      className="pointer-events-none flex shrink-0 flex-col items-center justify-center self-stretch py-2"
+      aria-hidden="true"
+    >
+      <span className="h-full w-px bg-gradient-to-b from-transparent via-[#3B82F6]/40 to-transparent" />
+      <span className="my-1 flex size-7 items-center justify-center rounded-full border border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_10px_rgba(37,99,235,0.4)]">
+        <ArrowLeftRight className="size-3.5" />
+      </span>
+      <span className="h-full w-px bg-gradient-to-b from-[#3B82F6]/40 via-[#3B82F6]/40 to-transparent" />
+    </div>
+  )
+}
+
+/**
  * 화면 A — 대응 지도. 족적(query)·신발(ref)을 같은 높이로 나란히 두고, 각 대응의 매칭
  * 위치를 **바운딩 박스**로 그린다(족적엔 `query_bbox`, 신발엔 `ref_bbox`). 박스는 index
  * 색 테두리 + 좌상단 번호 배지 — 좌우가 같은 번호·색을 공유해 "이 영역이 저 영역"임을
@@ -169,7 +189,7 @@ export function CorrespondenceMap({
       {/* 이미지 2장 + bbox 오버레이. 각 figure가 이미지에 밀착돼 박스의 좌표 기준면이 된다. */}
       <div
         ref={wrapRef}
-        className="flex items-start justify-center gap-6 rounded-lg bg-[#05080D] p-4"
+        className="flex items-stretch justify-center gap-3 rounded-lg bg-[#05080D] p-4"
       >
         <figure className="relative shrink-0">
           <img
@@ -190,6 +210,8 @@ export function CorrespondenceMap({
             onHover={onHover}
           />
         </figure>
+        {/* 족적 ↔ 신발 비교 배지 — 두 이미지가 '비교 쌍'임을 명시(순수 장식). */}
+        <CompareConnector />
         <figure className="relative shrink-0">
           <img
             ref={refImgRef}

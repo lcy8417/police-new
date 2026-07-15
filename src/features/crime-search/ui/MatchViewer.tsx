@@ -65,7 +65,6 @@ export function MatchViewer({ data, loading = false, fallbackQuery, fallbackRef,
   // 클릭 없이 훑을 때도 A↔B가 함께 밝아진다. 두 화면이 이 핸들러를 공유해 양방향 동기.
   const [locked, setLocked] = useState<number | null>(null)
   const [hovered, setHovered] = useState<number | null>(null)
-  const [showEdge, setShowEdge] = useState(false)
   const activeIndex = hovered ?? locked
 
   const handleSelect = (index: number) =>
@@ -91,23 +90,25 @@ export function MatchViewer({ data, loading = false, fallbackQuery, fallbackRef,
       {loading ? (
         <LoadingState />
       ) : hasCorrespondence && data?.query && data?.ref ? (
-        <div className="flex flex-col gap-3">
-          <CorrespondenceMap
-            query={data.query}
-            ref={data.ref}
-            matches={matches}
-            selectedIndex={activeIndex}
-            onSelect={handleSelect}
-            onHover={handleHover}
-          />
-          <CrossZoomRows
-            matches={matches}
-            selectedIndex={activeIndex}
-            onSelect={handleSelect}
-            onHover={handleHover}
-            showEdge={showEdge}
-            onToggleEdge={setShowEdge}
-          />
+        // A(대응 지도)+B(크로스 줌)를 한 묶음으로. 넓으면 A=왼쪽·B=오른쪽 그리드,
+        // 좁으면 세로로 접힌다(컨테이너 폭 기준 — 뷰포트가 아니라 Sheet 본문 폭에 반응).
+        <div className="@container">
+          <div className="grid items-start gap-3 @[820px]:grid-cols-[auto_minmax(0,1fr)]">
+            <CorrespondenceMap
+              query={data.query}
+              ref={data.ref}
+              matches={matches}
+              selectedIndex={activeIndex}
+              onSelect={handleSelect}
+              onHover={handleHover}
+            />
+            <CrossZoomRows
+              matches={matches}
+              selectedIndex={activeIndex}
+              onSelect={handleSelect}
+              onHover={handleHover}
+            />
+          </div>
         </div>
       ) : (
         <div className="flex flex-col gap-2.5 rounded-xl border border-[#1E2A3C] bg-[#0B121D] p-3">
