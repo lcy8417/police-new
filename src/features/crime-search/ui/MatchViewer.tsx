@@ -60,8 +60,17 @@ function FallbackTile({ label, image }: { label: string; image?: string | null }
  *  4) 아무것도 없으면 → "대응 부위를 찾지 못했습니다" + 원본 족적/신발(폴백 이미지).
  */
 export function MatchViewer({ data, loading = false, fallbackQuery, fallbackRef, className }: MatchViewerProps) {
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  // 강조 상태는 두 축: 클릭으로 고정하는 locked, hover로 임시 강조하는 hovered.
+  // 실효 강조 = hovered ?? locked → hover가 우선하되 손을 떼면 마지막 클릭으로 복귀,
+  // 클릭 없이 훑을 때도 A↔B가 함께 밝아진다. 두 화면이 이 핸들러를 공유해 양방향 동기.
+  const [locked, setLocked] = useState<number | null>(null)
+  const [hovered, setHovered] = useState<number | null>(null)
   const [showEdge, setShowEdge] = useState(false)
+  const activeIndex = hovered ?? locked
+
+  const handleSelect = (index: number) =>
+    setLocked((prev) => (prev === index ? null : index))
+  const handleHover = (index: number | null) => setHovered(index)
 
   const matches = data?.matches ?? []
   const hasCorrespondence = Boolean(data?.query && data?.ref && matches.length > 0)
@@ -87,13 +96,15 @@ export function MatchViewer({ data, loading = false, fallbackQuery, fallbackRef,
             query={data.query}
             ref={data.ref}
             matches={matches}
-            selectedIndex={selectedIndex}
-            onSelect={setSelectedIndex}
+            selectedIndex={activeIndex}
+            onSelect={handleSelect}
+            onHover={handleHover}
           />
           <CrossZoomRows
             matches={matches}
-            selectedIndex={selectedIndex}
-            onSelect={setSelectedIndex}
+            selectedIndex={activeIndex}
+            onSelect={handleSelect}
+            onHover={handleHover}
             showEdge={showEdge}
             onToggleEdge={setShowEdge}
           />
