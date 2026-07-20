@@ -11,6 +11,7 @@
  */
 import { useEffect, useState } from "react"
 
+import { corsPartitionedUrl } from "../lib/crop-image"
 import type { NaturalSize } from "../lib/overlay-geometry"
 
 export interface UseShoerinsicsNaturalSizeParams {
@@ -32,7 +33,8 @@ export function useShoerinsicsNaturalSize({
     }
     let cancelled = false
     const base = import.meta.env.VITE_API_URL ?? ""
-    const src = `${base}/shoes_images/Shoerinsics/${modelNumber}.png`
+    // 스케치·이진 모드의 표시/크롭과 같은 CORS 파티션 URL을 써야 캐시 항목을 공유한다.
+    const src = corsPartitionedUrl(`${base}/shoes_images/Shoerinsics/${modelNumber}.png`)
 
     // 스케치·이진 모드에서 같은 URL을 CORS 모드로 표시/크롭하므로, 이 측정용 로드도
     // 같은 모드로 맞춘다 — 모드가 엇갈리면 브라우저가 no-cors 캐시 응답을 cors 요청에

@@ -101,11 +101,11 @@ describe("MatchCorrespondenceViewer — 족적↔신발 대응 뷰어 레이아�
     const base = import.meta.env.VITE_API_URL ?? ""
     expect(screen.getByAltText("족적 현장 이미지")).toHaveAttribute(
       "src",
-      `${base}/crime_images/2024-100.png`
+      `${base}/crime_images/2024-100.png?cors=1`
     )
     expect(screen.getByAltText(/신발 이미지/)).toHaveAttribute(
       "src",
-      `${base}/shoes_images/B/SHOE-1.png`
+      `${base}/shoes_images/B/SHOE-1.png?cors=1`
     )
   })
 
@@ -118,12 +118,12 @@ describe("MatchCorrespondenceViewer — 족적↔신발 대응 뷰어 레이아�
     await waitFor(() =>
       expect(screen.getByAltText("족적 현장 이미지")).toHaveAttribute(
         "src",
-        `${base}/crime_outlines/2024-100.png`
+        `${base}/crime_outlines/2024-100.png?cors=1`
       )
     )
     expect(screen.getByAltText(/신발 이미지/)).toHaveAttribute(
       "src",
-      `${base}/shoes_images/Shoerinsics/SHOE-1.png`
+      `${base}/shoes_images/Shoerinsics/SHOE-1.png?cors=1`
     )
   })
 
@@ -332,7 +332,7 @@ describe("MatchCorrespondenceViewer — [CORRECTION 3b] 정렬 폴리곤 크롭 
     const base = import.meta.env.VITE_API_URL ?? ""
     expect(screen.getByAltText("족적 현장 이미지")).toHaveAttribute(
       "src",
-      `${base}/crime_images/2024-100.png`
+      `${base}/crime_images/2024-100.png?cors=1`
     )
   })
 })

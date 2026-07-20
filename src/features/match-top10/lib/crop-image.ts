@@ -46,6 +46,26 @@ async function loadSameOriginImage(src: string): Promise<HTMLImageElement> {
  * CORS 컨텍스트 부재로 실패한다(전형적인 "이미지는 보이는데 fetch만 CORS 오류").
  * 이 경로와 표시용 `<img crossOrigin="anonymous">`는 반드시 짝을 이뤄야 한다.
  */
+/**
+ * CORS 모드 전용 캐시 파티션 URL을 만든다(쿼리 파라미터 1개 추가).
+ *
+ * 왜 필요한가: 브라우저 HTTP 캐시는 같은 URL의 응답을 요청 모드와 무관하게 재사용한다.
+ * 앱의 다른 화면(`ShoeDetailContent`의 어텐션 타일, `crime-align`의 현장 이미지 등)이
+ * 같은 이미지를 **일반 `<img>`(no-cors)**로 먼저 그리면 그 응답이 캐시에 남고, 이후
+ * 이 기능의 **CORS 요청**이 그 응답을 재사용하면서 CORS 컨텍스트 부재로 차단된다
+ * (`Access to image at ... has been blocked` + 이어지는 fetch 폴백까지 실패).
+ *
+ * 모든 컴포넌트에 `crossOrigin`을 붙여 모드를 통일하는 방법도 있으나, 한 곳만 놓쳐도
+ * 조용히 재발하고 정렬 게이트 같은 필수 화면을 깨뜨릴 위험이 있다. 대신 이 기능이
+ * 쓰는 URL에 마커를 붙여 **캐시 항목 자체를 분리**하면, 다른 화면이 무엇을 하든
+ * 영향을 받지 않는다. 표시용 `<img>`와 크롭이 **같은 파티션 URL**을 쓰므로 이미지는
+ * 여전히 한 번만 내려받는다.
+ */
+export function corsPartitionedUrl(src: string): string {
+  if (!src || src.startsWith("data:")) return src
+  return `${src}${src.includes("?") ? "&" : "?"}cors=1`
+}
+
 async function loadCorsImage(src: string): Promise<HTMLImageElement> {
   const img = new Image()
   img.crossOrigin = "anonymous"

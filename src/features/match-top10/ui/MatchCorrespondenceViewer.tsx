@@ -15,7 +15,7 @@ import {
   type DisplaySize,
   type NaturalSize,
 } from "../lib/overlay-geometry"
-import type { CenterBox } from "../lib/crop-image"
+import { corsPartitionedUrl, type CenterBox } from "../lib/crop-image"
 import { useSceneFootprint } from "../model/use-scene-footprint"
 import { useMatchCrops } from "../model/use-match-crops"
 import { useShoerinsicsNaturalSize } from "../model/use-shoerinsics-natural-size"
@@ -286,15 +286,19 @@ export function MatchCorrespondenceViewer({
   const activeIndex = hovered ?? locked
   const handleSelect = (index: number) => setLocked(index)
 
+  // 표시와 크롭이 모두 CORS 파티션 URL을 쓴다 — 다른 화면의 일반 <img>가 만든 no-cors
+  // 캐시 항목과 섞이지 않게 하기 위함이다(corsPartitionedUrl 주석에 근거 상세).
   const apiBase = import.meta.env.VITE_API_URL ?? ""
-  const rawSceneImageSrc =
+  const rawSceneImageSrc = corsPartitionedUrl(
     mode === "실사"
       ? `${apiBase}/crime_images/${crimeNumber}.png`
       : `${apiBase}/crime_outlines/${crimeNumber}.png`
-  const shoeImageSrc =
+  )
+  const shoeImageSrc = corsPartitionedUrl(
     mode === "실사"
       ? `${apiBase}/shoes_images/B/${modelNumber}.png`
       : `${apiBase}/shoes_images/Shoerinsics/${modelNumber}.png`
+  )
 
   // [CORRECTION 3b] 정렬 폴리곤 경계상자로 크롭 + flipHorizontal 반영. 폴리곤이
   // 없으면(예: 데이터 도착 경쟁) 원본 그대로 폴백한다(크롭 전 레거시 동작과 동일).
@@ -315,7 +319,7 @@ export function MatchCorrespondenceViewer({
     size: m.box.size,
   }))
   const outlineCrops = useMatchCrops({
-    src: `${apiBase}/crime_outlines/${crimeNumber}.png`,
+    src: corsPartitionedUrl(`${apiBase}/crime_outlines/${crimeNumber}.png`),
     boxes: sceneCropBoxes,
     enabled: mode === "스케치이진",
   })
