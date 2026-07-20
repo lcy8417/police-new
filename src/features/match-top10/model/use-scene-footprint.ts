@@ -8,7 +8,7 @@
  * 새 엔드포인트를 추가하지 않는다). 폴리곤이 없으면(예: 데이터 도착 경쟁 상태)
  * 원본 이미지를 그대로 보여주는 안전한 폴백으로 내려간다(크롭 전 레거시 동작과 동일).
  */
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 
 import { alignmentKeys, fetchAlignment } from "@/entities/alignment"
@@ -47,7 +47,16 @@ export function useSceneFootprint({
   const polygon = alignmentQuery.data?.polygon ?? null
   const flipHorizontal = Boolean(alignmentQuery.data?.flipHorizontal)
   const hasPolygon = Boolean(polygon && polygon.length >= 3)
-  const crop = hasPolygon ? boundingBoxOfPolygon(polygon!) : null
+  // ⚠ 반드시 메모이즈한다. `boundingBoxOfPolygon`은 매 호출마다 새 객체를 반환하는데,
+  // 이 값이 아래 크롭 effect의 의존성 배열에 들어 있다. 메모이즈하지 않으면
+  // effect가 매 렌더마다 재실행되고 → `cropImageToDataUrl`이 캐시 없는 `fetch`를
+  // 다시 쏘고 → `setResolved`(새 객체)가 또 렌더를 유발해 서버로 이미지를 무한히
+  // 요청한다. `polygon`은 TanStack Query 캐시 객체라 데이터가 바뀔 때만 identity가
+  // 변하므로 안전한 의존성이다.
+  const crop = useMemo(
+    () => (polygon && polygon.length >= 3 ? boundingBoxOfPolygon(polygon) : null),
+    [polygon]
+  )
 
   const cacheKey = crop
     ? `${sourceSrc}|${crop.left}|${crop.top}|${crop.width}|${crop.height}|${flipHorizontal}`

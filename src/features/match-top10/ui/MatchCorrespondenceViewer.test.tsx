@@ -277,6 +277,42 @@ describe("MatchCorrespondenceViewer — [CORRECTION 3b] 정렬 폴리곤 크롭 
     await waitFor(() => expect(screen.getByAltText("족적 현장 이미지")).toBeInTheDocument())
   })
 
+  // 회귀 방지(무한 서버 요청): `boundingBoxOfPolygon`이 돌려주는 crop 객체는 매 렌더
+  // 새 identity라, 이 값이 크롭 effect의 의존성 배열에 그대로 들어가면
+  // effect 재실행 → 캐시 없는 fetch → setResolved(새 객체) → 재렌더 → ... 로
+  // 원본 이미지를 서버에서 무한히 가져온다. crop은 반드시 메모이즈되어야 한다.
+  it("정렬 폴리곤이 있어도 크롭 원본 이미지를 서버에서 1회만 가져온다", async () => {
+    let sceneFetches = 0
+    mswServer.use(
+      http.get("*/crime/*/alignment", () =>
+        HttpResponse.json({
+          polygon: POLYGON,
+          arrow: [
+            [100, 350],
+            [300, 350],
+          ],
+          flipHorizontal: false,
+        })
+      ),
+      http.get("*/crime_images/*", () => {
+        sceneFetches += 1
+        return HttpResponse.text("fake-png-bytes")
+      })
+    )
+    const matches = [makeMatch(0)]
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <MatchCorrespondenceViewer crimeNumber="2024-100" modelNumber="SHOE-1" matches={matches} />
+      </QueryClientProvider>
+    )
+
+    await waitFor(() => expect(screen.getByAltText("족적 현장 이미지")).toBeInTheDocument())
+    // 이후 렌더가 더 돌아도 추가 요청이 붙지 않아야 한다(루프면 계속 증가한다).
+    await new Promise((resolve) => setTimeout(resolve, 80))
+    expect(sceneFetches).toBeLessThanOrEqual(1)
+  })
+
   it("정렬 폴리곤이 없으면(레거시 폴백) 크롭 없이 원본 이미지를 그대로 보여준다", async () => {
     await renderViewer(1)
     const base = import.meta.env.VITE_API_URL ?? ""

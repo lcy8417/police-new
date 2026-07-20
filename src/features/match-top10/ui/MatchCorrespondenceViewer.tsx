@@ -120,7 +120,10 @@ function ImageWithBoxes({
             onLoad={measure}
             onError={() => setErrored(true)}
             draggable={false}
-            className="block h-full w-auto max-w-full select-none"
+            /* max-w-*를 두지 않는다: 래퍼가 w-fit(=이미지 폭)이라 이미지에 컨테이너
+               기준 폭 상한을 걸면 "폭 ← 컨테이너 ← 폭"의 순환 제약이 되어
+               ResizeObserver가 진동한다. 폭은 고정 높이 × 종횡비로만 결정한다. */
+            className="block h-full w-auto select-none"
           />
           {natural &&
             display &&
