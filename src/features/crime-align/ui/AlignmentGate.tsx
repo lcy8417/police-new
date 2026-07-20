@@ -113,7 +113,10 @@ export function AlignmentGate({ crimeNumber, modelNumber, onProceed }: Alignment
         {alignment.isLoading ? (
           <span className="relative text-[13px] text-[#5B6B85]">정렬 정보를 불러오는 중…</span>
         ) : (
-          <div className="relative">
+          /* h-full min-h-0이 없으면 안쪽 캔버스의 h-full 체인이 끊겨(퍼센트 높이가
+             auto 부모에 걸림) 이미지가 원본 크기로 렌더되고, 패널 높이를 뚫고 나가
+             위 컨테이너의 overflow-hidden에 잘린다(= 전체가 안 보임). */
+          <div className="relative h-full min-h-0">
             <AlignmentCaptureCanvas
               crimeNumber={crimeNumber}
               polygon={alignment.polygon}

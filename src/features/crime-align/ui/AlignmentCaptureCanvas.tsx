@@ -200,10 +200,13 @@ export function AlignmentCaptureCanvas({
   const isTemplateDraggable = phase === "polygon" && drawMode === "template" && isDrawing
 
   return (
-    <div className="relative flex h-full w-fit max-w-full items-center justify-center">
+    /* max-w-full을 두지 않는다: 아래 img가 폭 상한 없이 종횡비로만 크기가 정해지므로,
+       래퍼에만 상한을 걸면 래퍼가 이미지보다 좁아진다. 그러면 `absolute inset-0`인
+       오버레이(폴리곤 SVG·클릭 표면)가 이미지와 어긋난다 — 래퍼 = 이미지여야 한다. */
+    <div className="relative flex h-full w-fit items-center justify-center">
       <div
         className={cn(
-          "relative flex h-full w-fit max-w-full items-center justify-center transition-transform duration-300",
+          "relative flex h-full w-fit items-center justify-center transition-transform duration-300",
           flipHorizontal && "scale-x-[-1]"
         )}
       >
@@ -213,7 +216,13 @@ export function AlignmentCaptureCanvas({
           alt="정렬용 저장 현장 이미지"
           draggable={false}
           onLoad={handleImageLoad}
-          className="h-full w-auto max-w-full object-contain select-none"
+          /* ⚠ 좌표 계약: img 요소의 bounding rect가 곧 "렌더된 이미지"여야 한다.
+             클릭 좌표는 `e.clientX - rect.left`로, 스케일은 `naturalWidth / rect.width`로
+             계산하므로(computeScale), object-contain으로 레터박스가 생기거나 max-w로
+             종횡비가 깨지면 그 순간 좌표가 통째로 어긋난다. 따라서 크기는 오직
+             "고정 높이 × 종횡비"로만 결정한다(w-auto, 폭 상한/object-fit 없음).
+             가로가 넘치는 경우는 상위 컨테이너의 overflow-hidden이 처리한다. */
+          className="h-full w-auto select-none"
         />
 
         <div

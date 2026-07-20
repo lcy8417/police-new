@@ -291,3 +291,31 @@ describe("AlignmentCaptureCanvas — 좌우 반전 프리뷰(REQ-ALIGN-020a)", (
     expect(screen.queryByText(/반전 미리보기/)).toBeNull()
   })
 })
+
+// ─── 좌표 계약: img 요소 rect == 렌더된 이미지 ───
+// 클릭 좌표는 `e.clientX - imgRect.left`, 스케일은 `naturalWidth / imgRect.width`로
+// 계산한다(computeScale). 따라서 object-fit 레터박스가 생기거나 폭 상한으로 종횡비가
+// 깨지면 그 즉시 그리는 좌표가 통째로 어긋난다. jsdom에는 레이아웃이 없어 시각적으로는
+// 잡히지 않으므로 클래스 불변식으로 방어한다.
+describe("AlignmentCaptureCanvas — 이미지 사이징 좌표 불변식", () => {
+  it("이미지에 object-fit/폭 상한을 걸지 않는다(크기는 고정 높이 × 종횡비로만 결정)", () => {
+    render(<AlignmentCaptureCanvas {...baseProps()} />)
+    const img = screen.getByAltText("정렬용 저장 현장 이미지")
+
+    expect(img.className).not.toMatch(/object-(contain|cover|fill|scale-down)/)
+    expect(img.className).not.toMatch(/max-w-/)
+    // 높이는 컨테이너에 맞추고 폭은 종횡비로만 따라간다.
+    expect(img.className).toContain("h-full")
+    expect(img.className).toContain("w-auto")
+  })
+
+  it("오버레이 기준 래퍼가 이미지보다 좁아질 수 있는 폭 상한을 갖지 않는다", () => {
+    render(<AlignmentCaptureCanvas {...baseProps()} />)
+    const img = screen.getByAltText("정렬용 저장 현장 이미지")
+    // 폴리곤 SVG·클릭 표면이 absolute inset-0으로 붙는 래퍼 = img의 부모.
+    const wrapper = img.parentElement!
+
+    expect(wrapper.className).not.toMatch(/max-w-/)
+    expect(wrapper.className).toContain("w-fit")
+  })
+})
