@@ -36,6 +36,41 @@ async function loadSameOriginImage(src: string): Promise<HTMLImageElement> {
   return img
 }
 
+/**
+ * CORS 모드(`crossOrigin="anonymous"`)로 이미지를 로드한다 — 표시용 `<img>`와
+ * **같은 요청 모드**라서 브라우저 캐시 항목을 공유한다(같은 이미지를 두 번
+ * 내려받지 않는다).
+ *
+ * ⚠ 모드 일치가 핵심이다. 같은 URL을 `<img>`(no-cors)와 `fetch`(cors)로 각각
+ * 요청하면, 브라우저가 먼저 캐시된 no-cors 응답을 cors 요청에 재사용하면서
+ * CORS 컨텍스트 부재로 실패한다(전형적인 "이미지는 보이는데 fetch만 CORS 오류").
+ * 이 경로와 표시용 `<img crossOrigin="anonymous">`는 반드시 짝을 이뤄야 한다.
+ */
+async function loadCorsImage(src: string): Promise<HTMLImageElement> {
+  const img = new Image()
+  img.crossOrigin = "anonymous"
+  img.src = src
+  // onload/onerror 대신 decode()를 쓴다 — 로드 실패든 디코드 실패든 반드시 reject되어
+  // 아래 폴백으로 넘어간다(onerror가 오지 않는 환경에서 영원히 대기하지 않는다).
+  await img.decode()
+  return img
+}
+
+/**
+ * 캔버스 가공용 이미지 로더. 원격 URL은 CORS 모드를 우선 시도하고(캐시 공유 →
+ * 중복 다운로드 없음), 실패하면 기존 `fetch → data URL` 경로로 폴백한다 —
+ * CORS 헤더를 주지 않는 서버에서도 동작이 깨지지 않도록 하는 안전장치다.
+ */
+async function loadImageForCanvas(src: string): Promise<HTMLImageElement> {
+  const isRemoteUrl = /^(https?:)?\/\//.test(src) || src.startsWith("/")
+  if (!isRemoteUrl) return loadSameOriginImage(src)
+  try {
+    return await loadCorsImage(src)
+  } catch {
+    return loadSameOriginImage(src)
+  }
+}
+
 function drawCrop(img: HTMLImageElement, region: PixelRect, options?: CropOptions): string {
   const canvas = document.createElement("canvas")
   canvas.width = Math.max(1, Math.round(region.width))
@@ -67,7 +102,7 @@ export async function cropImageToDataUrl(
   region: PixelRect,
   options?: CropOptions
 ): Promise<string> {
-  const img = await loadSameOriginImage(src)
+  const img = await loadImageForCanvas(src)
   return drawCrop(img, region, options)
 }
 
@@ -80,7 +115,7 @@ export async function cropImageRegionsToDataUrls(
   regions: readonly PixelRect[],
   options?: CropOptions
 ): Promise<string[]> {
-  const img = await loadSameOriginImage(src)
+  const img = await loadImageForCanvas(src)
   return regions.map((region) => drawCrop(img, region, options))
 }
 
@@ -110,7 +145,7 @@ export async function cropImageCenterBoxesToDataUrls(
   boxes: readonly CenterBox[],
   options?: CenterCropOptions
 ): Promise<string[]> {
-  const img = await loadSameOriginImage(src)
+  const img = await loadImageForCanvas(src)
   const target: NaturalSize = { width: img.naturalWidth, height: img.naturalHeight }
   const from = options?.normalizeFrom
   return boxes.map(({ center, size }) => {

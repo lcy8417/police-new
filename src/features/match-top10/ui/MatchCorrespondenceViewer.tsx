@@ -81,6 +81,11 @@ function ImageWithBoxes({
   const [natural, setNatural] = useState<NaturalSize | null>(null)
   const [display, setDisplay] = useState<DisplaySize | null>(null)
   const [errored, setErrored] = useState(false)
+  /** CORS 모드로 로드할지 — 크롭 경로(`loadImageForCanvas`)와 요청 모드를 일치시켜
+   * 같은 캐시 항목을 공유하기 위함이다(같은 이미지를 두 번 내려받지 않고, no-cors
+   * 응답이 cors 요청에 재사용되어 CORS 오류가 나는 캐시 오염도 막는다).
+   * 실패하면 한 번만 일반 모드로 재시도한다(CORS 헤더 없는 서버 대비). */
+  const [corsMode, setCorsMode] = useState(true)
 
   const measure = useCallback(() => {
     const img = imgRef.current
@@ -92,6 +97,7 @@ function ImageWithBoxes({
 
   useLayoutEffect(() => {
     setErrored(false)
+    setCorsMode(true)
     measure()
     const img = imgRef.current
     if (!img || typeof ResizeObserver === "undefined") return
@@ -114,11 +120,19 @@ function ImageWithBoxes({
         /* 박스 오버레이의 offset parent — 이미지를 shrink-wrap해 좌우 여백을 배제한다. */
         <div className="relative h-full w-fit">
           <img
+            // key로 요소를 새로 만들어야 crossOrigin 변경이 실제 재요청으로 이어진다
+            // (속성만 바꾸면 브라우저가 다시 로드하지 않을 수 있다).
+            key={corsMode ? "cors" : "plain"}
             ref={imgRef}
             src={src}
             alt={alt}
+            crossOrigin={corsMode ? "anonymous" : undefined}
             onLoad={measure}
-            onError={() => setErrored(true)}
+            onError={() => {
+              // CORS 모드 실패 → 일반 모드로 1회 재시도, 그래도 실패해야 "이미지 없음".
+              if (corsMode) setCorsMode(false)
+              else setErrored(true)
+            }}
             draggable={false}
             /* max-w-*를 두지 않는다: 래퍼가 w-fit(=이미지 폭)이라 이미지에 컨테이너
                기준 폭 상한을 걸면 "폭 ← 컨테이너 ← 폭"의 순환 제약이 되어

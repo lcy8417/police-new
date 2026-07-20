@@ -32,11 +32,25 @@ export function useShoerinsicsNaturalSize({
     }
     let cancelled = false
     const base = import.meta.env.VITE_API_URL ?? ""
-    const img = new Image()
-    img.onload = () => {
-      if (!cancelled) setSize({ width: img.naturalWidth, height: img.naturalHeight })
+    const src = `${base}/shoes_images/Shoerinsics/${modelNumber}.png`
+
+    // 스케치·이진 모드에서 같은 URL을 CORS 모드로 표시/크롭하므로, 이 측정용 로드도
+    // 같은 모드로 맞춘다 — 모드가 엇갈리면 브라우저가 no-cors 캐시 응답을 cors 요청에
+    // 재사용하며 CORS 오류를 낸다(crop-image.ts의 loadCorsImage와 동일한 이유).
+    // 이 훅은 캔버스를 쓰지 않으므로, CORS가 없는 서버에서는 일반 모드로 폴백한다.
+    const load = (useCors: boolean) => {
+      const img = new Image()
+      if (useCors) img.crossOrigin = "anonymous"
+      img.onload = () => {
+        if (!cancelled) setSize({ width: img.naturalWidth, height: img.naturalHeight })
+      }
+      img.onerror = () => {
+        if (!cancelled && useCors) load(false)
+      }
+      img.src = src
     }
-    img.src = `${base}/shoes_images/Shoerinsics/${modelNumber}.png`
+    load(true)
+
     return () => {
       cancelled = true
     }

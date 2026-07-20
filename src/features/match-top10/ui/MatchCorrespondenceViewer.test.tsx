@@ -211,12 +211,26 @@ describe("MatchCorrespondenceViewer — 족적↔신발 대응 뷰어 레이아�
     }
   })
 
-  it("이미지 로드 실패 시 대체 안내를 표시하고 박스를 렌더하지 않는다", async () => {
+  it("CORS 모드 로드가 실패하면 일반 모드로 1회 재시도한다(대체 안내로 바로 가지 않는다)", async () => {
     await renderViewer(1)
     const sceneFigure = screen.getByTestId("match-scene-image")
     const img = within(sceneFigure).getByAltText("족적 현장 이미지")
+    expect(img).toHaveAttribute("crossorigin", "anonymous")
 
     fireEvent.error(img)
+
+    // 아직 "이미지 없음"이 아니라, crossOrigin 없이 다시 그려진다.
+    const retried = within(sceneFigure).getByAltText("족적 현장 이미지")
+    expect(retried).not.toHaveAttribute("crossorigin")
+    expect(within(sceneFigure).queryByText("이미지 없음")).toBeNull()
+  })
+
+  it("재시도까지 실패하면 대체 안내를 표시하고 박스를 렌더하지 않는다", async () => {
+    await renderViewer(1)
+    const sceneFigure = screen.getByTestId("match-scene-image")
+
+    fireEvent.error(within(sceneFigure).getByAltText("족적 현장 이미지"))
+    fireEvent.error(within(sceneFigure).getByAltText("족적 현장 이미지"))
 
     expect(within(sceneFigure).getByText("이미지 없음")).toBeInTheDocument()
     expect(within(sceneFigure).queryByRole("button", { name: /대응/ })).toBeNull()
