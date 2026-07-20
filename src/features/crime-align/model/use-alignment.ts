@@ -26,6 +26,9 @@ import { toast } from "sonner";
 import { alignmentKeys, fetchAlignment, saveAlignment } from "@/entities/alignment";
 
 import {
+  clampPointToBounds,
+  clampPointsToBounds,
+  clampTranslation,
   computeScale,
   isPolygonClosable,
   moveVertex,
@@ -134,6 +137,9 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
   const [flipHorizontal, setFlipHorizontal] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [templateSeeded, setTemplateSeeded] = useState(false);
+  /** 저장 현장 이미지의 자연 크기 — 좌표 clamp 기준(백엔드 범위 검사와 동일 기준).
+   * 이미지 로드 시 `seedTemplate`이 기록한다(캔버스가 onImageNaturalSize로 호출). */
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
 
   const query = useQuery({
     queryKey: alignmentKeys.detail(crimeNumber, modelNumber),
@@ -169,15 +175,29 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
     // query.data 변화에만 반응한다(사용자가 그리는 중간에 재실행되지 않도록).
   }, [query.data]);
 
+  /** 입력 시점 clamp — 이미지 크기를 아직 모르면(로드 전) 원본을 그대로 둔다. */
+  const clampSaved = useCallback(
+    (point: Point): Point =>
+      imageSize ? clampPointToBounds(point, imageSize.width, imageSize.height) : point,
+    [imageSize]
+  );
+
   const mutation = useMutation({
-    mutationFn: () =>
-      saveAlignment({
+    mutationFn: () => {
+      // 전송 직전 최종 clamp — 입력 경로별 clamp가 모두 통과했더라도, 복원된 저장본이나
+      // 이미지 크기를 모르던 시점의 좌표가 섞일 수 있으므로 여기서 한 번 더 보장한다.
+      // 백엔드는 polygon·arrow의 단 한 점만 범위를 벗어나도 저장 전체를 400으로 거절한다.
+      const bounded = (points: Point[]) =>
+        imageSize ? clampPointsToBounds(points, imageSize.width, imageSize.height) : points;
+
+      return saveAlignment({
         crimeNumber,
         modelNumber,
-        polygon: serializePoints(polygon) as [number, number][],
-        arrow: serializePoints(toe && heel ? [toe, heel] : []) as [number, number][],
+        polygon: serializePoints(bounded(polygon)) as [number, number][],
+        arrow: serializePoints(bounded(toe && heel ? [toe, heel] : [])) as [number, number][],
         flipHorizontal,
-      }),
+      });
+    },
     onSuccess: () => {
       setJustSaved(true);
       void queryClient.invalidateQueries({
@@ -193,6 +213,15 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
   // ─── 폴리곤: 밑창 템플릿 기본 제공(REQ-ALIGN-017) ───
   const seedTemplate = useCallback(
     (naturalWidth: number, naturalHeight: number) => {
+      // 크기 기록은 아래 시드 가드보다 먼저 한다 — 템플릿을 시드하지 않는 경로(복원·
+      // scratch 등)에서도 clamp 기준은 필요하기 때문이다.
+      if (naturalWidth > 0 && naturalHeight > 0) {
+        setImageSize((prev) =>
+          prev?.width === naturalWidth && prev?.height === naturalHeight
+            ? prev
+            : { width: naturalWidth, height: naturalHeight }
+        );
+      }
       if (templateSeeded) return;
       if (query.isLoading) return;
       if (query.data?.polygon && query.data?.arrow) return; // 복원 우선
@@ -219,10 +248,10 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
       if (phase !== "polygon" || drawMode !== "scratch") return;
       const scale = computeScale(naturalWidth, rect.width);
       const display = toDisplayPoint(clientX, clientY, rect);
-      const saved = toSavedPoint(display, scale);
+      const saved = clampSaved(toSavedPoint(display, scale));
       setPolygon((prev) => [...prev, saved]);
     },
-    [phase, drawMode]
+    [phase, drawMode, clampSaved]
   );
 
   const closePolygon = useCallback(() => {
@@ -241,9 +270,21 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
     (dxDisplay: number, dyDisplay: number, naturalWidth: number, dispWidth: number) => {
       if (phase !== "polygon") return;
       const scale = computeScale(naturalWidth, dispWidth);
-      setPolygon((prev) => translatePolygon(prev, dxDisplay * scale, dyDisplay * scale));
+      setPolygon((prev) => {
+        // 전체 이동은 정점별 clamp가 아니라 이동량 자체를 제한한다(형태 보존).
+        const [dx, dy] = imageSize
+          ? clampTranslation(
+              prev,
+              dxDisplay * scale,
+              dyDisplay * scale,
+              imageSize.width,
+              imageSize.height
+            )
+          : [dxDisplay * scale, dyDisplay * scale];
+        return translatePolygon(prev, dx, dy);
+      });
     },
-    [phase]
+    [phase, imageSize]
   );
 
   const moveVertexAt = useCallback(
@@ -251,10 +292,10 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
       if (phase !== "polygon") return;
       const scale = computeScale(naturalWidth, rect.width);
       const display = toDisplayPoint(clientX, clientY, rect);
-      const saved = toSavedPoint(display, scale);
+      const saved = clampSaved(toSavedPoint(display, scale));
       setPolygon((prev) => moveVertex(prev, index, saved));
     },
-    [phase]
+    [phase, clampSaved]
   );
 
   // ─── 방향: 앞굽/뒤꿈치 명시 2점 선택(REQ-ALIGN-019) ───
@@ -269,11 +310,11 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
       if (phase !== "arrow") return;
       const scale = computeScale(naturalWidth, rect.width);
       const display = toDisplayPoint(clientX, clientY, rect);
-      const saved = toSavedPoint(display, scale);
+      const saved = clampSaved(toSavedPoint(display, scale));
       if (kind === "toe") setToe(saved);
       else setHeel(saved);
     },
-    [phase]
+    [phase, clampSaved]
   );
 
   const clearArrowPoint = useCallback((kind: "toe" | "heel") => {

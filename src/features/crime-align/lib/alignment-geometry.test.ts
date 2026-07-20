@@ -15,6 +15,9 @@ import {
   toSavedPolygon,
   translatePolygon,
   type Point,
+  clampPointToBounds,
+  clampPointsToBounds,
+  clampTranslation,
 } from "./alignment-geometry";
 
 describe("computeScale (AC-ALIGN-016 참조 규칙: scale = img.width / dispW)", () => {
@@ -174,5 +177,73 @@ describe("moveVertex (REQ-ALIGN-018 ② 정점별 조정, AC-ALIGN-027(b))", () 
     ]);
     // 원본은 불변(순수 함수).
     expect(polygon[1]).toEqual([10, 0]);
+  });
+});
+
+// ─── 좌표 범위 clamp (백엔드 save_alignment 범위 검사 대응) ───
+describe("clampPointToBounds / clampPointsToBounds", () => {
+  it("실제 보고된 실패 좌표 (-0.5, 210)을 범위 안으로 자른다", () => {
+    // 백엔드 응답: "좌표 (-0.5, 210.0)가 저장 현장 이미지 범위(0..396, 0..906)를 벗어났습니다."
+    expect(clampPointToBounds([-0.5, 210], 396, 906)).toEqual([0, 210]);
+  });
+
+  it("상한을 넘는 좌표는 이미지 크기로 자른다", () => {
+    expect(clampPointToBounds([500, 1000], 396, 906)).toEqual([396, 906]);
+  });
+
+  it("범위 안의 좌표는 float 그대로 보존한다(REQ-ALIGN-013a — 반올림 금지)", () => {
+    expect(clampPointToBounds([17.5, 56.25], 396, 906)).toEqual([17.5, 56.25]);
+  });
+
+  it("배열 전체를 clamp해 모든 점이 범위 안에 들어온다", () => {
+    const out = clampPointsToBounds(
+      [
+        [-0.5, 210],
+        [17.5, 56],
+        [400, 950],
+      ],
+      396,
+      906
+    );
+    for (const [x, y] of out) {
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(x).toBeLessThanOrEqual(396);
+      expect(y).toBeGreaterThanOrEqual(0);
+      expect(y).toBeLessThanOrEqual(906);
+    }
+  });
+});
+
+describe("clampTranslation — 전체 이동은 형태를 보존한다", () => {
+  const square: Point[] = [
+    [10, 10],
+    [110, 10],
+    [110, 110],
+    [10, 110],
+  ];
+
+  it("범위 안에서는 요청한 이동량을 그대로 허용한다", () => {
+    expect(clampTranslation(square, 20, 30, 400, 900)).toEqual([20, 30]);
+  });
+
+  it("왼쪽 경계를 넘어가면 딱 경계까지만 이동한다(정점이 눌리지 않음)", () => {
+    // minX=10 이므로 dx는 -10까지만 허용된다.
+    const [dx] = clampTranslation(square, -50, 0, 400, 900);
+    expect(dx).toBe(-10);
+  });
+
+  it("오른쪽 경계를 넘어가면 딱 경계까지만 이동한다", () => {
+    // maxX=110, width=400 → dx는 290까지.
+    const [dx] = clampTranslation(square, 999, 0, 400, 900);
+    expect(dx).toBe(290);
+  });
+
+  it("폴리곤이 이미지보다 큰 축에서는 이동하지 않는다(찌그러짐 방지)", () => {
+    const tooWide: Point[] = [
+      [-50, 10],
+      [500, 10],
+      [500, 110],
+    ];
+    expect(clampTranslation(tooWide, 30, 20, 400, 900)[0]).toBe(0);
   });
 });

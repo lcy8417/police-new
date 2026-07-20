@@ -93,6 +93,72 @@ export function serializePoints(points: readonly Point[]): number[][] {
 }
 
 /**
+ * 좌표 1점을 `저장 현장 이미지 좌표계` 범위 `[0, width] × [0, height]`로 clamp한다.
+ *
+ * 왜 필요한가: 백엔드 `save_alignment`(routes/crime.py)는 polygon·arrow의 **모든** 점에
+ * 대해 `0 <= x <= scene_w and 0 <= y <= scene_h`를 강제하며, 한 점이라도 벗어나면
+ * 저장 요청 전체를 400으로 거절한다("좌표 (-0.5, 210.0)가 저장 현장 이미지 범위를
+ * 벗어났습니다"). 이미지 가장자리에서 드래그하면 서브픽셀 오차로 -0.5 같은 값이
+ * 쉽게 나오므로, 전송 전 clamp가 없으면 정상적인 조작이 저장 실패로 이어진다.
+ * (문양추출 `line_ys`의 범위 clamp 계약과 같은 계열 — `docs/api-communication.md` §4.)
+ *
+ * REQ-ALIGN-013a에 따라 **반올림하지 않는다** — float을 보존하고 범위만 자른다.
+ */
+export function clampPointToBounds(point: Point, width: number, height: number): Point {
+  return [
+    Math.min(Math.max(point[0], 0), width),
+    Math.min(Math.max(point[1], 0), height),
+  ];
+}
+
+/** 정점 배열 전체를 이미지 범위로 clamp한다(정점별 독립 — 형태가 변형될 수 있다). */
+export function clampPointsToBounds(
+  points: readonly Point[],
+  width: number,
+  height: number
+): Point[] {
+  return points.map((p) => clampPointToBounds(p, width, height));
+}
+
+/**
+ * 폴리곤 전체 이동(REQ-ALIGN-018 ①)의 이동량을 "모든 정점이 범위 안에 남는" 최대치로
+ * 제한한다. 정점별 clamp와 달리 **형태를 보존한다** — 전체 이동에서 정점을 각각 자르면
+ * 가장자리에 닿은 정점만 눌려 밑창 모양이 찌그러지기 때문이다.
+ *
+ * 폴리곤이 이미지보다 큰 축에서는 이동 여지가 없으므로 그 축의 이동량을 0으로 만든다.
+ */
+export function clampTranslation(
+  points: readonly Point[],
+  dx: number,
+  dy: number,
+  width: number,
+  height: number
+): readonly [number, number] {
+  if (points.length === 0) return [dx, dy];
+
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const [x, y] of points) {
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+
+  // dx 허용 구간 = [-minX, width - maxX]. 하한 > 상한이면(폴리곤이 이미지보다 넓음)
+  // 어떤 이동도 범위를 만족시킬 수 없으므로 이동하지 않는다.
+  const limit = (d: number, lo: number, hi: number) =>
+    lo > hi ? 0 : Math.min(Math.max(d, lo), hi);
+
+  return [
+    limit(dx, -minX, width - maxX),
+    limit(dy, -minY, height - maxY),
+  ];
+}
+
+/**
  * 폴리곤 전체를 `저장 현장 이미지 좌표계` 기준 (dx, dy)만큼 평행 이동한다
  * (전체 이동 드래그, REQ-ALIGN-018 ①). 형태(정점 간 상대 위치)는 그대로 유지된다.
  */
