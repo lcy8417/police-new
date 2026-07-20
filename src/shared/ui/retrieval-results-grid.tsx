@@ -5,6 +5,7 @@ import { Badge } from "@/shared/ui/badge"
 import { Button } from "@/shared/ui/button"
 import { TechCorners } from "@/shared/ui/tech-corners"
 import { cn } from "@/shared/lib/utils"
+import { LoadingImage } from "@/shared/ui/image-loading-overlay"
 
 /** 검색결과 카드 한 건. 서버 응답을 `imageSearch`가 정규화한 형태를 그대로 받는다. */
 export interface RetrievalResultItem {
@@ -209,10 +210,12 @@ export function RetrievalResultsGrid({
 
               {/* 신발 이미지는 세로형이라 카드도 세로로 길게(2:3) — 이미지가 카드를 꽉 채우게 여백 축소. */}
               <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#05080D]">
-                <img
+                <LoadingImage
                   src={item.image}
                   alt={`신발 이미지 ${item.shoesName}`}
+                  containerClassName="absolute inset-0"
                   className="absolute inset-0 size-full object-contain p-1.5"
+                  compactOverlay
                 />
               </div>
 

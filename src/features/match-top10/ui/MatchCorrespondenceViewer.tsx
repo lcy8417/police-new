@@ -2,6 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Camera, Database, ImageOff, Loader2 } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
+import { ImageLoadingOverlay } from "@/shared/ui/image-loading-overlay"
+import { useImageLoadState } from "@/shared/lib/use-image-load-state"
 import type { MatchCorrespondence } from "@/entities/match"
 
 import { matchTop10Color } from "../lib/match-colors"
@@ -87,6 +89,8 @@ function ImageWithBoxes({
    * 응답이 cors 요청에 재사용되어 CORS 오류가 나는 캐시 오염도 막는다).
    * 실패하면 한 번만 일반 모드로 재시도한다(CORS 헤더 없는 서버 대비). */
   const [corsMode, setCorsMode] = useState(true)
+  // 원본 이미지(수백 KB)를 받는 동안 빈 검은 칸이 아니라 로딩 상태를 보인다.
+  const load = useImageLoadState(src)
 
   const measure = useCallback(() => {
     const img = imgRef.current
@@ -110,7 +114,7 @@ function ImageWithBoxes({
   return (
     <figure
       data-testid={testId}
-      className="relative mx-auto flex h-[340px] w-fit min-w-[120px] max-w-full items-center justify-center overflow-hidden rounded-lg border border-[#1E2A3C] bg-[#05080D] sm:h-[460px]"
+      className="relative mx-auto flex h-[340px] w-fit min-w-[120px] max-w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-[#1E2A3C] bg-[#05080D] @[760px]:h-full"
     >
       {errored ? (
         <div className="flex flex-col items-center gap-1.5 text-[#5B6B85]">
@@ -128,7 +132,10 @@ function ImageWithBoxes({
             src={src}
             alt={alt}
             crossOrigin={corsMode ? "anonymous" : undefined}
-            onLoad={measure}
+            onLoad={() => {
+              load.markLoaded()
+              measure()
+            }}
             onError={() => {
               // CORS 모드 실패 → 일반 모드로 1회 재시도, 그래도 실패해야 "이미지 없음".
               if (corsMode) setCorsMode(false)
@@ -140,6 +147,7 @@ function ImageWithBoxes({
                ResizeObserver가 진동한다. 폭은 고정 높이 × 종횡비로만 결정한다. */
             className="block h-full w-auto select-none"
           />
+          <ImageLoadingOverlay status={load.status} />
           {natural &&
             display &&
             boxes.map((box) => {
@@ -202,7 +210,7 @@ function ImagePaneLoading({ testId }: { testId: string }) {
   return (
     <figure
       data-testid={testId}
-      className="relative mx-auto flex h-[340px] w-full min-w-[120px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-lg border border-[#1E2A3C] bg-[#05080D] text-[#5B6B85] sm:h-[460px]"
+      className="relative mx-auto flex h-[340px] w-full min-w-[120px] flex-1 flex-col items-center justify-center gap-1.5 overflow-hidden rounded-lg border border-[#1E2A3C] bg-[#05080D] text-[#5B6B85] @[760px]:h-full"
     >
       <Loader2 className="size-5 animate-spin text-[#4A9EFF]" aria-hidden="true" />
       <span className="text-[10px] font-medium">이미지 준비 중…</span>
@@ -385,9 +393,12 @@ export function MatchCorrespondenceViewer({
 
   return (
     <div className="@container">
-      <div className="grid gap-3 @[760px]:grid-cols-[minmax(0,1fr)_280px]">
+      {/* 2열 배치에서 행 높이를 확정한다 — 좌(이미지)·우(대응 목록)가 같은 높이로
+          stretch되고, 목록이 넘치면 자기 안에서 스크롤된다. 1열(좁은 화면)에서는
+          높이를 풀어 쌓이게 둔다. */}
+      <div className="grid gap-3 @[760px]:h-[560px] @[760px]:grid-cols-[minmax(0,1fr)_280px]">
         {/* 좌측: 족적(현장) ↔ 신발(등록) 대응 쌍 — 요구사항 1·2. */}
-        <div className="@container flex flex-col gap-2 rounded-xl border border-[#1E2A3C] bg-[#0D1420]/40 p-3">
+        <div className="@container flex min-h-0 flex-col gap-2 rounded-xl border border-[#1E2A3C] bg-[#0D1420]/40 p-3">
           <div className="flex items-center gap-2.5">
             <span className="rounded-md border border-[#3B82F6]/50 bg-[#152238] px-2 py-0.5 font-mono text-[12px] font-semibold text-[#4A9EFF]">
               대응
@@ -402,8 +413,8 @@ export function MatchCorrespondenceViewer({
             <ViewModeToggle mode={mode} onChange={setMode} />
           </div>
 
-          <div className="flex flex-col gap-3 @[420px]:flex-row @[420px]:items-stretch">
-            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 @[420px]:flex-row @[420px]:items-stretch">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1.5">
               <span className="flex items-center gap-1.5 px-0.5 font-mono text-[10px] tracking-[0.12em] text-[#8A93A6] uppercase">
                 <Camera className="size-3 text-[#4A9EFF]" aria-hidden="true" />
                 족적 (현장)
@@ -422,7 +433,7 @@ export function MatchCorrespondenceViewer({
                 <ImagePaneLoading testId="match-scene-image" />
               )}
             </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1.5">
               <span className="flex items-center gap-1.5 px-0.5 font-mono text-[10px] tracking-[0.12em] text-[#8A93A6] uppercase">
                 신발 (등록)
                 <Database className="size-3 text-[#2DD4BF]" aria-hidden="true" />

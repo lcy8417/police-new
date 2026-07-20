@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/shared/lib/utils";
+import { ImageLoadingOverlay } from "@/shared/ui/image-loading-overlay";
+import { useImageLoadState } from "@/shared/lib/use-image-load-state";
 import { TechCorners } from "@/shared/ui/tech-corners";
 import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/toggle-group";
 
@@ -607,6 +609,7 @@ export function PatternCanvas({
     patternActive && !editMode && Boolean(image) && canvasSize.h > 0;
   // 표시 이미지: 편집 도구 중에는 라이브 편집본, 그 외에는 뷰 소스(현장/편집)에서 파생한다.
   // → 편집 도구를 끄고 문양추출을 켜도 보던 이미지(현장 원본 또는 편집본)가 유지된다.
+  const canvasImageLoad = useImageLoadState(editMode ? editImage ?? image : image);
   const shownImage = editMode
     ? editImage ?? image
     : viewIsEdit
@@ -759,9 +762,17 @@ export function PatternCanvas({
               src={shownImage ?? image}
               alt="현장 신발 이미지"
               draggable={false}
-              onLoad={handleImageLoad}
+              onLoad={(e) => {
+                canvasImageLoad.markLoaded();
+                handleImageLoad(e);
+              }}
+              onError={canvasImageLoad.handlers.onError}
               className="h-full w-auto max-w-full object-contain select-none"
             />
+
+            {/* 로딩/실패 표시 — pointer-events-none이라 경계선 드래그를 막지 않는다.
+                좌표 계약상 img/canvas 사이징은 건드리지 않고 형제로만 얹는다. */}
+            <ImageLoadingOverlay status={canvasImageLoad.status} />
 
             {/* 상/중/하 영역 배경 틴트 — 같은 파란 계열에서 깊이(투명도/명도)만 달리해
                 세 구간을 은은히 구분한다(알록달록 X). canvas보다 아래(이미지 위)에 두어

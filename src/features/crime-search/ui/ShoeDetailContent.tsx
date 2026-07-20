@@ -21,6 +21,8 @@ import { Button } from "@/shared/ui/button"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 import { TechCorners } from "@/shared/ui/tech-corners"
 import { cn } from "@/shared/lib/utils"
+import { ImageLoadingOverlay, LoadingImage } from "@/shared/ui/image-loading-overlay"
+import { useImageLoadState } from "@/shared/lib/use-image-load-state"
 import { fetchCurrentShoes } from "@/services/crud"
 import { fetchSimilarity } from "@/services/api"
 import { toPatternPaths } from "@/utils/path-utils"
@@ -80,6 +82,8 @@ function AttentionTile({
   loading = false,
 }: AttentionTileProps) {
   const Icon = icon ?? (emphasis ? Radar : null)
+  // 어텐션 맵/신발 원본은 수백 KB라 로딩 동안 빈 칸이 보였다 — 오버레이로 알린다.
+  const tileLoad = useImageLoadState(image)
   return (
     <div
       className={cn(
@@ -121,9 +125,11 @@ function AttentionTile({
             <span className="text-[11px] font-medium">어텐션 분석 중…</span>
           </div>
         ) : image ? (
+          <>
           <img
             src={image}
             alt={label}
+            {...tileLoad.handlers}
             className={cn(
               "object-contain p-3",
               // page: 절대배치로 타일을 꽉 채움 / compact: 원본 비율 유지 + 높이 상한(좌우
@@ -131,6 +137,8 @@ function AttentionTile({
               fill ? "absolute inset-0 size-full" : "mx-auto block max-h-[440px] w-auto max-w-full"
             )}
           />
+          <ImageLoadingOverlay status={tileLoad.status} />
+          </>
         ) : (
           <div className="flex flex-col items-center gap-2 text-[#5B6B85]">
             <ImageOff className="size-6" aria-hidden="true" />
@@ -259,10 +267,12 @@ function PatternCell({
                   : "border-[#1E2A3C]"
               )}
             >
-              <img
+              <LoadingImage
                 src={patternSrcPath(src)}
                 alt={`${label} 문양 ${i + 1}`}
+                containerClassName="absolute inset-0"
                 className="absolute inset-0 size-full object-contain p-1.5"
+                compactOverlay
               />
               {patternEssential(src) && (
                 <span

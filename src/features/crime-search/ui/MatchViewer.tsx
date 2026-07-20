@@ -2,6 +2,7 @@ import { useState } from "react"
 import { ImageOff, Loader2, Radar, SearchX } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
+import { LoadingImage } from "@/shared/ui/image-loading-overlay"
 import type { SimilarityResponse } from "../model/similarity"
 import { CorrespondenceMap } from "./CorrespondenceMap"
 import { CrossZoomRows } from "./CrossZoomRows"
@@ -37,7 +38,7 @@ function FallbackTile({ label, image }: { label: string; image?: string | null }
       </figcaption>
       <div className="relative flex min-h-[160px] flex-1 items-center justify-center overflow-hidden rounded-md border border-[#1E2A3C] bg-[#05080D]">
         {image ? (
-          <img src={image} alt={label} className="mx-auto block max-h-[300px] w-auto object-contain p-2" />
+          <LoadingImage src={image} alt={label} containerClassName="w-full" className="mx-auto block max-h-[300px] w-auto object-contain p-2" />
         ) : (
           <div className="flex flex-col items-center gap-1.5 text-[#5B6B85]">
             <ImageOff className="size-6" aria-hidden="true" />

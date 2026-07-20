@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react"
 
 import { cn } from "@/shared/lib/utils"
+import { ImageLoadingOverlay } from "@/shared/ui/image-loading-overlay"
+import { useImageLoadState } from "@/shared/lib/use-image-load-state"
 
 import type { AlignmentPhase, ArrowStep, DrawMode } from "../model/use-alignment"
 import { sceneImageUrl } from "../lib/scene-image-url"
@@ -83,6 +85,7 @@ export function AlignmentCaptureCanvas({
   const imgRef = useRef<HTMLImageElement | null>(null)
   const [rect, setRect] = useState<{ width: number; height: number } | null>(null)
   const [naturalWidth, setNaturalWidth] = useState(0)
+  const load = useImageLoadState(sceneImageUrl(crimeNumber))
   const dragRef = useRef<DragState>(null)
 
   const recompute = useCallback(() => {
@@ -108,11 +111,12 @@ export function AlignmentCaptureCanvas({
   const handleImageLoad = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement>) => {
       const img = e.currentTarget
+      load.markLoaded()
       setNaturalWidth(img.naturalWidth)
       recompute()
       onImageNaturalSize(img.naturalWidth, img.naturalHeight)
     },
-    [recompute, onImageNaturalSize]
+    [recompute, onImageNaturalSize, load]
   )
 
   const scale = naturalWidth > 0 && rect ? naturalWidth / rect.width : null
@@ -223,7 +227,11 @@ export function AlignmentCaptureCanvas({
              "고정 높이 × 종횡비"로만 결정한다(w-auto, 폭 상한/object-fit 없음).
              가로가 넘치는 경우는 상위 컨테이너의 overflow-hidden이 처리한다. */
           className="h-full w-auto select-none"
+          onError={load.handlers.onError}
         />
+
+        {/* 로딩/실패 표시 — pointer-events-none이라 폴리곤 클릭을 막지 않는다. */}
+        <ImageLoadingOverlay status={load.status} label="현장 이미지 불러오는 중" />
 
         <div
           data-testid="alignment-surface"

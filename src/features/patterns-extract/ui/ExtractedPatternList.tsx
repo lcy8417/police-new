@@ -3,7 +3,8 @@ import { ArrowDownWideNarrow, ArrowRight, GripVertical, Sparkles } from "lucide-
 
 import { insertPatternPath } from "@/entities/pattern";
 import { TechCorners } from "@/shared/ui/tech-corners";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/shared/lib/utils"
+import { LoadingImage } from "@/shared/ui/image-loading-overlay";
 
 /** 현장 단일 DINOv2 통합 추출 결과 1건 (REQ-SCENE-002/009). */
 export interface ExtractedPatternItem {
@@ -120,10 +121,12 @@ export function ExtractedPatternList({
                 )}
               >
                 <div className="relative aspect-square w-full">
-                  <img
+                  <LoadingImage
                     src={src}
                     alt={`${item.code} 문양`}
+                    containerClassName="absolute inset-0"
                     className="absolute inset-0 size-full object-contain p-1.5"
+                    compactOverlay
                   />
                 </div>
                 <span className="border-t border-[#141D2C] bg-[#0D1420]/80 px-1 py-0.5 text-center font-mono text-[9px] tabular-nums text-[#8A93A6]">

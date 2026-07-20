@@ -125,7 +125,9 @@ export function CorrespondenceList({
   onHover,
 }: CorrespondenceListProps) {
   return (
-    <div className="flex min-w-0 flex-col gap-2 rounded-xl border border-[#1E2A3C] bg-[#0D1420]/40 p-3">
+    /* h-full min-h-0: 그리드 행 높이(좌측 이미지 패널과 동일)를 그대로 채우되,
+       내용이 넘쳐도 행을 늘리지 않는다 — 넘치는 만큼은 아래 스크롤 영역이 흡수한다. */
+    <div className="flex h-full min-h-0 min-w-0 flex-col gap-2 rounded-xl border border-[#1E2A3C] bg-[#0D1420]/40 p-3">
       <div className="flex items-center gap-2.5">
         <span className="rounded-md border border-[#3B82F6]/50 bg-[#152238] px-2 py-0.5 font-mono text-[12px] font-semibold text-[#4A9EFF]">
           세부
@@ -137,7 +139,7 @@ export function CorrespondenceList({
       </div>
 
       {matches.length > 0 ? (
-        <div className="flex flex-col gap-1.5 overflow-y-auto">
+        <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pr-0.5">
           {matches.map((match, index) => (
             <CorrespondenceRow
               key={index}

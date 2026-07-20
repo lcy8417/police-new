@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react"
 import { ArrowLeftRight } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
+import { LoadingImage } from "@/shared/ui/image-loading-overlay"
 import { matchColor, type SimilarityMatch } from "../model/similarity"
 
 /** 컴팩트 줌 패치 한 칸(라벨 위첨자 + 작은 이미지). 족적/신발 크롭을 그대로 보인다. */
@@ -9,7 +10,7 @@ function MiniPatch({ image, tone, alt }: { image?: string; tone: string; alt: st
   return (
     <div className="relative aspect-square w-full overflow-hidden rounded border border-[#1E2A3C] bg-[#05080D]">
       {image ? (
-        <img src={image} alt={alt} loading="lazy" className="absolute inset-0 size-full object-contain p-0.5" />
+        <LoadingImage src={image} alt={alt} loading="lazy" containerClassName="absolute inset-0" className="absolute inset-0 size-full object-contain p-0.5" compactOverlay />
       ) : (
         <span className="absolute inset-0 flex items-center justify-center font-mono text-[8px] text-[#5B6B85]">
           —
