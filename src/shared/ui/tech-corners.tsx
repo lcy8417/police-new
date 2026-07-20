@@ -12,7 +12,10 @@ interface TechCornersProps {
  * decorative (aria-hidden) — layer it over any panel or active nav item to
  * read as a live forensic console readout.
  */
+// @MX:ANCHOR: [AUTO] TechCorners - forensic 커맨드센터 시그니처 UI, 코드베이스 전역 16개 위치에서 참조되는 장식 컴포넌트
+// @MX:REASON: fan_in 16 — shared/ui 중 가장 널리 재사용되는 컴포넌트, 패널/네비 아이템 강조 표현의 단일 출처
 export function TechCorners({ className, size = 18, active = false }: TechCornersProps) {
+  // @MX:NOTE: [AUTO] 헥스 컬러 하드코딩(#4A9EFF/#3B82F6) - CLAUDE.md에 문서화된 의도적 forensic 다크 팔레트 관례(액센트 blue), Tailwind 토큰화 없이 직접 사용
   const color = active ? "#4A9EFF" : "#3B82F6"
   const glow = active
     ? "drop-shadow-[0_0_5px_rgba(74,158,255,0.9)]"

@@ -87,6 +87,7 @@ export interface SimilarityResponse {
  * "이 핀이 이 행" 임을 색으로 잇는다. forensic 다크 톤에서 서로 판별 가능한 6색으로
  * 고르되, 필수 문양 레드(`#EF4444`)와는 겹치지 않게 했다.
  */
+// @MX:NOTE: [AUTO] MATCH_COLORS 6색 헥스 팔레트 하드코딩 - 필수 문양 레드(#EF4444)와 겹치지 않도록 의도적으로 고른 forensic 다크톤 대응색, 색상 토큰화 없이 배열 리터럴로 직접 관리
 export const MATCH_COLORS = [
   "#4A9EFF", // blue
   "#2DD4BF", // teal

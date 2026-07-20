@@ -3,6 +3,10 @@ export { PatternCanvas } from "./ui/PatternCanvas";
 export { PatternZones } from "./ui/PatternZones";
 export { PatternPalette } from "./ui/PatternPalette";
 export {
+  ExtractedPatternList,
+  type ExtractedPatternItem,
+} from "./ui/ExtractedPatternList";
+export {
   LINE_HIT_THRESHOLD,
   isNearAnyLine,
   moveLine,

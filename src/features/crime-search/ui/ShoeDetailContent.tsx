@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, type ReactNode } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import {
   ArrowLeftRight,
@@ -26,7 +26,6 @@ import { fetchSimilarity } from "@/services/api"
 import { toPatternPaths } from "@/utils/path-utils"
 
 import type { SimilarityResponse } from "../model/similarity"
-import { MatchViewer } from "./MatchViewer"
 import { PartialPatternsCompare, type PatternCompareGroup } from "./PartialPatternsCompare"
 
 const url = import.meta.env.VITE_API_URL
@@ -333,6 +332,11 @@ export interface ShoeDetailContentProps {
   onSaved?: () => void
   /** 저장 진행 상태 보고 — 컴팩트 Sheet가 저장 중 강제 닫기를 막는 데 쓴다. */
   onPendingChange?: (pending: boolean) => void
+  /** SPEC-MATCH-TOP10-001: top-10 대응 카드 그리드 슬롯(REQ-MATCH-006) — 상위
+   * pages 계층이 `@/features/match-top10`의 `MatchTop10Panel`을 조립해 주입한다
+   * (features↔features cross-import 금지, FSD 단방향 규칙). 미전달 시 섹션
+   * 자체가 렌더되지 않는다(레거시 흐름 무변경, REQ-MATCH-007a). */
+  topMatchSlot?: ReactNode
 }
 
 /**
@@ -349,6 +353,7 @@ export function ShoeDetailContent({
   variant = "page",
   onSaved,
   onPendingChange,
+  topMatchSlot,
 }: ShoeDetailContentProps) {
   // 상위 3위는 검색결과 그리드의 TOP 뱃지와 같은 톤(그린 티어)으로 강조한다.
   const rankNum = ranking != null && ranking !== "" ? Number.parseInt(String(ranking), 10) : null
@@ -362,6 +367,8 @@ export function ShoeDetailContent({
 
   // 신발 상세 + 유사도 어텐션 맵을 한 쿼리로 병렬 로드한다. DB 신발 문양은
   // `toPatternPaths`로 전체 경로로 hydrate한다.
+  // @MX:WARN: [AUTO] detailQuery - fetchCurrentShoes와 fetchSimilarity를 Promise.all로 병렬 호출, 둘 중 하나만 실패해도 개별 구분 없이 전체 쿼리가 에러로 처리됨
+  // @MX:REASON: 부분 실패 시 어느 요청이 실패했는지 구분 불가 — 신발 상세는 성공했지만 유사도만 실패한 경우도 동일하게 전체 에러 상태로 렌더됨
   const detailQuery = useQuery({
     queryKey: ["crimeSearch", "detail", crimeNumber, modelNumber],
     queryFn: async () => {
@@ -555,18 +562,28 @@ export function ShoeDetailContent({
           <TechCorners size={20} />
           <div className="absolute inset-0 flex flex-col gap-4 overflow-y-auto p-4">
 
-          {/* 유사부위 대응 뷰어 — 강화 /similarity 응답(query/ref/matches)을 소비해 대응
-              지도(A) + 크로스 줌(B)으로 "어디에·얼마나·어떻게 매칭됐는지"를 보인다.
-              matches 없거나 구버전 응답이면 MatchViewer가 폴백(원본/히트맵)으로 처리.
-              shrink-0 필수: 본문이 flex-col이라 이게 없으면 눌려 본문 스크롤이 안 된다. */}
-          <div className="shrink-0">
-            <MatchViewer
-              data={detailQuery.data?.attns}
-              loading={detailQuery.isLoading}
-              fallbackQuery={images.query}
-              fallbackRef={images.bottom}
-            />
-          </div>
+          {/* SPEC-MATCH-TOP10-001 v0.6.0 REQ-MATCH-014(CHANGE 2): 레거시 "유사부위
+              대응" 뷰어(MatchViewer)는 이 위치에서 렌더 트리 제거됨 — top-10 슬롯이
+              그 자리를 점유한다(최상단, REQ-MATCH-006 유일 필수 표면). 프런트 한정
+              대체이며, 백엔드 `/similarity`·`/similarity_grid`·`grid_analysis`는
+              무변경 병존한다(REQ-MATCH-014a). MatchViewer 컴포넌트 파일·
+              `fetchSimilarity`는 존치(회귀 안전) — 이 화면의 어텐션 맵
+              (images.query/images.bottom)이 여전히 그 응답을 소비한다.
+
+              [CORRECTION 1] top-10 슬롯을 문양 비교보다 먼저(최상단) 렌더한다 —
+              슬롯으로 주입받는다(features↔features cross-import 금지, FSD 단방향
+              규칙). 실제 컴포넌트 조립은 pages 계층(CrimeDetailPage)이
+              `@/features/match-top10`을 import해 담당한다. shrink-0 필수(본문
+              flex-col 스크롤 유지). */}
+          {topMatchSlot && (
+            <section className="shrink-0 overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]">
+              <div className="flex items-center gap-2 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
+                <Radar className="size-4 text-[#4A9EFF]" aria-hidden="true" />
+                <span className="text-[13px] font-semibold text-[#E5E9F0]">Top-10 대응 매칭</span>
+              </div>
+              <div className="p-3">{topMatchSlot}</div>
+            </section>
+          )}
 
           {/* 문양 비교 — 부위별로 묶고 각 부위 안에서 현장|DB를 좌우로.
               shrink-0 필수: 본문 flex-col에서 눌리면 overflow-hidden이 하단 부위를 잘라 스크롤 불가. */}

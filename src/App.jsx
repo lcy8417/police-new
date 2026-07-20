@@ -1,3 +1,6 @@
+// @MX:DEBT: [AUTO] 레거시 중앙집중형 라우터 - FSD app/ 레이어로 이행 대상이나(docs/architecture.md §4) 아직 이 파일이 BrowserRouter 정본. main.jsx → App.jsx가 여전히 앱 진입점
+// @MX:CEILING: 라우팅이 FSD app/ 레이어(src/app/)로 이전되기 전까지 유효 — 현재 신규 라우트도 계속 이 파일에 추가됨
+// @MX:UPGRADE: src/app/에 라우터 설정이 이전되고 이 파일의 BrowserRouter/Routes가 제거되면 완료
 import {
   BrowserRouter,
   Routes,

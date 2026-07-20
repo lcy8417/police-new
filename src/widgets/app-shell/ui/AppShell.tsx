@@ -13,6 +13,8 @@ import { Sidebar } from "./Sidebar"
  * `collapsible="none"` so it stays a permanently fixed rail. Page title/
  * actions flow through the `usePageHeaderStore` Zustand store — no provider.
  */
+// @MX:ANCHOR: [AUTO] AppShell - 앱 전역 레이아웃 셸(TopNav+Sidebar+Outlet), App.jsx 및 5개 페이지 라우트에서 사용되는 유일한 레이아웃 컴포넌트
+// @MX:REASON: fan_in 6 — 모든 라우트가 거치는 단일 레이아웃 조립 지점, SidebarProvider·usePageHeaderStore 연동이 여기 집중
 export function AppShell() {
   return (
     <div

@@ -33,6 +33,7 @@ export function isDataUrl(image: string): boolean {
  * - 절대/상대 URL(경로) → `fetch` 후 data URL로 인코딩(교차 출처면 CORS 필요).
  * 실패 시 예외를 던진다(호출부에서 사용자에게 알리고 원본 URL을 표시용으로 유지할 수 있다).
  */
+// @MX:TODO: [AUTO] 콜로케이트된 .test.ts 파일 없음 - data URL 판별·raw base64 접두어 부착·cross-origin fetch 분기 3가지 경로 모두 미검증
 export async function resolveImageToDataUrl(image: string): Promise<string> {
   if (!image || isDataUrl(image)) return image;
 

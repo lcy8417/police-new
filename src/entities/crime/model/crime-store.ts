@@ -24,6 +24,8 @@ interface CrimeStore {
  * `.jsx` legacy consumers and the `.tsx` redesign — subscribes to this store
  * directly via selectors; the former React Context bridge has been removed.
  */
+// @MX:ANCHOR: [AUTO] useCrimeStore - 전역 사건 상태 단일 출처(Zustand), App.jsx/PatternItem.jsx/ShoeDetailContent/use-pattern-manager/CrimeDetailPage/RegisterStage 등에서 구독
+// @MX:REASON: fan_in >= 3(레거시 .jsx + 신규 FSD 슬라이스 공존) — 유일한 crimeData 소스, Context 브리지 제거 완료로 이 store가 유일한 진입점
 export const useCrimeStore = create<CrimeStore>((set, get) => ({
   crimeData: [],
   registerFlag: [],

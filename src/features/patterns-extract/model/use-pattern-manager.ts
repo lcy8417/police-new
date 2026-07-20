@@ -26,6 +26,8 @@ interface UsePatternManagerParams {
   imgRef?: RefObject<HTMLImageElement | null> | null;
 }
 
+// @MX:ANCHOR: [AUTO] usePatternManager - 문양·경계선 상태를 소유하는 단일 훅, PatternCanvas/PatternPalette/CrimeDetailPage/ShoeWorkbench/use-image-edit 등 5개 파일에서 사용
+// @MX:REASON: fan_in >= 3 — crime/shoe 두 모드(index vs formData)를 분기하는 유일한 상태 소유자
 export const usePatternManager = ({
   index = -1,
   currentData = null,
@@ -44,10 +46,13 @@ export const usePatternManager = ({
     offsetY: 0,
   });
 
+  // @MX:WARN: [AUTO] extractPattern - line_ys/render_size 좌표 계약 전송부(신발 경로 전용, REQ-SCENE-015/016), "수정 금지" 문서화된 좌표 크리티컬 영역(docs/api-communication.md §4)
+  // @MX:REASON: 정수 미보장·범위 clamp 누락 시 백엔드가 int_from_float(422) 또는 tile cannot extend outside image(500)로 크래시. PatternCanvas의 canvas 사이징과 좌표계가 일치해야 함. 현장(crime) 분기는 이 좌표 계약을 전송하지 않는다
   const extractPattern = async () => {
     // 추출 문양 루트는 앱 전체가 쓰는 canonical 로컬 에셋 루트와 일치해야 한다. 이 값을
     // 백엔드 URL(`${VITE_API_URL}/patterns/`)로 바꾸면 추출 문양만 404가 나 렌더되지 않는다
     // (기존 로드 문양은 `/src/assets/Patterns/전체/`를 쓴다 — pattern.ts PATTERNS_ROOT).
+    // @MX:NOTE: [AUTO] patternsRoot 로컬 하드코딩 - entities/pattern/model/pattern.ts의 PATTERNS_ROOT와 동일 값이 이 파일에 별도로 중복됨(백엔드 URL로 바꾸면 추출 문양만 404)
     const patternsRoot = "/src/assets/Patterns/전체/";
 
     // 패턴 이미지 경로를 생성하는 함수. 족적과 신발은 필수 문양 여부에 따라 다르게 처리
@@ -78,51 +83,65 @@ export const usePatternManager = ({
       requestImage = currentData?.crimeNumber || shoesImage;
     }
 
-    const rect = canvasRef.current!.getBoundingClientRect();
-    // getBoundingClientRect·선 드래그 좌표는 서브픽셀(소수)이지만 백엔드는
-    // line_ys·render_size를 정수로 받으므로(int_from_float) 전송 직전에 반올림한다.
-    const renderH = Math.round(rect.height);
-    const renderW = Math.round(rect.width);
-    // 서버는 line_ys로 top/mid/bottom 세 영역을 잘라낸다. 경계가 이미지 밖·가장자리·
-    // 서로 겹침이면 빈 슬라이스가 되어 "tile cannot extend outside image"로 죽는다.
-    // 두 경계를 [1, renderH-1]로 clamp하고, 오름차순 + mid(=[y0:y1]) 최소 1행을
-    // 보장해 네 영역 모두 최소 1행을 남긴다.
-    const maxY = Math.max(1, renderH - 1);
-    const clampY = (y: number) => Math.min(Math.max(Math.round(y), 1), maxY);
-    let [y0, y1] = lineState.lineYs.map(clampY);
-    if (y0 > y1) [y0, y1] = [y1, y0];
-    if (y0 === y1) {
-      if (y1 < maxY) y1 = y1 + 1;
-      else y0 = Math.max(1, y0 - 1);
+    // REQ-SCENE-015/016(D4): 신규 DINOv2 모델은 현장(crime) 이미지 전체를 1회
+    // 추론하므로, 추출 전 상/중/하 경계선 지정 단계와 line_ys/render_size 전송이
+    // 현장 경로에서는 더 이상 필요 없다 — 경계선 상태가 초깃값으로 남아 있어도
+    // 요청 본문에 유입되지 않는다(현장 요청 본문에는 line_ys 키 자체가 없다).
+    // 신발(shoes)은 여전히 레거시 4-모델(상/중/하/전체) 영역분할 경로이므로
+    // line_ys/render_size가 기능상 필수다 — 이 좌표 계약을 shoes 분기 밖으로
+    // 확장 제거하면 안 된다(REQ-SCENE-016, `docs/api-communication.md` §4).
+    let coordinatePayload:
+      | { line_ys: [number, number]; render_size: [number, number] }
+      | undefined;
+
+    if (requestType === "shoes") {
+      const rect = canvasRef.current!.getBoundingClientRect();
+      // getBoundingClientRect·선 드래그 좌표는 서브픽셀(소수)이지만 백엔드는
+      // line_ys·render_size를 정수로 받으므로(int_from_float) 전송 직전에 반올림한다.
+      const renderH = Math.round(rect.height);
+      const renderW = Math.round(rect.width);
+      // 서버는 line_ys로 상/중/하 세 영역을 잘라낸다(신발 경로 전용 — 현장은
+      // REQ-SCENE-015로 이 분할 자체가 폐기됨). 경계가 이미지 밖·가장자리·서로
+      // 겹침이면 빈 슬라이스가 되어 "tile cannot extend outside image"로 죽는다.
+      // 두 경계를 [1, renderH-1]로 clamp하고, 오름차순 + mid(=[y0:y1]) 최소 1행을
+      // 보장해 네 영역 모두 최소 1행을 남긴다.
+      const maxY = Math.max(1, renderH - 1);
+      const clampY = (y: number) => Math.min(Math.max(Math.round(y), 1), maxY);
+      let [y0, y1] = lineState.lineYs.map(clampY);
+      if (y0 > y1) [y0, y1] = [y1, y0];
+      if (y0 === y1) {
+        if (y1 < maxY) y1 = y1 + 1;
+        else y0 = Math.max(1, y0 - 1);
+      }
+      coordinatePayload = { line_ys: [y0, y1], render_size: [renderW, renderH] };
     }
-    const { top, mid, bottom, outline } = await patternsExtract({
+
+    const result = await patternsExtract({
       crimeNumber: currentData?.crimeNumber || "shoes",
       body: {
         image: requestImage,
-        line_ys: [y0, y1],
-        render_size: [renderW, renderH],
         type: requestType,
+        ...coordinatePayload,
       },
     });
 
     if (currentData) {
+      // REQ-SCENE-002/006(D2): 현장(crime)은 부위별 4개 목록이 아니라 단일 통합
+      // {code,score} 리스트를 반환한다. 상/중/하 존에 자동 배치하지 않고
+      // "통합 추출란" 상태(extractedRaw)로만 저장한다 — 사용자가 드래그로 직접
+      // 배치해야 한다(D3, 기존 자동 분할 배치 방식을 대체).
+      const extracted = result.extracted ?? [];
       setCrimeData((prev) =>
-        prev.map((item) => {
-          if (String(item.crimeNumber) !== String(currentData.crimeNumber)) {
-            return item;
-          }
-
-          return {
-            ...item,
-            top: top.map(format),
-            mid: mid.map(format),
-            bottom: bottom.map(format),
-            outline: outline.map(format),
-          };
-        })
+        prev.map((item) =>
+          String(item.crimeNumber) !== String(currentData.crimeNumber)
+            ? item
+            : { ...item, extractedRaw: extracted }
+        )
       );
     } else {
-      // shoesRegister에서 호출되는 경우
+      // shoesRegister에서 호출되는 경우 — 기존 부위별 4-모델 레거시 응답을
+      // 그대로 유지한다(REQ-SCENE-011: 신발 경로 무변경).
+      const { top, mid, bottom, outline } = result;
       setFormData!((prev) => ({
         ...prev,
         top: top.map(format),

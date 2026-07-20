@@ -183,6 +183,8 @@ function ToolButton({
  * canvas 비트맵 정렬, `toCanvasY`/`pickDraggableLine`/`moveLine` 좌표 수학,
  * `extractPattern`이 읽는 `lineState.lineYs`/`render_size` 값은 손대지 않았다.
  */
+// @MX:ANCHOR: [AUTO] PatternCanvas - 문양추출 캔버스 컴포넌트, EditToolbar/PolygonCaptureCanvas/CrimeDetailPage/ShoeWorkbench 4개 파일에서 사용되는 좌표 크리티컬 UI 진입점
+// @MX:REASON: fan_in >= 3 — 검색·등록·편집 세 화면이 공유하는 유일한 캔버스 구현, 좌표 수학(recompute/toCanvasY)은 "수정 금지" 문서화됨
 export function PatternCanvas({
   canvasRef,
   imgRef,
@@ -240,6 +242,8 @@ export function PatternCanvas({
 
   // 표시된 이미지에 맞춰 canvas 비트맵 크기를 재측정한다. 마우스/canvas 좌표가
   // 1:1로 대응하도록 비트맵 크기를 표시 크기에 맞춘다(useImageEditor.recomputeOverlay 준용).
+  // @MX:WARN: [AUTO] recompute - canvas 비트맵 크기를 표시 이미지 rect에 맞추는 좌표계 기준점, "수정 금지" 문서화된 영역
+  // @MX:REASON: 여기서 만든 canvas.width/height가 extractPattern의 render_size와 toCanvasY의 스케일 기준이 됨 — 변경 시 좌표계 전체가 어긋남
   const recompute = useCallback(() => {
     const img = imgRef.current;
     const canvas = canvasRef.current;
@@ -464,6 +468,8 @@ export function PatternCanvas({
   }, [canvasRef, lineState, canvasSize, region]);
 
   // 마우스 clientY를 canvas 비트맵 y 좌표로 변환한다.
+  // @MX:WARN: [AUTO] toCanvasY - clientY를 canvas 비트맵 y좌표로 변환하는 유일한 지점, 경계선 드래그·line_ys 전송 좌표계의 기준
+  // @MX:REASON: recompute가 설정한 canvas.width/height와 짝을 이루는 좌표 변환 — 스케일 계산을 손대면 경계선 드래그와 전송 좌표가 어긋나 백엔드 크래시로 이어짐
   const toCanvasY = useCallback(
     (clientY: number): number | null => {
       const canvas = canvasRef.current;

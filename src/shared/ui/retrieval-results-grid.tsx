@@ -78,9 +78,12 @@ const PAGINATION_BUTTON_CLASS =
   "border border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
 
 /**
- * 공용 검색결과 그리드(프레젠테이셔널). ShoesResult와 Phase 2 CrimeHistory가
- * 함께 재사용한다. 라우팅·페이지크기·상태를 직접 갖지 않고 모두 props로 받아,
- * 하드코딩(경로 `/search/.../shoesResult`, 페이지크기 50)을 제거했다.
+ * 공용 검색결과 그리드(프레젠테이셔널). ShoesResult·Phase 2 CrimeHistory·
+ * SPEC-MATCH-TOP10-001의 top-10 대응 카드 그리드가 함께 재사용한다. 라우팅·
+ * 페이지크기·상태를 직접 갖지 않고 모두 props로 받는다 — 크라임/신발 도메인에
+ * 특화된 로직이 없는 순수 프레젠테이셔널 컴포넌트라 shared/ui에 위치한다
+ * (features/crime-search에서 이동 — 여러 feature가 재사용하며 features↔features
+ * cross-import를 유발하지 않기 위한 FSD 단방향 규칙 준수).
  */
 export function RetrievalResultsGrid({
   results,

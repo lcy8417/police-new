@@ -1,3 +1,4 @@
+// @MX:TODO: [AUTO] 콜로케이트된 .test.ts 파일 없음 - shoeRepositoryPath/shoeRegisterNewPath/shoeEditModePath/shoeEditPath 4개 경로 빌더 함수 미검증
 /**
  * 신발 조회/등록/편집 통합 커맨드센터 경로 빌더. `crime-search/model/search-paths.ts`
  * 규약을 준용한 순수 함수들이다(부수효과 없음, 문자열 경로만 반환).

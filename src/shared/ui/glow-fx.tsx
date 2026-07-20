@@ -1,6 +1,8 @@
 import { cn } from "@/shared/lib/utils"
 
 /** Faint dot-grid texture for empty dark-navy background areas. */
+// @MX:ANCHOR: [AUTO] DotGrid/GlowOrb/EdgeGlow - forensic 커맨드센터 배경 장식 3종 세트, 9개 위치에서 참조(TechCorners와 함께 시그니처 통일 담당)
+// @MX:REASON: fan_in 9 — CLAUDE.md에 명시된 "TechCorners·DotGrid/GlowOrb로 시그니처 통일" 관례의 구현 지점
 export function DotGrid({ className }: { className?: string }) {
   return (
     <div
@@ -22,6 +24,7 @@ export function GlowOrb({ className }: { className?: string }) {
 }
 
 /** Thin animated-feeling hairline used to trace panel/nav edges with light. */
+// @MX:NOTE: [AUTO] 헥스 컬러 하드코딩(#4A9EFF) - CLAUDE.md 문서화된 forensic 팔레트 액센트 blue, TechCorners와 동일 값이 이 파일에도 별도 하드코딩됨
 export function EdgeGlow({ className }: { className?: string }) {
   return (
     <div

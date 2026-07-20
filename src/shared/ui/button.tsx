@@ -38,6 +38,8 @@ const buttonVariants = cva(
   }
 )
 
+// @MX:ANCHOR: [AUTO] Button - shadcn 버튼 컴포넌트, 코드베이스 전역 12개 위치에서 참조되는 가장 기본적인 인터랙션 요소
+// @MX:REASON: fan_in 12 — features/entities/widgets 전 레이어가 공유하는 shared/ui 핵심 프리미티브
 function Button({
   className,
   variant = "default",

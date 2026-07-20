@@ -77,6 +77,46 @@ describe("putCrimePatterns (PUT /crime/:crimeNumber)", () => {
       outline: [["원3", false]],
     });
   });
+
+  it("extractedRaw가 있으면 extracted_raw로 함께 전달한다 (REQ-SCENE-009(a))", async () => {
+    let captured: unknown;
+    mswServer.use(
+      http.put("*/crime/2024-002", async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({});
+      })
+    );
+
+    await putCrimePatterns("2024-002", {
+      top: [],
+      mid: [],
+      bottom: [],
+      outline: [],
+      extractedRaw: [{ code: "s21b", score: 0.9 }],
+    });
+
+    expect(captured).toEqual({
+      top: [],
+      mid: [],
+      bottom: [],
+      outline: [],
+      extracted_raw: [{ code: "s21b", score: 0.9 }],
+    });
+  });
+
+  it("extractedRaw가 없으면 extracted_raw 키를 생략한다(신발/레거시 경로 무변경)", async () => {
+    let captured: unknown;
+    mswServer.use(
+      http.put("*/crime/2024-003", async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({});
+      })
+    );
+
+    await putCrimePatterns("2024-003", { top: [], mid: [], bottom: [], outline: [] });
+
+    expect(captured).toEqual({ top: [], mid: [], bottom: [], outline: [] });
+  });
 });
 
 describe("saveCrimeHistory (POST /crime/:crimeNumber)", () => {
@@ -161,6 +201,34 @@ describe("saveCrimeHistory (POST /crime/:crimeNumber)", () => {
       ranking: 0,
       editImage: null,
       matchingShoes: null,
+    });
+  });
+
+  it("extractedRaw가 있으면 히스토리 스냅샷에 포함한다 (REQ-SCENE-009(c))", async () => {
+    let captured: unknown;
+    mswServer.use(
+      http.post("*/crime/2024-003", async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({});
+      })
+    );
+
+    await saveCrimeHistory({
+      crimeNumber: "2024-003",
+      currentCrimeData: {
+        crimeNumber: "2024-003",
+        image: null,
+        editImage: null,
+        top: [],
+        mid: [],
+        bottom: [],
+        outline: [],
+        extractedRaw: [{ code: "s21b", score: 0.9 }],
+      },
+    });
+
+    expect(captured).toMatchObject({
+      extractedRaw: [{ code: "s21b", score: 0.9 }],
     });
   });
 });
