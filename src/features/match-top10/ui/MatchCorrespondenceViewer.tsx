@@ -9,6 +9,7 @@ import {
   applySceneCropTransform,
   normalizeShoeBoxSize,
   normalizeShoePoint,
+  soleParityBoxSize,
 } from "../lib/footprint-transform"
 import {
   scaleBoxToDisplay,
@@ -18,7 +19,7 @@ import {
 import { corsPartitionedUrl, type CenterBox } from "../lib/crop-image"
 import { useSceneFootprint } from "../model/use-scene-footprint"
 import { useMatchCrops } from "../model/use-match-crops"
-import { useShoerinsicsNaturalSize } from "../model/use-shoerinsics-natural-size"
+import { useImageNaturalSize } from "../model/use-image-natural-size"
 import { CorrespondenceList } from "./CorrespondenceList"
 
 /** [CORRECTION 3a] 비교 모드 — 두 이미지(족적·신발)를 함께 전환하는 토글. 프로젝트
@@ -306,7 +307,33 @@ export function MatchCorrespondenceViewer({
 
   // [CORRECTION 3a] RGB 모드에서만 Shoerinsics 원본 크기를 실측해 sx,sy를 정규화한다
   // (스케치/이진 모드는 표시 이미지 자체가 Shoerinsics라 정규화가 불필요).
-  const shoerinsicsSize = useShoerinsicsNaturalSize({ modelNumber, enabled: mode === "실사" })
+  // Shoerinsics 원본 크기는 두 곳에 쓰인다: RGB 모드 좌표 정규화(normalizeFrom)와,
+  // 아래 "밑창 대비 같은 비율" 박스 환산의 기준 폭 — 후자는 모드와 무관하게 필요하다.
+  const shoerinsicsSize = useImageNaturalSize({
+    src: `${apiBase}/shoes_images/Shoerinsics/${modelNumber}.png`,
+  })
+  // 정렬 폴리곤 크롭이 없을 때(레거시 폴백)의 현장 기준 폭 — 표시 이미지가 원본 전체다.
+  const sceneNaturalSize = useImageNaturalSize({
+    src: rawSceneImageSrc,
+    enabled: !footprint.crop,
+  })
+
+  /**
+   * 대응 박스는 백엔드 계약상 **현장측 96px**만 정의된다(REQ-MATCH-005). 신발측은
+   * 프런트 장식이라 그동안 같은 96을 그대로 썼는데, 두 좌표계의 물리적 축척이 달라
+   * 밑창을 덮는 비율이 어긋났다(실측: 현장 ROI 386.5px 기준 24.8% vs Shoerinsics
+   * 300px 기준 32.0% — 1.29배 차이).
+   *
+   * 두 이미지는 같은 밑창을 다른 해상도로 담으므로, 신발측 박스를 현장 기준 폭 대비
+   * 비율이 같아지도록 환산한다: `96 x (신발 폭 / 현장 기준 폭)`. 기준 폭을 아직
+   * 모르면(측정 전) 기존 동작대로 96을 유지한다.
+   *
+   * 현장측 박스는 그대로 96이다 — 백엔드가 실제로 그 크기로 잘라 보낸 `box_image`
+   * 영역과 정확히 일치해야 하기 때문이다.
+   */
+  const sceneRefWidth = footprint.crop?.width ?? sceneNaturalSize?.width ?? 0
+  const shoeBoxSizeOf = (sceneBoxSize: number) =>
+    soleParityBoxSize(sceneBoxSize, shoerinsicsSize?.width ?? 0, sceneRefWidth)
 
   // 우측 "세부 대응 목록"의 썸네일 — 좌측 큰 이미지와 **같은 비교 모드**의 이미지에서
   // 크롭한다(이전에는 족적이 항상 RGB, 신발이 항상 이진이라 모드 토글과 어긋났다).
@@ -330,7 +357,8 @@ export function MatchCorrespondenceViewer({
   // 정규화 없는 잘못된 영역이 한 번 그려지므로, 도착 전까지는 아예 비활성화한다.
   const shoeCropBoxes: CenterBox[] = matches.map((m) => ({
     center: [m.sx, m.sy],
-    size: m.box.size,
+    // 우측 목록 썸네일도 같은 비율로 잘라야 좌우 크롭을 나란히 비교할 수 있다.
+    size: shoeBoxSizeOf(m.box.size),
   }))
   const shoeCrops = useMatchCrops({
     src: shoeImageSrc,
@@ -351,7 +379,8 @@ export function MatchCorrespondenceViewer({
     index: i,
     rank: i + 1,
     center: [m.sx, m.sy],
-    size: m.box.size,
+    // 밑창 대비 현장측 박스와 같은 비율(soleParityBoxSize 주석 참조).
+    size: shoeBoxSizeOf(m.box.size),
   }))
 
   return (

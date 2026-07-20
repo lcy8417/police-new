@@ -98,3 +98,23 @@ export function normalizeShoeBoxSize(
 ): number {
   return source.width > 0 ? size * (target.width / source.width) : 0
 }
+
+/**
+ * 신발측 박스 한 변을 "밑창 대비 현장측과 같은 비율"이 되도록 환산한다.
+ *
+ * 백엔드 계약(REQ-MATCH-005)은 현장측 박스 96px만 정의한다 — `box_image`가 실제로 그
+ * 크기로 잘린 영역이다. 신발측 박스는 백엔드가 주지 않는 프런트 장식인데, 같은 96을
+ * 그대로 쓰면 두 좌표계의 축척이 달라 밑창을 덮는 비율이 어긋난다(실측: 현장 ROI
+ * 386.5px 기준 24.8% vs Shoerinsics 300px 기준 32.0% — 1.29배).
+ *
+ * 두 이미지는 같은 밑창을 다른 해상도로 담으므로, 기준 폭의 비율만큼 곱해 상대 크기를
+ * 맞춘다. 기준 폭을 아직 모르면(측정 전) 원래 크기를 그대로 돌려 기존 동작을 유지한다.
+ */
+export function soleParityBoxSize(
+  sceneBoxSize: number,
+  shoeWidth: number,
+  sceneRefWidth: number
+): number {
+  if (!(shoeWidth > 0) || !(sceneRefWidth > 0)) return sceneBoxSize
+  return sceneBoxSize * (shoeWidth / sceneRefWidth)
+}

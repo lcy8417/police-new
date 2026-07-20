@@ -6,6 +6,7 @@ import {
   centerToCropRegion,
   normalizeShoeBoxSize,
   normalizeShoePoint,
+  soleParityBoxSize,
 } from "./footprint-transform"
 
 describe("boundingBoxOfPolygon — 정렬 폴리곤의 축정렬 경계상자(원본 픽셀 좌표)", () => {
@@ -105,5 +106,29 @@ describe("normalizeShoeBoxSize — 박스 한 변(size)을 대상 이미지 축�
   it("source와 target이 같으면 원래 크기를 그대로 반환한다", () => {
     const same = { width: 300, height: 756 }
     expect(normalizeShoeBoxSize(96, same, same)).toBeCloseTo(96, 5)
+  })
+})
+
+describe("soleParityBoxSize — 밑창 대비 같은 비율로 신발 박스 환산", () => {
+  it("실측 사례: 96px / 현장ROI 386.5 / Shoerinsics 300 → 약 74.5", () => {
+    // 환산 전에는 현장 24.8%(96/386.5) vs 신발 32.0%(96/300)로 1.29배 어긋났다.
+    expect(soleParityBoxSize(96, 300, 386.5)).toBeCloseTo(74.51, 2)
+  })
+
+  it("환산 결과는 두 이미지에서 같은 폭 비율을 만든다", () => {
+    const sceneRef = 386.5
+    const shoeW = 300
+    const sceneRatio = 96 / sceneRef
+    const shoeRatio = soleParityBoxSize(96, shoeW, sceneRef) / shoeW
+    expect(shoeRatio).toBeCloseTo(sceneRatio, 10)
+  })
+
+  it("기준 폭이 같으면 크기가 변하지 않는다(항등)", () => {
+    expect(soleParityBoxSize(96, 400, 400)).toBe(96)
+  })
+
+  it("기준 폭을 아직 모르면(0) 원래 크기를 유지한다 — 측정 전 기존 동작 보존", () => {
+    expect(soleParityBoxSize(96, 0, 386.5)).toBe(96)
+    expect(soleParityBoxSize(96, 300, 0)).toBe(96)
   })
 })
