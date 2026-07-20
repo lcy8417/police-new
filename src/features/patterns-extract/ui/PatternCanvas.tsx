@@ -642,17 +642,17 @@ export function PatternCanvas({
           신발 이미지
         </span>
         <div className="flex items-center gap-2">
-          {/* 한 번 누르면 곧바로 추출까지 수행한다(활성화→추출 2단계 통합 —
-              호출부 `CrimeDetailPage.handleTogglePattern`이 추출을 함께 실행). */}
+          {/* 한 번 누르면 곧바로 추출까지 수행한다(활성화→추출 2단계 통합 — 호출부
+              `CrimeDetailPage.handleTogglePattern`이 추출을 실행). 토글이 아니라 액션
+              버튼이므로 aria-pressed를 쓰지 않는다. */}
           {activatable && (
             <button
               type="button"
               onClick={onTogglePatternActive}
-              aria-pressed={patternActive}
               disabled={isExtracting}
               className={cn(
                 "flex h-6 items-center gap-1 rounded-[5px] border px-2 text-[11px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-                patternActive
+                isExtracting
                   ? "border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF]"
                   : "border-[#1E2A3C] bg-[#0F1826] text-[#8A93A6] hover:border-[#3B82F6]/40 hover:text-[#C7CEDB]"
               )}
@@ -698,8 +698,10 @@ export function PatternCanvas({
 
       {/* 문양추출 상단 액션 밴드 — 활성화 토글 레이아웃 전용. 추출은 헤더의 [문양추출]
           버튼이 직접 수행하므로 별도 "추출" 버튼은 두지 않고, 되돌리기용 초기화만 남긴다
-          (레거시 레이아웃의 하단 추출/초기화 쌍은 무변경). */}
-      {activatable && patternActive && !editMode && (
+          (레거시 레이아웃의 하단 추출/초기화 쌍은 무변경).
+          patternActive에 묶지 않는다 — 그 플래그는 이제 켜지지 않으며(신발용 chrome
+          노출 방지), 초기화는 추출 여부와 무관하게 상시 필요하다. */}
+      {activatable && !editMode && (
         <div className="flex items-center gap-2 border-b border-[#141D2C] bg-[#0D1420]/40 px-4 py-2">
           <ToolButton
             icon={RotateCcw}
@@ -1087,7 +1089,7 @@ export function PatternCanvas({
               {readOnly
                 ? "조회 모드 · 편집하려면 [편집]"
                 : activatable && !patternActive
-                  ? "상단 [문양추출]을 켜면 경계선·추출이 표시됩니다"
+                  ? "상단 [문양추출]을 누르면 바로 추출됩니다"
                   : "경계선 드래그로 상/중/하 분할"}
             </span>
           </span>

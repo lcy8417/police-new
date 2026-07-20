@@ -299,10 +299,14 @@ export function CrimeDetailPage() {
 
   // 문양추출 — "활성화 → 추출" 2단계를 한 번의 클릭으로 합친다. 현장(crime) 경로는
   // line_ys/render_size를 전송하지 않으므로(REQ-SCENE-015, use-pattern-manager.ts)
-  // 경계선을 먼저 지정할 필요가 없다 — 활성화 단계는 대기만 늘렸다. 뷰 소스(sceneView)는
-  // 그대로 두고 patternActive만 켜서 편집 도구를 배타적으로 숨긴다.
+  // 경계선을 먼저 지정할 필요가 없다 — 활성화 단계는 대기만 늘렸다.
+  //
+  // patternActive는 켜지 않는다. 그 플래그는 캔버스의 문양추출 chrome(신발 영역 사각·
+  // 밑창 실루엣 폴리곤·상중하 경계선)을 띄우는데, 이것들은 신발(shoes) 경로의 영역분할
+  // 입력을 위한 도구다. 현장 경로는 그 좌표를 전송하지 않으므로 화면에 띄워봐야 추출
+  // 결과에 아무 영향이 없는 노이즈이고, 실제로 "신발 모양 폴리곤이 생긴다"는 버그로
+  // 보고됐다. 추출만 수행한다.
   const handleTogglePattern = useCallback(() => {
-    setPatternActive(true)
     void handleExtract()
   }, [handleExtract])
 
