@@ -186,6 +186,31 @@ describe("MatchCorrespondenceViewer — 족적↔신발 대응 뷰어 레이아�
     expect(box).toHaveStyle({ left: "26px", top: "76px" })
   })
 
+  // 회귀 방지: `scaleBoxToDisplay`가 돌려주는 left/top은 "이미지 좌상단 기준"이다.
+  // 예전에는 박스를 <figure>(가운데 정렬 flex 컨테이너) 기준으로 절대배치해, 세로로 긴
+  // 신발 이미지가 figure보다 좁게 렌더되면 좌우 여백의 절반만큼 박스가 통째로 밀려
+  // 검은 배경 위에 찍혔다. 박스의 offset parent는 이미지를 감싼 래퍼여야 한다.
+  it("박스의 offset parent는 figure가 아니라 이미지를 감싼 래퍼다(좌우 여백만큼 밀리지 않도록)", async () => {
+    const matches = await renderViewer(3)
+
+    for (const [testId, alt] of [
+      ["match-scene-image", "족적 현장 이미지"],
+      ["match-shoe-image", /신발 이미지/],
+    ] as const) {
+      const figure = screen.getByTestId(testId)
+      const img = within(figure).getByAltText(alt as string | RegExp)
+      const wrapper = img.parentElement!
+
+      // 래퍼는 figure 자신이 아니며(한 겹 더 안쪽), position:relative 기준이 된다.
+      expect(wrapper).not.toBe(figure)
+      expect(wrapper.className).toContain("relative")
+      // 모든 번호 박스가 그 래퍼 안에 있다 — 즉 이미지와 같은 좌표 기준을 공유한다.
+      expect(within(wrapper).getAllByRole("button", { name: /대응 \d+번 박스/ })).toHaveLength(
+        matches.length
+      )
+    }
+  })
+
   it("이미지 로드 실패 시 대체 안내를 표시하고 박스를 렌더하지 않는다", async () => {
     await renderViewer(1)
     const sceneFigure = screen.getByTestId("match-scene-image")

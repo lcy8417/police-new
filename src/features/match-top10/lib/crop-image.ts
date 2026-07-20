@@ -15,7 +15,13 @@
  */
 import { resolveImageToDataUrl } from "@/shared/lib/image/resolve-image"
 
-import type { PixelRect } from "./footprint-transform"
+import {
+  centerToCropRegion,
+  normalizeShoeBoxSize,
+  normalizeShoePoint,
+  type PixelRect,
+} from "./footprint-transform"
+import type { NaturalSize } from "./overlay-geometry"
 
 export interface CropOptions {
   /** true면 크롭 폭 기준으로 좌우 반전해서 그린다(REQ-ALIGN-020 flipHorizontal). */
@@ -76,4 +82,40 @@ export async function cropImageRegionsToDataUrls(
 ): Promise<string[]> {
   const img = await loadSameOriginImage(src)
   return regions.map((region) => drawCrop(img, region, options))
+}
+
+/** 대응 1건의 크롭 기준 — 중심점 + 정사각 한 변(둘 다 `normalizeFrom` 좌표계 기준). */
+export interface CenterBox {
+  center: readonly [number, number]
+  size: number
+}
+
+export interface CenterCropOptions extends CropOptions {
+  /**
+   * 중심 좌표가 정의된 원본 좌표계(예: `sx,sy`의 Shoerinsics). 크롭 대상 이미지와
+   * 좌표계가 다를 때만 지정한다 — 지정하면 대상 이미지의 실측 자연 크기로 먼저
+   * 정규화한 뒤 크롭한다(`normalizeShoePoint`/`normalizeShoeBoxSize`).
+   */
+  normalizeFrom?: NaturalSize | null
+}
+
+/**
+ * 이미지 하나를 한 번만 로드해 여러 "중심점 + 정사각 크기"를 각각 크롭한다.
+ * `cropImageRegionsToDataUrls`와 달리 **대상 이미지의 자연 크기를 로드 후에 알 수
+ * 있으므로**, 좌표계가 다른 이미지(RGB `shoes_images/B` 등)에서 크롭할 때 필요한
+ * 정규화를 호출부가 아니라 여기서 처리한다 — 호출부는 자연 크기를 미리 알 수 없다.
+ */
+export async function cropImageCenterBoxesToDataUrls(
+  src: string,
+  boxes: readonly CenterBox[],
+  options?: CenterCropOptions
+): Promise<string[]> {
+  const img = await loadSameOriginImage(src)
+  const target: NaturalSize = { width: img.naturalWidth, height: img.naturalHeight }
+  const from = options?.normalizeFrom
+  return boxes.map(({ center, size }) => {
+    const c = from ? normalizeShoePoint(center, from, target) : center
+    const s = from ? normalizeShoeBoxSize(size, from, target) : size
+    return drawCrop(img, centerToCropRegion(c, s), options)
+  })
 }

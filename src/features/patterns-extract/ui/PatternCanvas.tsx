@@ -642,20 +642,26 @@ export function PatternCanvas({
           신발 이미지
         </span>
         <div className="flex items-center gap-2">
+          {/* 한 번 누르면 곧바로 추출까지 수행한다(활성화→추출 2단계 통합 —
+              호출부 `CrimeDetailPage.handleTogglePattern`이 추출을 함께 실행). */}
           {activatable && (
             <button
               type="button"
               onClick={onTogglePatternActive}
               aria-pressed={patternActive}
+              disabled={isExtracting}
               className={cn(
-                "flex h-6 items-center gap-1 rounded-[5px] border px-2 text-[11px] font-medium transition-colors",
+                "flex h-6 items-center gap-1 rounded-[5px] border px-2 text-[11px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
                 patternActive
                   ? "border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF]"
                   : "border-[#1E2A3C] bg-[#0F1826] text-[#8A93A6] hover:border-[#3B82F6]/40 hover:text-[#C7CEDB]"
               )}
             >
-              <ScanSearch className="size-3" aria-hidden="true" />
-              문양추출
+              <ScanSearch
+                className={cn("size-3", isExtracting && "animate-pulse")}
+                aria-hidden="true"
+              />
+              {isExtracting ? "추출중" : "문양추출"}
             </button>
           )}
           {!hideViewSwapper && (
@@ -690,18 +696,11 @@ export function PatternCanvas({
       {/* 헤더 아래 툴바 밴드(예: 회전 슬라이더) — 넘겨졌을 때만 렌더. */}
       {topToolbar}
 
-      {/* 문양추출 상단 액션 밴드 — 활성화 토글 레이아웃에서만, 켜졌을 때 추출/초기화를
-          여기(상단)에 노출한다. 하단 상태표시줄의 동일 버튼은 이 경로에서 제거된다. */}
+      {/* 문양추출 상단 액션 밴드 — 활성화 토글 레이아웃 전용. 추출은 헤더의 [문양추출]
+          버튼이 직접 수행하므로 별도 "추출" 버튼은 두지 않고, 되돌리기용 초기화만 남긴다
+          (레거시 레이아웃의 하단 추출/초기화 쌍은 무변경). */}
       {activatable && patternActive && !editMode && (
         <div className="flex items-center gap-2 border-b border-[#141D2C] bg-[#0D1420]/40 px-4 py-2">
-          <ToolButton
-            icon={Radar}
-            label={isExtracting ? "추출중" : "추출"}
-            onClick={onExtract}
-            variant="accent"
-            disabled={isExtracting}
-            pending={isExtracting}
-          />
           <ToolButton
             icon={RotateCcw}
             label="초기화"

@@ -60,7 +60,9 @@ describe("MatchTop10Panel — 시각화 애니메이션(CHANGE 4, REQ-MATCH-015 
     )
   })
 
-  it("매칭 시작 시 정확히 1회의 match_top10 호출만 발생한다 — 애니메이션이 추가 호출을 만들지 않는다", async () => {
+  // 회귀 방지: 예전에는 "Top-10 매칭 시작" 버튼을 눌러야 조회가 시작됐다. 이 패널은
+  // 상세 슬라이드 패널이 열릴 때 비로소 마운트되므로 마운트 자체가 사용자 의사표시다.
+  it("마운트되면 버튼 클릭 없이 곧바로 match_top10을 조회한다", async () => {
     let callCount = 0
     mswServer.use(
       http.post("*/crime/2024-100/match_top10", () => {
@@ -69,7 +71,21 @@ describe("MatchTop10Panel — 시각화 애니메이션(CHANGE 4, REQ-MATCH-015 
       })
     )
     renderPanel()
-    fireEvent.click(screen.getByRole("button", { name: /Top-10 매칭 시작/ }))
+
+    await waitFor(() => expect(callCount).toBe(1))
+    // 매칭을 다시 요구하는 트리거 버튼이 남아 있지 않다.
+    expect(screen.queryByRole("button", { name: /매칭 시작/ })).toBeNull()
+  })
+
+  it("마운트 후 정확히 1회의 match_top10 호출만 발생한다 — 애니메이션이 추가 호출을 만들지 않는다", async () => {
+    let callCount = 0
+    mswServer.use(
+      http.post("*/crime/2024-100/match_top10", () => {
+        callCount += 1
+        return HttpResponse.json(MATCHES_RESPONSE)
+      })
+    )
+    renderPanel()
 
     await waitFor(() => expect(screen.getByTestId("match-reveal-overlay")).toBeInTheDocument())
 
@@ -82,7 +98,6 @@ describe("MatchTop10Panel — 시각화 애니메이션(CHANGE 4, REQ-MATCH-015 
       http.post("*/crime/2024-100/match_top10", () => HttpResponse.json(MATCHES_RESPONSE))
     )
     renderPanel()
-    fireEvent.click(screen.getByRole("button", { name: /Top-10 매칭 시작/ }))
 
     await waitFor(() => expect(screen.getByTestId("match-reveal-overlay")).toBeInTheDocument())
 
@@ -99,7 +114,6 @@ describe("MatchTop10Panel — 시각화 애니메이션(CHANGE 4, REQ-MATCH-015 
       http.post("*/crime/2024-100/match_top10", () => HttpResponse.json(MATCHES_RESPONSE))
     )
     renderPanel()
-    fireEvent.click(screen.getByRole("button", { name: /Top-10 매칭 시작/ }))
 
     await waitFor(() =>
       expect(screen.getAllByAltText(/신발 이미지/).length).toBeGreaterThan(0)
@@ -117,7 +131,6 @@ describe("MatchTop10Panel — 시각화 애니메이션(CHANGE 4, REQ-MATCH-015 
       )
     )
     renderPanel()
-    fireEvent.click(screen.getByRole("button", { name: /Top-10 매칭 시작/ }))
 
     await waitFor(() =>
       expect(screen.getByText(/정렬\(ROI\+방향\)이 설정되지 않았습니다/)).toBeInTheDocument()

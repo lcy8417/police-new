@@ -15,8 +15,9 @@ import {
   type DisplaySize,
   type NaturalSize,
 } from "../lib/overlay-geometry"
+import type { CenterBox } from "../lib/crop-image"
 import { useSceneFootprint } from "../model/use-scene-footprint"
-import { useShoeCrops } from "../model/use-shoe-crops"
+import { useMatchCrops } from "../model/use-match-crops"
 import { useShoerinsicsNaturalSize } from "../model/use-shoerinsics-natural-size"
 import { CorrespondenceList } from "./CorrespondenceList"
 
@@ -42,6 +43,13 @@ interface OverlayBox {
  * 박스를 정확히 앉힌다. `h-fixed w-auto`(object-fit 미사용)로 렌더해 표시 요소의
  * bounding rect가 곧 렌더된 이미지 크기와 일치하게 한다(letterbox로 인한 오버레이
  * 어긋남 방지 — CorrespondenceMap과 동일 관례).
+ *
+ * ⚠ 박스의 offset parent는 반드시 **이미지를 shrink-wrap한 래퍼**여야 한다.
+ * `scaleBoxToDisplay`가 돌려주는 left/top은 "이미지 좌상단 기준" 좌표인데, 예전에는
+ * 박스를 `<figure>`(가운데 정렬 flex 컨테이너) 기준으로 절대배치했다. 신발 이미지는
+ * 세로로 길어(비율 0.42~0.45) figure 폭보다 훨씬 좁게 렌더되므로, 좌우 여백의 절반
+ * 만큼 박스가 통째로 밀려 검은 배경 위에 찍혔다. 래퍼(`relative h-full w-fit`)를 한 겹
+ * 끼워 박스 기준을 이미지 자신으로 되돌린다.
  *
  * [CORRECTION 3b] `normalizeFrom`이 주어지면(신발측 RGB 모드) 박스 좌표(Shoerinsics
  * 좌표계)를 먼저 이 컴포넌트가 실측한 표시 이미지의 자연 크기로 정규화한 뒤 스케일한다
@@ -95,7 +103,7 @@ function ImageWithBoxes({
   return (
     <figure
       data-testid={testId}
-      className="relative flex h-[220px] items-center justify-center overflow-hidden rounded-lg border border-[#1E2A3C] bg-[#05080D] sm:h-[260px]"
+      className="relative mx-auto flex h-[340px] w-fit min-w-[120px] max-w-full items-center justify-center overflow-hidden rounded-lg border border-[#1E2A3C] bg-[#05080D] sm:h-[460px]"
     >
       {errored ? (
         <div className="flex flex-col items-center gap-1.5 text-[#5B6B85]">
@@ -103,64 +111,70 @@ function ImageWithBoxes({
           <span className="text-[11px] font-medium">이미지 없음</span>
         </div>
       ) : (
-        <img
-          ref={imgRef}
-          src={src}
-          alt={alt}
-          onLoad={measure}
-          onError={() => setErrored(true)}
-          draggable={false}
-          className="block h-full w-auto max-w-full select-none"
-        />
+        /* 박스 오버레이의 offset parent — 이미지를 shrink-wrap해 좌우 여백을 배제한다. */
+        <div className="relative h-full w-fit">
+          <img
+            ref={imgRef}
+            src={src}
+            alt={alt}
+            onLoad={measure}
+            onError={() => setErrored(true)}
+            draggable={false}
+            className="block h-full w-auto max-w-full select-none"
+          />
+          {natural &&
+            display &&
+            boxes.map((box) => {
+              const center = normalizeFrom
+                ? normalizeShoePoint(box.center, normalizeFrom, natural)
+                : box.center
+              const size = normalizeFrom
+                ? normalizeShoeBoxSize(box.size, normalizeFrom, natural)
+                : box.size
+              const rect = scaleBoxToDisplay(center, size, natural, display)
+              const color = matchTop10Color(box.rank)
+              const selected = activeIndex === box.index
+              const active = activeIndex === null || selected
+              return (
+                <button
+                  key={box.index}
+                  type="button"
+                  onClick={() => onSelect(box.index)}
+                  onMouseEnter={() => onHover(box.index)}
+                  onMouseLeave={() => onHover(null)}
+                  aria-label={`대응 ${box.rank}번 박스`}
+                  aria-pressed={selected}
+                  // 런타임 좌표(오버레이 스케일 결과)라 left/top/width/height·색은 인라인 style 예외.
+                  className={cn(
+                    "group absolute rounded-[3px] border-2 transition-all duration-200",
+                    active ? "opacity-100" : "opacity-25",
+                    selected ? "z-20" : "z-10"
+                  )}
+                  style={{
+                    left: `${rect.left}px`,
+                    top: `${rect.top}px`,
+                    width: `${rect.width}px`,
+                    height: `${rect.height}px`,
+                    borderColor: active ? color : "#5B6B85",
+                    backgroundColor: selected ? `${color}26` : "transparent",
+                    boxShadow: selected ? `0 0 12px ${color}66` : "none",
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "absolute -top-2.5 -left-2.5 flex size-[18px] items-center justify-center rounded-full border font-mono text-[9px] font-bold tabular-nums text-[#05080D] shadow-md transition-transform duration-200",
+                      selected ? "scale-[1.15]" : "group-hover:scale-110"
+                    )}
+                    style={{ backgroundColor: active ? color : "#5B6B85", borderColor: "#05080D" }}
+                  >
+                    {box.rank}
+                  </span>
+                </button>
+              )
+            })}
+        </div>
       )}
-      {!errored &&
-        natural &&
-        display &&
-        boxes.map((box) => {
-          const center = normalizeFrom ? normalizeShoePoint(box.center, normalizeFrom, natural) : box.center
-          const size = normalizeFrom ? normalizeShoeBoxSize(box.size, normalizeFrom, natural) : box.size
-          const rect = scaleBoxToDisplay(center, size, natural, display)
-          const color = matchTop10Color(box.rank)
-          const selected = activeIndex === box.index
-          const active = activeIndex === null || selected
-          return (
-            <button
-              key={box.index}
-              type="button"
-              onClick={() => onSelect(box.index)}
-              onMouseEnter={() => onHover(box.index)}
-              onMouseLeave={() => onHover(null)}
-              aria-label={`대응 ${box.rank}번 박스`}
-              aria-pressed={selected}
-              // 런타임 좌표(오버레이 스케일 결과)라 left/top/width/height·색은 인라인 style 예외.
-              className={cn(
-                "group absolute rounded-[3px] border-2 transition-all duration-200",
-                active ? "opacity-100" : "opacity-25",
-                selected ? "z-20" : "z-10"
-              )}
-              style={{
-                left: `${rect.left}px`,
-                top: `${rect.top}px`,
-                width: `${rect.width}px`,
-                height: `${rect.height}px`,
-                borderColor: active ? color : "#5B6B85",
-                backgroundColor: selected ? `${color}26` : "transparent",
-                boxShadow: selected ? `0 0 12px ${color}66` : "none",
-              }}
-            >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "absolute -top-2.5 -left-2.5 flex size-[18px] items-center justify-center rounded-full border font-mono text-[9px] font-bold tabular-nums text-[#05080D] shadow-md transition-transform duration-200",
-                  selected ? "scale-[1.15]" : "group-hover:scale-110"
-                )}
-                style={{ backgroundColor: active ? color : "#5B6B85", borderColor: "#05080D" }}
-              >
-                {box.rank}
-              </span>
-            </button>
-          )
-        })}
     </figure>
   )
 }
@@ -170,7 +184,7 @@ function ImagePaneLoading({ testId }: { testId: string }) {
   return (
     <figure
       data-testid={testId}
-      className="relative flex h-[220px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-lg border border-[#1E2A3C] bg-[#05080D] text-[#5B6B85] sm:h-[260px]"
+      className="relative mx-auto flex h-[340px] w-full min-w-[120px] flex-col items-center justify-center gap-1.5 overflow-hidden rounded-lg border border-[#1E2A3C] bg-[#05080D] text-[#5B6B85] sm:h-[460px]"
     >
       <Loader2 className="size-5 animate-spin text-[#4A9EFF]" aria-hidden="true" />
       <span className="text-[10px] font-medium">이미지 준비 중…</span>
@@ -273,9 +287,36 @@ export function MatchCorrespondenceViewer({
   // (스케치/이진 모드는 표시 이미지 자체가 Shoerinsics라 정규화가 불필요).
   const shoerinsicsSize = useShoerinsicsNaturalSize({ modelNumber, enabled: mode === "실사" })
 
-  // [CORRECTION 2] 신발측 크롭은 클라이언트에서 생성한다(항상 Shoerinsics 좌표계
-  // 원본에서 — 비교 모드와 무관하게 sx,sy와 좌표계가 일치해야 하므로).
-  const shoeCrops = useShoeCrops({ modelNumber, matches })
+  // 우측 "세부 대응 목록"의 썸네일 — 좌측 큰 이미지와 **같은 비교 모드**의 이미지에서
+  // 크롭한다(이전에는 족적이 항상 RGB, 신발이 항상 이진이라 모드 토글과 어긋났다).
+  //
+  // 족적: RGB 모드는 백엔드가 준 `box_image`(= `crime_images` 크롭)를 그대로 쓰고,
+  // 스케치·이진 모드에서만 `crime_outlines`에서 다시 크롭한다. 백엔드 게이트 4가
+  // 윤곽↔현장 이미지의 (H,W) 일치를 보장하므로 `box.cx,cy`를 정규화 없이 쓸 수 있다.
+  const sceneCropBoxes: CenterBox[] = matches.map((m) => ({
+    center: [m.box.cx, m.box.cy],
+    size: m.box.size,
+  }))
+  const outlineCrops = useMatchCrops({
+    src: `${apiBase}/crime_outlines/${crimeNumber}.png`,
+    boxes: sceneCropBoxes,
+    enabled: mode === "스케치이진",
+  })
+  const sceneCrops = mode === "실사" ? matches.map((m) => m.box_image) : outlineCrops
+
+  // 신발: `sx,sy`는 Shoerinsics 좌표계이므로 이진 모드에서는 그대로, RGB(`B`) 모드에서는
+  // 실측한 Shoerinsics 크기로 정규화해 크롭한다. 그 실측이 도착하기 전에 크롭하면
+  // 정규화 없는 잘못된 영역이 한 번 그려지므로, 도착 전까지는 아예 비활성화한다.
+  const shoeCropBoxes: CenterBox[] = matches.map((m) => ({
+    center: [m.sx, m.sy],
+    size: m.box.size,
+  }))
+  const shoeCrops = useMatchCrops({
+    src: shoeImageSrc,
+    boxes: shoeCropBoxes,
+    normalizeFrom: mode === "실사" ? shoerinsicsSize : null,
+    enabled: mode === "스케치이진" || Boolean(shoerinsicsSize),
+  })
 
   const sceneBoxes: OverlayBox[] = matches.map((m, i) => ({
     index: i,
@@ -353,6 +394,7 @@ export function MatchCorrespondenceViewer({
         {/* 우측: [CORRECTION 2] top-10 전체를 짝(pair)으로 비교하는 목록. */}
         <CorrespondenceList
           matches={matches}
+          sceneCrops={sceneCrops}
           shoeCrops={shoeCrops}
           activeIndex={activeIndex}
           onSelect={handleSelect}

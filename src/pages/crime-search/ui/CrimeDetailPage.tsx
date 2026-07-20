@@ -297,11 +297,14 @@ export function CrimeDetailPage() {
     imageChangeHandler("edit", imgRef, currentCrimeData)
   }, [currentCrimeData])
 
-  // 문양추출 토글 — 뷰 소스(sceneView)는 그대로 두고 patternActive만 뒤집는다. 켜면 편집
-  // 도구가 배타적으로 숨고, 끄면 "편집" 뷰였던 경우 편집 도구가 자동 복귀한다.
+  // 문양추출 — "활성화 → 추출" 2단계를 한 번의 클릭으로 합친다. 현장(crime) 경로는
+  // line_ys/render_size를 전송하지 않으므로(REQ-SCENE-015, use-pattern-manager.ts)
+  // 경계선을 먼저 지정할 필요가 없다 — 활성화 단계는 대기만 늘렸다. 뷰 소스(sceneView)는
+  // 그대로 두고 patternActive만 켜서 편집 도구를 배타적으로 숨긴다.
   const handleTogglePattern = useCallback(() => {
-    setPatternActive((prev) => !prev)
-  }, [])
+    setPatternActive(true)
+    void handleExtract()
+  }, [handleExtract])
 
   // 검색이력: 레거시의 ad hoc `fetch(/crime/:crimeNumber)`를 entities
   // `fetchCrimeDetail`(같은 엔드포인트, camelCase) + useQuery로 승격했다.

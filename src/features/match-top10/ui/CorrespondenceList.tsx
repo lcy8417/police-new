@@ -6,24 +6,43 @@ import type { MatchCorrespondence } from "@/entities/match"
 import { matchScoreToDisplayPercent } from "../lib/score-format"
 import { matchTop10Color } from "../lib/match-colors"
 
-/** 신발측 크롭 준비 상태 — 아직 없으면(undefined) 행 안에서 로딩/대체를 보인다. */
-export type ShoeCropSlot = string | undefined
+/** 크롭 준비 상태 — 아직 없으면(undefined) 행 안에서 로딩/대체를 보인다. */
+export type MatchCropSlot = string | undefined
 
 export interface CorrespondenceListProps {
   /** score 내림차순 top-10 대응 목록. */
   matches: MatchCorrespondence[]
-  /** index별 신발측 크롭(클라이언트 생성) — 준비 전이면 undefined. */
-  shoeCrops: ShoeCropSlot[]
+  /** index별 족적(현장)측 크롭 — 현재 비교 모드(RGB/스케치·이진)의 이미지에서 뽑는다. */
+  sceneCrops: MatchCropSlot[]
+  /** index별 신발측 크롭 — 현재 비교 모드의 이미지에서 뽑는다. */
+  shoeCrops: MatchCropSlot[]
   /** 현재 강조 중인 대응(hover가 locked를 덮어씀) — 오버레이 박스와 공유하는 상태. */
   activeIndex: number | null
   onSelect: (index: number) => void
   onHover: (index: number | null) => void
 }
 
+/** 크롭 썸네일 한 칸 — 준비 전에는 같은 자리에 스피너를 보여 레이아웃이 튀지 않게 한다. */
+function CropThumb({ src, alt }: { src: MatchCropSlot; alt: string }) {
+  return (
+    <div className="relative aspect-square w-14 shrink-0 overflow-hidden rounded-md border border-[#1E2A3C] bg-[#05080D]">
+      {src ? (
+        <img src={src} alt={alt} className="absolute inset-0 size-full object-contain p-0.5" />
+      ) : (
+        <div className="flex size-full flex-col items-center justify-center gap-0.5 text-[#5B6B85]">
+          <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+          <span className="text-[8px]">생성 중</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** 한 행 — 족적(scene) 크롭 ↔ 신발(shoe) 크롭 짝 + 순위 배지 + score. */
 function CorrespondenceRow({
   match,
   index,
+  sceneCrop,
   shoeCrop,
   selected,
   onSelect,
@@ -31,7 +50,8 @@ function CorrespondenceRow({
 }: {
   match: MatchCorrespondence
   index: number
-  shoeCrop: ShoeCropSlot
+  sceneCrop: MatchCropSlot
+  shoeCrop: MatchCropSlot
   selected: boolean
   onSelect: (index: number) => void
   onHover: (index: number | null) => void
@@ -63,13 +83,7 @@ function CorrespondenceRow({
       </span>
 
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
-        <div className="relative aspect-square w-14 shrink-0 overflow-hidden rounded-md border border-[#1E2A3C] bg-[#05080D]">
-          <img
-            src={match.box_image}
-            alt={`대응 ${rank}번 족적 크롭`}
-            className="absolute inset-0 size-full object-contain p-0.5"
-          />
-        </div>
+        <CropThumb src={sceneCrop} alt={`대응 ${rank}번 족적 크롭`} />
         <span className="shrink-0 text-[#5B6B85]" aria-hidden="true">
           <Camera className="size-3" />
         </span>
@@ -81,20 +95,7 @@ function CorrespondenceRow({
         <span className="shrink-0 text-[#5B6B85]" aria-hidden="true">
           <Database className="size-3" />
         </span>
-        <div className="relative aspect-square w-14 shrink-0 overflow-hidden rounded-md border border-[#1E2A3C] bg-[#05080D]">
-          {shoeCrop ? (
-            <img
-              src={shoeCrop}
-              alt={`대응 ${rank}번 신발 크롭`}
-              className="absolute inset-0 size-full object-contain p-0.5"
-            />
-          ) : (
-            <div className="flex size-full flex-col items-center justify-center gap-0.5 text-[#5B6B85]">
-              <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-              <span className="text-[8px]">생성 중</span>
-            </div>
-          )}
-        </div>
+        <CropThumb src={shoeCrop} alt={`대응 ${rank}번 신발 크롭`} />
       </div>
 
       <span className="shrink-0 font-mono text-[11px] font-bold tabular-nums text-[#4A9EFF]">
@@ -106,12 +107,18 @@ function CorrespondenceRow({
 
 /**
  * [CORRECTION 2] top-10 대응을 한 번에 비교하는 짝(pair) 리스트 — 기존
- * `DetailPanel`(단일 선택 세부사항)을 대체한다. 각 행은 족적 크롭(`box_image`,
- * 백엔드 제공)과 신발 크롭(클라이언트 생성, `useShoeCrops`)을 나란히 보여주며,
- * 클릭=선택 고정·hover=임시 강조로 오버레이 박스와 상태를 공유한다(양방향 연동).
+ * `DetailPanel`(단일 선택 세부사항)을 대체한다. 각 행은 족적 크롭과 신발 크롭을
+ * 나란히 보여주며, 클릭=선택 고정·hover=임시 강조로 오버레이 박스와 상태를
+ * 공유한다(양방향 연동).
+ *
+ * 두 크롭 모두 호출부(`MatchCorrespondenceViewer`)가 **현재 비교 모드에 맞는
+ * 이미지에서** 뽑아 넘긴다 — RGB 모드면 `crime_images`/`shoes_images/B`, 스케치·이진
+ * 모드면 `crime_outlines`/`Shoerinsics`. 이 컴포넌트는 모드를 알지 못하며 받은
+ * 크롭을 그리기만 한다(표현 계층 유지).
  */
 export function CorrespondenceList({
   matches,
+  sceneCrops,
   shoeCrops,
   activeIndex,
   onSelect,
@@ -136,6 +143,7 @@ export function CorrespondenceList({
               key={index}
               match={match}
               index={index}
+              sceneCrop={sceneCrops[index]}
               shoeCrop={shoeCrops[index]}
               selected={activeIndex === index}
               onSelect={onSelect}
