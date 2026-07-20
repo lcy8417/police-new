@@ -14,11 +14,11 @@
  *     <ImageLoadingOverlay status={img.status} />
  *   </div>
  */
-import { useCallback, useEffect, useState } from "react"
+import { useCallback } from "react"
 import { ImageOff, Loader2 } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
-import type { ImageLoadStatus } from "@/shared/lib/use-image-load-state"
+import { useImageLoadState, type ImageLoadStatus } from "@/shared/lib/use-image-load-state"
 
 export interface ImageLoadingOverlayProps {
   status: ImageLoadStatus
@@ -93,16 +93,17 @@ export function LoadingImage({
   src,
   ...imgProps
 }: LoadingImageProps) {
-  const [status, setStatus] = useState<ImageLoadStatus>("loading")
+  // 리셋 경합을 피하려면 상태 로직을 중복 구현하지 말고 공용 훅을 쓴다
+  // (`use-image-load-state.ts` 주석의 렌더 중 조정 패턴).
+  const load = useImageLoadState(src)
 
-  useEffect(() => {
-    setStatus("loading")
-  }, [src])
-
-  const attachRef = useCallback((node: HTMLImageElement | null) => {
-    // 캐시된 이미지는 onLoad가 오지 않을 수 있다 — 마운트 시점에 직접 확인한다.
-    if (node?.complete && node.naturalWidth > 0) setStatus("loaded")
-  }, [])
+  const attachRef = useCallback(
+    (node: HTMLImageElement | null) => {
+      // 캐시된 이미지는 onLoad가 오지 않을 수 있다 — 마운트 시점에 직접 확인한다.
+      if (node?.complete && node.naturalWidth > 0) load.markLoaded()
+    },
+    [load]
+  )
 
   return (
     <div className={cn("relative overflow-hidden", containerClassName)}>
@@ -110,11 +111,10 @@ export function LoadingImage({
         ref={attachRef}
         src={src}
         className={className}
-        onLoad={() => setStatus("loaded")}
-        onError={() => setStatus("error")}
+        {...load.handlers}
         {...imgProps}
       />
-      <ImageLoadingOverlay status={status} label={overlayLabel} compact={compactOverlay} />
+      <ImageLoadingOverlay status={load.status} label={overlayLabel} compact={compactOverlay} />
     </div>
   )
 }
