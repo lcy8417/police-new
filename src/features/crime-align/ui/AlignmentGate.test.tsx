@@ -178,3 +178,115 @@ describe("AlignmentGate — 복원(REQ-ALIGN-008/020b)", () => {
     expect(screen.getByRole("button", { name: /좌우 반전/ })).toHaveAttribute("aria-pressed", "true")
   })
 })
+
+// ─── 직전 정렬 이어받기(같은 사건, 다른 신발) ───
+// 폴리곤·화살표는 `저장 현장 이미지 좌표계`에만 정의된 값이라 후보 신발이 바뀌어도
+// 동일하다. 새 후보를 열 때마다 재작도하게 만들지 않는 것이 이 기능의 목적이다.
+describe("AlignmentGate — 직전 정렬 이어받기", () => {
+  const POLY = [
+    [10, 10],
+    [110, 10],
+    [110, 210],
+    [10, 210],
+  ]
+  const ARROW = [
+    [60, 20],
+    [60, 200],
+  ]
+
+  it("이 쌍에 저장본이 없으면 같은 사건의 직전 정렬을 이어받아 자동 저장한다", async () => {
+    let saved: unknown = null
+    mswServer.use(
+      http.get("*/crime/*/alignment/latest", () =>
+        HttpResponse.json({ polygon: POLY, arrow: ARROW, flipHorizontal: true, modelNumber: "PREV-1" })
+      ),
+      http.get("*/crime/*/alignment", () =>
+        HttpResponse.json({ polygon: null, arrow: null, flipHorizontal: false })
+      ),
+      http.post("*/crime/*/alignment", async ({ request }) => {
+        saved = await request.json()
+        return HttpResponse.json({ polygon: POLY, arrow: ARROW, flipHorizontal: true })
+      })
+    )
+    renderGate("2024-300", "SHOE-NEW")
+    const img = await screen.findByAltText("정렬용 저장 현장 이미지")
+    stubImageLoad(img as HTMLImageElement)
+
+    // 이어받은 정렬이 이 쌍으로 자동 저장된다 -> 게이트 통과 가능 상태가 된다.
+    await waitFor(() => expect(saved).not.toBeNull())
+    expect(saved).toMatchObject({ polygon: POLY, arrow: ARROW, flipHorizontal: true })
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /다음 단계로/ })).not.toBeDisabled()
+    )
+  })
+
+  it("이 쌍에 저장본이 있으면 이어받지 않고 저장본을 복원한다(복원 우선)", async () => {
+    let posted = false
+    const OWN = [
+      [1, 1],
+      [50, 1],
+      [50, 50],
+    ]
+    mswServer.use(
+      http.get("*/crime/*/alignment/latest", () =>
+        HttpResponse.json({ polygon: POLY, arrow: ARROW, flipHorizontal: true, modelNumber: "PREV-1" })
+      ),
+      http.get("*/crime/*/alignment", () =>
+        HttpResponse.json({ polygon: OWN, arrow: ARROW, flipHorizontal: false })
+      ),
+      http.post("*/crime/*/alignment", () => {
+        posted = true
+        return HttpResponse.json({ polygon: OWN, arrow: ARROW, flipHorizontal: false })
+      })
+    )
+    renderGate("2024-301", "SHOE-OWN")
+    const img = await screen.findByAltText("정렬용 저장 현장 이미지")
+    stubImageLoad(img as HTMLImageElement)
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /다음 단계로/ })).not.toBeDisabled()
+    )
+    expect(posted).toBe(false) // 저장본이 있으므로 이어받기 저장이 일어나지 않는다
+  })
+
+  // 회귀 방지: 배포 순서상 프런트가 먼저 올라가면 /latest가 404다. 그때도 정렬 화면은
+  // 정상 동작해야 한다(밑창 템플릿 시드). 예전에는 조회 대기 가드에 걸려 캔버스가 빈 채로 멈췄다.
+  it("/latest가 없는 구버전 백엔드(404)에서도 밑창 템플릿이 정상 시드된다", async () => {
+    mswServer.use(
+      http.get("*/crime/*/alignment/latest", () => new HttpResponse(null, { status: 404 })),
+      http.get("*/crime/*/alignment", () =>
+        HttpResponse.json({ polygon: null, arrow: null, flipHorizontal: false })
+      )
+    )
+    renderGate("2024-302", "SHOE-X")
+    const img = await screen.findByAltText("정렬용 저장 현장 이미지")
+    stubImageLoad(img as HTMLImageElement)
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /다음: 방향 지정/ })).not.toBeDisabled()
+    )
+  })
+
+  // 회귀 방지(핵심): 이미지 로드가 /latest 응답보다 먼저 끝나는 경합.
+  // 예전에는 시드가 이미지 로드 콜백에서 1회만 실행돼, 그 시점에 조회가 진행 중이면
+  // 조기 반환한 뒤 다시 호출되지 않아 캔버스가 빈 채로 영영 멈췄다.
+  it("이미지가 /latest 응답보다 먼저 로드돼도 결국 템플릿이 시드된다", async () => {
+    mswServer.use(
+      http.get("*/crime/*/alignment/latest", async () => {
+        await new Promise((r) => setTimeout(r, 300)) // 이미지 로드보다 늦게 응답
+        return HttpResponse.json({ polygon: null, arrow: null, flipHorizontal: false, modelNumber: null })
+      }),
+      http.get("*/crime/*/alignment", () =>
+        HttpResponse.json({ polygon: null, arrow: null, flipHorizontal: false })
+      )
+    )
+    renderGate("2024-303", "SHOE-RACE")
+    const img = await screen.findByAltText("정렬용 저장 현장 이미지")
+    stubImageLoad(img as HTMLImageElement) // 조회가 아직 진행 중인 시점에 로드 완료
+
+    await waitFor(
+      () => expect(screen.getByRole("button", { name: /다음: 방향 지정/ })).not.toBeDisabled(),
+      { timeout: 3000 }
+    )
+  })
+})

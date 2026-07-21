@@ -23,7 +23,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { alignmentKeys, fetchAlignment, saveAlignment } from "@/entities/alignment";
+import { alignmentKeys, fetchAlignment, fetchLatestAlignment, saveAlignment } from "@/entities/alignment";
 
 import {
   clampPointToBounds,
@@ -140,6 +140,8 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
   /** 저장 현장 이미지의 자연 크기 — 좌표 clamp 기준(백엔드 범위 검사와 동일 기준).
    * 이미지 로드 시 `seedTemplate`이 기록한다(캔버스가 onImageNaturalSize로 호출). */
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
+  /** 이 (사건, 신발) 쌍에서 "직전 정렬 이어받기"를 이미 시도했는지 — 1회만 수행한다. */
+  const [carriedOver, setCarriedOver] = useState(false);
 
   const query = useQuery({
     queryKey: alignmentKeys.detail(crimeNumber, modelNumber),
@@ -158,6 +160,7 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
     setFlipHorizontal(false);
     setJustSaved(false);
     setTemplateSeeded(false);
+    setCarriedOver(false);
     // crimeNumber/modelNumber 변경에만 반응한다.
   }, [crimeNumber, modelNumber]);
 
@@ -210,29 +213,112 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
     },
   });
 
+  // ─── 직전 정렬 이어받기(같은 사건, 다른 신발) ───
+  // 폴리곤·화살표는 `저장 현장 이미지 좌표계`에만 정의된 값이라 후보 신발이 바뀌어도
+  // 동일하다(현장 이미지 고정). 이 쌍에 저장본이 없을 때만 조회한다 — 저장본이 있으면
+  // 그쪽이 항상 우선이므로(REQ-ALIGN-017 "복원 우선") 불필요한 요청을 만들지 않는다.
+  const pairHasSaved = Boolean(query.data?.polygon && query.data?.arrow);
+  const latestQuery = useQuery({
+    queryKey: alignmentKeys.latest(crimeNumber),
+    queryFn: () => fetchLatestAlignment({ crimeNumber }),
+    enabled: Boolean(crimeNumber) && !query.isLoading && !pairHasSaved,
+    // 이어받기는 편의 기능이라 재시도하지 않는다. 엔드포인트가 없는 구버전 백엔드(404)나
+    // 일시 오류에서 재시도로 시간을 끌면, 아래 템플릿 시드가 그만큼 지연돼 캔버스가
+    // 빈 채로 멈춘 것처럼 보인다(배포 순서상 프런트가 먼저 올라가는 경우 실제로 발생).
+    retry: false,
+  });
+
+  // 이어받은 정렬을 이 쌍으로 즉시 저장한다 — 매칭 게이트는 (사건, 신발) 쌍의 저장본을
+  // 판정 근거로 삼으므로(REQ-ALIGN-012), 화면에만 채워두면 게이트를 통과하지 못한다.
+  useEffect(() => {
+    if (carriedOver) return;
+    if (query.isLoading || pairHasSaved) return;      // 저장본 우선
+    if (polygon.length > 0) return;                    // 사용자가 이미 그리는 중이면 건드리지 않는다
+    const src = latestQuery.data;
+    if (!src?.polygon || !src?.arrow || src.arrow.length < 2) return;
+
+    setCarriedOver(true);
+    const poly = src.polygon.map(([x, y]) => [x, y] as Point);
+    const t = [src.arrow[0][0], src.arrow[0][1]] as Point;
+    const h = [src.arrow[1][0], src.arrow[1][1]] as Point;
+    setPolygon(poly);
+    setToe(t);
+    setHeel(h);
+    setFlipHorizontal(Boolean(src.flipHorizontal));
+    setPhase("review");
+    setTemplateSeeded(true);  // 템플릿이 덮어쓰지 않도록 막는다
+
+    void saveAlignment({
+      crimeNumber,
+      modelNumber,
+      polygon: serializePoints(poly) as [number, number][],
+      arrow: serializePoints([t, h]) as [number, number][],
+      flipHorizontal: Boolean(src.flipHorizontal),
+    })
+      .then(() => {
+        setJustSaved(true);
+        void queryClient.invalidateQueries({
+          queryKey: alignmentKeys.detail(crimeNumber, modelNumber),
+        });
+        toast.success("직전 정렬을 이어받았습니다. 필요하면 수정 후 다시 저장하세요.");
+      })
+      .catch(() => {
+        // 저장 실패 시 화면 값은 그대로 두고 사용자가 직접 저장하도록 안내한다.
+        toast.error("정렬 이어받기 저장에 실패했습니다. [저장]을 눌러주세요.");
+      });
+  }, [
+    carriedOver,
+    query.isLoading,
+    pairHasSaved,
+    polygon.length,
+    latestQuery.data,
+    crimeNumber,
+    modelNumber,
+    queryClient,
+  ]);
+
   // ─── 폴리곤: 밑창 템플릿 기본 제공(REQ-ALIGN-017) ───
-  const seedTemplate = useCallback(
-    (naturalWidth: number, naturalHeight: number) => {
-      // 크기 기록은 아래 시드 가드보다 먼저 한다 — 템플릿을 시드하지 않는 경로(복원·
-      // scratch 등)에서도 clamp 기준은 필요하기 때문이다.
-      if (naturalWidth > 0 && naturalHeight > 0) {
-        setImageSize((prev) =>
-          prev?.width === naturalWidth && prev?.height === naturalHeight
-            ? prev
-            : { width: naturalWidth, height: naturalHeight }
-        );
-      }
-      if (templateSeeded) return;
-      if (query.isLoading) return;
-      if (query.data?.polygon && query.data?.arrow) return; // 복원 우선
-      if (polygon.length > 0) return;
-      if (naturalWidth <= 0 || naturalHeight <= 0) return;
-      setPolygon(createSoleTemplatePolygon(naturalWidth, naturalHeight));
-      setDrawMode("template");
-      setTemplateSeeded(true);
-    },
-    [templateSeeded, query.isLoading, query.data, polygon.length]
-  );
+  /**
+   * 캔버스가 이미지 자연 크기를 알려줄 때 호출된다(prop 이름 유지). 여기서는 **크기만
+   * 기록**하고, 실제 템플릿 시드는 아래 effect가 담당한다.
+   *
+   * 왜 분리했나: 이 콜백은 이미지 로드 시 1회만 호출된다. 예전에는 여기서 곧바로
+   * 시드했는데, 그 시점에 정렬 조회(쌍/직전)가 아직 진행 중이면 조기 반환한 뒤
+   * **다시 호출되지 않아** 캔버스가 빈 채로 멈췄다. 조회 결과에 반응해야 하므로
+   * effect로 옮긴다.
+   */
+  const seedTemplate = useCallback((naturalWidth: number, naturalHeight: number) => {
+    if (naturalWidth > 0 && naturalHeight > 0) {
+      setImageSize((prev) =>
+        prev?.width === naturalWidth && prev?.height === naturalHeight
+          ? prev
+          : { width: naturalWidth, height: naturalHeight }
+      );
+    }
+  }, []);
+
+  // 밑창 템플릿 시드(REQ-ALIGN-017) — 우선순위: 저장본(쌍) > 직전 정렬(사건) > 템플릿.
+  useEffect(() => {
+    if (templateSeeded) return;
+    if (!imageSize || imageSize.width <= 0 || imageSize.height <= 0) return;
+    if (query.isLoading) return;
+    if (query.data?.polygon && query.data?.arrow) return;        // 복원 우선
+    if (latestQuery.isFetching) return;                          // 이어받기 조회 중이면 양보
+    if (latestQuery.data?.polygon && latestQuery.data?.arrow) return; // 이어받기가 처리
+    if (polygon.length > 0) return;
+    setPolygon(createSoleTemplatePolygon(imageSize.width, imageSize.height));
+    setDrawMode("template");
+    setTemplateSeeded(true);
+  }, [
+    templateSeeded,
+    imageSize,
+    query.isLoading,
+    query.data,
+    latestQuery.isFetching,
+    latestQuery.data,
+    polygon.length,
+  ]);
+
 
   // ─── 폴리곤: 템플릿을 버리고 처음부터 그리기(REQ-ALIGN-017 — 템플릿은 강제가 아니다) ───
   const startFromScratch = useCallback(() => {

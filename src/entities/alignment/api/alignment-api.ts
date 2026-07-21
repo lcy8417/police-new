@@ -3,6 +3,7 @@ import type {
   Alignment,
   AlignmentDto,
   FetchAlignmentInput,
+  LatestAlignmentDto,
   SaveAlignmentInput,
 } from "../model/types";
 
@@ -39,4 +40,20 @@ export async function saveAlignment({
     { polygon, arrow, flipHorizontal }
   );
   return (await response.json()) as AlignmentDto;
+}
+
+/**
+ * GET /crime/:crimeNumber/alignment/latest — 같은 사건에서 가장 최근에 저장된 정렬을
+ * 신발 모델과 무관하게 조회한다.
+ *
+ * 폴리곤·화살표는 `저장 현장 이미지 좌표계`에만 정의된 값이라 후보 신발이 바뀌어도
+ * 동일하다(현장 이미지가 고정). 새 후보를 열 때 이 값을 이어받아 재작도를 없애는
+ * 프리필 소스로만 쓴다 — 저장 구조는 여전히 (사건, 신발) 쌍 단위다.
+ */
+export async function fetchLatestAlignment({
+  crimeNumber,
+}: {
+  crimeNumber: string;
+}): Promise<LatestAlignmentDto> {
+  return apiGet<LatestAlignmentDto>(`/crime/${crimeNumber}/alignment/latest`);
 }

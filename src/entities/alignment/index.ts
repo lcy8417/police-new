@@ -1,4 +1,4 @@
-export { fetchAlignment, saveAlignment } from "./api/alignment-api";
+export { fetchAlignment, fetchLatestAlignment, saveAlignment } from "./api/alignment-api";
 export { alignmentKeys } from "./api/query-keys";
 export type {
   Alignment,

@@ -25,6 +25,12 @@ export interface AlignmentDto {
 /** 앱 모델 — wire shape과 동일(변환 불필요). */
 export type Alignment = AlignmentDto;
 
+/** 같은 사건의 "직전 정렬" 응답 — `AlignmentDto`에 출처 신발 모델이 붙는다. */
+export interface LatestAlignmentDto extends AlignmentDto {
+  /** 이 정렬을 가져온 원본 쌍의 신발 모델(참고용). 저장된 정렬이 없으면 null. */
+  modelNumber: string | null;
+}
+
 export interface FetchAlignmentInput {
   crimeNumber: string;
   modelNumber: string;
