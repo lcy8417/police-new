@@ -1,13 +1,19 @@
 import { useCallback, useRef, useState } from "react"
 import { useMutation } from "@tanstack/react-query"
-import { toast } from "sonner"
 
 import { registerCrime, useCrimeStore } from "@/entities/crime"
 import { rotateArbitrary, useImageAdjustments, useImageEditor } from "@/features/crime-register"
+import { ApiError } from "@/shared/api"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 import { rotateImage, resizeImage } from "@/utils/get-input-change"
 
-import { EMPTY_FORM, type CrimeFormData } from "../model/form"
+import {
+  buildAprthngNo,
+  EMPTY_FORM,
+  type CrimeFormData,
+  type CrimeRegisterForm,
+} from "../model/form"
+import { validateCrimeRegister } from "../model/validate-crime-register"
 import { EvidenceImagePanel } from "./EvidenceImagePanel"
 import { CaseInfoPanel } from "./CaseInfoPanel"
 
@@ -26,6 +32,8 @@ interface RegisterStageProps {
  */
 export function RegisterStage({ onExit }: RegisterStageProps) {
   const [formData, setFormData] = useState<CrimeFormData>(EMPTY_FORM)
+  // 폼 위 오류 영역 문구 — 화면 검증 실패 또는 서버 400/409 `detail`.
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const adjust = useImageAdjustments(formData.image)
   // 안정적인 콜백(아래 메모이즈된 핸들러에서 참조됨).
   const { bake: bakeAdjustments, resetAdjustments } = adjust
@@ -41,11 +49,14 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
   const imageRef = useRef(formData.image)
   imageRef.current = formData.image
 
-  const handleFieldChange = useCallback((name: keyof CrimeFormData, value: string) => {
+  const handleFieldChange = useCallback((name: keyof CrimeRegisterForm, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
+    // 입력을 고치면 이전 오류 문구는 더 이상 맞지 않으므로 지운다.
+    setErrorMessage(null)
   }, [])
 
   const handleFileSelect = useCallback(async (file: File) => {
+    setErrorMessage(null)
     const reader = new FileReader()
     reader.onloadend = async () => {
       const base64 = reader.result as string
@@ -72,6 +83,7 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
   // 초기화(취소): 작성 중이던 상태를 비우고 조회 모드(목록)로 복귀한다.
   const handleReset = useCallback(() => {
     setFormData(EMPTY_FORM)
+    setErrorMessage(null)
     resetAdjustments()
     setRotation(0)
     onExit()
@@ -116,19 +128,35 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
     meta: { success: "사건이 등록되었습니다." },
     onSuccess: () => {
       setFormData(EMPTY_FORM)
+      setErrorMessage(null)
       resetAdjustments()
       setRotation(0)
       // 낙관적 갱신 트리거(store refetch) 유지 + 등록 후 조회 모드로 복귀.
       useCrimeStore.getState().setRegisterFlag([])
       onExit()
     },
+    // 서버 검증 실패(400)·중복(409)의 한국어 `detail`을 폼 위에 그대로 보인다
+    // (전역 MutationCache 토스트와 별개로, 사용자가 고칠 위치 옆에 남겨 둔다).
+    onError: (error) => {
+      setErrorMessage(
+        error instanceof ApiError
+          ? (error.detail ?? error.message)
+          : "사건 등록에 실패했습니다"
+      )
+    },
   })
 
   const handleSubmit = useCallback(async () => {
-    if (!formData.image || !formData.crimeNumber) {
-      toast.error("이미지와 사건 번호는 필수 입력 사항입니다.")
+    if (!formData.image) {
+      setErrorMessage("현장 이미지를 등록하세요")
       return
     }
+    const invalid = validateCrimeRegister(formData)
+    if (invalid) {
+      setErrorMessage(invalid)
+      return
+    }
+    setErrorMessage(null)
     // 분석관의 보정이 미리보기에만 그치지 않고 서버 측에도 유지되도록, 자유각
     // 회전을 먼저 굽고 이어서 비파괴 가시성 조정값을 이미지에 굽는다.
     const rotated =
@@ -136,14 +164,16 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
         ? await rotateArbitrary(formData.image, rotationRef.current)
         : formData.image
     const image = await bakeAdjustments(rotated)
+    // 감정물 순번(aprthngSn)은 화면 전용 — 서버에는 조합된 감정물 번호만 보낸다.
     registerMutation.mutate({
       image,
-      crimeNumber: formData.crimeNumber,
-      imageNumber: formData.imageNumber,
-      crimeName: formData.crimeName,
-      findTime: formData.findTime,
-      requestOffice: formData.requestOffice,
-      findMethod: formData.findMethod,
+      aprthngNo: buildAprthngNo(formData.apprslReqestNo, formData.aprthngSn),
+      apprslReqestNo: formData.apprslReqestNo,
+      pickDt: formData.pickDt,
+      pickPlace: formData.pickPlace,
+      pickMthCode: formData.pickMthCode,
+      crimeNm: formData.crimeNm,
+      rqestGrfcNm: formData.rqestGrfcNm,
     })
   }, [formData, registerMutation, bakeAdjustments])
 
@@ -175,6 +205,7 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
           onSubmit={handleSubmit}
           onReset={handleReset}
           isSubmitting={registerMutation.isPending}
+          errorMessage={errorMessage}
         />
       </div>
     </div>
