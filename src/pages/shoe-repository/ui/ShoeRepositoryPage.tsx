@@ -55,8 +55,8 @@ function hydrateShoe(shoe: Shoe): Shoe {
  * 이름만 주므로 이 페이지에서 경로를 hydrate해 편집 시드로 넘긴다.
  */
 export function ShoeRepositoryPage() {
-  // 라우트 변수는 `:ftwrId`(앞자리 0 보존 문자열). 내부 변수명 정리는 Task 6에서 한다.
-  const { ftwrId: modelNumber = "" } = useParams()
+  // 라우트 변수 `:ftwrId` — 앞자리 0 보존 문자열(`"00758"`). 숫자로 바꾸지 않는다.
+  const { ftwrId = "" } = useParams()
   const [searchParams] = useSearchParams()
   const isNew = searchParams.get("mode") === "new"
   const navigate = useNavigate()
@@ -89,17 +89,15 @@ export function ShoeRepositoryPage() {
   // 이미 캐시된 목록 페이지에 있으면 placeholderData로 즉시 시드(행 클릭 시 무플리커),
   // 없으면(콜드 진입) 상세를 새로 가져온다. 문양 경로 hydrate는 아래 useMemo에서.
   const detailQuery = useQuery({
-    queryKey: shoeKeys.detail(modelNumber),
-    queryFn: () => fetchShoeDetail(modelNumber),
-    enabled: !isNew && !!modelNumber,
+    queryKey: shoeKeys.detail(ftwrId),
+    queryFn: () => fetchShoeDetail(ftwrId),
+    enabled: !isNew && !!ftwrId,
     placeholderData: () => {
       const cachedPages = queryClient.getQueriesData<Shoe[]>({
         queryKey: ["shoes", "list"],
       })
       for (const [, data] of cachedPages) {
-        const hit = data?.find(
-          (item) => String(item.modelNumber) === String(modelNumber)
-        )
+        const hit = data?.find((item) => item.ftwrId === ftwrId)
         if (hit) return hit
       }
       return undefined
@@ -112,14 +110,10 @@ export function ShoeRepositoryPage() {
 
   // 저장(등록/수정) 성공 → Sheet 닫고 목록 캐시 무효화 후 해당 신발 편집으로.
   const handleSaved = useCallback(
-    (savedModelNumber: string) => {
+    (savedFtwrId: string) => {
       setInfoSheetOpen(false)
       queryClient.invalidateQueries({ queryKey: ["shoes"] })
-      navigate(
-        savedModelNumber
-          ? shoeEditModePath(savedModelNumber)
-          : shoeRepositoryPath()
-      )
+      navigate(savedFtwrId ? shoeEditModePath(savedFtwrId) : shoeRepositoryPath())
     },
     [queryClient, navigate]
   )
@@ -127,22 +121,22 @@ export function ShoeRepositoryPage() {
   // 목록 행 클릭: 이미 선택된 행이면 기본정보 Sheet를 열고, 아니면 그 신발 편집으로.
   const handleListSelect = useCallback(
     (value: string) => {
-      if (!isNew && value === modelNumber) {
+      if (!isNew && value === ftwrId) {
         setInfoSheetOpen(true)
         return
       }
       setInfoSheetOpen(false)
       navigate(shoeEditModePath(value))
     },
-    [isNew, modelNumber, navigate]
+    [isNew, ftwrId, navigate]
   )
 
   const headerTitle = useMemo(() => {
     const [title, subtitle] = isNew
       ? ["신규 신발 등록", "신발 이미지를 등록하고 밑창 문양을 추출·입력하세요."]
-      : modelNumber
+      : ftwrId
         ? [
-            `신발 편집 · ${modelNumber}`,
+            `신발 편집 · ${ftwrId}`,
             "밑창 문양을 편집하고, 목록의 선택 행을 다시 누르면 기본정보를 편집합니다.",
           ]
         : ["신발", "등록된 신발을 조회·편집하거나 새 신발을 등록합니다."]
@@ -156,7 +150,7 @@ export function ShoeRepositoryPage() {
         </span>
       </div>
     )
-  }, [isNew, modelNumber])
+  }, [isNew, ftwrId])
 
   usePageHeader({ title: headerTitle })
 
@@ -166,7 +160,7 @@ export function ShoeRepositoryPage() {
       total={total}
       page={safePage}
       totalPages={totalPages}
-      selectedModelNumber={modelNumber}
+      selectedFtwrId={ftwrId}
       isLoading={shoesQuery.isFetching}
       onSelect={handleListSelect}
       onPageChange={setPage}
@@ -183,8 +177,8 @@ export function ShoeRepositoryPage() {
   const workbenchKey = isNew
     ? "new"
     : currentShoe
-      ? `${modelNumber}-edit`
-      : `${modelNumber || "none"}-loading`
+      ? `${ftwrId}-edit`
+      : `${ftwrId || "none"}-loading`
 
   return (
     <div className="relative h-[calc(100vh-110px)] w-full overflow-hidden bg-background px-6 py-6">

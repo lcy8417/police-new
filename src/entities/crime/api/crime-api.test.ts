@@ -167,10 +167,12 @@ describe("saveCrimeHistory (POST /crime/:aprthngNo)", () => {
       editImage: "EDITEDBASE64==",
       extractedRaw: null,
     });
-    // 서버 시각을 쓰므로 등록 시각·사건 번호·원본 이미지는 더 이상 보내지 않는다.
+    // 서버 시각을 쓰므로 등록 시각·사건 번호·원본 이미지는 더 이상 보내지 않는다 —
+    // 위 toEqual이 JSON 본문의 키 집합을 정확히 비교하므로 옛 키가 섞이면 실패한다.
     expect(captured).not.toHaveProperty("registerTime");
-    expect(captured).not.toHaveProperty("crimeNumber");
-    expect(captured).not.toHaveProperty("matchingShoes");
+    expect(Object.keys(captured as Record<string, unknown>).sort()).toEqual(
+      ["top", "mid", "bottom", "outline", "ranking", "mtchgId", "editImage", "extractedRaw"].sort()
+    );
     expect(result).toEqual({ searchNo: 591656 });
   });
 

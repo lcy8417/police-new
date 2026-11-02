@@ -21,11 +21,11 @@ export type PatternZone = "top" | "mid" | "bottom" | "outline";
 ## 2. ⚠ 요소 형태가 문맥마다 다르다 (crime 튜플 vs shoe 문자열)
 
 ```ts
-export type EssentialFlag = 0 | boolean;
+export type EssentialFlag = 0 | 1 | boolean;
 export type PatternEntry = string | readonly [string, EssentialFlag];
 ```
 
-- **범죄(crime) 패턴** = `[이미지경로, 필수플래그]` **2요소 튜플**. 요소 `[1]`(필수플래그)은 `essentialCheck`가 쓰는 "필수" 토글. 검색은 이 필수 문양만 사용한다.
+- **범죄(crime) 패턴** = `[이미지경로, 필수플래그]` **2요소 튜플**. 요소 `[1]`(필수플래그)은 `essentialCheck`가 쓰는 "필수" 토글. 검색은 이 필수 문양만 사용한다. 서버가 저장했던 플래그는 정수 `0`/`1`로 돌아오고(`1` = 필수), 화면에서 토글하면 boolean이 된다 — 참/거짓으로만 읽을 것(`=== true` 비교 금지).
 - **신발(shoe) 패턴**(`formData`/`Shoe` 안에서) = 단순 **경로 문자열**.
 
 코드 전반이 이 차이로 분기한다:
@@ -40,6 +40,7 @@ export type PatternEntry = string | readonly [string, EssentialFlag];
 패턴 PNG는 `src/assets/Patterns/` 아래 **한국어 도형 이름 폴더**에 있다(`무늬`·`선`·`윤곽선`·`다각`·`삼각`·`사각`·`원`·`항목`, 그리고 통합 폴더 `전체`).
 
 - **서버는 패턴 "이름"만** 보낸다. 클라이언트가 앞에 루트 경로를 붙인다.
+- **서버 저장 위치**(PostgreSQL, 설계서 §4): 사건 문양은 `scas.tbf_ftaprthngptrninfo`(위치 코드 `top`=`FT030001`·`mid`=`FT030002`·`bottom`=`FT030003`·`outline`=`FT030004`) + 필수 플래그 `app.aprthng_ptrn_essntl`, 신발 문양은 `scas.tbf_ftwrptrninfo`, 이력 저장 시점의 문양은 `app.search_snapshot.ptrn_snapshot`. 프론트가 보내고 받는 모양(`[["s21b", 1], ...]` / `["s21b", ...]`)은 그대로다.
 - **루트 정본**: `entities/pattern/model/pattern.ts`의 `PATTERNS_ROOT = "/src/assets/Patterns/전체/"`.
   - **경로 붙이기(hydrate)**: `insertPatternPath(entry)` — 이름 → `/src/assets/Patterns/전체/<이름>.png` (crime 튜플/shoe 문자열 양쪽 처리).
   - **경로 벗기기(서버 전송 전)**: `stripPatternPath(entry)` — 전체 경로 → 이름만.

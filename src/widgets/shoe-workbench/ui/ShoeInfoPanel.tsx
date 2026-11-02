@@ -10,7 +10,7 @@ import { TechCorners } from "@/shared/ui/tech-corners"
 const fieldInputClass =
   "border-[#1E2A3C] bg-[#0D1420]/60 text-[#E5E9F0] placeholder:text-[#4C5670] focus-visible:border-[#3B82F6] focus-visible:ring-[#3B82F6]/30"
 
-// 읽기전용 필드(조회 모드·모델번호 잠금)용 무채색 스타일.
+// 읽기전용 필드(조회 모드·신발ID 잠금)용 무채색 스타일.
 const readOnlyFieldClass =
   "cursor-not-allowed text-[#8A93A6] focus-visible:border-[#1E2A3C] focus-visible:ring-0"
 
@@ -35,8 +35,8 @@ interface ShoeInfoPanelProps {
   submitPendingLabel?: string
   /** 좌측 outline 버튼 라벨(등록 = "초기화", 편집 = "되돌리기"). 기본 "초기화". */
   resetLabel?: string
-  /** 편집 시 모델번호는 PUT의 URL 키라 잠근다(실수로 다른 신발을 덮어쓰지 않도록). */
-  modelNumberReadOnly?: boolean
+  /** 편집 시 신발ID(`ftwrId`)는 PUT의 URL 키라 잠근다(실수로 다른 신발을 덮어쓰지 않도록). */
+  ftwrIdReadOnly?: boolean
   /** view(조회) 모드: 전 필드를 읽기전용으로 잠그고 푸터를 [편집] 버튼으로 바꾼다. */
   readOnly?: boolean
   /** 조회 모드 [편집] 버튼 클릭 — 편집 모드로 진입한다. */
@@ -46,9 +46,10 @@ interface ShoeInfoPanelProps {
 /**
  * 우측 "신발 정보" 패널: 레거시 `FormList`/`FormItem`이 만들던 신발 메타 필드를
  * crime-register `CaseInfoPanel`과 같은 다크 커맨드콘솔 카드로 재구성한 컨트롤드
- * 폼이다. 모델번호는 저장 필수값이라 맨 위에 둔다. 조회·편집·등록 세 국면이 같은
- * 컴포넌트를 공유하며(값이 항상 일치), 차이는 필드 잠금(`readOnly`)·버튼 라벨·모델
- * 번호 잠금(`modelNumberReadOnly`)뿐이다.
+ * 폼이다. 입력칸 키는 SCAS 신발 필드명(설계서 §4-4)이고 `maxLength`는 §5 열 길이다.
+ * 신발ID는 저장 필수값이라 맨 위에 둔다. SCAS의 비어 있는(NULL) 메타데이터는 빈 칸으로
+ * 보인다. 조회·편집·등록 세 국면이 같은 컴포넌트를 공유하며(값이 항상 일치), 차이는
+ * 필드 잠금(`readOnly`)·버튼 라벨·신발ID 잠금(`ftwrIdReadOnly`)뿐이다.
  */
 export function ShoeInfoPanel({
   formData,
@@ -59,7 +60,7 @@ export function ShoeInfoPanel({
   submitLabel = "등록",
   submitPendingLabel = "등록 중...",
   resetLabel = "초기화",
-  modelNumberReadOnly = false,
+  ftwrIdReadOnly = false,
   readOnly = false,
   onEdit,
 }: ShoeInfoPanelProps) {
@@ -73,56 +74,73 @@ export function ShoeInfoPanel({
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
-        <Field label="모델번호">
+        <Field label="신발ID">
           <Input
-            value={formData.modelNumber ?? ""}
-            onChange={(e) => onFieldChange("modelNumber", e.target.value)}
-            placeholder="모델번호 입력 (필수)"
-            readOnly={readOnly || modelNumberReadOnly}
+            value={formData.ftwrId ?? ""}
+            onChange={(e) => onFieldChange("ftwrId", e.target.value)}
+            placeholder="신발ID 입력 (필수)"
+            maxLength={8}
+            readOnly={readOnly || ftwrIdReadOnly}
             className={cn(
               fieldInputClass,
               "tabular-nums",
-              (readOnly || modelNumberReadOnly) && readOnlyFieldClass
+              (readOnly || ftwrIdReadOnly) && readOnlyFieldClass
             )}
           />
         </Field>
 
-        <Field label="제조사">
+        <Field label="모델명">
           <Input
-            value={formData.manufacturer ?? ""}
-            onChange={(e) => onFieldChange("manufacturer", e.target.value)}
-            placeholder="제조사를 입력하세요"
+            value={formData.modlNm ?? ""}
+            onChange={(e) => onFieldChange("modlNm", e.target.value)}
+            placeholder="모델명을 입력하세요"
+            maxLength={500}
             readOnly={readOnly}
             className={cn(fieldInputClass, readOnly && readOnlyFieldClass)}
           />
         </Field>
 
-        <Field label="상표명">
+        <Field label="상표코드">
           <Input
-            value={formData.emblem ?? ""}
-            onChange={(e) => onFieldChange("emblem", e.target.value)}
-            placeholder="상표명을 입력하세요"
+            value={formData.brandCode ?? ""}
+            onChange={(e) => onFieldChange("brandCode", e.target.value)}
+            placeholder="상표코드를 입력하세요"
+            maxLength={9}
             readOnly={readOnly}
             className={cn(fieldInputClass, readOnly && readOnlyFieldClass)}
           />
         </Field>
 
-        <Field label="수집장소">
+        <Field label="제조사코드">
           <Input
-            value={formData.findLocation ?? ""}
-            onChange={(e) => onFieldChange("findLocation", e.target.value)}
-            placeholder="수집장소를 입력하세요"
+            value={formData.makrCode ?? ""}
+            onChange={(e) => onFieldChange("makrCode", e.target.value)}
+            placeholder="제조사코드를 입력하세요"
+            maxLength={8}
             readOnly={readOnly}
             className={cn(fieldInputClass, readOnly && readOnlyFieldClass)}
           />
         </Field>
 
-        <Field label="수집년도">
+        <Field label="수집처">
           <Input
-            value={String(formData.findYear ?? "")}
-            onChange={(e) => onFieldChange("findYear", e.target.value)}
+            value={formData.colctPlace ?? ""}
+            onChange={(e) => onFieldChange("colctPlace", e.target.value)}
+            placeholder="수집처를 입력하세요"
+            maxLength={200}
+            readOnly={readOnly}
+            className={cn(fieldInputClass, readOnly && readOnlyFieldClass)}
+          />
+        </Field>
+
+        <Field label="수집연도">
+          <Input
+            value={formData.colctYear ?? ""}
+            // 숫자 4자리만 허용(설계서 §5) — 숫자가 아닌 글자는 입력 단계에서 걸러 낸다.
+            onChange={(e) => onFieldChange("colctYear", e.target.value.replace(/\D/g, ""))}
             placeholder="YYYY"
             inputMode="numeric"
+            maxLength={4}
             readOnly={readOnly}
             className={cn(
               fieldInputClass,

@@ -1,25 +1,30 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { act, renderHook } from "@testing-library/react"
+import type { RefObject } from "react"
 
 import type { Shoe } from "@/entities/shoe"
 import { usePatternManager } from "./use-pattern-manager"
 import * as api from "@/services/api"
 
 /** formData/setFormData를 가진 신발 모드로 훅을 구동하는 테스트 하네스. */
-function renderShoeManager() {
+function renderShoeManager(
+  overrides: Partial<Shoe> = {},
+  imgRef: RefObject<HTMLImageElement | null> | null = null
+) {
   let formData: Shoe = {
     image: "data:image/png;base64,AAAA",
     top: [],
     mid: [],
     bottom: [],
     outline: [],
-    modelNumber: "",
+    ftwrId: "",
+    ...overrides,
   }
   const setFormData = (updater: Shoe | ((prev: Shoe) => Shoe)) => {
     formData = typeof updater === "function" ? updater(formData) : updater
   }
   const view = renderHook(() =>
-    usePatternManager({ formData, setFormData, imgRef: null })
+    usePatternManager({ formData, setFormData, imgRef })
   )
   return { view, get: () => formData }
 }
@@ -78,4 +83,39 @@ describe("usePatternManager 신발 모드 extractPattern — 좌표 계약 회�
     expect(body.render_size).toEqual([200, 300])
     expect(body.type).toBe("shoes")
   })
+
+  it.each([
+    ["imgRef 없음", null],
+    [
+      "캔버스 img가 서버 URL을 표시 중",
+      // 캐시 무효화 쿼리가 붙은 URL — 파일명을 잘라 내면 "00758?v=2"가 되어 버린다.
+      { current: { src: "http://api.test/shoes_images/B/00758.png?v=2" } } as RefObject<HTMLImageElement | null>,
+    ],
+  ])(
+    "서버 이미지 URL로 편집 중이면 URL에서 파일명을 잘라 내지 않고 원본 ftwrId를 보낸다 (%s)",
+    async (_label, imgRef) => {
+      const spy = vi.spyOn(api, "patternsExtract").mockResolvedValue({
+        top: [],
+        mid: [],
+        bottom: [],
+        outline: [],
+      })
+
+      const { view } = renderShoeManager(
+        { ftwrId: "00758", image: "http://api.test/shoes_images/B/00758.png?v=2" },
+        imgRef
+      )
+      Object.defineProperty(view.result.current.canvasRef, "current", {
+        value: { getBoundingClientRect: () => ({ width: 200, height: 300 }) },
+        writable: true,
+      })
+
+      await act(async () => {
+        await view.result.current.extractPattern()
+      })
+
+      const body = (spy.mock.calls[0][0] as { body: { image?: unknown } }).body
+      expect(body.image).toBe("00758")
+    }
+  )
 })

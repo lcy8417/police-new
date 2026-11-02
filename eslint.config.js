@@ -79,7 +79,15 @@ const boundariesRules = {
 }
 
 export default [
-  { ignores: ['dist'] },
+  // 아무 곳에서도 import하지 않는 레거시 DEAD 파일은 수정 금지 대상이라(계획 Global Constraints)
+  // 린트에서 제외한다 — 남아 있던 no-unused-vars·no-unreachable 오류가 전부 이 두 파일에 있었다.
+  {
+    ignores: [
+      'dist',
+      'src/components/CrimeRegisterMain.jsx',
+      'src/components/Sidebar.jsx',
+    ],
+  },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {

@@ -32,30 +32,60 @@
 ### (A) CRUD·리스트 — camelCase 변환함
 - `src/services/crud.js`(레거시, 아직 활성) + `src/entities/{crime,shoe}/api`(타입드 승격).
 - 서버는 snake_case, 응답을 **`convertKeysToCamelCase`**(`shared/lib`)로 camelCase 변환해서 쓴다.
-- crud.js exports: `fetchCrimeData`·`fetchShoesData`·`fetchCurrentShoes`·`fetchShoesEdit`·`fetchHistoryData`·`fetchCrimeRegister`·`fetchPatterns`(PUT 문양 저장)·`fetchHistorySave`·`fetchEditImageSave`.
-- entities 타입드 래퍼(신규 정본): `fetchCrimeList`/`fetchCrimeDetail`/`fetchCrimeHistory`/`registerCrime`(`entities/crime/api/crime-api.ts`), `fetchShoesList`/`fetchShoeDetail`/`updateShoe`(`entities/shoe/api/shoe-api.ts`). 이들은 `apiGet`+`convertKeysToCamelCase` 조합.
+- crud.js exports: `fetchCrimeData`·`fetchShoesData`·`fetchCurrentShoes`·`fetchHistoryData`·`fetchCrimeRegister`·`fetchPatterns`(PUT 문양 저장). (호출처가 없던 레거시 이력 저장·편집 이미지 저장·신발 수정 함수는 삭제 — 아래 entities 래퍼를 쓴다.)
+- entities 타입드 래퍼(신규 정본): `fetchCrimeList`/`fetchCrimeDetail`/`fetchCrimeHistory`/`registerCrime`/`saveCrimeHistory`/`saveCrimeEditImage`(`entities/crime/api/crime-api.ts`), `fetchShoesList`/`fetchShoesCount`/`fetchShoeDetail`/`updateShoe`/`registerShoe`(`entities/shoe/api/shoe-api.ts`). 이들은 `apiGet`/`apiSend`+`convertKeysToCamelCase` 조합.
+- **오류 문구**: `apiGet`/`apiSend`는 서버가 400·409를 주면 `ApiError(status, detail)`를 throw한다(`shared/api/client.ts`). 화면은 `detail`(한국어, 예 `"이미 등록된 번호입니다"`)을 그대로 보여 준다(사건 등록 `RegisterStage`, 신발 저장 `ShoeWorkbench`).
+
+**필드 이름 = SCAS 열 이름**(정본: `police-server/docs/superpowers/specs/2026-11-03-scas-postgres-design.md` §4·§5). 서버는 snake로 응답하고 프론트는 camel로 변환해 쓴다. URL 경로(`/crime/...`, `/shoes/...`)는 그대로다.
+
+| 대상 | 서버 응답 키(snake) → 프론트(camel) | 비고 |
+|---|---|---|
+| 사건(감정물) | `aprthng_no`→`aprthngNo`, `apprsl_reqest_no`→`apprslReqestNo`, `pick_dt`→`pickDt`, `pick_place`→`pickPlace`, `pick_mth_code`→`pickMthCode`, `crime_nm`→`crimeNm`, `rqest_grfc_nm`→`rqestGrfcNm`, `process_sttus`→`processSttus`, `edit_image`→`editImage`, `extracted_raw`→`extractedRaw`, `pidinet_outline`→`pidinetOutline`, `frst_regist_dt`→`frstRegistDt` | `pickDt`는 `"YYYY-MM-DDTHH:MM:SS"` 또는 `null`. 문양은 `[["s21b", 1], ...]`(이름, 필수 0/1 정수) |
+| 이력(사건 상세의 목록) | `search_no`→`searchNo`(정수), `frst_regist_dt`→`frstRegistDt`, `ranking`, `mtchg_id`→`mtchgId`(`null`=매칭 없이 저장) | 이력 상세 `GET /crime/history/{search_no}`: `editImage, mtchgId, top/mid/bottom/outline, extractedRaw, pidinetOutline` |
+| 신발 | `ftwr_id`→`ftwrId`, `ftwr_group_id`→`ftwrGroupId`, `ftwr_group_nm`→`ftwrGroupNm`, `modl_nm`→`modlNm`, `brand_code`→`brandCode`, `makr_code`→`makrCode`, `colct_place`→`colctPlace`, `colct_year`→`colctYear`, `sexdstn_se`→`sexdstnSe`, `swing_se`→`swingSe`, `ftwr_size`→`ftwrSize` | `ftwrId` 외 메타데이터는 `string \| null` — 화면은 `null`을 빈 칸으로 표시. 문양은 이름 문자열 배열 |
+
+예시(신발 목록 한 행, camel 변환 후):
+
+```json
+{ "ftwrId": "00758", "ftwrGroupId": "G038", "ftwrGroupNm": "crocs(크록스)-038", "modlNm": null,
+  "brandCode": "B0038", "makrCode": null, "colctPlace": null, "colctYear": "2019",
+  "image": "https://localhost:8000/shoes_images/B/00758.png", "top": ["s21b"], "mid": [], "bottom": [], "outline": [] }
+```
+
+**요청 본문(프론트 → 서버, camelCase 그대로)**:
+
+| 엔드포인트 | 본문 키 | 프론트 함수 |
+|---|---|---|
+| `POST /crime/register` | `image, aprthngNo, apprslReqestNo, pickDt, pickPlace, pickMthCode, crimeNm, rqestGrfcNm` | `registerCrime` |
+| `PUT /crime/{aprthng_no}` | `top, mid, bottom, outline, extracted_raw` | `putCrimePatterns` / 레거시 `fetchPatterns` |
+| `POST /crime/{aprthng_no}`(이력 저장) | `top, mid, bottom, outline, ranking, mtchgId, editImage, extractedRaw` → 응답 `{"search_no": n}` | `saveCrimeHistory` |
+| `POST /shoes/register` | `image, ftwrId, colctPlace, colctYear, makrCode, brandCode, modlNm, top, mid, bottom, outline` | `registerShoe` |
+| `PUT /shoes/{ftwr_id}` | 위에서 `image, ftwrId` 제외 | `updateShoe` |
+
+**ID 규칙**(설계서 §5): ID는 **문자열**이다 — `Number()`·`parseInt` 금지(`ftwrId="00758"`의 앞자리 0 보존). 단 `searchNo`만 숫자. `aprthngNo`·`apprslReqestNo`(1~20자)와 `ftwrId`(1~8자)는 영문·숫자·`-`·`_`만, `ftwrId`는 예약어 `count`(`GET /shoes/count`와 겹침) 금지. 화면 검증은 `validateCrimeRegister`(사건)·`validateShoeForm`(신발)이 서버보다 먼저 한다. 그래도 화면 링크·API 경로·정적 이미지 URL에는 방어용 `encodeURIComponent`를 쓴다(`searchDetailPath`·`shoeRepositoryPath`·`sceneImageUrl`·`shoeImageUrl`).
 
 ### (B) 이미지 처리 — 변환 안 함
 - `src/services/api.js` exports: `imageProcessing`·`patternsExtract`·`imageSearch`·`imageLoad`·`fetchPerspective`·`fetchSimilarity`·`saveEditImage`.
 - **camelCase 변환을 하지 않는다.** 같은 필드가 한 곳에선 snake_case, 다른 곳에선 camelCase로 나타날 수 있으니 이 차이를 항상 염두에.
 
-**엔드포인트 카탈로그**(`POST` `/crime/:crimeNumber/...` 위주):
+**엔드포인트 카탈로그**(`POST` `/crime/:aprthngNo/...` 위주 — 경로 변수 값은 감정물 번호 `aprthngNo`, `encodeURIComponent` 적용):
 | 함수 | 엔드포인트 | body/쿼리 |
 |---|---|---|
-| `patternsExtract` | `POST /crime/:crimeNumber/patterns_extract` | `{ image, line_ys, render_size, type }` (§4) |
-| `imageSearch` | `POST /crime/:crimeNumber/search?page&similarity` | `{ image, top, mid, bottom, outline }` — **필수 문양만**(이름 배열) |
-| `imageLoad` | `GET /crime/:crimeNumber/image_load?edit` | — (검색·표시용 현장/편집 이미지) |
+| `patternsExtract` | `POST /crime/:aprthngNo/patterns_extract` | `{ image, line_ys, render_size, type }` (§4). 신발은 경로에 `shoes`, `image`에 data URL 또는 **원본 `ftwrId` 문자열**(서버 이미지 URL에서 파일명을 잘라 내지 않는다) |
+| `imageSearch` | `POST /crime/:aprthngNo/search?page&similarity` | `{ image, top, mid, bottom, outline }` — **필수 문양만**(이름 배열). 응답 `result[]`는 `{ ftwr_id, similarity }` → 프론트 항목 `{ ftwrId, image, similarity }`(`image`는 `/shoes_images/{B\|Shoerinsics}/<ftwrId>.png`) |
+| `imageLoad` | `GET /crime/:aprthngNo/image_load?edit` | — (검색·표시용 현장/편집 이미지) |
 | `fetchPerspective` | `POST /crime/demo/perspective` | 4점 각도보정(polygon·render_size·image) |
-| `fetchSimilarity` | 유사도 산정 | crimeNumber·modelNumber |
-| `saveEditImage` | 편집 이미지 저장 | id·image(base64)·folder |
+| `fetchSimilarity` | `POST /crime/:aprthngNo/similarity?ftwr_id=` | 쿼리 `ftwr_id`(옛 `model_number`) |
+| `saveEditImage` | `POST /crime/:id/edit-save` | id·image(base64)·folder |
 
+- 정렬·매칭(`entities/alignment`, `entities/match`)도 이 계층(무변환)이다: 쿼리 `?ftwr_id=`, `GET /crime/:aprthngNo/alignment/latest` 응답 `ftwrId`, `POST /crime/:aprthngNo/match_top10` 응답 `{ matches, aprthng_no, ftwr_id }`(409 `detail`도 같은 키).
 - `imageSearch` 응답 `similarity`는 **퍼센트(0~100)**(예 69.99). UI는 0~1을 가정하므로 소비 측에서 `>1이면 /100` 정규화(`RetrievalResultsGrid`).
 
 ---
 
 ## 3. 이미지 파이프라인 (base64 + canvas)
 
-- 이미지는 **base64 data URL**로 오간다. **모든 POST 전 `data:image/...;base64,` 접두어 제거**(`stripDataUrl`/`stripDataUrlPrefix`, 레거시는 수동 `.split(",")`). 참고: `fetchCrimeRegister`·`fetchHistorySave`·`fetchEditImageSave`·`saveEditImage`.
+- 이미지는 **base64 data URL**로 오간다. **모든 POST 전 `data:image/...;base64,` 접두어 제거**(`stripDataUrl`/`stripDataUrlPrefix`, 레거시는 수동 `.split(",")`). 참고: `registerCrime`·`registerShoe`·`saveCrimeHistory`(`editImage`)·`saveCrimeEditImage`·레거시 `fetchCrimeRegister`·`saveEditImage`.
 - 클라이언트 변환은 canvas 기반:
   - `hooks/useCalibration.js` — 4점 **각도 보정**(canvas 좌표 → 상대 좌표 → `naturalWidth/Height` 픽셀 → `/crime/demo/perspective` POST).
   - `components/Canvas.jsx` — 크롭·회전.
@@ -88,7 +118,8 @@
 
 ## 6. KST 타임존 — 하드코딩
 
-- 타임스탬프는 KST 고정: `shared/lib/kst.ts`의 `toKstIso`, 레거시는 `new Date(Date.now() + 9*60*60*1000).toISOString().replace("Z","+09:00")`(`fetchHistorySave`). 새 타임스탬프도 이 방식.
+- 타임스탬프는 KST 고정: `shared/lib/kst.ts`의 `toKstIso`(`new Date(Date.now() + 9*60*60*1000).toISOString().replace("Z","+09:00")`). 새 타임스탬프도 이 방식.
+- 이력 저장 시각(`frstRegistDt`)은 이제 **서버 시각**을 쓰므로 프론트가 보내지 않는다(설계서 §4-4·§4-5).
 
 ---
 

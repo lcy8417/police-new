@@ -4,7 +4,7 @@
 모든 데이터·AI 처리는 백엔드 [`lcy8417/police-server`](https://github.com/lcy8417/police-server)(FastAPI)가 담당하므로, **백엔드를 먼저 설치·실행**해야 합니다. 백엔드의 DB·데이터·모델 가중치 설치는 police-server README를 따르세요.
 
 ```
-[브라우저] ──▶ police-new (Vite, :5173) ──HTTPS──▶ police-server (FastAPI, :8000) ──▶ MySQL
+[브라우저] ──▶ police-new (Vite, :5173) ──HTTPS──▶ police-server (FastAPI, :8000) ──▶ PostgreSQL
 ```
 
 ## 준비물

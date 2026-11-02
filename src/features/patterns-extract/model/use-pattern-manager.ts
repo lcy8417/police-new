@@ -63,21 +63,23 @@ export const usePatternManager = ({
 
     const requestType = formData ? "shoes" : "crime";
 
-    // 신발 정보 수정일 때는 png 파일 이름을 추출하여 사용
-    // (non-null assertions below mirror the original's unguarded `.image`/`.pop()`
-    // access — they preserve the exact runtime behavior, including throwing if
-    // `formData.image` were ever null, rather than adding new guards.)
-    const shoesImage = formData?.image!.includes(".png")
-      ? formData?.image!.split(/[/\\]/).pop()!.split(".")[0]
-      : formData?.image;
+    // 신발 모드: 업로드·회전한 data URL이면 그대로 보내고, 서버 이미지 URL
+    // (`…/shoes_images/B/<ftwrId>.png`)로 편집 중이면 URL에서 파일명을 잘라 내지 않고
+    // 원본 신발 ID 문자열(`ftwrId`, 앞자리 0 보존)을 보낸다 — 서버가 그 ID로 이미지를 찾는다.
+    const shoesImage = formData?.image?.startsWith("data:image")
+      ? formData.image
+      : formData?.ftwrId;
 
     let requestImage: string | null | undefined = null;
-    // imgRef(현장, 편집이미지 모달)가 있는 경우
+    // imgRef(현장, 편집이미지 모달 / 신발 워크벤치 캔버스)가 있는 경우
     if (imgRef && imgRef.current) {
-      // 편집 이미지의 경우
-      requestImage = imgRef.current.src.startsWith("data:image")
-        ? imgRef.current.src
-        : imgRef.current.src.split(/[/\\]/).pop()!.replace(".png", "");
+      const src = imgRef.current.src;
+      // 편집 이미지(data URL)는 그대로, 신발 서버 이미지는 위 shoesImage(원본 ftwrId) 규칙을 따른다.
+      requestImage = src.startsWith("data:image")
+        ? src
+        : formData
+          ? shoesImage
+          : src.split(/[/\\]/).pop()!.replace(".png", "");
     } else {
       // 현장 이미지의 경우 — 서버가 원본(`crime_images/<aprthngNo>.png`)을 찾도록
       // 감정물 번호 원본 문자열을 그대로 보낸다.

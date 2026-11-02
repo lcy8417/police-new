@@ -30,17 +30,21 @@ function renderWorkbench() {
 describe("ShoeWorkbench 초기화(신규 등록)", () => {
   it("초기화 버튼이 입력 필드를 비운다", () => {
     renderWorkbench()
-    const modelInput = screen.getByPlaceholderText(
-      "모델번호 입력 (필수)"
+    const idInput = screen.getByPlaceholderText(
+      "신발ID 입력 (필수)"
     ) as HTMLInputElement
-    fireEvent.change(modelInput, { target: { value: "ABC-123" } })
-    expect(modelInput.value).toBe("ABC-123")
+    const modlInput = screen.getByLabelText("모델명") as HTMLInputElement
+    fireEvent.change(idInput, { target: { value: "00758" } })
+    fireEvent.change(modlInput, { target: { value: "클래식 클로그" } })
+    expect(idInput.value).toBe("00758")
+    expect(modlInput.value).toBe("클래식 클로그")
 
     // 화면에 "초기화" 버튼이 둘(캔버스 문양초기화 + 정보패널 초기화) 있으므로
     // 정보패널(마지막) 버튼을 클릭한다.
     const resetButtons = screen.getAllByRole("button", { name: "초기화" })
     fireEvent.click(resetButtons[resetButtons.length - 1])
 
-    expect(modelInput.value).toBe("")
+    expect(idInput.value).toBe("")
+    expect(modlInput.value).toBe("")
   })
 })

@@ -20,8 +20,7 @@ const Canvas = ({
   imgRef = null,
   mode = "patterns",
   buttonState = null,
-  rotateFunction = null,
-  cropFunction = null,
+  // rotateFunction·cropFunction prop은 이 컴포넌트에서 쓰지 않아 받지 않는다(호출부가 넘겨도 무시됨 — 기존과 동일).
   cropMode = false,
   cropApply = 0,
   originSize = null,

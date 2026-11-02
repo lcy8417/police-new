@@ -19,6 +19,7 @@ import {
   EMPTY_SHOE_FORM,
   registerShoe,
   updateShoe,
+  validateShoeForm,
   type Shoe,
 } from "@/entities/shoe"
 import type { Crime } from "@/entities/crime"
@@ -30,6 +31,7 @@ import {
   usePatternManager,
 } from "@/features/patterns-extract"
 import { rotateArbitrary } from "@/features/crime-register"
+import { ApiError } from "@/shared/api"
 import { cn } from "@/shared/lib/utils"
 import { Slider } from "@/shared/ui/slider"
 import {
@@ -86,7 +88,7 @@ interface ShoeWorkbenchProps {
    */
   initialShoe?: Shoe
   /** 저장(등록/수정) 성공 후 호출. 페이지가 목록 무효화·라우팅·Sheet 닫기를 담당한다. */
-  onSaved?: (savedModelNumber: string) => void
+  onSaved?: (savedFtwrId: string) => void
   /** [새 신발] 탭 / 툴바 [신규 신발 등록] 버튼 — ?mode=new로 라우팅(전체 초기화). */
   onNewRegister?: () => void
   /** [기존 신발 목록] 탭 — 목록 브라우즈로 라우팅. */
@@ -100,7 +102,7 @@ interface ShoeWorkbenchProps {
 
 /**
  * 신발 문양추출 워크벤치(4열). 레거시 `ShoesRegisterMain`/`Canvas.jsx` 스택을
- * 대체하며, 검색 커맨드센터(`/search/:crimeNumber`)와 동일 컴포넌트
+ * 대체하며, 검색 커맨드센터(`/search/:aprthngNo`)와 동일 컴포넌트
  * (`PatternCanvas`·`PatternZones`·`PatternPalette` + `usePatternManager` 신발 모드)를
  * 재사용한다. 등록(POST)·편집(PUT)을 `formData` 하나로 겸용한다.
  *
@@ -242,33 +244,41 @@ export function ShoeWorkbench({
   const saveMutation = useMutation({
     mutationFn: async (data: Shoe): Promise<string> => {
       if (isEdit) {
-        // 모델번호는 URL 키다(잠겨 있어 편집 불가) — initialShoe에서 취한다.
-        const modelNumber = initialShoe?.modelNumber ?? data.modelNumber ?? ""
-        await updateShoe({ modelNumber, body: data })
-        return modelNumber
+        // 신발ID는 URL 키다(잠겨 있어 편집 불가) — initialShoe에서 취한다.
+        const ftwrId = initialShoe?.ftwrId ?? data.ftwrId ?? ""
+        await updateShoe({ ftwrId, body: data })
+        return ftwrId
       }
       await registerShoe(data)
-      return data.modelNumber ?? ""
+      return data.ftwrId ?? ""
     },
-    onSuccess: (savedModelNumber) => {
+    onSuccess: (savedFtwrId) => {
       toast.success(
         isEdit ? "신발 정보가 저장되었습니다." : "신발 정보가 등록되었습니다."
       )
-      onSaved?.(savedModelNumber)
+      onSaved?.(savedFtwrId)
     },
-    onError: () => {
-      toast.error(isEdit ? "신발 저장에 실패했습니다." : "신발 등록에 실패했습니다.")
+    onError: (error) => {
+      // 서버 400/409(`ApiError`)는 `detail` 한국어 문구(예 "이미 등록된 번호입니다")를 그대로 보인다.
+      const fallback = isEdit ? "신발 저장에 실패했습니다." : "신발 등록에 실패했습니다."
+      toast.error(error instanceof ApiError && error.detail ? error.detail : fallback)
     },
   })
 
   const handleSubmit = useCallback(() => {
-    // 신규는 이미지+모델번호 필수. 편집은 모델번호가 URL 키로 이미 고정.
-    if (!isEdit && (!formData.image || !formData.modelNumber)) {
-      toast.error("이미지와 모델번호는 필수 입력 사항입니다.")
+    // 설계서 §5 규칙(신발ID 형식·예약어 count·수집연도·최대 길이)을 서버 전송 전에 확인한다.
+    // 편집은 신발ID가 URL 키로 이미 고정이라 ID 규칙은 신규에서만 본다.
+    const validationError = validateShoeForm(formData, mode)
+    if (validationError) {
+      toast.error(validationError)
+      return
+    }
+    if (!isEdit && !formData.image) {
+      toast.error("신발 이미지를 등록하세요.")
       return
     }
     saveMutation.mutate(formData)
-  }, [isEdit, formData, saveMutation])
+  }, [isEdit, mode, formData, saveMutation])
 
   const handleReset = useCallback(() => {
     if (isEdit && initialShoe) {
@@ -400,7 +410,7 @@ export function ShoeWorkbench({
       submitLabel={isEdit ? "저장" : "등록"}
       submitPendingLabel={isEdit ? "저장 중..." : "등록 중..."}
       resetLabel={isEdit ? "되돌리기" : "초기화"}
-      modelNumberReadOnly={isEdit}
+      ftwrIdReadOnly={isEdit}
     />
   )
 

@@ -8,11 +8,12 @@ export const PATTERNS_ROOT = "/src/assets/Patterns/전체/";
 
 /**
  * The crime "필수(essential)" flag. It is INITIALIZED to the number `0`
- * (usePatternManager) and only becomes a boolean after the user toggles it —
- * so the runtime type is genuinely `0 | boolean`, not `boolean`. The `0`
- * sentinel must pass through to the wire unchanged.
+ * (usePatternManager) and only becomes a boolean after the user toggles it.
+ * 서버(SCAS `app.aprthng_ptrn_essntl`)는 저장된 플래그를 정수 `0`/`1`로 돌려주므로
+ * (설계서 §4-1 `[["s21b", 1], ...]`) 런타임 타입은 `0 | 1 | boolean`이다. 화면은
+ * 참/거짓으로만 읽고(`1`은 참), 받은 값은 그대로 다시 보낸다.
  */
-export type EssentialFlag = 0 | boolean;
+export type EssentialFlag = 0 | 1 | boolean;
 
 /**
  * A pattern entry's shape depends on context:

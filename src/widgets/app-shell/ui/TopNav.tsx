@@ -23,7 +23,7 @@ export function TopNav() {
         />
         <div className="flex shrink-0 items-center gap-3">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#16233B] shadow-[0_0_14px_rgba(59,130,246,0.45)] ring-1 ring-[#2A3B54]">
-            {/* TODO: replace with 경찰청 emblem asset */}
+            {/* TODO: 경찰청 엠블럼(로고) 에셋으로 교체 */}
             <ShieldCheck className="size-6 text-[#3B82F6]" aria-hidden="true" />
           </span>
           <div className="flex flex-col leading-tight">

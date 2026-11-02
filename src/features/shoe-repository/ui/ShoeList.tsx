@@ -14,21 +14,36 @@ export interface ShoeListProps {
   page: number
   /** 전체 페이지 수(ceil(total / 서버 페이지 크기)). */
   totalPages: number
-  selectedModelNumber: string
+  /** 현재 선택된 신발 ID(URL `:ftwrId`, 앞자리 0 보존 문자열). 미선택이면 `""`. */
+  selectedFtwrId: string
   isLoading: boolean
   /** 행 클릭 — 선택(편집 진입) 또는 이미 선택된 행이면 정보 Sheet 열기(페이지가 판단). */
-  onSelect: (modelNumber: string) => void
+  onSelect: (ftwrId: string) => void
   /** 페이지 이동 — 서버 재조회는 상위(페이지)가 담당한다. */
   onPageChange: (page: number) => void
 }
 
-/** 테이블 컬럼 정의(레거시 `SearchResults.jsx:41` 신발 매핑과 동일한 5열). */
-const COLUMNS: { key: keyof Shoe; label: string }[] = [
-  { key: "modelNumber", label: "모델번호" },
-  { key: "findLocation", label: "수집장소" },
-  { key: "manufacturer", label: "제조사" },
-  { key: "findYear", label: "수집년도" },
-  { key: "emblem", label: "상표명" },
+type ShoeColumnKey =
+  | "ftwrId"
+  | "modlNm"
+  | "ftwrGroupNm"
+  | "brandCode"
+  | "makrCode"
+  | "colctPlace"
+  | "colctYear"
+
+/**
+ * 테이블 컬럼 정의(설계서 §4-2 SCAS 신발 필드 7열). 공통코드표가 비어 있어 상표·제조사는
+ * 코드값 그대로 보이고, 사람이 읽는 상표 이름은 그룹명(`ftwrGroupNm`)이 대신한다.
+ */
+const COLUMNS: { key: ShoeColumnKey; label: string }[] = [
+  { key: "ftwrId", label: "신발ID" },
+  { key: "modlNm", label: "모델명" },
+  { key: "ftwrGroupNm", label: "그룹(상표)" },
+  { key: "brandCode", label: "상표코드" },
+  { key: "makrCode", label: "제조사코드" },
+  { key: "colctPlace", label: "수집처" },
+  { key: "colctYear", label: "수집연도" },
 ]
 
 const PAGINATION_BUTTON_CLASS =
@@ -48,7 +63,7 @@ export function ShoeList({
   total,
   page,
   totalPages,
-  selectedModelNumber,
+  selectedFtwrId,
   isLoading,
   onSelect,
   onPageChange,
@@ -107,13 +122,13 @@ export function ShoeList({
               </tr>
             ) : (
               shoes.map((shoe, rowIndex) => {
-                const modelNumber = String(shoe.modelNumber ?? "")
-                const isSelected =
-                  selectedModelNumber !== "" && modelNumber === String(selectedModelNumber)
+                // 신발 ID는 문자열 그대로 쓴다(앞자리 0 보존 — 숫자 변환 금지).
+                const ftwrId = shoe.ftwrId ?? ""
+                const isSelected = selectedFtwrId !== "" && ftwrId === selectedFtwrId
                 return (
                   <tr
-                    key={`${modelNumber}-${rowIndex}`}
-                    onClick={() => onSelect(modelNumber)}
+                    key={`${ftwrId}-${rowIndex}`}
+                    onClick={() => onSelect(ftwrId)}
                     title={isSelected ? "한 번 더 클릭하면 기본 정보 편집" : undefined}
                     className={cn(
                       "cursor-pointer border-b border-[#141D2C] transition-colors",
@@ -127,7 +142,7 @@ export function ShoeList({
                         key={col.key}
                         className={cn(
                           "px-4 py-3 whitespace-nowrap",
-                          col.key === "modelNumber"
+                          col.key === "ftwrId"
                             ? isSelected
                               ? "font-semibold text-[#4A9EFF]"
                               : "font-medium text-[#4A9EFF]"
@@ -136,11 +151,8 @@ export function ShoeList({
                               : "text-[#C7CEDB]"
                         )}
                       >
-                        {shoe[col.key] === null ||
-                        shoe[col.key] === undefined ||
-                        shoe[col.key] === ""
-                          ? "-"
-                          : String(shoe[col.key])}
+                        {/* SCAS의 비어 있는(NULL) 메타데이터는 빈 칸으로 둔다. */}
+                        {shoe[col.key] ?? ""}
                       </td>
                     ))}
                   </tr>

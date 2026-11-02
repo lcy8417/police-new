@@ -85,7 +85,8 @@ describe("services/api.js — 이미지 처리 API의 사건 ID(aprthngNo)", () 
       { ftwrId: "00758", image: `${API_URL}/shoes_images/B/00758.png`, similarity: 69.99 },
       { ftwrId: "A-1", image: `${API_URL}/shoes_images/B/A-1.png`, similarity: 50 },
     ]);
-    expect(result[0]).not.toHaveProperty("shoesName");
+    // 결과 항목 키는 정확히 { ftwrId, image, similarity } — 옛 이름 키가 남지 않는다.
+    expect(Object.keys(result[0]).sort()).toEqual(["ftwrId", "image", "similarity"]);
   });
 
   it("imageSearch는 원본 보기에서 Shoerinsics 폴더를 쓴다", async () => {
