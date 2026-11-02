@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query"
 import { ArrowLeft, ImageOff, Target } from "lucide-react"
 
 import { crimeKeys } from "@/entities/crime"
+import { shoeImageUrl } from "@/entities/shoe"
+import { sceneImageUrl } from "@/features/crime-align"
 import {
   PartialPatternsCompare,
   RetrievalResultsGrid,
@@ -19,28 +21,23 @@ import { fetchHistoryData, fetchCurrentShoes } from "@/services/crud"
 import { imageSearch } from "@/services/api"
 import { toPatternPaths } from "@/utils/path-utils"
 
-const url = import.meta.env.VITE_API_URL
-
 /** 사건이력 화면의 페이지네이션 기준(레거시 `RetrievalResults`의 50과 동일). */
 const HISTORY_PAGE_SIZE = 50
 
 /**
- * 사건이력 이미지 4분할(현장/편집/바닥/측면) URL을 조립하는 페이지 로컬 헬퍼.
- * 레거시 `CrimeHistoryMain`의 URL 규약을 그대로 옮겼다(services 리팩터는 Phase 5).
- * `matchingShoes`가 없으면 해당 신발 이미지는 null(플레이스홀더 표시).
- * 측면 이미지는 레거시의 `B`→`S` 치환 트릭을 유지한다.
+ * 사건이력 이미지 4분할 중 편집·바닥·측면 URL을 조립하는 페이지 로컬 헬퍼.
+ * 신발 이미지는 매칭 신발 ID(`mtchgId`, 앞자리 0 보존 문자열)로 `shoeImageUrl`이 만든다.
+ * `mtchgId`가 없으면(매칭 없이 저장된 이력) 신발 이미지는 null.
  */
 function buildHistoryImages(historyData: {
   editImage?: string | null
-  matchingShoes?: string | null
+  mtchgId?: string | null
 } | undefined) {
-  const matchingShoes = historyData?.matchingShoes ?? null
+  const mtchgId = historyData?.mtchgId ?? null
   return {
     edit: historyData?.editImage || null,
-    bottom: matchingShoes ? `${url}/shoes_images/B/${matchingShoes}.png` : null,
-    side: matchingShoes
-      ? `${url}/shoes_images/S/${matchingShoes.replace("B", "S")}.png`
-      : null,
+    bottom: mtchgId ? shoeImageUrl(mtchgId, "B") : null,
+    side: mtchgId ? shoeImageUrl(mtchgId, "S") : null,
   }
 }
 
@@ -109,8 +106,8 @@ const HEADER_TITLE = (
  * 이미지 4분할은 표시 전용 타일로 렌더한다.
  */
 export function CrimeHistoryPage() {
-  // 라우트 변수는 `:aprthngNo`·`:searchNo`. 내부 변수명 정리는 Task 5에서 한다.
-  const { aprthngNo: crimeNumber = "", searchNo: historyId = "" } = useParams()
+  // 라우트 변수: 감정물 번호 `:aprthngNo`(문자열), 검색 번호 `:searchNo`(URL에선 문자열).
+  const { aprthngNo = "", searchNo = "" } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const ranking = searchParams.get("ranking")
@@ -120,14 +117,14 @@ export function CrimeHistoryPage() {
 
   // 1단계: 이력 상세 + 매칭 신발을 로드해 현장/DB 문양 묶음을 구성한다.
   const historyQuery = useQuery({
-    queryKey: crimeKeys.history(crimeNumber, historyId),
+    queryKey: crimeKeys.history(aprthngNo, searchNo),
     queryFn: async () => {
-      const historyData = await fetchHistoryData(historyId)
+      const historyData = await fetchHistoryData(searchNo)
 
-      // 매칭 신발이 있을 때만 DB 신발 문양을 로드한다(없으면 빈 묶음).
+      // 매칭 신발(mtchgId)이 있을 때만 DB 신발 문양을 로드한다(없으면 빈 묶음).
       let shoesData = { top: [], mid: [], bottom: [], outline: [] }
-      if (historyData?.matchingShoes) {
-        const shoesInfo = await fetchCurrentShoes(historyData.matchingShoes)
+      if (historyData?.mtchgId) {
+        const shoesInfo = await fetchCurrentShoes(historyData.mtchgId)
         shoesData = {
           ...shoesInfo,
           top: toPatternPaths(shoesInfo.top) || [],
@@ -139,20 +136,22 @@ export function CrimeHistoryPage() {
 
       return { historyData, shoesData }
     },
-    enabled: Boolean(historyId),
+    enabled: Boolean(searchNo),
   })
 
   const historyData = historyQuery.data?.historyData
   const shoesData = historyQuery.data?.shoesData
+  // 이력을 다 불러왔는데 매칭 신발이 없을 때만 "매칭 없음" 모드(로딩 중엔 깜빡이지 않게 기존 4분할 유지).
+  const noMatchedShoe = historyQuery.isSuccess && !historyData?.mtchgId
 
   // 2단계: 과거 검색결과 조회.
-  // TODO: 실제 검색 결과로 연동 필요 (별도 티켓) — 현재는 crimeNumber를 그대로
+  // TODO: 실제 검색 결과로 연동 필요 (별도 티켓) — 현재는 aprthngNo를 그대로
   // body.image에 실어 보내는 더미 요청이며, 동작을 바꾸지 않고 그대로 이관했다.
   const searchQuery = useQuery({
-    queryKey: ["crimeHistory", "search", crimeNumber, page],
+    queryKey: ["crimeHistory", "search", aprthngNo, page],
     queryFn: () =>
-      imageSearch({ crimeNumber, body: { image: crimeNumber }, page }),
-    enabled: Boolean(crimeNumber),
+      imageSearch({ aprthngNo, body: { image: aprthngNo }, page }),
+    enabled: Boolean(aprthngNo),
   })
 
   const results = (searchQuery.data?.result ?? []) as RetrievalResultItem[]
@@ -179,9 +178,9 @@ export function CrimeHistoryPage() {
     [historyData, shoesData]
   )
 
-  // 이미지 4분할 URL 조립(현장은 crimeNumber 기반 정적 URL).
+  // 이미지 4분할 URL 조립(현장은 aprthngNo 기반 정적 URL — encodeURIComponent 적용).
   const images = buildHistoryImages(historyData)
-  const sceneImage = `${url}/crime_images/${crimeNumber}.png`
+  const sceneImage = sceneImageUrl(aprthngNo)
 
   const headerActions = useMemo(
     () => (
@@ -227,16 +226,36 @@ export function CrimeHistoryPage() {
                 Evidence · 4-View
               </span>
             </div>
-            <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-4 p-5">
+            {/* 매칭 신발이 없으면 신발 타일(바닥·측면)을 빼고 현장·편집 2장만 한 줄로 보인다. */}
+            <div
+              className={
+                noMatchedShoe
+                  ? "grid min-h-0 flex-1 grid-cols-2 grid-rows-1 gap-4 p-5"
+                  : "grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-4 p-5"
+              }
+            >
               <ImageTile index={1} code="SCENE" label="현장이미지" image={sceneImage} />
               <ImageTile index={2} code="EDIT" label="편집이미지" image={images.edit} />
-              <ImageTile index={3} code="SOLE-B" label="바닥이미지" image={images.bottom} />
-              <ImageTile index={4} code="SOLE-S" label="측면이미지" image={images.side} />
+              {!noMatchedShoe && (
+                <>
+                  <ImageTile index={3} code="SOLE-B" label="바닥이미지" image={images.bottom} />
+                  <ImageTile index={4} code="SOLE-S" label="측면이미지" image={images.side} />
+                </>
+              )}
             </div>
           </section>
 
-          {/* 현장패턴 vs DB패턴 문양 비교 — 좌측 패널과 같은 행 높이를 그대로 채운다. */}
-          <PartialPatternsCompare patternItems={currentPatterns} className="h-full" />
+          {/* 현장패턴 vs DB패턴 문양 비교 — 좌측 패널과 같은 행 높이를 그대로 채운다.
+              매칭 신발이 없으면 비교할 DB패턴이 없으므로 비교 영역 대신 안내를 보인다. */}
+          {noMatchedShoe ? (
+            <section className="relative flex h-full min-h-0 flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D] text-[#5B6B85] shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)]">
+              <TechCorners size={22} />
+              <ImageOff className="size-6" aria-hidden="true" />
+              <span className="text-[13px] font-medium">매칭된 신발이 없습니다</span>
+            </section>
+          ) : (
+            <PartialPatternsCompare patternItems={currentPatterns} className="h-full" />
+          )}
         </div>
 
         {/* 과거 검색결과(비클릭 재사용) */}
