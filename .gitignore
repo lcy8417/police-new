@@ -29,3 +29,11 @@ dist-ssr
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# 환경 변수 (PC마다 다름 — .env.example 복사해서 작성)
+.env
+!.env.example
+
+# 개발 도구 상태 파일
+.moai/state/
+.omc/

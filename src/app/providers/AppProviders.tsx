@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "@/shared/ui/sonner";
 import { TooltipProvider } from "@/shared/ui/tooltip";
 import { queryClient } from "./query-client";
@@ -20,7 +19,6 @@ export function AppProviders({ children }: { children: ReactNode }) {
         {children}
         <Toaster richColors position="top-center" />
       </TooltipProvider>
-      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );
 }
