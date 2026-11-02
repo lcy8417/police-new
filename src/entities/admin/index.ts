@@ -11,6 +11,7 @@ export {
   fetchFeatures,
   fetchActions,
 } from "./api/admin-api";
+export { adminQueryKeys } from "./api/admin-keys";
 export type {
   ActionInfo,
   ActivityResult,

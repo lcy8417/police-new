@@ -25,6 +25,20 @@ export function backendMediaUrl(path: string | null | undefined): string | null 
   return `${apiBaseUrl()}${path}`;
 }
 
+/** `/crime_history/<파일 이름>` — 하위 폴더·`..`·쿼리 없이 파일 하나. */
+const CRIME_HISTORY_FILE = /^\/crime_history\/[A-Za-z0-9_.-]+$/;
+
+/**
+ * 편집본 저장(`POST /crime/{번호}/edit-save`) 응답의 `image_path`를 확인한다(설계서 §5-1).
+ * 서버가 파일 이름을 정리해 저장하므로 화면은 이름을 조립하지 않고 이 경로로 다시 불러온다.
+ * `/crime_history/` 아래 파일 하나가 아니면(`..`·다른 폴더·절대 주소·빈 값) `null`.
+ */
+export function crimeHistoryPath(path: unknown): string | null {
+  if (typeof path !== "string" || !CRIME_HISTORY_FILE.test(path)) return null;
+  if (path.includes("..")) return null;
+  return path;
+}
+
 /**
  * 이미지 주소를 `backendFetch`에 넘길 루트 기준 경로(+쿼리)로 바꾼다.
  * - 루트 기준 상대 경로 → 그대로

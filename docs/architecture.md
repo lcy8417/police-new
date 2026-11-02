@@ -14,7 +14,7 @@
 | 계층 | 담당 | import 가능 | 이 프로젝트의 실제 슬라이스 |
 |------|------|-------------|------------------------------|
 | **app** | 부팅·프로바이더 | 모든 하위 | `src/app/providers/` (QueryClient 등). ⚠ 라우터는 아직 `src/App.jsx`(레거시)에 있음 |
-| **pages** | 라우트 엔트리 + 조립 | widgets·features·entities·shared | `pages/crime-search`(CrimeDetailPage 등), `pages/crime-register`, `pages/shoe-repository` |
+| **pages** | 라우트 엔트리 + 조립 | widgets·features·entities·shared | `pages/crime-search`(CrimeDetailPage 등), `pages/crime-register`, `pages/shoe-repository`, `pages/login`·`pages/password-change`, `pages/manage-users`·`pages/manage-logs` |
 | **widgets** | 화면 셸·조립 | features·entities·shared | `widgets/app-shell`(AppShell·TopNav·Sidebar·`usePageHeader`) |
 | **features** | 사용자 액션·인터랙션 상태·뮤테이션 | entities·shared | `features/patterns-extract`, `features/crime-search`, `features/crime-register`, `features/shoe-repository` |
 | **entities** | 도메인 타입 + 읽기쿼리 + 표시 UI | shared | `entities/crime`, `entities/shoe`, `entities/pattern` |
@@ -61,6 +61,8 @@ features/patterns-extract/
 - 정본은 아직 `src/App.jsx`의 `Routes`(FSD `app/`로 이행 대상). 렌더 순서는 `main.jsx`의 `AppProviders → BrowserRouter → SessionProvider → App`. `/` → 허용된 첫 화면(`firstAllowedPath`).
 - **권한 가드**(`features/auth`): 셸 전체 = `RequireAuth`(로그인·비밀번호 변경 강제), 화면 묶음마다 `RequireFeature code={FEATURES.…}`, `/manage/*` = `RequireAdmin`. `/login`·`/password`는 셸 밖.
 - **통합 커맨드센터**: `/search/:crimeNumber` = `pages/crime-search/ui/CrimeDetailPage`. 기존 "사건상세 + 패턴추출 + 인라인 신발검색"이 **한 화면으로 병합**됨(문양추출은 `?mode=search`로 인라인 검색모드 전환, 뒤로가기로 복귀). `/search/:crimeNumber/patternExtract`·`/shoesResult`는 이 URL로 **리다이렉트 스텁**.
+- **관리자 화면**: `/manage/users`(`pages/manage-users` + `features/admin-users` — 사용자·권한), `/manage/logs`(`pages/manage-logs` + `features/admin-logs` — 로그인·기능 기록). `/manage`와 없는 하위 주소는 `/manage/users`로. 사이드바 "ADMIN" 구역은 관리자에게만(`widgets/app-shell/model/nav-items.ts`의 `visibleNavItems`).
+- **신발 보기 전용**: `SHOE_EDIT`가 없으면 `ShoeRepositoryPage`가 `canEdit=false`를 `ShoeWorkbench`에 넘겨 등록 탭·추출·문양 편집·저장·편집 시트를 숨긴다(`?mode=new|edit`여도 보기 모드).
 - 그 외: `/search`(목록), `/search/:crimeNumber/shoesResult/detail/:modelNumber`(ResultDetail), `/shoesRepository/:modelNumber`(신발 조회), `/edit/:crimeNumber`·`/shoesEdit/:modelNumber`(레거시 편집), `/editormode`(독립 편집기).
 - `pages/crime-search/model/search-paths.ts` = 경로 빌더 순수 함수 모음(`searchDetailPath`·`resultDetailPath` 등). URL은 이 빌더로 조립.
 

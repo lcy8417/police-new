@@ -13,6 +13,7 @@ import { ShoeRepositoryPage } from "@/pages/shoe-repository";
 import { LoginPage } from "@/pages/login";
 import { PasswordChangePage } from "@/pages/password-change";
 import { ManageUsersPage } from "@/pages/manage-users";
+import { ManageLogsPage } from "@/pages/manage-logs";
 import EditorMode from "./pages/EditorMode";
 import { FEATURES } from "@/entities/session";
 import {
@@ -166,6 +167,7 @@ function App() {
         >
           <Route index element={<Navigate to="/manage/users" replace />} />
           <Route path="users" element={<ManageUsersPage />} />
+          <Route path="logs" element={<ManageLogsPage />} />
           <Route path="*" element={<Navigate to="/manage/users" replace />} />
         </Route>
       </Route>

@@ -21,6 +21,7 @@ export {
   DialogTrigger,
 } from './dialog'
 export { Switch } from './switch'
+export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs'
 export { Checkbox } from './checkbox'
 export { Label } from './label'
 export { NativeSelect } from './native-select'

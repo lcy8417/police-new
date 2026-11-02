@@ -16,6 +16,8 @@ import { ShoeWorkbench } from "@/widgets/shoe-workbench"
 import { usePageHeader } from "@/widgets/app-shell"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 import { ShoeList } from "@/features/shoe-repository/ui/ShoeList"
+import { hasFeature, useSessionStore } from "@/features/auth"
+import { FEATURES } from "@/entities/session"
 
 import {
   shoeEditModePath,
@@ -58,7 +60,9 @@ export function ShoeRepositoryPage() {
   // 라우트 변수 `:ftwrId` — 앞자리 0 보존 문자열(`"00758"`). 숫자로 바꾸지 않는다.
   const { ftwrId = "" } = useParams()
   const [searchParams] = useSearchParams()
-  const isNew = searchParams.get("mode") === "new"
+  // 신발 등록·수정 권한이 없으면 보기 전용 — `?mode=new|edit`로 들어와도 보기 모드로 연다.
+  const canEdit = useSessionStore((s) => hasFeature(s.user, FEATURES.SHOE_EDIT))
+  const isNew = canEdit && searchParams.get("mode") === "new"
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   // 기본정보 Sheet 개폐 — 목록의 선택된 행을 한 번 더 클릭하면 연다.
@@ -119,20 +123,25 @@ export function ShoeRepositoryPage() {
   )
 
   // 목록 행 클릭: 이미 선택된 행이면 기본정보 Sheet를 열고, 아니면 그 신발 편집으로.
+  // 보기 전용이면 Sheet를 열지 않고 그 신발을 보여 주기만 한다.
   const handleListSelect = useCallback(
     (value: string) => {
-      if (!isNew && value === ftwrId) {
+      if (canEdit && !isNew && value === ftwrId) {
         setInfoSheetOpen(true)
         return
       }
       setInfoSheetOpen(false)
       navigate(shoeEditModePath(value))
     },
-    [isNew, ftwrId, navigate]
+    [canEdit, isNew, ftwrId, navigate]
   )
 
   const headerTitle = useMemo(() => {
-    const [title, subtitle] = isNew
+    const [title, subtitle] = !canEdit
+      ? ftwrId
+        ? [`신발 보기 · ${ftwrId}`, "보기 전용입니다. 등록·수정은 신발 등록·수정 권한이 필요합니다."]
+        : ["신발", "등록된 신발을 조회합니다(보기 전용)."]
+      : isNew
       ? ["신규 신발 등록", "신발 이미지를 등록하고 밑창 문양을 추출·입력하세요."]
       : ftwrId
         ? [
@@ -150,7 +159,7 @@ export function ShoeRepositoryPage() {
         </span>
       </div>
     )
-  }, [isNew, ftwrId])
+  }, [canEdit, isNew, ftwrId])
 
   usePageHeader({ title: headerTitle })
 
@@ -190,6 +199,7 @@ export function ShoeRepositoryPage() {
       <ShoeWorkbench
         key={workbenchKey}
         mode={workbenchMode}
+        canEdit={canEdit}
         initialShoe={initialShoe}
         onSaved={handleSaved}
         onNewRegister={() => navigate(shoeRegisterNewPath())}

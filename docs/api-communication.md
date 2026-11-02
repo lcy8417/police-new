@@ -1,8 +1,8 @@
 # API·데이터통신 규약 — 경찰 신발자국 매칭 프론트엔드
 
-**한 줄 요약**: 무거운 처리(패턴 추출·이미지 검색·각도 보정·유사도)는 **별도 FastAPI 백엔드**가 한다. 이 저장소는 `VITE_API_URL`로 그 백엔드와 HTTP로 통신하는 **순수 클라이언트**다. 통신 계층이 **두 규약(camelCase 변환 / 무변환)**으로 갈리니 항상 어느 계층인지 확인한다.
+**한 줄 요약**: 무거운 처리(패턴 추출·이미지 검색·각도 보정·유사도)는 **별도 FastAPI 백엔드**가 한다. 이 저장소는 그 백엔드와 HTTP로 통신하는 **순수 클라이언트**이고, 모든 요청은 공용 함수 `backendFetch` 하나를 거쳐 로그인 쿠키와 함께 나간다(§1-1). 통신 계층이 **두 규약(camelCase 변환 / 무변환)**으로 갈리니 항상 어느 계층인지 확인한다.
 
-> `.env`의 `VITE_API_URL`이 백엔드를 가리켜야 한다(예 `http://localhost:8000`). 아니면 모든 fetch가 조용히 실패(에러는 `console.error`만).
+> `.env`의 `VITE_API_URL`은 **비워 두는 것이 기본**이다(같은 주소 중계 — 브라우저는 프론트 주소만 보고, Vite가 `/crime`·`/shoes`·`/auth`·`/admin`·이미지 폴더 요청을 `VITE_PROXY_TARGET`으로 넘긴다). 주소를 분리할 때만 `https://<서버>:8000`을 넣는다(서버 쪽 쿠키 설정 필요).
 
 ---
 
@@ -23,7 +23,38 @@
 ## 1. 스택 — fetch + TanStack Query v5
 
 - 모든 서버 상태(캐시·로딩·에러)는 `useQuery`/`useMutation`이 관리. 컴포넌트에서 raw fetch·`useState` 로딩 플래그 금지.
-- 공용 클라이언트: `src/shared/api/client.ts` — `apiGet<T>(path)`, `apiSend(path, method, body)`, `stripDataUrlPrefix`, `stripDataUrl`. 모듈 로드 시점에 `import.meta.env.VITE_API_URL`을 읽는다.
+- 공용 클라이언트: `src/shared/api/client.ts` — `apiGet<T>(path)`, `apiSend(path, method, body)`, `stripDataUrlPrefix`, `stripDataUrl`. 실제 요청은 아래 `backendFetch`가 보낸다.
+
+---
+
+## 1-1. 인증 · 세션 · 중계 (설계서 `police-server/docs/superpowers/specs/2026-11-03-auth-rbac-activity-log-design.md`)
+
+**결론: 백엔드 요청은 `backendFetch`(`src/shared/api/backend-fetch.ts`) 하나로만 보낸다.** 직접 `fetch`를 쓰면 쿠키·세션 만료 처리가 빠진다.
+
+| 상황 | `backendFetch`가 하는 일 | 화면 결과 |
+|---|---|---|
+| 모든 요청 | `${VITE_API_URL}${path}`로 `credentials: "include"`(쿠키 포함). `path`는 `/`로 시작하는 루트 기준 경로만 받는다 | — |
+| 401(세션 없음·만료) — `/auth/login`·`/auth/me` 제외 | `handleSessionEnded()` → `window.location.assign("/login?from=<현재 주소>")` (**전체 새로고침**, 중복 호출 무시) | 로그인 화면 → 다시 로그인하면 원래 주소로 |
+| 403(권한 바뀜) | `emitForbidden` → `SessionProvider`가 `GET /auth/me`를 1번 다시 읽음 | 메뉴·화면 권한 갱신. `"비밀번호를 변경해야 합니다"`면 `/password` |
+| 보호된 이미지 로드 실패 | `revalidateSession()`(동시 호출 1개로 합침)이 `/auth/me` 확인 | 세션이 끝났으면 위 401과 같음 |
+
+- **쿠키**: 로그인 성공 시 서버가 HttpOnly 세션 쿠키를 심는다. 화면 코드는 토큰을 직접 다루지 않는다.
+- **이미지 주소**: 서버는 루트 기준 상대 경로(`/crime_images/...`, `/shoes_images/B/...`, `/crime_outlines/...`, `/crime_history/...`)를 준다. 표시용은 `backendMediaUrl(path)`, 코드로 내려받을 때는 `toBackendPath(url)` → `backendFetch`. 백엔드 이미지를 canvas로 읽을 때 `crossOrigin="use-credentials"`.
+- **중계(proxy)**: `vite.config.js`의 `BACKEND_PROXY_PATTERN`(`^/(crime|shoes|auth|admin)(/|$|\?)`)과 이미지 폴더 4개를 개발·미리보기 서버가 `VITE_PROXY_TARGET`으로 넘긴다(`secure: false` — 자체 서명 인증서, `changeOrigin: false` — 서버의 요청 출처 검사가 프론트 주소를 보게). 화면 주소 `/crimeRegister`·`/shoesRepository`·`/manage/*`는 중계하지 않는다.
+- **목록 API는 끝에 `/`**: `/crime/`, `/shoes/?page=0`(리다이렉트 없이 바로 응답).
+- **권한**: 서버가 주는 `features`는 실효 권한(`SHOE_EDIT`면 `SHOE_VIEW` 포함)이다. 프론트는 `hasFeature(user, FEATURES.X)`(관리자는 항상 true)로 메뉴·라우트·버튼을 가린다. 기능 코드 문자열은 `src/entities/session/model/features.ts` 상수만 쓴다.
+
+**인증·관리자 API**(응답 snake → `convertKeysToCamelCase`, 요청 본문 camel 그대로):
+
+| 엔드포인트 | 본문 / 응답 | 프론트 함수 |
+|---|---|---|
+| `POST /auth/login` | `{userId, password}` → `{user_id, user_nm, user_se, features, password_change_required}` | `login` |
+| `POST /auth/logout` · `GET /auth/me` · `POST /auth/password` | — / 위와 같은 모양(401이면 `null`) / `{currentPassword, newPassword}` → 204 | `logout`·`fetchMe`·`changePassword` (`entities/session`) |
+| `GET·POST /admin/users`, `PUT /admin/users/{id}`, `PUT …/features`, `POST …/password-reset`·`…/unlock` | 사용자 목록·추가·수정(`{userNm, userSe, useAt}`)·권한 교체(`{features}`)·임시 비밀번호(`{tempPassword}`)·잠금 해제 | `fetchUsers`·`createUser`·`updateUser`·`replaceUserFeatures`·`resetPassword`·`unlockUser` (`entities/admin`) |
+| `GET /admin/sessions?user_id&from&to&page`, `GET /admin/sessions/{id}/events`, `GET /admin/events?user_id&result&action_code&from&to&page` | 로그인 기록·기능 기록(50개씩 최신순, `page`는 0부터, 전체 개수 없음 — 50개 미만이면 마지막). 날짜는 KST `YYYY-MM-DD`(끝 날짜 포함) | `fetchSessions`·`fetchSessionEvents`·`fetchEvents` |
+| `GET /admin/features` · `GET /admin/actions` | 기능 목록 · 기능 이름표(사용 기록 "기능" 필터) | `fetchFeatures`·`fetchActions` |
+
+- 관리자 화면 주소는 `/manage/users`·`/manage/logs`(API `/admin/*`와 겹치지 않게). 서버 거절 문구(예 400 `"관리자는 최소 1명 있어야 합니다"`, 409 `"이미 등록된 아이디입니다"`)는 `ApiError.detail` 그대로 폼·패널 안에 보인다(전역 토스트는 `mutation.meta.inlineError`로 끔).
 
 ---
 
@@ -49,7 +80,7 @@
 ```json
 { "ftwrId": "00758", "ftwrGroupId": "G038", "ftwrGroupNm": "crocs(크록스)-038", "modlNm": null,
   "brandCode": "B0038", "makrCode": null, "colctPlace": null, "colctYear": "2019",
-  "image": "https://localhost:8000/shoes_images/B/00758.png", "top": ["s21b"], "mid": [], "bottom": [], "outline": [] }
+  "image": "/shoes_images/B/00758.png", "top": ["s21b"], "mid": [], "bottom": [], "outline": [] }
 ```
 
 **요청 본문(프론트 → 서버, camelCase 그대로)**:
@@ -76,7 +107,7 @@
 | `imageLoad` | `GET /crime/:aprthngNo/image_load?edit` | — (검색·표시용 현장/편집 이미지) |
 | `fetchPerspective` | `POST /crime/demo/perspective` | 4점 각도보정(polygon·render_size·image) |
 | `fetchSimilarity` | `POST /crime/:aprthngNo/similarity?ftwr_id=` | 쿼리 `ftwr_id`(옛 `model_number`) |
-| `saveEditImage` | `POST /crime/:id/edit-save` | id·image(base64)·folder |
+| `saveEditImage` | `POST /crime/:id/edit-save` | `{ image, save_name }` → `{ message, image_path: "/crime_history/<번호>_<정리된 이름>.png" }`. 서버가 파일 이름을 정리하므로 편집 화면(`EditorMode`)은 **이름을 조립하지 않고** `image_path`(`crimeHistoryPath`로 `/crime_history/` 아래인지 확인)로 다시 불러온다. 잘못된 이름은 400 `"저장 경로가 올바르지 않습니다"` |
 
 - 정렬·매칭(`entities/alignment`, `entities/match`)도 이 계층(무변환)이다: 쿼리 `?ftwr_id=`, `GET /crime/:aprthngNo/alignment/latest` 응답 `ftwrId`, `POST /crime/:aprthngNo/match_top10` 응답 `{ matches, aprthng_no, ftwr_id }`(409 `detail`도 같은 키).
 - `imageSearch` 응답 `similarity`는 **퍼센트(0~100)**(예 69.99). UI는 0~1을 가정하므로 소비 측에서 `>1이면 /100` 정규화(`RetrievalResultsGrid`).

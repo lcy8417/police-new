@@ -9,6 +9,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import {
+  adminQueryKeys,
   createUser,
   fetchUsers,
   replaceUserFeatures,
@@ -20,11 +21,6 @@ import {
 } from "@/entities/admin"
 import type { FeatureCode } from "@/entities/session"
 
-/** 사용자 목록 쿼리 키. */
-export const adminUserKeys = {
-  all: ["admin", "users"] as const,
-}
-
 export interface AdminUserMutationOptions {
   /** 변경이 성공한 사용자 ID — 페이지가 "나 자신이면 세션 재확인"을 판단한다. */
   onUserChanged?: (userId: string) => void
@@ -32,7 +28,7 @@ export interface AdminUserMutationOptions {
 
 /** GET /admin/users — 사용자 표. */
 export function useUsersQuery() {
-  return useQuery({ queryKey: adminUserKeys.all, queryFn: fetchUsers })
+  return useQuery({ queryKey: adminQueryKeys.users, queryFn: fetchUsers })
 }
 
 /** 성공 후 공통 처리: 목록 무효화 + 변경 알림. */
@@ -40,7 +36,7 @@ function useAfterChange(options: AdminUserMutationOptions) {
   const queryClient = useQueryClient()
   return async (userId: string) => {
     options.onUserChanged?.(userId)
-    await queryClient.invalidateQueries({ queryKey: adminUserKeys.all })
+    await queryClient.invalidateQueries({ queryKey: adminQueryKeys.users })
   }
 }
 

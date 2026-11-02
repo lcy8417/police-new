@@ -1,5 +1,24 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { backendMediaUrl, toBackendPath } from "./media-url";
+import { backendMediaUrl, crimeHistoryPath, toBackendPath } from "./media-url";
+
+describe("crimeHistoryPath — 편집본 저장 응답의 image_path 확인", () => {
+  it("/crime_history/ 아래 파일 경로만 통과", () => {
+    expect(crimeHistoryPath("/crime_history/00001-23-0360_crime_x.png")).toBe(
+      "/crime_history/00001-23-0360_crime_x.png"
+    );
+  });
+
+  it("다른 폴더·상위 폴더 이동·절대 주소·빈 값은 거부", () => {
+    expect(crimeHistoryPath("/crime_images/a.png")).toBeNull();
+    expect(crimeHistoryPath("/crime_history/../crime_images/a.png")).toBeNull();
+    expect(crimeHistoryPath("/crime_history/a/b.png")).toBeNull();
+    expect(crimeHistoryPath("/crime_history/")).toBeNull();
+    expect(crimeHistoryPath("https://evil.example/crime_history/a.png")).toBeNull();
+    expect(crimeHistoryPath(null)).toBeNull();
+    expect(crimeHistoryPath(undefined)).toBeNull();
+    expect(crimeHistoryPath(42)).toBeNull();
+  });
+});
 
 afterEach(() => vi.unstubAllEnvs());
 

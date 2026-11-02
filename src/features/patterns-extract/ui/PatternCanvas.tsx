@@ -1098,7 +1098,7 @@ export function PatternCanvas({
             <GripHorizontal className="size-3 shrink-0 text-[#4A9EFF]" aria-hidden="true" />
             <span className="truncate">
               {readOnly
-                ? "조회 모드 · 편집하려면 [편집]"
+                ? "보기 전용 · 문양을 바꿀 수 없습니다"
                 : activatable && !patternActive
                   ? "상단 [문양추출]을 누르면 바로 추출됩니다"
                   : "경계선 드래그로 상/중/하 분할"}

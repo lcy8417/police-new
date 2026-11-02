@@ -83,6 +83,12 @@ interface ShoeWorkbenchProps {
    */
   mode: "new" | "edit"
   /**
+   * 신발 등록·수정 권한(`SHOE_EDIT`) — 페이지가 `hasFeature`로 계산해 넘긴다. `false`면 보기 전용:
+   * 신규 등록 탭·이미지 업로드·회전·문양 추출/추가/삭제·정보 입력·저장/초기화·편집 시트를
+   * 모두 숨기고, 해당 콜백도 실행하지 않는다. `mode="new"`로 들어와도 보기 모드로 연다.
+   */
+  canEdit: boolean
+  /**
    * 편집 대상 신발(문양은 이미 경로로 hydrate된 상태여야 한다 — 페이지가 담당).
    * "new" 또는 미선택 브라우즈에서는 `EMPTY_SHOE_FORM`으로 시작한다.
    */
@@ -116,6 +122,7 @@ interface ShoeWorkbenchProps {
  */
 export function ShoeWorkbench({
   mode,
+  canEdit,
   initialShoe,
   onSaved,
   onNewRegister,
@@ -139,8 +146,10 @@ export function ShoeWorkbench({
   // 이미지가 이미 있어 드롭존이 사라진 뒤에도 언제든 재업로드할 파일 입력.
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const isEdit = mode === "edit"
-  const isNew = mode === "new"
+  // 보기 전용이면 `mode="new"`여도 신규 등록을 열지 않는다(기존 신발 보기 국면).
+  const isNew = canEdit && mode === "new"
+  const isEdit = !isNew
+  const readOnly = !canEdit
 
   // 문양·경계선·추출 상태는 features 훅이 소유한다(신발 모드: formData/setFormData).
   const pm = usePatternManager({ formData, setFormData, imgRef })
@@ -176,6 +185,7 @@ export function ShoeWorkbench({
   }, [])
 
   const handleFileSelect = useCallback(async (file: File) => {
+    if (readOnly) return
     const reader = new FileReader()
     reader.onloadend = async () => {
       const base64 = reader.result as string
@@ -195,7 +205,7 @@ export function ShoeWorkbench({
       }
     }
     reader.readAsDataURL(file)
-  }, [])
+  }, [readOnly])
 
   // "이미지 교체" 버튼 → 숨은 파일 입력 열기.
   const handleUploadClick = useCallback(() => {
@@ -215,7 +225,7 @@ export function ShoeWorkbench({
   // 절대각 회전 — 항상 원본(uploadedRef)에서 deg로 한 번만 굽는다(누적 방지).
   const applyRotation = useCallback(async (deg: number) => {
     const base = uploadedRef.current
-    if (!base) return
+    if (readOnly || !base) return
     const normalized = ((((deg + 180) % 360) + 360) % 360) - 180
     const baked =
       normalized % 360 === 0 ? base : await rotateArbitrary(base, normalized)
@@ -223,9 +233,10 @@ export function ShoeWorkbench({
     setFormData((prev) => ({ ...prev, image: baked }))
     setAngle(normalized)
     setPreviewAngle(normalized)
-  }, [])
+  }, [readOnly])
 
   const handleExtract = useCallback(async () => {
+    if (readOnly) return
     if (!formData.image) {
       toast.error("먼저 신발 이미지를 등록하세요.")
       return
@@ -239,7 +250,7 @@ export function ShoeWorkbench({
     } finally {
       setIsExtracting(false)
     }
-  }, [formData.image, pm])
+  }, [readOnly, formData.image, pm])
 
   const saveMutation = useMutation({
     mutationFn: async (data: Shoe): Promise<string> => {
@@ -266,6 +277,7 @@ export function ShoeWorkbench({
   })
 
   const handleSubmit = useCallback(() => {
+    if (readOnly) return
     // 설계서 §5 규칙(신발ID 형식·예약어 count·수집연도·최대 길이)을 서버 전송 전에 확인한다.
     // 편집은 신발ID가 URL 키로 이미 고정이라 ID 규칙은 신규에서만 본다.
     const validationError = validateShoeForm(formData, mode)
@@ -278,9 +290,10 @@ export function ShoeWorkbench({
       return
     }
     saveMutation.mutate(formData)
-  }, [isEdit, mode, formData, saveMutation])
+  }, [readOnly, isEdit, mode, formData, saveMutation])
 
   const handleReset = useCallback(() => {
+    if (readOnly) return
     if (isEdit && initialShoe) {
       // 편집 되돌리기 = 서버 원본 스냅샷으로 복귀(신발을 지우지 않는다).
       uploadedRef.current = initialShoe.image ?? null
@@ -294,7 +307,7 @@ export function ShoeWorkbench({
     setAngle(0)
     setPreviewAngle(0)
     setFormData(EMPTY_SHOE_FORM)
-  }, [isEdit, initialShoe])
+  }, [readOnly, isEdit, initialShoe])
 
   // 현재 선택된 부위에 이미 삽입된 문양인지 이름 기준으로 판정한다(팔레트 비활성용).
   const isInserted = useCallback(
@@ -423,7 +436,10 @@ export function ShoeWorkbench({
         : "text-[#8A93A6] hover:bg-white/5 hover:text-[#C7CEDB]"
     )
 
-  const col4 = (
+  // 보기 전용: 탭([새 신발]) 없이 신발 목록만.
+  const col4 = readOnly ? (
+    <div className="h-full min-h-0">{listPanel}</div>
+  ) : (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex shrink-0 items-center gap-1 rounded-lg border border-[#1E2A3C] bg-[#0D1420] p-1">
         <button
@@ -464,15 +480,17 @@ export function ShoeWorkbench({
           lineState={pm.lineState}
           setLineState={pm.setLineState}
           onExtract={handleExtract}
-          onClear={pm.clearPattern}
+          onClear={readOnly ? noop : pm.clearPattern}
           onShowOrigin={noop}
           onShowEdit={noop}
           isExtracting={isExtracting}
           // 신발 워크벤치 전용: 스와퍼 숨김 + 회전 툴바 + 회전 미리보기.
           // 업로드는 신규 모드에서만(편집은 이미지 교체 대신 신규 등록으로 유도).
+          // 보기 전용이면 추출/초기화·회전 툴바를 숨긴다.
           hideViewSwapper
+          readOnly={readOnly}
           onUpload={isNew ? handleFileSelect : undefined}
-          topToolbar={rotationToolbar}
+          topToolbar={readOnly ? undefined : rotationToolbar}
           viewportStyle={{
             transform:
               previewAngle !== angle
@@ -488,19 +506,22 @@ export function ShoeWorkbench({
           // 신발 문양은 경로 문자열 배열이지만 PatternZones의 normalize가 문자열/튜플
           // 양쪽을 처리한다. prop 타입만 Crime을 요구하므로 캐스팅한다.
           currentData={formData as unknown as Crime}
-          onDropToZone={pm.insertPatternToZone}
+          onDropToZone={readOnly ? undefined : pm.insertPatternToZone}
+          readOnly={readOnly}
         />
         <PatternPalette
           patterns={pm.patterns}
           patternsKindSelect={pm.patternsKindSelect}
           insertPattern={pm.insertPattern}
           isInserted={isInserted}
+          readOnly={readOnly}
         />
         {col4}
       </div>
 
-      {/* 기존 신발 기본정보 편집 Sheet(우측 드로어) — 선택된 행 재클릭으로 페이지가 연다. */}
-      {isEdit && (
+      {/* 기존 신발 기본정보 편집 Sheet(우측 드로어) — 선택된 행 재클릭으로 페이지가 연다.
+          보기 전용이면 만들지 않는다. */}
+      {isEdit && !readOnly && (
         <Sheet open={infoSheetOpen} onOpenChange={onInfoSheetOpenChange}>
           <SheetContent
             side="right"

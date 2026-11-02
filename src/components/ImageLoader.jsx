@@ -4,6 +4,7 @@ import React, { useRef } from "react";
 import { resizeImage } from "../utils/get-input-change";
 import { saveEditImage } from "../services/api";
 import { resolveImageToDataUrl } from "@/shared/lib";
+import { crimeHistoryPath } from "@/shared/api";
 
 const ImageLoader = ({
   formData,
@@ -23,7 +24,7 @@ const ImageLoader = ({
 
   // 더블클릭 이벤트 핸들러 - 라우팅
   const handleDoubleClick = async () => {
-    console.log(formData);
+    // 이미지 데이터를 콘솔에 남기지 않는다(설계서 §5 — 이미지 데이터 로그 금지).
     if (formData?.image) {
       try {
         // 서버 이미지 주소·경로든 순수 base64든 공용 로더로 data URL을 만든다
@@ -35,18 +36,21 @@ const ImageLoader = ({
         const folder = formData.ftwrId ? "shoes" : "crime";
 
         try {
-          await saveEditImage({
+          const saved = await saveEditImage({
             id: id,
             image: imageToSend,
             folder: folder,
           });
-
-          console.log("이미지가 서버에 저장되었습니다.");
+          // 서버가 정리한 파일 이름으로 저장하고 그 경로(`image_path`)를 돌려준다(설계서 §5-1).
+          // 파일 이름을 화면에서 조립하지 않고, `/crime_history/` 아래인지 확인한 뒤 넘긴다.
+          const savedPath = crimeHistoryPath(saved?.image_path);
+          if (!savedPath) throw new Error("저장 경로가 올바르지 않습니다");
 
           // 쿼리 파라미터와 함께 라우팅
           const params = new URLSearchParams({
             folder: folder,
             id: id,
+            path: savedPath,
           });
 
           const url = `${

@@ -22,7 +22,7 @@ function renderWorkbench() {
   const qc = new QueryClient()
   return render(
     <QueryClientProvider client={qc}>
-      <ShoeWorkbench mode="new" />
+      <ShoeWorkbench mode="new" canEdit />
     </QueryClientProvider>
   )
 }

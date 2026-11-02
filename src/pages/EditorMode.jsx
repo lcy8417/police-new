@@ -6,6 +6,7 @@ import Preprocessing from "../components/Preprocessing";
 import Canvas from "../components/Canvas";
 import Button from "../components/Button";
 import { resolveImageToDataUrl } from "@/shared/lib";
+import { crimeHistoryPath } from "@/shared/api";
 import "./EditorMode.css";
 
 const EditorMode = () => {
@@ -15,7 +16,8 @@ const EditorMode = () => {
   // 쿼리 파라미터 파싱
   const queryParams = new URLSearchParams(location.search);
   const id = queryParams.get("id");
-  const folder = queryParams.get("folder");
+  // 편집본 저장 응답의 `image_path`(ImageLoader가 넘김). `/crime_history/` 아래 파일만 받는다.
+  const savedPath = crimeHistoryPath(queryParams.get("path"));
 
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
@@ -47,11 +49,14 @@ const EditorMode = () => {
     if (id) {
       // 서버에서 이미지 가져오기
       const loadImage = async () => {
+        if (!savedPath) {
+          alert("편집할 이미지 경로가 올바르지 않습니다.");
+          return;
+        }
         try {
           // 보호된 이미지라 공용 로더(backendFetch — 쿠키 포함, 401이면 로그인 화면)로 base64를 만든다.
-          const imageData = await resolveImageToDataUrl(
-            `/crime_history/${encodeURIComponent(`${folder}_${id}`)}.png`
-          );
+          // 경로는 서버가 준 그대로 쓴다(파일 이름을 조립하지 않음).
+          const imageData = await resolveImageToDataUrl(savedPath);
 
           setScrollState((prev) => ({
             ...prev,
@@ -76,7 +81,7 @@ const EditorMode = () => {
 
       loadImage();
     }
-  }, [id]);
+  }, [id, savedPath]);
 
   // EditMain.jsx에서 가져온 핸들러들
   const handleClick = (e) => {

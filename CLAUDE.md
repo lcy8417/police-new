@@ -34,7 +34,7 @@ npx vitest run   # 테스트 (단일: npx vitest run <file> | -t "패턴")
 ```
 
 - **작업 완료 전 검증 3종**: `npx tsc --noEmit` + `npx vitest run` + `npm run build`. 여기에 변경 파일 `npx eslint`까지 통과해야 완료.
-- `.env`의 `VITE_API_URL`이 백엔드를 가리켜야 함(예 `http://localhost:8000`). 아니면 fetch가 조용히 실패.
+- `.env`의 `VITE_API_URL`은 **빈 값(권장) = 같은 주소 중계**: Vite가 `/crime`·`/shoes`·`/auth`·`/admin`·이미지 폴더를 `VITE_PROXY_TARGET`(기본 `https://localhost:8000`)으로 넘긴다. 백엔드 요청은 반드시 `backendFetch`(쿠키 포함·401/403 처리)로 → `@docs/api-communication.md` §1-1.
 
 ## 치명적 인라인 규칙 (실패대비 — 문서 로드 실패해도 지킬 것)
 

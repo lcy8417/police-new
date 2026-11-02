@@ -10,4 +10,4 @@ export {
   type ForbiddenInfo,
   type SessionEndedHandler,
 } from "./backend-fetch";
-export { backendMediaUrl, toBackendPath } from "./media-url";
+export { backendMediaUrl, crimeHistoryPath, toBackendPath } from "./media-url";
