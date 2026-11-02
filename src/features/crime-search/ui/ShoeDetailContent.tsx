@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 
 import { saveCrimeHistory, useCrimeStore } from "@/entities/crime"
+import { shoeImageUrl } from "@/entities/shoe"
 import { Button } from "@/shared/ui/button"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 import { TechCorners } from "@/shared/ui/tech-corners"
@@ -30,25 +31,23 @@ import { toPatternPaths } from "@/utils/path-utils"
 import type { SimilarityResponse } from "../model/similarity"
 import { PartialPatternsCompare, type PatternCompareGroup } from "./PartialPatternsCompare"
 
-const url = import.meta.env.VITE_API_URL
-
 /**
  * 결과상세 이미지 3종 URL을 조립하는 로컬 헬퍼(services 미수정).
  * 어텐션 맵이 유사도 근거이므로 있으면 우선 사용하고, 없으면 정적 신발 이미지로
- * 폴백한다. 레거시 `ResultDetailMain`의 URL 규약을 그대로 옮겼다.
+ * 폴백한다. 신발 정적 이미지는 공용 `shoeImageUrl`(ftwrId 문자열 그대로 + 인코딩)로 만든다.
  *  - 질의 어텐션: `query_attn_map`(없으면 현장 이미지)
- *  - 바닥 어텐션: `ref_attn_map`(없으면 `shoes_images/B/<모델>.png`)
- *  - 측면: 정적 `shoes_images/S/<모델>.png`
+ *  - 바닥 어텐션: `ref_attn_map`(없으면 `shoes_images/B/<ftwrId>.png`)
+ *  - 측면: 정적 `shoes_images/S/<ftwrId>.png`
  */
 function buildDetailImages(
-  modelNumber: string,
+  ftwrId: string,
   attns: SimilarityResponse | undefined,
   sceneImage: string | null | undefined
 ) {
   return {
     query: attns?.query_attn_map || sceneImage || null,
-    bottom: attns?.ref_attn_map || `${url}/shoes_images/B/${modelNumber}.png`,
-    side: `${url}/shoes_images/S/${modelNumber}.png`,
+    bottom: attns?.ref_attn_map || shoeImageUrl(ftwrId, "B"),
+    side: shoeImageUrl(ftwrId, "S"),
   }
 }
 
@@ -332,8 +331,10 @@ function PatternGroups({
 }
 
 export interface ShoeDetailContentProps {
-  crimeNumber: string
-  modelNumber: string
+  /** 감정물 번호(현장). */
+  aprthngNo: string
+  /** 비교 대상 신발 ID(문자열 — 앞자리 0 보존). 발견 저장 시 `mtchgId`로 전송된다. */
+  ftwrId: string
   /** 유사도 순위(1-based). 헤더 뱃지·저장 payload에 쓰인다. */
   ranking?: string | number | null
   /** 풀페이지(`page`) / 컴팩트 Sheet(`compact`) 표시 형태. */
@@ -357,8 +358,8 @@ export interface ShoeDetailContentProps {
  * 저장 규약(payload)은 레거시 `fetchHistorySave`와 동등하게 유지한다.
  */
 export function ShoeDetailContent({
-  crimeNumber,
-  modelNumber,
+  aprthngNo,
+  ftwrId,
   ranking = null,
   variant = "page",
   onSaved,
@@ -371,20 +372,18 @@ export function ShoeDetailContent({
 
   // Context 브리지 대신 store 셀렉터로 현장 데이터에 접근한다.
   const crimeData = useCrimeStore((s) => s.crimeData)
-  const currentCrimeData = crimeData.find(
-    (item) => String(item.crimeNumber) === String(crimeNumber)
-  )
+  const currentCrimeData = crimeData.find((item) => item.aprthngNo === aprthngNo)
 
   // 신발 상세 + 유사도 어텐션 맵을 한 쿼리로 병렬 로드한다. DB 신발 문양은
   // `toPatternPaths`로 전체 경로로 hydrate한다.
   // @MX:WARN: [AUTO] detailQuery - fetchCurrentShoes와 fetchSimilarity를 Promise.all로 병렬 호출, 둘 중 하나만 실패해도 개별 구분 없이 전체 쿼리가 에러로 처리됨
   // @MX:REASON: 부분 실패 시 어느 요청이 실패했는지 구분 불가 — 신발 상세는 성공했지만 유사도만 실패한 경우도 동일하게 전체 에러 상태로 렌더됨
   const detailQuery = useQuery({
-    queryKey: ["crimeSearch", "detail", crimeNumber, modelNumber],
+    queryKey: ["crimeSearch", "detail", aprthngNo, ftwrId],
     queryFn: async () => {
       const [shoesInfo, attns] = await Promise.all([
-        fetchCurrentShoes(modelNumber),
-        fetchSimilarity({ crimeNumber, modelNumber }) as Promise<SimilarityResponse>,
+        fetchCurrentShoes(ftwrId),
+        fetchSimilarity({ aprthngNo, ftwrId }) as Promise<SimilarityResponse>,
       ])
 
       const shoesData = {
@@ -397,12 +396,12 @@ export function ShoeDetailContent({
 
       return { shoesData, attns }
     },
-    enabled: Boolean(modelNumber && crimeNumber),
+    enabled: Boolean(ftwrId && aprthngNo),
   })
 
   const shoesData = detailQuery.data?.shoesData
   const images = buildDetailImages(
-    modelNumber,
+    ftwrId,
     detailQuery.data?.attns,
     currentCrimeData?.image
   )
@@ -443,17 +442,15 @@ export function ShoeDetailContent({
     onPendingChange?.(saveMutation.isPending)
   }, [saveMutation.isPending, onPendingChange])
 
-  // 발견=ranking+modelNumber 포함, 불발견=미포함(레거시 규약 동일). currentCrimeData가
-  // 없으면 버튼을 막으므로 저장 시점에는 항상 존재한다.
+  // 발견=ranking + 매칭 신발 ID(mtchgId=ftwrId) 포함, 불발견=미포함(서버가 mtchgId 없음 →
+  // '불발견'으로 기록, 설계서 §4-5). currentCrimeData가 없으면 버튼을 막으므로 저장 시점에는
+  // 항상 존재한다.
   const saveHistory = (discovered: boolean) => {
     if (!currentCrimeData) return
     saveMutation.mutate({
-      crimeNumber,
-      currentCrimeData: {
-        ...currentCrimeData,
-        crimeNumber: currentCrimeData.crimeNumber ?? crimeNumber,
-      },
-      ...(discovered ? { ranking, modelNumber } : {}),
+      aprthngNo,
+      currentCrimeData,
+      ...(discovered ? { ranking, mtchgId: ftwrId } : {}),
     })
   }
 
@@ -481,14 +478,14 @@ export function ShoeDetailContent({
   // 사건정보 8필드 — page(4열)와 compact(2열)가 그리드 열수만 다르다.
   const infoFields = (
     <>
-      <InfoField label="사건등록번호" value={currentCrimeData?.crimeNumber ?? crimeNumber} />
-      <InfoField label="모델 번호" value={modelNumber} />
-      <InfoField label="이미지 번호" value={currentCrimeData?.imageNumber} />
-      <InfoField label="사건 이름" value={currentCrimeData?.crimeName} />
-      <InfoField label="채취 일시" value={currentCrimeData?.findTime} />
-      <InfoField label="의뢰관서" value={currentCrimeData?.requestOffice} />
-      <InfoField label="발견 방법" value={currentCrimeData?.findMethod} />
-      <InfoField label="진행상태" value={currentCrimeData?.state} />
+      <InfoField label="감정물 번호" value={currentCrimeData?.aprthngNo ?? aprthngNo} />
+      <InfoField label="신발 ID" value={ftwrId} />
+      <InfoField label="감정의뢰번호" value={currentCrimeData?.apprslReqestNo} />
+      <InfoField label="사건명" value={currentCrimeData?.crimeNm} />
+      <InfoField label="채취 일시" value={currentCrimeData?.pickDt} />
+      <InfoField label="의뢰관서" value={currentCrimeData?.rqestGrfcNm} />
+      <InfoField label="채취 방법 코드" value={currentCrimeData?.pickMthCode} />
+      <InfoField label="처리 상태" value={currentCrimeData?.processSttus} />
     </>
   )
 
@@ -531,18 +528,18 @@ export function ShoeDetailContent({
   if (variant === "compact") {
     return (
       <>
-        {/* ① 고정 시각 헤더 — 사건명·모델·사건번호(2줄) + ranking 뱃지. 자동 X버튼(top-4 right-4) 회피 pr-12. */}
+        {/* ① 고정 시각 헤더 — 사건명·신발 ID·감정물 번호(2줄) + ranking 뱃지. 자동 X버튼(top-4 right-4) 회피 pr-12. */}
         <div className="flex shrink-0 items-center gap-3 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-3 pr-12">
           <Footprints className="size-5 shrink-0 text-[#4A9EFF]" aria-hidden="true" />
           <div className="flex min-w-0 flex-col">
             <span className="truncate text-[15px] font-semibold text-[#E5E9F0]">
-              {currentCrimeData?.crimeName
-                ? `${currentCrimeData.crimeName} · 신발 매칭 상세`
+              {currentCrimeData?.crimeNm
+                ? `${currentCrimeData.crimeNm} · 신발 매칭 상세`
                 : "신발 매칭 상세"}
             </span>
             <span className="truncate font-mono text-[11px] tracking-wide text-[#5B6B85]">
-              모델 {modelNumber}
-              {currentCrimeData?.crimeNumber ? ` · 사건 ${currentCrimeData.crimeNumber}` : ""}
+              신발 ID {ftwrId}
+              {currentCrimeData?.aprthngNo ? ` · 감정물 ${currentCrimeData.aprthngNo}` : ""}
             </span>
           </div>
           {ranking != null && ranking !== "" && (

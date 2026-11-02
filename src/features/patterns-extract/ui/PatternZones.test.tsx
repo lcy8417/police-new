@@ -5,7 +5,7 @@ import type { Crime } from "@/entities/crime"
 import { PatternZones } from "./PatternZones"
 
 const BASE_CRIME: Crime = {
-  crimeNumber: "2024-100",
+  aprthngNo: "05019-24-0017_5",
   image: "data:image/png;base64,AAAA",
   top: [],
   mid: [],

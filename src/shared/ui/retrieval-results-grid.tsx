@@ -9,8 +9,8 @@ import { LoadingImage } from "@/shared/ui/image-loading-overlay"
 
 /** 검색결과 카드 한 건. 서버 응답을 `imageSearch`가 정규화한 형태를 그대로 받는다. */
 export interface RetrievalResultItem {
-  /** 신발 모델 번호(= 서버의 `image` 원문). 카드 제목·상세 이동 키로 쓰인다. */
-  shoesName: string
+  /** 신발 ID(= 서버 `ftwr_id`, 문자열 — 앞자리 0 보존). 카드 제목·key·상세 이동 키로 쓰인다. */
+  ftwrId: string
   /** 전체 경로가 붙은 신발 이미지 URL. */
   image: string
   /** 유사도(0~1). 서버가 문자열로 줄 수도 있어 number|string 모두 허용. */
@@ -182,7 +182,7 @@ export function RetrievalResultsGrid({
 
           return (
             <div
-              key={`${item.shoesName}-${i}`}
+              key={`${item.ftwrId}-${i}`}
               onClick={clickable ? () => onSelect?.(item, ranking) : undefined}
               className={cn(
                 "group relative flex flex-col overflow-hidden rounded-xl border border-[#1E2A3C] bg-[#0F1826] transition-all",
@@ -212,7 +212,7 @@ export function RetrievalResultsGrid({
               <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#05080D]">
                 <LoadingImage
                   src={item.image}
-                  alt={`신발 이미지 ${item.shoesName}`}
+                  alt={`신발 이미지 ${item.ftwrId}`}
                   containerClassName="absolute inset-0"
                   className="absolute inset-0 size-full object-contain p-1.5"
                   compactOverlay
@@ -222,7 +222,7 @@ export function RetrievalResultsGrid({
               <div className="flex flex-col gap-1.5 border-t border-[#141D2C] px-3 py-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-xs font-semibold text-[#C7CEDB]">
-                    No. {item.shoesName}
+                    No. {item.ftwrId}
                   </span>
                   <Badge className={cn("border font-mono text-[10px] tabular-nums", tierStyle.badge)}>
                     {pct !== null ? `${pct}%` : item.similarity}

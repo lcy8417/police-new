@@ -22,7 +22,12 @@ import {
   SheetTitle,
 } from "@/shared/ui/sheet"
 
-import { crimeKeys, fetchCrimeDetail, useCrimeStore } from "@/entities/crime"
+import {
+  crimeKeys,
+  fetchCrimeDetail,
+  useCrimeStore,
+  type CrimeHistoryRow,
+} from "@/entities/crime"
 import {
   ExtractedPatternList,
   PatternCanvas,
@@ -83,8 +88,8 @@ const HEADER_TITLE_EMPTY = (
   </div>
 )
 
-/** 검색이력 테이블 헤더(레거시 `SearchResults`의 4열과 동일). */
-const HISTORY_COLUMNS = ["ID", "등록일시", "순위", "매칭된 신발 정보"] as const
+/** 검색이력 테이블 헤더(검색 번호 `searchNo` · 등록 일시 `frstRegistDt` · 순위 · 매칭 신발 `mtchgId`). */
+const HISTORY_COLUMNS = ["검색 번호", "등록일시", "순위", "매칭된 신발 ID"] as const
 
 /** 부위 인덱스(0~3) → 데이터 키. PatternZones의 ZONES 순서와 일치해야 한다. */
 const ZONE_KEYS: PatternZone[] = ["top", "mid", "bottom", "outline"]
@@ -103,8 +108,8 @@ const SIMILARITY_ON = "유사부위표출보기"
  * 정보/리스트가 화면의 주인공이 되게 한다.
  */
 export function CrimeDetailPage() {
-  // 라우트 변수는 `:aprthngNo`(감정물 번호). 내부 변수명 정리는 Task 4에서 한다.
-  const { aprthngNo: crimeNumber = "" } = useParams()
+  // 라우트 변수 `:aprthngNo`(감정물 번호) — useParams가 디코딩한 원래 문자열.
+  const { aprthngNo = "" } = useParams()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const imgRef = useRef<HTMLImageElement | null>(null)
@@ -112,9 +117,7 @@ export function CrimeDetailPage() {
   // Context 브리지 대신 store 셀렉터로 현장 데이터에 접근한다.
   const crimeData = useCrimeStore((s) => s.crimeData)
   const setCrimeData = useCrimeStore((s) => s.setCrimeData)
-  const index = crimeData.findIndex(
-    (item) => String(item.crimeNumber) === String(crimeNumber)
-  )
+  const index = crimeData.findIndex((item) => item.aprthngNo === aprthngNo)
   const currentCrimeData = crimeData[index]
 
   // 패턴추출 상태는 이 페이지가 소유(기존 PatternExtractPage 소유분 이관). 좌표 로직은
@@ -166,14 +169,14 @@ export function CrimeDetailPage() {
   // 이미지 편집 상태(useImageEdit 소유). 편집 대상은 editImage ?? image에서 시작하고,
   // "원본 복원"은 raw image로 되돌린다. 편집 모드가 아니어도 훅은 유지된다.
   const edit = useImageEdit({
-    crimeNumber,
+    aprthngNo,
     seedImage: currentCrimeData?.editImage ?? currentCrimeData?.image,
     originalImage: currentCrimeData?.image,
   })
   // 신발 결과 상세를 담는 우측 컴팩트 Sheet — 정렬 게이트 통과("다음 단계로") 후 연다.
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailTarget, setDetailTarget] = useState<{
-    modelNumber: string
+    ftwrId: string
     ranking: number
   } | null>(null)
   // 상세 저장 진행 상태 — 저장 중에는 Sheet 강제 닫기(오버레이·Esc)를 무시한다.
@@ -185,7 +188,7 @@ export function CrimeDetailPage() {
   // 단계로")해야만 detailOpen이 열리므로, 두 Sheet가 동시에 열리는 경우는 없다.
   const [alignmentOpen, setAlignmentOpen] = useState(false)
   const [alignmentTarget, setAlignmentTarget] = useState<{
-    modelNumber: string
+    ftwrId: string
     ranking: number
   } | null>(null)
 
@@ -228,10 +231,10 @@ export function CrimeDetailPage() {
 
   // 1단계: 검색에 사용할 현장 이미지를 로드한다(검색모드 진입 시에만).
   const loadQuery = useQuery({
-    queryKey: ["crimeSearch", "image", crimeNumber, searchEdit],
-    queryFn: () => imageLoad({ crimeNumber, edit: searchEdit }),
+    queryKey: ["crimeSearch", "image", aprthngNo, searchEdit],
+    queryFn: () => imageLoad({ aprthngNo, edit: searchEdit }),
     // 편집 뷰인데 편집 이미지가 없으면 로드하지 않는다(편집 이미지 없음 → 검색 미실행).
-    enabled: searchActive && Boolean(crimeNumber) && (!searchEdit || hasEditImage),
+    enabled: searchActive && Boolean(aprthngNo) && (!searchEdit || hasEditImage),
   })
   const loadedImage = loadQuery.data ?? null
 
@@ -243,7 +246,7 @@ export function CrimeDetailPage() {
     queryKey: [
       "crimeSearch",
       "results",
-      crimeNumber,
+      aprthngNo,
       searchEdit,
       searchPage,
       binary,
@@ -252,7 +255,7 @@ export function CrimeDetailPage() {
     ],
     queryFn: () =>
       imageSearch({
-        crimeNumber,
+        aprthngNo,
         body: { image: loadedImage, ...debouncedPatterns },
         page: searchPage,
         binary,
@@ -311,19 +314,18 @@ export function CrimeDetailPage() {
     void handleExtract()
   }, [handleExtract])
 
-  // 검색이력: 레거시의 ad hoc `fetch(/crime/:crimeNumber)`를 entities
+  // 검색이력: 레거시의 ad hoc `fetch(/crime/:aprthngNo)`를 entities
   // `fetchCrimeDetail`(같은 엔드포인트, camelCase) + useQuery로 승격했다.
   // 접힘 여부와 무관하게 항상 조회하고(펼침은 표시만 토글), 데이터는 미리 준비해 둔다.
   const historyQuery = useQuery({
-    queryKey: crimeKeys.detail(crimeNumber),
-    queryFn: () => fetchCrimeDetail(crimeNumber),
-    enabled: Boolean(crimeNumber),
+    queryKey: crimeKeys.detail(aprthngNo),
+    queryFn: () => fetchCrimeDetail(aprthngNo),
+    enabled: Boolean(aprthngNo),
   })
   const historyRows = historyQuery.data ?? []
 
-  const openHistory = (row: { id?: number; ranking?: number }) => {
-    if (row.id === undefined) return
-    const path = crimeHistoryPath(crimeNumber, row.id, { ranking: row.ranking })
+  const openHistory = (row: CrimeHistoryRow) => {
+    const path = crimeHistoryPath(aprthngNo, row.searchNo, { ranking: row.ranking })
     window.open(
       `${window.location.origin}${path}`,
       "_blank",
@@ -336,7 +338,7 @@ export function CrimeDetailPage() {
   const handleSearch = useCallback(() => {
     try {
       if (currentCrimeData) {
-        void fetchPatterns(crimeNumber, currentCrimeData)
+        void fetchPatterns(aprthngNo, currentCrimeData)
       }
       setSearchPage(0)
       // history에 항목을 쌓는다(replace 아님) → 뒤로가기로 문양추출로 복귀.
@@ -349,19 +351,19 @@ export function CrimeDetailPage() {
       console.error("Error updating patterns:", error)
       toast.error("문양 업데이트 중 오류가 발생했습니다.")
     }
-  }, [crimeNumber, currentCrimeData, setSearchParams])
+  }, [aprthngNo, currentCrimeData, setSearchParams])
 
   // 결과 카드 클릭 → 상세로 곧바로 가지 않고 정렬 게이트를 먼저 연다(REQ-ALIGN-001).
   // 정렬 게이트의 "다음 단계로"를 눌러야 비로소 상세 Sheet가 열린다(handleAlignmentProceed).
   const handleSelect = useCallback(
     (item: RetrievalResultItem, ranking: number) => {
-      setAlignmentTarget({ modelNumber: item.shoesName, ranking })
+      setAlignmentTarget({ ftwrId: item.ftwrId, ranking })
       setAlignmentOpen(true)
     },
     []
   )
 
-  // 정렬 게이트 통과 — 정렬 Sheet를 닫고 같은 (crimeNumber, modelNumber)로 상세 Sheet를 연다.
+  // 정렬 게이트 통과 — 정렬 Sheet를 닫고 같은 (aprthngNo, ftwrId)로 상세 Sheet를 연다.
   const handleAlignmentProceed = useCallback(() => {
     if (!alignmentTarget) return
     setAlignmentOpen(false)
@@ -396,7 +398,7 @@ export function CrimeDetailPage() {
       // 해당 사건 레코드의 editImage를 낙관적으로 치환.
       setCrimeData((prev) =>
         prev.map((item) =>
-          String(item.crimeNumber) === String(crimeNumber)
+          item.aprthngNo === aprthngNo
             ? { ...item, editImage: finalImage }
             : item
         )
@@ -415,7 +417,7 @@ export function CrimeDetailPage() {
       }
       toast.success("편집 이미지가 저장되었습니다.")
     },
-    [crimeNumber, setCrimeData, searchEdit, queryClient]
+    [aprthngNo, setCrimeData, searchEdit, queryClient]
   )
 
   // 편집 푸터의 [저장] — useImageEdit.save가 서버 PUT을 수행하고, 성공 시 handleEditSaved로
@@ -637,7 +639,7 @@ export function CrimeDetailPage() {
               <CaseExplorerPanel
                 crimeData={crimeData}
                 currentCrimeData={currentCrimeData}
-                crimeNumber={crimeNumber}
+                aprthngNo={aprthngNo}
                 onSelect={(n) => navigate(searchDetailPath(n))}
               />
             </div>
@@ -664,7 +666,7 @@ export function CrimeDetailPage() {
               <CaseExplorerPanel
                 crimeData={crimeData}
                 currentCrimeData={currentCrimeData}
-                crimeNumber={crimeNumber}
+                aprthngNo={aprthngNo}
                 onSelect={(n) => navigate(searchDetailPath(n))}
               />
             </div>
@@ -719,15 +721,15 @@ export function CrimeDetailPage() {
                     row.ranking <= 3
                   return (
                     <tr
-                      key={row.id ?? rowIndex}
+                      key={row.searchNo ?? rowIndex}
                       onClick={() => openHistory(row)}
                       className="group cursor-pointer border-b border-[#141D2C] transition-colors hover:bg-[#141F30] hover:shadow-[inset_2px_0_0_0_rgba(59,130,246,0.6)]"
                     >
                       <td className="px-6 py-3 font-mono text-[12px] tabular-nums text-[#5B6B85]">
-                        #{row.id}
+                        #{row.searchNo}
                       </td>
                       <td className="px-6 py-3 font-mono text-[12px] tabular-nums text-[#8A93A6]">
-                        {row.registerTime ?? "-"}
+                        {row.frstRegistDt ?? "-"}
                       </td>
                       <td className="px-6 py-3">
                         <Badge
@@ -748,7 +750,7 @@ export function CrimeDetailPage() {
                             className="size-3.5 shrink-0 text-[#5B6B85]"
                             aria-hidden="true"
                           />
-                          {row.matchingShoes ?? "-"}
+                          {row.mtchgId ?? "매칭 없음"}
                         </span>
                       </td>
                       <td className="px-3 py-3">
@@ -807,8 +809,8 @@ export function CrimeDetailPage() {
           </SheetHeader>
           {alignmentTarget && (
             <AlignmentGate
-              crimeNumber={crimeNumber}
-              modelNumber={alignmentTarget.modelNumber}
+              aprthngNo={aprthngNo}
+              ftwrId={alignmentTarget.ftwrId}
               onProceed={handleAlignmentProceed}
             />
           )}
@@ -836,8 +838,8 @@ export function CrimeDetailPage() {
           {detailTarget && (
             <ShoeDetailContent
               variant="compact"
-              crimeNumber={crimeNumber}
-              modelNumber={detailTarget.modelNumber}
+              aprthngNo={aprthngNo}
+              ftwrId={detailTarget.ftwrId}
               ranking={detailTarget.ranking}
               onPendingChange={setDetailSaving}
               onSaved={() => {
@@ -845,7 +847,7 @@ export function CrimeDetailPage() {
                 useCrimeStore.getState().refetch()
               }}
               topMatchSlot={
-                <MatchTop10Panel crimeNumber={crimeNumber} modelNumber={detailTarget.modelNumber} />
+                <MatchTop10Panel aprthngNo={aprthngNo} ftwrId={detailTarget.ftwrId} />
               }
             />
           )}

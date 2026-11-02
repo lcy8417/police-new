@@ -7,8 +7,8 @@ import { mswServer } from "@/test/msw-server";
 import { useCrimeStore } from "./crime-store";
 import type { Crime } from "./types";
 
-const blank = (crimeNumber: string): Crime => ({
-  crimeNumber,
+const blank = (aprthngNo: string): Crime => ({
+  aprthngNo,
   top: [],
   mid: [],
   bottom: [],
@@ -30,7 +30,7 @@ describe("useCrimeStore — context bridge", () => {
     useCrimeStore.getState().setCrimeData([blank("1")]);
     useCrimeStore.getState().setCrimeData((prev) => [...prev, blank("2")]);
     expect(
-      useCrimeStore.getState().crimeData.map((c) => c.crimeNumber)
+      useCrimeStore.getState().crimeData.map((c) => c.aprthngNo)
     ).toEqual(["1", "2"]);
   });
 
@@ -38,7 +38,7 @@ describe("useCrimeStore — context bridge", () => {
     // Simulate a .jsx consumer writing through the bridged setter...
     useCrimeStore.getState().setCrimeData([blank("42")]);
     // ...and a .tsx reader seeing it via the store directly.
-    expect(useCrimeStore.getState().crimeData[0].crimeNumber).toBe("42");
+    expect(useCrimeStore.getState().crimeData[0].aprthngNo).toBe("42");
   });
 
   it("refetch hydrates pattern zones to full paths and coerces image", async () => {
@@ -46,12 +46,17 @@ describe("useCrimeStore — context bridge", () => {
       http.get("*/crime", () =>
         HttpResponse.json([
           {
-            crime_number: "7",
+            aprthng_no: "05019-24-0017_5",
+            apprsl_reqest_no: "05019-24-0017",
+            pick_dt: "2024-01-29T05:31:00",
+            rqest_grfc_nm: "서울경찰청",
+            process_sttus: 0,
             image: "scene.png",
             top: [["무늬1", 0]],
             mid: [],
             bottom: [],
-            outline: [["원3", true]],
+            // 서버는 SCAS 필수 플래그를 정수 1로 보낸다(설계서 §4-1).
+            outline: [["원3", 1]],
           },
         ])
       )
@@ -60,9 +65,13 @@ describe("useCrimeStore — context bridge", () => {
     await useCrimeStore.getState().refetch();
     const [row] = useCrimeStore.getState().crimeData;
 
-    expect(row.crimeNumber).toBe("7"); // camelCased
+    expect(row.aprthngNo).toBe("05019-24-0017_5"); // camelCased, 문자열 그대로
+    expect(row.apprslReqestNo).toBe("05019-24-0017");
+    expect(row.pickDt).toBe("2024-01-29T05:31:00");
+    expect(row.rqestGrfcNm).toBe("서울경찰청");
+    expect(row.processSttus).toBe(0);
     expect(row.top).toEqual([[`${PATTERNS_ROOT}무늬1.png`, 0]]); // hydrated + 0 kept
-    expect(row.outline).toEqual([[`${PATTERNS_ROOT}원3.png`, true]]);
+    expect(row.outline).toEqual([[`${PATTERNS_ROOT}원3.png`, 1]]);
     expect(row.image).toBe("scene.png");
   });
 });

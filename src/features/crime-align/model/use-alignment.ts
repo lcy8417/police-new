@@ -51,10 +51,10 @@ export type ArrowStep = "toe" | "heel" | "complete";
 export type DrawMode = "template" | "scratch";
 
 export interface UseAlignmentParams {
-  /** 정렬 대상 사건 번호. */
-  crimeNumber: string;
-  /** 정렬 대상 신발 모델 번호(REQ-ALIGN-007b: `model_number`, `shoes_data.id` 아님). */
-  modelNumber: string;
+  /** 정렬 대상 감정물 번호(`aprthngNo`, 예 `05019-24-0017_5`). */
+  aprthngNo: string;
+  /** 정렬 대상 신발 ID(`ftwrId`, 문자열 — 앞자리 0 보존). 서버 쿼리 `ftwr_id`로 전송된다. */
+  ftwrId: string;
 }
 
 export interface UseAlignment {
@@ -127,7 +127,7 @@ export interface UseAlignment {
   canSave: boolean;
 }
 
-export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): UseAlignment {
+export function useAlignment({ aprthngNo, ftwrId }: UseAlignmentParams): UseAlignment {
   const queryClient = useQueryClient();
   const [polygon, setPolygon] = useState<Point[]>([]);
   const [toe, setToe] = useState<Point | null>(null);
@@ -144,9 +144,9 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
   const [carriedOver, setCarriedOver] = useState(false);
 
   const query = useQuery({
-    queryKey: alignmentKeys.detail(crimeNumber, modelNumber),
-    queryFn: () => fetchAlignment({ crimeNumber, modelNumber }),
-    enabled: Boolean(crimeNumber) && Boolean(modelNumber),
+    queryKey: alignmentKeys.detail(aprthngNo, ftwrId),
+    queryFn: () => fetchAlignment({ aprthngNo, ftwrId }),
+    enabled: Boolean(aprthngNo) && Boolean(ftwrId),
   });
 
   // (사건, 신발) 쌍이 바뀌면 로컬 편집 상태를 전부 초기화한다(REQ-ALIGN-010 쌍 격리 —
@@ -161,8 +161,8 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
     setJustSaved(false);
     setTemplateSeeded(false);
     setCarriedOver(false);
-    // crimeNumber/modelNumber 변경에만 반응한다.
-  }, [crimeNumber, modelNumber]);
+    // aprthngNo/ftwrId 변경에만 반응한다.
+  }, [aprthngNo, ftwrId]);
 
   // 서버에 저장된 정렬을 캔버스에 복원한다(REQ-ALIGN-008/020b) — 템플릿보다 항상
   // 우선한다(REQ-ALIGN-017 "복원 우선" — 저장본이 있으면 템플릿을 씌우지 않는다).
@@ -194,8 +194,8 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
         imageSize ? clampPointsToBounds(points, imageSize.width, imageSize.height) : points;
 
       return saveAlignment({
-        crimeNumber,
-        modelNumber,
+        aprthngNo,
+        ftwrId,
         polygon: serializePoints(bounded(polygon)) as [number, number][],
         arrow: serializePoints(bounded(toe && heel ? [toe, heel] : [])) as [number, number][],
         flipHorizontal,
@@ -204,7 +204,7 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
     onSuccess: () => {
       setJustSaved(true);
       void queryClient.invalidateQueries({
-        queryKey: alignmentKeys.detail(crimeNumber, modelNumber),
+        queryKey: alignmentKeys.detail(aprthngNo, ftwrId),
       });
       toast.success("정렬이 저장되었습니다.");
     },
@@ -219,9 +219,9 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
   // 그쪽이 항상 우선이므로(REQ-ALIGN-017 "복원 우선") 불필요한 요청을 만들지 않는다.
   const pairHasSaved = Boolean(query.data?.polygon && query.data?.arrow);
   const latestQuery = useQuery({
-    queryKey: alignmentKeys.latest(crimeNumber),
-    queryFn: () => fetchLatestAlignment({ crimeNumber }),
-    enabled: Boolean(crimeNumber) && !query.isLoading && !pairHasSaved,
+    queryKey: alignmentKeys.latest(aprthngNo),
+    queryFn: () => fetchLatestAlignment({ aprthngNo }),
+    enabled: Boolean(aprthngNo) && !query.isLoading && !pairHasSaved,
     // 이어받기는 편의 기능이라 재시도하지 않는다. 엔드포인트가 없는 구버전 백엔드(404)나
     // 일시 오류에서 재시도로 시간을 끌면, 아래 템플릿 시드가 그만큼 지연돼 캔버스가
     // 빈 채로 멈춘 것처럼 보인다(배포 순서상 프런트가 먼저 올라가는 경우 실제로 발생).
@@ -249,8 +249,8 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
     setTemplateSeeded(true);  // 템플릿이 덮어쓰지 않도록 막는다
 
     void saveAlignment({
-      crimeNumber,
-      modelNumber,
+      aprthngNo,
+      ftwrId,
       polygon: serializePoints(poly) as [number, number][],
       arrow: serializePoints([t, h]) as [number, number][],
       flipHorizontal: Boolean(src.flipHorizontal),
@@ -258,7 +258,7 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
       .then(() => {
         setJustSaved(true);
         void queryClient.invalidateQueries({
-          queryKey: alignmentKeys.detail(crimeNumber, modelNumber),
+          queryKey: alignmentKeys.detail(aprthngNo, ftwrId),
         });
         toast.success("직전 정렬을 이어받았습니다. 필요하면 수정 후 다시 저장하세요.");
       })
@@ -272,8 +272,8 @@ export function useAlignment({ crimeNumber, modelNumber }: UseAlignmentParams): 
     pairHasSaved,
     polygon.length,
     latestQuery.data,
-    crimeNumber,
-    modelNumber,
+    aprthngNo,
+    ftwrId,
     queryClient,
   ]);
 

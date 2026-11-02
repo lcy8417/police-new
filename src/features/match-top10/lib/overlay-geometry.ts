@@ -2,8 +2,8 @@
  * SPEC-MATCH-TOP10-001 대응 뷰어 오버레이의 좌표 스케일 순수 함수.
  *
  * 서버는 대응점을 각자의 **원본 픽셀 좌표계**로 준다 — `fx,fy`는
- * `저장 현장 이미지 좌표계`(`static/crime_images/<crime_number>.png`), `sx,sy`는
- * `신발 이진 이미지 좌표계`(`static/shoes_images/Shoerinsics/<model_number>.png`,
+ * `저장 현장 이미지 좌표계`(`static/crime_images/<aprthng_no>.png`), `sx,sy`는
+ * `신발 이진 이미지 좌표계`(`static/shoes_images/Shoerinsics/<ftwr_id>.png`,
  * REQ-MATCH-002 신발측). 두 좌표계는 해상도가 다른 별개 공간이며 화면에서는
  * 두 이미지를 임의 크기로 표시하므로, 표시 좌표 = 원본좌표 × (표시크기/원본크기)로
  * 스케일해야 박스가 대응점 위에 정확히 앉는다. DOM 접근 없는 순수 함수로 격리해

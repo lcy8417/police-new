@@ -17,8 +17,10 @@ import { cropImageToDataUrl } from "../lib/crop-image"
 import { boundingBoxOfPolygon, type PixelRect } from "../lib/footprint-transform"
 
 export interface UseSceneFootprintParams {
-  crimeNumber: string
-  modelNumber: string
+  /** 감정물 번호. */
+  aprthngNo: string
+  /** 신발 ID(쿼리 `ftwr_id`). */
+  ftwrId: string
   /** 크롭 대상 원본 이미지 URL(모드에 따라 crime_images 원본 또는 crime_outlines). */
   sourceSrc: string
 }
@@ -34,14 +36,14 @@ export interface UseSceneFootprint {
 }
 
 export function useSceneFootprint({
-  crimeNumber,
-  modelNumber,
+  aprthngNo,
+  ftwrId,
   sourceSrc,
 }: UseSceneFootprintParams): UseSceneFootprint {
   const alignmentQuery = useQuery({
-    queryKey: alignmentKeys.detail(crimeNumber, modelNumber),
-    queryFn: () => fetchAlignment({ crimeNumber, modelNumber }),
-    enabled: Boolean(crimeNumber && modelNumber),
+    queryKey: alignmentKeys.detail(aprthngNo, ftwrId),
+    queryFn: () => fetchAlignment({ aprthngNo, ftwrId }),
+    enabled: Boolean(aprthngNo && ftwrId),
   })
 
   const polygon = alignmentQuery.data?.polygon ?? null

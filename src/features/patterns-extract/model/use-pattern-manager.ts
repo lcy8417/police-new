@@ -79,8 +79,9 @@ export const usePatternManager = ({
         ? imgRef.current.src
         : imgRef.current.src.split(/[/\\]/).pop()!.replace(".png", "");
     } else {
-      // 현장 이미지의 경우
-      requestImage = currentData?.crimeNumber || shoesImage;
+      // 현장 이미지의 경우 — 서버가 원본(`crime_images/<aprthngNo>.png`)을 찾도록
+      // 감정물 번호 원본 문자열을 그대로 보낸다.
+      requestImage = currentData?.aprthngNo || shoesImage;
     }
 
     // REQ-SCENE-015/016(D4): 신규 DINOv2 모델은 현장(crime) 이미지 전체를 1회
@@ -117,7 +118,7 @@ export const usePatternManager = ({
     }
 
     const result = await patternsExtract({
-      crimeNumber: currentData?.crimeNumber || "shoes",
+      aprthngNo: currentData?.aprthngNo || "shoes",
       body: {
         image: requestImage,
         type: requestType,
@@ -133,7 +134,7 @@ export const usePatternManager = ({
       const extracted = result.extracted ?? [];
       setCrimeData((prev) =>
         prev.map((item) =>
-          String(item.crimeNumber) !== String(currentData.crimeNumber)
+          item.aprthngNo !== currentData.aprthngNo
             ? item
             : { ...item, extractedRaw: extracted }
         )

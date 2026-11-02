@@ -9,8 +9,12 @@ describe("prepareImage", () => {
     expect(prepareImage(dataUrl, "2024-001")).toBe(dataUrl);
   });
 
-  it("data URL이 아니면(초기 미편집) crimeNumber를 보낸다", () => {
-    expect(prepareImage("original.png", "2024-001")).toBe("2024-001");
-    expect(prepareImage("", "2024-001")).toBe("2024-001");
+  it("data URL이 아니면(초기 미편집) 감정물 번호(aprthngNo) 원본 문자열을 보낸다", () => {
+    expect(prepareImage("original.png", "05019-24-0017_5")).toBe("05019-24-0017_5");
+    expect(prepareImage("", "05019-24-0017_5")).toBe("05019-24-0017_5");
+    // 서버 이미지 URL이어도 파일명을 잘라 쓰지 않고 감정물 번호를 그대로 보낸다.
+    expect(
+      prepareImage("http://api/crime_images/05019-24-0017_5.png", "05019-24-0017_5")
+    ).toBe("05019-24-0017_5");
   });
 });

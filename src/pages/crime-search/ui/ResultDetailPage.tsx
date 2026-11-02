@@ -75,8 +75,8 @@ export function ResultDetailPage() {
   return (
     <ShoeDetailContent
       variant="page"
-      crimeNumber={aprthngNo}
-      modelNumber={ftwrId}
+      aprthngNo={aprthngNo}
+      ftwrId={ftwrId}
       ranking={ranking}
       onSaved={() => navigate(searchDetailPath(aprthngNo))}
     />

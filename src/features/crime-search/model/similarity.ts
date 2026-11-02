@@ -1,5 +1,5 @@
 /**
- * 강화된 `POST /crime/:crimeNumber/similarity` 응답 계약(족적↔신발 국소 대응).
+ * 강화된 `POST /crime/:aprthngNo/similarity?ftwr_id=...` 응답 계약(족적↔신발 국소 대응).
  *
  * ⚠ 이미지 처리 API(`services/api.js`)는 camelCase 변환을 하지 않으므로(→
  * `docs/api-communication.md` §2B), 이 응답의 필드는 **서버 원형 snake_case를 그대로**

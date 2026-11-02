@@ -19,7 +19,7 @@ import { imageProcessing as imageProcessingRaw } from "@/services/api";
 // 레거시 `services/api.js`는 무타입 JS라 기본값(null) 매개변수가 `null` 타입으로 추론된다.
 // 실제 계약(body는 객체 또는 raw 문자열, params는 URLSearchParams)에 맞춰 시그니처를 부여한다.
 const imageProcessing = imageProcessingRaw as (
-  crimeNumber: string,
+  aprthngNo: string,
   endPoint: string,
   body?: unknown,
   params?: URLSearchParams | null
@@ -43,7 +43,7 @@ function ensureImageDataUrl(image: string): string {
 export interface PolygonProcessInput {
   /** 서버 전송용으로 직렬화된 폴리곤(`serializePolygon` 결과 `[[x, y], ...]`). */
   polygon: number[][];
-  /** 서버로 보낼 image(데이터 URL 또는 crimeNumber — `prepareImage` 규약). */
+  /** 서버로 보낼 image(데이터 URL 또는 감정물 번호 aprthngNo — `prepareImage` 규약). */
   image: string;
   /** 표시 이미지 rect의 `[width, height]`(`computeRenderSize` 결과). */
   renderSize: [number, number];
@@ -51,7 +51,7 @@ export interface PolygonProcessInput {
 
 /** 노이즈제거 뮤테이션 입력. */
 export interface DenoiseInput {
-  /** 서버로 보낼 image(데이터 URL 또는 crimeNumber — `prepareImage` 규약). */
+  /** 서버로 보낼 image(데이터 URL 또는 감정물 번호 aprthngNo — `prepareImage` 규약). */
   image: string;
 }
 
@@ -75,12 +75,12 @@ function buildRenderSizeParams([width, height]: [number, number]): URLSearchPara
 /** 배경제거(segmentation): 폴리곤+이미지 → 배경이 분리된 image 문자열. */
 // @MX:TODO: [AUTO] 콜로케이트된 .test.ts 파일 없음 - useSegmentation/useInpainting/useDenoising/useSaveEditImage 4개 mutation 훅 미검증
 export function useSegmentation(
-  crimeNumber: string
+  aprthngNo: string
 ): UseMutationResult<string, Error, PolygonProcessInput> {
   return useMutation<string, Error, PolygonProcessInput>({
     mutationFn: ({ polygon, image, renderSize }) =>
       imageProcessing(
-        crimeNumber,
+        aprthngNo,
         "segmentation",
         { polygon, image },
         buildRenderSizeParams(renderSize)
@@ -90,12 +90,12 @@ export function useSegmentation(
 
 /** 접합장애물제거(inpainting): 폴리곤+이미지 → 장애물이 복원된 image 문자열. */
 export function useInpainting(
-  crimeNumber: string
+  aprthngNo: string
 ): UseMutationResult<string, Error, PolygonProcessInput> {
   return useMutation<string, Error, PolygonProcessInput>({
     mutationFn: ({ polygon, image, renderSize }) =>
       imageProcessing(
-        crimeNumber,
+        aprthngNo,
         "inpainting",
         { polygon, image },
         buildRenderSizeParams(renderSize)
@@ -108,22 +108,22 @@ export function useInpainting(
  * ⚠ body가 객체가 아니라 **raw image 문자열**이다(레거시 특수처리 재현).
  */
 export function useDenoising(
-  crimeNumber: string
+  aprthngNo: string
 ): UseMutationResult<string, Error, DenoiseInput> {
   return useMutation<string, Error, DenoiseInput>({
     mutationFn: ({ image }) =>
-      imageProcessing(crimeNumber, "denoising", image).then(ensureImageDataUrl),
+      imageProcessing(aprthngNo, "denoising", image).then(ensureImageDataUrl),
   });
 }
 
 /**
  * 편집 이미지 저장: `saveCrimeEditImage`(entities/crime)에 위임한다. 이 래퍼가 data URL의
- * base64 prefix를 `stripDataUrl`로 제거해 `PUT /crime/edit_image/{n}`로 보낸다.
+ * base64 prefix를 `stripDataUrl`로 제거해 `PUT /crime/edit_image/{aprthngNo}`로 보낸다.
  */
 export function useSaveEditImage(
-  crimeNumber: string
+  aprthngNo: string
 ): UseMutationResult<Response, Error, SaveEditImageInput> {
   return useMutation<Response, Error, SaveEditImageInput>({
-    mutationFn: ({ image }) => saveCrimeEditImage({ crimeNumber, scrollState: { image } }),
+    mutationFn: ({ image }) => saveCrimeEditImage({ aprthngNo, scrollState: { image } }),
   });
 }

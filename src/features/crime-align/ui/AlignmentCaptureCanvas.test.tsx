@@ -18,6 +18,8 @@ beforeAll(() => {
 /** 저장 현장 이미지의 실측 (W,H) — 시나리오 10d의 대조군. */
 const SAVED_W = 400
 const SAVED_H = 300
+/** 감정물 번호(`의뢰번호_순번`). */
+const APRTHNG_NO = "05019-24-0017_5"
 
 function stubImageLoad(img: HTMLImageElement, width = SAVED_W, height = SAVED_H) {
   Object.defineProperty(img, "naturalWidth", { value: width, configurable: true })
@@ -41,7 +43,7 @@ const noop = () => {}
 
 function baseProps() {
   return {
-    crimeNumber: "2024-100",
+    aprthngNo: APRTHNG_NO,
     polygon: [] as [number, number][],
     arrow: [] as [number, number][],
     phase: "polygon" as const,
@@ -58,11 +60,13 @@ function baseProps() {
 }
 
 describe("AlignmentCaptureCanvas — 캔버스 소스 고정(REQ-ALIGN-002b, AC-ALIGN-021)", () => {
-  it("항상 sceneImageUrl(crimeNumber)만 소스로 사용한다 — editImage류 prop 자체가 없다", () => {
+  // `img.src`는 jsdom이 문서 기준 절대 URL로 바꿔 돌려주므로(VITE_API_URL이 없는 테스트
+  // 환경에서는 sceneImageUrl이 상대 경로라 항상 불일치), 렌더된 src 속성값 그대로 비교한다.
+  it("항상 sceneImageUrl(aprthngNo)만 소스로 사용한다 — editImage류 prop 자체가 없다", () => {
     render(<AlignmentCaptureCanvas {...baseProps()} />)
     const img = screen.getByAltText("정렬용 저장 현장 이미지") as HTMLImageElement
-    expect(img.src).toBe(sceneImageUrl("2024-100"))
-    expect(img.src).not.toContain("edit")
+    expect(img.getAttribute("src")).toBe(sceneImageUrl(APRTHNG_NO))
+    expect(img.getAttribute("src")).not.toContain("edit")
   })
 
   it("naturalWidth/naturalHeight가 저장 파일의 (W,H)와 일치한다 — '토글'을 시뮬레이션한 재렌더 양쪽 모두", () => {
@@ -77,7 +81,7 @@ describe("AlignmentCaptureCanvas — 캔버스 소스 고정(REQ-ALIGN-002b, AC-
     // 재렌더로 토글 전환을 흉내낸다. 소스·자연 크기는 변하지 않아야 한다.
     rerender(<AlignmentCaptureCanvas {...baseProps()} phase="arrow" />)
     const imgAfter = screen.getByAltText("정렬용 저장 현장 이미지") as HTMLImageElement
-    expect(imgAfter.src).toBe(sceneImageUrl("2024-100"))
+    expect(imgAfter.getAttribute("src")).toBe(sceneImageUrl(APRTHNG_NO))
     expect(imgAfter.naturalWidth).toBe(SAVED_W)
     expect(imgAfter.naturalHeight).toBe(SAVED_H)
   })

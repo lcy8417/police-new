@@ -9,10 +9,10 @@ import { useAlignment, type ArrowStep } from "../model/use-alignment"
 import { AlignmentCaptureCanvas } from "./AlignmentCaptureCanvas"
 
 export interface AlignmentGateProps {
-  /** 정렬 대상 사건 번호. */
-  crimeNumber: string
-  /** 정렬 대상 신발 모델 번호(REQ-ALIGN-007b: `model_number`). */
-  modelNumber: string
+  /** 정렬 대상 감정물 번호(`aprthngNo`). */
+  aprthngNo: string
+  /** 정렬 대상 신발 ID(`ftwrId`, 서버 쿼리 `ftwr_id`). */
+  ftwrId: string
   /** 정렬이 설정된 상태에서 사용자가 "다음 단계로"를 누르면 호출된다(호출자가 다음
    * 화면 전환을 담당 — 이 컴포넌트는 정렬 설정만 책임진다). */
   onProceed: () => void
@@ -32,8 +32,8 @@ const ARROW_STEP_GUIDE: Record<ArrowStep, string> = {
  * v0.6.0 CHANGE 3: 밑창 템플릿 기본 제공 + 드래그 조정 + 앞굽/뒤꿈치 명시 선택.
  * v0.6.0 CHANGE 5: 좌우 반전 토글 + 라이브 프리뷰.
  */
-export function AlignmentGate({ crimeNumber, modelNumber, onProceed }: AlignmentGateProps) {
-  const alignment = useAlignment({ crimeNumber, modelNumber })
+export function AlignmentGate({ aprthngNo, ftwrId, onProceed }: AlignmentGateProps) {
+  const alignment = useAlignment({ aprthngNo, ftwrId })
 
   const guideText =
     alignment.phase === "polygon"
@@ -118,7 +118,7 @@ export function AlignmentGate({ crimeNumber, modelNumber, onProceed }: Alignment
              위 컨테이너의 overflow-hidden에 잘린다(= 전체가 안 보임). */
           <div className="relative h-full min-h-0">
             <AlignmentCaptureCanvas
-              crimeNumber={crimeNumber}
+              aprthngNo={aprthngNo}
               polygon={alignment.polygon}
               arrow={alignment.arrow}
               phase={alignment.phase}

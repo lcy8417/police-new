@@ -14,8 +14,8 @@ const POLYGON_CLOSE_THRESHOLD = 12
 const VERTEX_HIT_RADIUS = 10
 
 export interface AlignmentCaptureCanvasProps {
-  /** 정렬 대상 사건 번호 — 이미지 소스는 항상 `sceneImageUrl(crimeNumber)`(저장 원본) 고정. */
-  crimeNumber: string
+  /** 정렬 대상 감정물 번호 — 이미지 소스는 항상 `sceneImageUrl(aprthngNo)`(저장 원본) 고정. */
+  aprthngNo: string
   /** 폴리곤 정점(`저장 현장 이미지 좌표계`). */
   polygon: Point[]
   /** 방향 화살표 정점(`저장 현장 이미지 좌표계`) — [toe] 또는 [toe, heel] 또는 []. */
@@ -57,8 +57,8 @@ type DragState =
  * 정렬 캔버스 — 밑창 템플릿 폴리곤(드래그 조정) + 앞굽/뒤꿈치 명시 선택 입력 표면
  * (v0.6.0 CHANGE 3). 좌우 반전 프리뷰(CHANGE 5)도 이 컴포넌트가 표시한다.
  *
- * [HARD] REQ-ALIGN-002b: 이 컴포넌트는 `sceneImageUrl(crimeNumber)`(저장 원본
- * `static/crime_images/<n>.png`)**만** 이미지 소스로 사용한다. 편집 이미지 관련
+ * [HARD] REQ-ALIGN-002b: 이 컴포넌트는 `sceneImageUrl(aprthngNo)`(저장 원본
+ * `static/crime_images/<aprthngNo>.png`)**만** 이미지 소스로 사용한다. 편집 이미지 관련
  * prop(페이지의 편집 결과 이미지 필드, 편집 훅의 표시 이미지 등)을 일절 받지
  * 않는다 — 페이지의 원본/편집 토글 상태와 완전히 무관한 독립 컴포넌트다(props
  * 목록 자체에 그런 필드가 없으므로 구조적으로 편집 이미지를 소스로 쓸 수 없다).
@@ -68,7 +68,7 @@ type DragState =
  * 이 컴포넌트는 완전히 독립된 캔버스다(REQ-ALIGN-014, plan.md §G).
  */
 export function AlignmentCaptureCanvas({
-  crimeNumber,
+  aprthngNo,
   polygon,
   arrow,
   phase,
@@ -85,7 +85,7 @@ export function AlignmentCaptureCanvas({
   const imgRef = useRef<HTMLImageElement | null>(null)
   const [rect, setRect] = useState<{ width: number; height: number } | null>(null)
   const [naturalWidth, setNaturalWidth] = useState(0)
-  const load = useImageLoadState(sceneImageUrl(crimeNumber))
+  const load = useImageLoadState(sceneImageUrl(aprthngNo))
   const dragRef = useRef<DragState>(null)
 
   const recompute = useCallback(() => {
@@ -216,7 +216,7 @@ export function AlignmentCaptureCanvas({
       >
         <img
           ref={imgRef}
-          src={sceneImageUrl(crimeNumber)}
+          src={sceneImageUrl(aprthngNo)}
           alt="정렬용 저장 현장 이미지"
           draggable={false}
           onLoad={handleImageLoad}

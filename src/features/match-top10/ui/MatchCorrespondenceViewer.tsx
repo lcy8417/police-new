@@ -250,8 +250,10 @@ function ViewModeToggle({
 }
 
 export interface MatchCorrespondenceViewerProps {
-  crimeNumber: string
-  modelNumber: string
+  /** 감정물 번호 — 현장 이미지 파일명(`crime_images/<aprthngNo>.png`). */
+  aprthngNo: string
+  /** 신발 ID — 신발 이미지 파일명(`shoes_images/{B,Shoerinsics}/<ftwrId>.png`). */
+  ftwrId: string
   /** score 내림차순 top-10 대응 목록(1개 이상 — 빈 배열/로딩/에러는 호출부인
    * `MatchTop10Grid`가 이 컴포넌트에 도달하기 전에 별도 상태로 처리한다). */
   matches: MatchCorrespondence[]
@@ -265,8 +267,8 @@ export interface MatchCorrespondenceViewerProps {
  * 클릭=선택 고정, hover=임시 강조 — 두 이미지가 이 상태를 공유해 좌우 박스가
  * 양방향으로 함께 강조된다(MatchViewer의 locked/hovered 패턴과 동일).
  *
- * ⚠ 좌표 공간: `fx,fy`는 `static/crime_images/<crimeNumber>.png`(저장 현장 이미지
- * 좌표계), `sx,sy`는 `static/shoes_images/Shoerinsics/<modelNumber>.png`(신발 이진
+ * ⚠ 좌표 공간: `fx,fy`는 `static/crime_images/<aprthngNo>.png`(저장 현장 이미지
+ * 좌표계), `sx,sy`는 `static/shoes_images/Shoerinsics/<ftwrId>.png`(신발 이진
  * 이미지 좌표계) 기준이다 — 매칭에 실제로 쓰인 이진 이미지다. 백엔드
  * `routes/crime_process.py`의 `match_top10` 핸들러가 `sx,sy`를 `shoe_transform`으로
  * 역변환하는 원본이 정확히 이 파일이므로, 다른 신발 이미지를 표시하면 박스가
@@ -279,8 +281,8 @@ export interface MatchCorrespondenceViewerProps {
  * 반영한다. 오버레이 박스도 동일한 변환(크롭 오프셋 차감 + 미러)을 거친다.
  */
 export function MatchCorrespondenceViewer({
-  crimeNumber,
-  modelNumber,
+  aprthngNo,
+  ftwrId,
   matches,
 }: MatchCorrespondenceViewerProps) {
   const [locked, setLocked] = useState<number | null>(matches.length > 0 ? 0 : null)
@@ -300,26 +302,26 @@ export function MatchCorrespondenceViewer({
   // 캐시 항목과 섞이지 않게 하기 위함이다(corsPartitionedUrl 주석에 근거 상세).
   // 파일명은 감정물 번호(aprthngNo)·신발 ID(ftwrId) — 방어용으로 encodeURIComponent.
   const apiBase = import.meta.env.VITE_API_URL ?? ""
-  const sceneFile = `${encodeURIComponent(crimeNumber)}.png`
+  const sceneFile = `${encodeURIComponent(aprthngNo)}.png`
   const rawSceneImageSrc = corsPartitionedUrl(
     mode === "실사"
       ? `${apiBase}/crime_images/${sceneFile}`
       : `${apiBase}/crime_outlines/${sceneFile}`
   )
   const shoeImageSrc = corsPartitionedUrl(
-    shoeImageUrl(modelNumber, mode === "실사" ? "B" : "Shoerinsics")
+    shoeImageUrl(ftwrId, mode === "실사" ? "B" : "Shoerinsics")
   )
 
   // [CORRECTION 3b] 정렬 폴리곤 경계상자로 크롭 + flipHorizontal 반영. 폴리곤이
   // 없으면(예: 데이터 도착 경쟁) 원본 그대로 폴백한다(크롭 전 레거시 동작과 동일).
-  const footprint = useSceneFootprint({ crimeNumber, modelNumber, sourceSrc: rawSceneImageSrc })
+  const footprint = useSceneFootprint({ aprthngNo, ftwrId, sourceSrc: rawSceneImageSrc })
 
   // [CORRECTION 3a] RGB 모드에서만 Shoerinsics 원본 크기를 실측해 sx,sy를 정규화한다
   // (스케치/이진 모드는 표시 이미지 자체가 Shoerinsics라 정규화가 불필요).
   // Shoerinsics 원본 크기는 두 곳에 쓰인다: RGB 모드 좌표 정규화(normalizeFrom)와,
   // 아래 "밑창 대비 같은 비율" 박스 환산의 기준 폭 — 후자는 모드와 무관하게 필요하다.
   const shoerinsicsSize = useImageNaturalSize({
-    src: shoeImageUrl(modelNumber, "Shoerinsics"),
+    src: shoeImageUrl(ftwrId, "Shoerinsics"),
   })
   // 정렬 폴리곤 크롭이 없을 때(레거시 폴백)의 현장 기준 폭 — 표시 이미지가 원본 전체다.
   const sceneNaturalSize = useImageNaturalSize({
@@ -441,7 +443,7 @@ export function MatchCorrespondenceViewer({
               </span>
               <ImageWithBoxes
                 src={shoeImageSrc}
-                alt={`신발 이미지 (등록 모델 ${modelNumber})`}
+                alt={`신발 이미지 (신발 ID ${ftwrId})`}
                 boxes={shoeBoxes}
                 activeIndex={activeIndex}
                 onSelect={handleSelect}

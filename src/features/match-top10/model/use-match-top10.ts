@@ -11,8 +11,10 @@ import { MatchGateError, fetchMatchTop10, matchTop10Keys } from "@/entities/matc
 import type { MatchCorrespondence, MatchGateCode, MatchGateErrorDetail } from "@/entities/match";
 
 export interface UseMatchTop10Params {
-  crimeNumber: string;
-  modelNumber: string;
+  /** 감정물 번호(URL 경로). */
+  aprthngNo: string;
+  /** 신발 ID(쿼리 `ftwr_id`, 문자열 — 앞자리 0 보존). */
+  ftwrId: string;
   /** 사용자가 명시적으로 매칭을 요청했을 때만 조회를 시작한다(자동 트리거 아님 —
    * GPU 추론 비용이 크므로 화면 진입만으로 발사하지 않는다). */
   enabled: boolean;
@@ -30,11 +32,11 @@ export interface UseMatchTop10 {
   refetch: () => void;
 }
 
-export function useMatchTop10({ crimeNumber, modelNumber, enabled }: UseMatchTop10Params): UseMatchTop10 {
+export function useMatchTop10({ aprthngNo, ftwrId, enabled }: UseMatchTop10Params): UseMatchTop10 {
   const query = useQuery({
-    queryKey: matchTop10Keys.detail(crimeNumber, modelNumber),
-    queryFn: () => fetchMatchTop10({ crimeNumber, modelNumber }),
-    enabled: enabled && Boolean(crimeNumber) && Boolean(modelNumber),
+    queryKey: matchTop10Keys.detail(aprthngNo, ftwrId),
+    queryFn: () => fetchMatchTop10({ aprthngNo, ftwrId }),
+    enabled: enabled && Boolean(aprthngNo) && Boolean(ftwrId),
     retry: false, // 409 게이트는 재시도로 해소되지 않음(정렬/윤곽/신발 상태가 바뀌어야 함).
   });
 

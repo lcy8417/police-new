@@ -64,8 +64,8 @@ const PROCESSING_ERROR_LABELS: Record<Exclude<EditTool, "threshold">, string> = 
 };
 
 export interface UseImageEditParams {
-  /** 편집 대상 사건 번호(서버 처리·저장 엔드포인트 식별자). */
-  crimeNumber: string;
+  /** 편집 대상 감정물 번호(서버 처리·저장 엔드포인트 식별자). */
+  aprthngNo: string;
   /** 편집 시작 원본(currentCrimeData.editImage ?? image). */
   seedImage: string | null | undefined;
   /**
@@ -77,11 +77,11 @@ export interface UseImageEditParams {
 
 /**
  * 서버로 보낼 image를 결정한다(레거시 `EditMain.jsx#prepareImage` 재현).
- * 이미 편집된 data URL이면 그대로, 아니면 bare crimeNumber(서버가 원본을 로드)를 보낸다.
- * 순수 함수라 단위테스트 가능.
+ * 이미 편집된 data URL이면 그대로, 아니면 감정물 번호(aprthngNo) 원본 문자열(서버가 원본을
+ * 로드)을 보낸다 — 이미지 URL에서 파일명을 잘라 쓰지 않는다. 순수 함수라 단위테스트 가능.
  */
-export function prepareImage(workingImage: string, crimeNumber: string): string {
-  return workingImage.startsWith("data:image") ? workingImage : crimeNumber;
+export function prepareImage(workingImage: string, aprthngNo: string): string {
+  return workingImage.startsWith("data:image") ? workingImage : aprthngNo;
 }
 
 export interface UseImageEdit {
@@ -140,7 +140,7 @@ export interface UseImageEdit {
 }
 
 export function useImageEdit({
-  crimeNumber,
+  aprthngNo,
   seedImage,
   originalImage,
 }: UseImageEditParams): UseImageEdit {
@@ -154,10 +154,10 @@ export function useImageEdit({
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [processingLabel, setProcessingLabel] = useState<string>("");
 
-  const segmentation = useSegmentation(crimeNumber);
-  const inpainting = useInpainting(crimeNumber);
-  const denoising = useDenoising(crimeNumber);
-  const saveMutation = useSaveEditImage(crimeNumber);
+  const segmentation = useSegmentation(aprthngNo);
+  const inpainting = useInpainting(aprthngNo);
+  const denoising = useDenoising(aprthngNo);
+  const saveMutation = useSaveEditImage(aprthngNo);
 
   // 비동기 핸들러의 클로저 스테일을 피하려고 최신값을 ref로 유지한다(매 렌더 동기화).
   const workingImageRef = useRef(workingImage);
@@ -169,18 +169,18 @@ export function useImageEdit({
   originalImageRef.current = originalImage;
 
   // 세션 초기화 트리거는 둘뿐이다: (1) 최초/비동기 로드로 seedImage가 빈 값→실제 값이
-  // 되거나, (2) 편집 대상 사건(crimeNumber)이 바뀔 때. 저장 후 낙관적 editImage 갱신처럼
+  // 되거나, (2) 편집 대상 감정물(aprthngNo)이 바뀔 때. 저장 후 낙관적 editImage 갱신처럼
   // 세션 진행 중 seedImage가 값→값으로 바뀌는 경우엔 편집 스택(undo 히스토리)을 보존한다
   // — 그렇지 않으면 저장 직후 진행 중이던 편집·되돌리기 스택이 통째로 날아간다.
   const lastSeedRef = useRef(seedImage);
-  const sessionCrimeRef = useRef(crimeNumber);
+  const sessionCrimeRef = useRef(aprthngNo);
   useEffect(() => {
     const seedChanged = seedImage !== lastSeedRef.current;
-    const crimeChanged = crimeNumber !== sessionCrimeRef.current;
+    const crimeChanged = aprthngNo !== sessionCrimeRef.current;
     if (!seedChanged && !crimeChanged) return;
     const wasEmpty = !lastSeedRef.current;
     lastSeedRef.current = seedImage;
-    sessionCrimeRef.current = crimeNumber;
+    sessionCrimeRef.current = aprthngNo;
     // 같은 사건에서 이미 seed가 있던 상태의 값→값 변경(낙관적 갱신)은 초기화하지 않는다.
     if (!crimeChanged && !wasEmpty) return;
     setWorkingImage(seedImage ?? "");
@@ -190,7 +190,7 @@ export function useImageEdit({
     setActiveToolState(null);
     setThreshold(DEFAULT_THRESHOLD);
     setThresholdMode(DEFAULT_THRESHOLD_MODE);
-  }, [seedImage, crimeNumber]);
+  }, [seedImage, aprthngNo]);
 
   // workingImage가 data URL이 아니면(서버가 URL/경로로 준 이미지) canvas 이진화·저장을 위해
   // data URL로 변환해 교체한다. 교차 출처 URL을 canvas에 그리면 taint되어 getImageData(이진화)가
@@ -284,7 +284,7 @@ export function useImageEdit({
 
       const [renderW, renderH] = computeRenderSize(rect);
       const polygon = serializePolygon(clampPolygon(points, renderW, renderH));
-      const image = prepareImage(workingImageRef.current, crimeNumber);
+      const image = prepareImage(workingImageRef.current, aprthngNo);
       const mutation = activeTool === "background" ? segmentation : inpainting;
 
       setProcessingLabel(PROCESSING_LABELS[activeTool]);
@@ -301,7 +301,7 @@ export function useImageEdit({
         setIsProcessing(false);
       }
     },
-    [activeTool, points, crimeNumber, segmentation, inpainting, commit]
+    [activeTool, points, aprthngNo, segmentation, inpainting, commit]
   );
 
   // 현재 threshold/mode로 workingImage를 즉석 이진화해 반환한다(부수효과 없는 순수 bake).
@@ -319,7 +319,7 @@ export function useImageEdit({
   }, [bakeCurrentThreshold, commit]);
 
   const runDenoise = useCallback(async () => {
-    const image = prepareImage(workingImageRef.current, crimeNumber);
+    const image = prepareImage(workingImageRef.current, aprthngNo);
     setProcessingLabel(PROCESSING_LABELS.denoise);
     setIsProcessing(true);
     try {
@@ -332,7 +332,7 @@ export function useImageEdit({
     } finally {
       setIsProcessing(false);
     }
-  }, [crimeNumber, denoising, commit]);
+  }, [aprthngNo, denoising, commit]);
 
   const save = useCallback(
     async (onSaved?: (finalImage: string) => void) => {

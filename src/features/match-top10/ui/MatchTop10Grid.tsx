@@ -20,8 +20,10 @@ const GATE_MESSAGES: Record<MatchGateCode, string> = {
 }
 
 export interface MatchTop10GridProps {
-  crimeNumber: string
-  modelNumber: string
+  /** 감정물 번호. */
+  aprthngNo: string
+  /** 신발 ID(문자열 — 앞자리 0 보존). */
+  ftwrId: string
   matches: MatchCorrespondence[]
   isLoading: boolean
   gateCode: MatchGateCode | null
@@ -40,8 +42,8 @@ export interface MatchTop10GridProps {
  * 이 컴포넌트가 그대로 소유한다(rank 내림차순 유지, REQ-MATCH-008).
  */
 export function MatchTop10Grid({
-  crimeNumber,
-  modelNumber,
+  aprthngNo,
+  ftwrId,
   matches,
   isLoading,
   gateCode,
@@ -128,6 +130,6 @@ export function MatchTop10Grid({
   }
 
   return (
-    <MatchCorrespondenceViewer crimeNumber={crimeNumber} modelNumber={modelNumber} matches={matches} />
+    <MatchCorrespondenceViewer aprthngNo={aprthngNo} ftwrId={ftwrId} matches={matches} />
   )
 }

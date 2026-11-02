@@ -1,4 +1,5 @@
 export type { CrimeSearchRow } from "./model/case-row";
+export { matchesPickDt } from "./model/case-row";
 export { QuickSearchBar } from "./ui/QuickSearchBar";
 export type { QuickSearchBarProps, QuickSearchFilters } from "./ui/QuickSearchBar";
 export { CaseListCompact } from "./ui/CaseListCompact";

@@ -9,8 +9,10 @@ const useImageProcessing = ({
 }) => {
   const handleProcessing = async ({ endpoint, body = null, params = null }) => {
     try {
-      if (body?.image && body.image.includes(".png")) {
-        body.image = body.image.split("/").pop().split(".")[0];
+      // 이미지가 data URL이 아니라 서버 이미지 URL이면, URL에서 파일명을 잘라 쓰지 않고
+      // 감정물 번호(aprthngNo) 원본 문자열을 보낸다(서버가 그 번호로 원본을 찾는다).
+      if (body?.image && !body.image.startsWith("data:image") && body.image.includes(".png")) {
+        body.image = aprthngNo;
       }
 
       if (endpoint == "denoising" && body?.image) {

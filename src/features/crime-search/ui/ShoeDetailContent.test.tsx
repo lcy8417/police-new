@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { http, HttpResponse } from "msw"
 
+import { useCrimeStore } from "@/entities/crime"
 import { mswServer } from "@/test/msw-server"
 import { ShoeDetailContent } from "./ShoeDetailContent"
 
@@ -16,22 +17,31 @@ function renderCompact(topMatchSlot?: React.ReactNode) {
     <QueryClientProvider client={qc}>
       <ShoeDetailContent
         variant="compact"
-        crimeNumber="2024-100"
-        modelNumber="SHOE-1"
+        aprthngNo={APRTHNG_NO}
+        ftwrId={FTWR_ID}
         topMatchSlot={topMatchSlot}
       />
     </QueryClientProvider>
   )
 }
 
+/** 감정물 번호와 앞자리 0이 있는 신발 ID — 둘 다 문자열 그대로 써야 한다. */
+const APRTHNG_NO = "05019-24-0017_5"
+const FTWR_ID = "00758"
+
+/** 마지막 유사도 요청의 `ftwr_id` 쿼리 값(서버로 실제 나간 신발 ID). */
+let similarityFtwrId: string | null = null
+
 function stubBackend() {
+  similarityFtwrId = null
   mswServer.use(
-    http.get("*/shoes/SHOE-1", () =>
-      HttpResponse.json({ model_number: "SHOE-1", top: [], mid: [], bottom: [], outline: [] })
+    http.get(`*/shoes/${FTWR_ID}`, () =>
+      HttpResponse.json({ ftwr_id: FTWR_ID, top: [], mid: [], bottom: [], outline: [] })
     ),
-    http.post("*/crime/2024-100/similarity", () =>
-      HttpResponse.json({ query_attn_map: null, ref_attn_map: null, matches: [] })
-    )
+    http.post(`*/crime/${APRTHNG_NO}/similarity`, ({ request }) => {
+      similarityFtwrId = new URL(request.url).searchParams.get("ftwr_id")
+      return HttpResponse.json({ query_attn_map: null, ref_attn_map: null, matches: [] })
+    })
   )
 }
 
@@ -65,8 +75,53 @@ describe("ShoeDetailContent(compact) — 레거시 유사부위 대응 제거 + 
     stubBackend()
     renderCompact(undefined)
 
-    await waitFor(() => expect(screen.getByText(/모델 SHOE-1/)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/신발 ID 00758/)).toBeInTheDocument())
     expect(screen.queryByText("Top-10 대응 매칭")).toBeNull()
+  })
+
+  it("유사도 요청은 ftwr_id 쿼리로 앞자리 0까지 그대로 보낸다", async () => {
+    stubBackend()
+    renderCompact(undefined)
+
+    await waitFor(() => expect(similarityFtwrId).toBe(FTWR_ID))
+  })
+})
+
+describe("ShoeDetailContent(page) — SCAS 필드 표시", () => {
+  afterEach(() => useCrimeStore.setState({ crimeData: [] }))
+
+  it("측면 이미지는 ftwrId로 조립하고, 사건 정보는 감정물 번호·신발 ID 라벨로 표시한다", async () => {
+    stubBackend()
+    useCrimeStore.setState({
+      crimeData: [
+        {
+          aprthngNo: APRTHNG_NO,
+          apprslReqestNo: "05019-24-0017",
+          pickMthCode: "FT001",
+          top: [],
+          mid: [],
+          bottom: [],
+          outline: [],
+        },
+      ],
+    })
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <ShoeDetailContent variant="page" aprthngNo={APRTHNG_NO} ftwrId={FTWR_ID} />
+      </QueryClientProvider>
+    )
+
+    const side = await screen.findByAltText("측면 이미지")
+    expect(side.getAttribute("src")).toMatch(/\/shoes_images\/S\/00758\.png$/)
+    expect(screen.getByText("감정물 번호")).toBeInTheDocument()
+    expect(screen.getByText(APRTHNG_NO)).toBeInTheDocument()
+    expect(screen.getByText("신발 ID")).toBeInTheDocument()
+    expect(screen.getByText(FTWR_ID)).toBeInTheDocument()
+    expect(screen.getByText("감정의뢰번호")).toBeInTheDocument()
+    expect(screen.getByText("05019-24-0017")).toBeInTheDocument()
+    expect(screen.getByText("채취 방법 코드")).toBeInTheDocument()
+    expect(screen.getByText("FT001")).toBeInTheDocument()
   })
 
   it("[CORRECTION 1] top-10 대응 매칭 섹션이 문양 비교 섹션보다 DOM상 먼저(최상단) 렌더된다", async () => {

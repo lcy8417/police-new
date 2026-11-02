@@ -11,14 +11,14 @@ beforeAll(() => mswServer.listen({ onUnhandledRequest: "error" }));
 afterEach(() => mswServer.resetHandlers());
 afterAll(() => mswServer.close());
 
-function renderUseAlignment(crimeNumber: string, modelNumber: string) {
+function renderUseAlignment(aprthngNo: string, ftwrId: string) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={qc}>{children}</QueryClientProvider>
   );
-  return renderHook(() => useAlignment({ crimeNumber, modelNumber }), { wrapper });
+  return renderHook(() => useAlignment({ aprthngNo, ftwrId }), { wrapper });
 }
 
 const RECT = { left: 0, top: 0, width: 100, height: 100 };
@@ -451,12 +451,12 @@ describe("useAlignment — 저장/복원/재설정/쌍 격리(기존 계약 무�
     expect(result.current.isAligned).toBe(true);
   });
 
-  it("crimeNumber/modelNumber마다 독립적인 쿼리 키로 조회한다(AC-ALIGN-007)", async () => {
+  it("aprthngNo/ftwrId마다 독립적인 쿼리 키로 조회한다(AC-ALIGN-007)", async () => {
     mswServer.use(
       http.get("*/crime/A/alignment", ({ request }) => {
         const url = new URL(request.url);
-        const modelNumber = url.searchParams.get("model_number");
-        if (modelNumber === "X") {
+        const ftwrId = url.searchParams.get("ftwr_id");
+        if (ftwrId === "X") {
           return HttpResponse.json({
             polygon: [
               [1, 1],

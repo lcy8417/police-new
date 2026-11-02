@@ -16,11 +16,11 @@ class ResizeObserverStub {
 globalThis.ResizeObserver =
   globalThis.ResizeObserver ?? (ResizeObserverStub as unknown as typeof ResizeObserver)
 
-const CRIME_NUMBER = "2024-100"
+const APRTHNG_NO = "05019-24-0017_5"
 
 function baseCrime(overrides: Partial<Crime> = {}): Crime {
   return {
-    crimeNumber: CRIME_NUMBER,
+    aprthngNo: APRTHNG_NO,
     image: "data:image/png;base64,AAAA",
     top: [],
     mid: [],
@@ -36,7 +36,7 @@ function renderCrimeDetailPage() {
   })
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[`/search/${CRIME_NUMBER}`]}>
+      <MemoryRouter initialEntries={[`/search/${encodeURIComponent(APRTHNG_NO)}`]}>
         <Routes>
           <Route path="/search/:aprthngNo" element={<CrimeDetailPage />} />
         </Routes>

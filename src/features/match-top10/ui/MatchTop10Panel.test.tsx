@@ -13,11 +13,16 @@ afterEach(() => {
 })
 afterAll(() => mswServer.close())
 
+/** 감정물 번호(`의뢰번호_순번`)와 앞자리 0이 있는 신발 ID — 둘 다 문자열 그대로 전송돼야 한다. */
+const APRTHNG_NO = "05019-24-0017_5"
+const FTWR_ID = "00758"
+const MATCH_URL = `*/crime/${APRTHNG_NO}/match_top10`
+
 function renderPanel() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
-      <MatchTop10Panel crimeNumber="2024-100" modelNumber="SHOE-1" />
+      <MatchTop10Panel aprthngNo={APRTHNG_NO} ftwrId={FTWR_ID} />
     </QueryClientProvider>
   )
 }
@@ -32,8 +37,8 @@ const MATCHES_RESPONSE = {
     box: { cx: i * 10, cy: i * 10, size: 96 },
     box_image: `data:image/png;base64,AAA${i}`,
   })),
-  crime_number: "2024-100",
-  model_number: "SHOE-1",
+  aprthng_no: APRTHNG_NO,
+  ftwr_id: FTWR_ID,
 }
 
 function stubReducedMotion(matches: boolean) {
@@ -64,15 +69,19 @@ describe("MatchTop10Panel — 시각화 애니메이션(CHANGE 4, REQ-MATCH-015 
   // 상세 슬라이드 패널이 열릴 때 비로소 마운트되므로 마운트 자체가 사용자 의사표시다.
   it("마운트되면 버튼 클릭 없이 곧바로 match_top10을 조회한다", async () => {
     let callCount = 0
+    let sentFtwrId: string | null = null
     mswServer.use(
-      http.post("*/crime/2024-100/match_top10", () => {
+      http.post(MATCH_URL, ({ request }) => {
         callCount += 1
+        sentFtwrId = new URL(request.url).searchParams.get("ftwr_id")
         return HttpResponse.json(MATCHES_RESPONSE)
       })
     )
     renderPanel()
 
     await waitFor(() => expect(callCount).toBe(1))
+    // 신발 ID는 쿼리 `ftwr_id`로, 앞자리 0까지 문자열 그대로 전송된다.
+    expect(sentFtwrId).toBe(FTWR_ID)
     // 매칭을 다시 요구하는 트리거 버튼이 남아 있지 않다.
     expect(screen.queryByRole("button", { name: /매칭 시작/ })).toBeNull()
   })
@@ -80,7 +89,7 @@ describe("MatchTop10Panel — 시각화 애니메이션(CHANGE 4, REQ-MATCH-015 
   it("마운트 후 정확히 1회의 match_top10 호출만 발생한다 — 애니메이션이 추가 호출을 만들지 않는다", async () => {
     let callCount = 0
     mswServer.use(
-      http.post("*/crime/2024-100/match_top10", () => {
+      http.post(MATCH_URL, () => {
         callCount += 1
         return HttpResponse.json(MATCHES_RESPONSE)
       })
@@ -95,7 +104,7 @@ describe("MatchTop10Panel — 시각화 애니메이션(CHANGE 4, REQ-MATCH-015 
 
   it("스킵을 누르면 오버레이가 즉시 사라지고 카드 그리드(결과)에 도달한다(비차단, REQ-MATCH-015b)", async () => {
     mswServer.use(
-      http.post("*/crime/2024-100/match_top10", () => HttpResponse.json(MATCHES_RESPONSE))
+      http.post(MATCH_URL, () => HttpResponse.json(MATCHES_RESPONSE))
     )
     renderPanel()
 
@@ -111,7 +120,7 @@ describe("MatchTop10Panel — 시각화 애니메이션(CHANGE 4, REQ-MATCH-015 
   it("prefers-reduced-motion이 켜져 있으면 애니메이션 없이 결과가 즉시 표시된다(REQ-MATCH-015c)", async () => {
     stubReducedMotion(true)
     mswServer.use(
-      http.post("*/crime/2024-100/match_top10", () => HttpResponse.json(MATCHES_RESPONSE))
+      http.post(MATCH_URL, () => HttpResponse.json(MATCHES_RESPONSE))
     )
     renderPanel()
 
@@ -123,9 +132,9 @@ describe("MatchTop10Panel — 시각화 애니메이션(CHANGE 4, REQ-MATCH-015 
 
   it("게이트 오류 상태에서는 애니메이션 오버레이가 뜨지 않는다(정렬 미설정 등)", async () => {
     mswServer.use(
-      http.post("*/crime/2024-100/match_top10", () =>
+      http.post(MATCH_URL, () =>
         HttpResponse.json(
-          { detail: { code: "ALIGNMENT_NOT_SET", crime_number: "2024-100" } },
+          { detail: { code: "ALIGNMENT_NOT_SET", aprthng_no: APRTHNG_NO, ftwr_id: FTWR_ID } },
           { status: 409 }
         )
       )

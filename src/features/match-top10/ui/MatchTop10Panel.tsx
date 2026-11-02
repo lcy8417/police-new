@@ -4,8 +4,10 @@ import { MatchTop10Grid } from "./MatchTop10Grid"
 import { MatchRevealOverlay } from "./MatchRevealOverlay"
 
 export interface MatchTop10PanelProps {
-  crimeNumber: string
-  modelNumber: string
+  /** 감정물 번호. */
+  aprthngNo: string
+  /** 신발 ID(문자열 — 앞자리 0 보존). */
+  ftwrId: string
   /** ALIGNMENT_NOT_SET 게이트에서 "정렬 설정하러 가기"를 눌렀을 때 호출(선택 —
    * 호출자가 정렬 UI로의 실제 화면 전환을 책임진다). */
   onGoToAlignment?: () => void
@@ -25,10 +27,10 @@ export interface MatchTop10PanelProps {
  * 오버레이와 무관하게 **항상 마운트**되어 있으므로(순수 표현 계층, payload
  * 불변) 스킵·모션 감소·오버레이 종료 어느 경로로도 결과에 도달할 수 있다.
  */
-export function MatchTop10Panel({ crimeNumber, modelNumber, onGoToAlignment }: MatchTop10PanelProps) {
+export function MatchTop10Panel({ aprthngNo, ftwrId, onGoToAlignment }: MatchTop10PanelProps) {
   const { matches, isLoading, gateCode, isGenericError, refetch } = useMatchTop10({
-    crimeNumber,
-    modelNumber,
+    aprthngNo,
+    ftwrId,
     enabled: true,
   })
 
@@ -38,8 +40,8 @@ export function MatchTop10Panel({ crimeNumber, modelNumber, onGoToAlignment }: M
   return (
     <div className="relative min-h-[280px]">
       <MatchTop10Grid
-        crimeNumber={crimeNumber}
-        modelNumber={modelNumber}
+        aprthngNo={aprthngNo}
+        ftwrId={ftwrId}
         matches={matches}
         isLoading={isLoading}
         gateCode={gateCode}

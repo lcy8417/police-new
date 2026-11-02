@@ -17,7 +17,7 @@ function renderCrimeManager(crime: Crime) {
 }
 
 const BASE_CRIME: Crime = {
-  crimeNumber: "2024-100",
+  aprthngNo: "05019-24-0017_5",
   image: "data:image/png;base64,AAAA",
   top: [],
   mid: [],
@@ -81,6 +81,42 @@ describe("usePatternManager 현장(crime) 모드 extractPattern", () => {
         body: expect.objectContaining({ type: "crime" }),
       })
     )
+  })
+
+  it("patternsExtract는 감정물 번호(aprthngNo)로 요청하고, 서버 원본 이미지 식별자도 그 번호 그대로 보낸다", async () => {
+    const spy = vi
+      .spyOn(api, "patternsExtract")
+      .mockResolvedValue({ extracted: [] })
+
+    const { view } = renderCrimeManager(BASE_CRIME)
+
+    await act(async () => {
+      await view.result.current.extractPattern()
+    })
+
+    const arg = spy.mock.calls[0][0] as { aprthngNo: string; body: { image: string } }
+    expect(arg.aprthngNo).toBe("05019-24-0017_5")
+    // imgRef가 없으면(현장 원본) 서버가 원본을 찾도록 감정물 번호를 image로 보낸다.
+    expect(arg.body.image).toBe("05019-24-0017_5")
+  })
+
+  it("추출 결과는 같은 aprthngNo의 사건에만 반영된다", async () => {
+    vi.spyOn(api, "patternsExtract").mockResolvedValue({
+      extracted: [{ code: "s21b", score: 0.91 }],
+    })
+    const other: Crime = { ...BASE_CRIME, aprthngNo: "05019-24-0017_6" }
+    useCrimeStore.setState({ crimeData: [BASE_CRIME, other] })
+    const view = renderHook(() =>
+      usePatternManager({ index: 0, currentData: BASE_CRIME, imgRef: null })
+    )
+
+    await act(async () => {
+      await view.result.current.extractPattern()
+    })
+
+    const [first, second] = useCrimeStore.getState().crimeData
+    expect(first.extractedRaw).toEqual([{ code: "s21b", score: 0.91 }])
+    expect(second.extractedRaw).toBeUndefined()
   })
 
   it("요청 본문에 line_ys 키 자체가 없고, canvasRef를 전혀 설정하지 않아도 추출이 즉시 수행된다 (AC-SCENE-014)", async () => {

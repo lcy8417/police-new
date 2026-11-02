@@ -19,13 +19,13 @@ beforeAll(() => {
 afterEach(() => mswServer.resetHandlers())
 afterAll(() => mswServer.close())
 
-function renderGate(crimeNumber: string, modelNumber: string, onProceed = () => {}) {
+function renderGate(aprthngNo: string, ftwrId: string, onProceed = () => {}) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   return render(
     <QueryClientProvider client={qc}>
-      <AlignmentGate crimeNumber={crimeNumber} modelNumber={modelNumber} onProceed={onProceed} />
+      <AlignmentGate aprthngNo={aprthngNo} ftwrId={ftwrId} onProceed={onProceed} />
     </QueryClientProvider>
   )
 }
@@ -198,7 +198,7 @@ describe("AlignmentGate — 직전 정렬 이어받기", () => {
     let saved: unknown = null
     mswServer.use(
       http.get("*/crime/*/alignment/latest", () =>
-        HttpResponse.json({ polygon: POLY, arrow: ARROW, flipHorizontal: true, modelNumber: "PREV-1" })
+        HttpResponse.json({ polygon: POLY, arrow: ARROW, flipHorizontal: true, ftwrId: "PREV-1" })
       ),
       http.get("*/crime/*/alignment", () =>
         HttpResponse.json({ polygon: null, arrow: null, flipHorizontal: false })
@@ -229,7 +229,7 @@ describe("AlignmentGate — 직전 정렬 이어받기", () => {
     ]
     mswServer.use(
       http.get("*/crime/*/alignment/latest", () =>
-        HttpResponse.json({ polygon: POLY, arrow: ARROW, flipHorizontal: true, modelNumber: "PREV-1" })
+        HttpResponse.json({ polygon: POLY, arrow: ARROW, flipHorizontal: true, ftwrId: "PREV-1" })
       ),
       http.get("*/crime/*/alignment", () =>
         HttpResponse.json({ polygon: OWN, arrow: ARROW, flipHorizontal: false })
@@ -274,7 +274,7 @@ describe("AlignmentGate — 직전 정렬 이어받기", () => {
     mswServer.use(
       http.get("*/crime/*/alignment/latest", async () => {
         await new Promise((r) => setTimeout(r, 300)) // 이미지 로드보다 늦게 응답
-        return HttpResponse.json({ polygon: null, arrow: null, flipHorizontal: false, modelNumber: null })
+        return HttpResponse.json({ polygon: null, arrow: null, flipHorizontal: false, ftwrId: null })
       }),
       http.get("*/crime/*/alignment", () =>
         HttpResponse.json({ polygon: null, arrow: null, flipHorizontal: false })

@@ -19,8 +19,8 @@ describe("MatchTop10Grid — 게이트 코드 안내 문구(v0.6.0 역전)", () 
   it("OUTLINE_GENERATION_FAILED 코드에 대해 자동 계산 실패 안내 문구를 렌더한다", () => {
     render(
       <MatchTop10Grid
-        crimeNumber="2024-100"
-        modelNumber="SHOE-1"
+        aprthngNo="2024-100"
+        ftwrId="SHOE-1"
         matches={[]}
         isLoading={false}
         gateCode="OUTLINE_GENERATION_FAILED"
@@ -34,8 +34,8 @@ describe("MatchTop10Grid — 게이트 코드 안내 문구(v0.6.0 역전)", () 
   it("폐기된 OUTLINE_NOT_GENERATED 코드 문자열이 렌더 결과 어디에도 등장하지 않는다", () => {
     const { container } = render(
       <MatchTop10Grid
-        crimeNumber="2024-100"
-        modelNumber="SHOE-1"
+        aprthngNo="2024-100"
+        ftwrId="SHOE-1"
         matches={[]}
         isLoading={false}
         gateCode="OUTLINE_GENERATION_FAILED"
@@ -55,8 +55,8 @@ describe("MatchTop10Grid — 게이트 코드 안내 문구(v0.6.0 역전)", () 
     for (const [code, pattern] of codes) {
       const { unmount } = render(
         <MatchTop10Grid
-          crimeNumber="2024-100"
-          modelNumber="SHOE-1"
+          aprthngNo="2024-100"
+          ftwrId="SHOE-1"
           matches={[]}
           isLoading={false}
           gateCode={code}
@@ -89,8 +89,8 @@ describe("MatchTop10Grid — 로딩/빈/성공 상태 배선", () => {
   it("isLoading=true면 로딩 안내를 렌더하고 결과 뷰어를 렌더하지 않는다", () => {
     render(
       <MatchTop10Grid
-        crimeNumber="2024-100"
-        modelNumber="SHOE-1"
+        aprthngNo="2024-100"
+        ftwrId="SHOE-1"
         matches={[]}
         isLoading
         gateCode={null}
@@ -104,8 +104,8 @@ describe("MatchTop10Grid — 로딩/빈/성공 상태 배선", () => {
   it("matches가 빈 배열이고 게이트/오류/로딩이 아니면 빈 상태 안내와 재시도 버튼을 렌더한다", () => {
     render(
       <MatchTop10Grid
-        crimeNumber="2024-100"
-        modelNumber="SHOE-1"
+        aprthngNo="2024-100"
+        ftwrId="SHOE-1"
         matches={[]}
         isLoading={false}
         gateCode={null}
@@ -117,7 +117,7 @@ describe("MatchTop10Grid — 로딩/빈/성공 상태 배선", () => {
     expect(screen.getByRole("button", { name: /다시 시도/ })).toBeInTheDocument()
   })
 
-  it("matches가 있으면 crimeNumber/modelNumber를 그대로 전달해 대응 뷰어를 렌더한다", async () => {
+  it("matches가 있으면 aprthngNo/ftwrId를 그대로 전달해 대응 뷰어를 렌더한다", async () => {
     // MatchCorrespondenceViewer가 [CORRECTION 3b]로 정렬(alignment)을 조회하므로
     // QueryClientProvider + msw 스텁이 필요하다(폴리곤 없음 → 크롭 없는 폴백 경로).
     mswServer.use(
@@ -129,8 +129,8 @@ describe("MatchTop10Grid — 로딩/빈/성공 상태 배선", () => {
     render(
       <QueryClientProvider client={qc}>
         <MatchTop10Grid
-          crimeNumber="2024-100"
-          modelNumber="SHOE-1"
+          aprthngNo="2024-100"
+          ftwrId="SHOE-1"
           matches={[baseMatch]}
           isLoading={false}
           gateCode={null}
@@ -139,7 +139,7 @@ describe("MatchTop10Grid — 로딩/빈/성공 상태 배선", () => {
         />
       </QueryClientProvider>
     )
-    // MatchCorrespondenceViewer가 렌더한 신발 이미지 alt에 modelNumber가 그대로 반영된다.
-    expect(await screen.findByAltText(/신발 이미지 \(등록 모델 SHOE-1\)/)).toBeInTheDocument()
+    // MatchCorrespondenceViewer가 렌더한 신발 이미지 alt에 ftwrId가 그대로 반영된다.
+    expect(await screen.findByAltText(/신발 이미지 \(신발 ID SHOE-1\)/)).toBeInTheDocument()
   })
 })

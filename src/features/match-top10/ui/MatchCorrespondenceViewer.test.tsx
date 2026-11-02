@@ -79,7 +79,7 @@ async function renderViewer(count = 3) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={qc}>
-      <MatchCorrespondenceViewer crimeNumber="2024-100" modelNumber="SHOE-1" matches={matches} />
+      <MatchCorrespondenceViewer aprthngNo="2024-100" ftwrId="SHOE-1" matches={matches} />
     </QueryClientProvider>
   )
   const sceneImg = await screen.findByAltText("족적 현장 이미지")
@@ -93,7 +93,7 @@ describe("MatchCorrespondenceViewer — 족적↔신발 대응 뷰어 레이아�
   it("족적(현장)·신발(등록) 전체 이미지를 각각 렌더한다(alt 텍스트 확인)", async () => {
     await renderViewer(3)
     expect(screen.getByAltText("족적 현장 이미지")).toBeInTheDocument()
-    expect(screen.getByAltText(/신발 이미지 \(등록 모델 SHOE-1\)/)).toBeInTheDocument()
+    expect(screen.getByAltText(/신발 이미지 \(신발 ID SHOE-1\)/)).toBeInTheDocument()
   })
 
   it("기본 모드(RGB)에서 현장 이미지 src는 crime_images, 신발 이미지 src는 shoes_images/B를 가리킨다", async () => {
@@ -282,7 +282,7 @@ describe("MatchCorrespondenceViewer — [CORRECTION 3b] 정렬 폴리곤 크롭 
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
       <QueryClientProvider client={qc}>
-        <MatchCorrespondenceViewer crimeNumber="2024-100" modelNumber="SHOE-1" matches={matches} />
+        <MatchCorrespondenceViewer aprthngNo="2024-100" ftwrId="SHOE-1" matches={matches} />
       </QueryClientProvider>
     )
 
@@ -317,7 +317,7 @@ describe("MatchCorrespondenceViewer — [CORRECTION 3b] 정렬 폴리곤 크롭 
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
       <QueryClientProvider client={qc}>
-        <MatchCorrespondenceViewer crimeNumber="2024-100" modelNumber="SHOE-1" matches={matches} />
+        <MatchCorrespondenceViewer aprthngNo="2024-100" ftwrId="SHOE-1" matches={matches} />
       </QueryClientProvider>
     )
 
