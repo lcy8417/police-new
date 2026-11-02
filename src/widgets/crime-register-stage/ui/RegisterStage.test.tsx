@@ -1,12 +1,22 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { http, HttpResponse } from "msw"
 
+import { FEATURES, type SessionUser } from "@/entities/session"
+import { useSessionStore } from "@/features/auth"
 import { mswServer } from "@/test/msw-server"
 import { TooltipProvider } from "@/shared/ui/tooltip"
 
 import { RegisterStage } from "./RegisterStage"
+
+const REGISTER_ONLY: SessionUser = {
+  userId: "kim01",
+  userNm: "김수사",
+  userSe: "USER",
+  features: [FEATURES.CRIME_REGISTER],
+  passwordChangeRequired: false,
+}
 
 // jsdom에는 ResizeObserver가 없어 이미지 편집 오버레이 훅 마운트가 실패한다 — no-op 폴리필.
 class ResizeObserverStub {
@@ -18,7 +28,10 @@ globalThis.ResizeObserver =
   globalThis.ResizeObserver ?? (ResizeObserverStub as unknown as typeof ResizeObserver)
 
 beforeAll(() => mswServer.listen({ onUnhandledRequest: "error" }))
-afterEach(() => mswServer.resetHandlers())
+afterEach(() => {
+  mswServer.resetHandlers()
+  useSessionStore.setState({ user: null, status: "loading" })
+})
 afterAll(() => mswServer.close())
 
 function renderStage(onExit = vi.fn()) {
@@ -89,6 +102,41 @@ describe("RegisterStage", () => {
     })
     expect(typeof captured?.image).toBe("string")
     expect(String(captured?.image)).not.toMatch(/^data:/)
+  })
+
+  it("등록 후 사건 목록 새로고침은 사건 조회 권한이 있을 때만", async () => {
+    let listCalls = 0
+    mswServer.use(
+      http.post("*/crime/register", () =>
+        new HttpResponse(new Uint8Array([137, 80, 78, 71]), {
+          headers: { "Content-Type": "image/png" },
+        })
+      ),
+      http.get("*/crime/", () => {
+        listCalls += 1
+        return HttpResponse.json([])
+      })
+    )
+    const submit = async () => {
+      const { onExit } = renderStage()
+      await uploadImage()
+      fill("감정의뢰번호", "05019-24-0017")
+      fill("감정물 순번", "5")
+      fireEvent.click(screen.getByRole("button", { name: "저장" }))
+      await waitFor(() => expect(onExit).toHaveBeenCalled())
+    }
+
+    // 사건 등록만 가진 사용자 → 목록을 부르지 않음(부르면 403)
+    useSessionStore.getState().setUser({ ...REGISTER_ONLY })
+    await submit()
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    expect(listCalls).toBe(0)
+    cleanup()
+
+    // 사건 조회도 가진 사용자 → 목록 새로고침
+    useSessionStore.getState().setUser({ ...REGISTER_ONLY, features: [FEATURES.CRIME_REGISTER, FEATURES.CRIME_SEARCH] })
+    await submit()
+    await waitFor(() => expect(listCalls).toBe(1))
   })
 
   it("shows server detail", async () => {

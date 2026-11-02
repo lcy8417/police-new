@@ -2,6 +2,8 @@ import { useCallback, useRef, useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 
 import { registerCrime, useCrimeStore } from "@/entities/crime"
+import { FEATURES } from "@/entities/session"
+import { hasFeature, useSessionStore } from "@/features/auth"
 import { rotateArbitrary, useImageAdjustments, useImageEditor } from "@/features/crime-register"
 import { ApiError } from "@/shared/api"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
@@ -131,8 +133,10 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
       setErrorMessage(null)
       resetAdjustments()
       setRotation(0)
-      // 낙관적 갱신 트리거(store refetch) 유지 + 등록 후 조회 모드로 복귀.
-      useCrimeStore.getState().setRegisterFlag([])
+      // 사건 목록 새로고침은 사건 조회 권한이 있을 때만(없으면 목록 API가 403) + 등록 후 조회 모드로 복귀.
+      if (hasFeature(useSessionStore.getState().user, FEATURES.CRIME_SEARCH)) {
+        void useCrimeStore.getState().refetch()
+      }
       onExit()
     },
     // 서버 검증 실패(400)·중복(409)의 한국어 `detail`을 폼 위에 그대로 보인다

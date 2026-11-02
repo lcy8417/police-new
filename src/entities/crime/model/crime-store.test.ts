@@ -75,3 +75,31 @@ describe("useCrimeStore — context bridge", () => {
     expect(row.image).toBe("scene.png");
   });
 });
+
+describe("useCrimeStore — reset(사건 조회 자격이 사라졌을 때)", () => {
+  it("reset clears crime list", () => {
+    useCrimeStore.getState().setCrimeData([blank("1"), blank("2")]);
+    useCrimeStore.getState().reset();
+    expect(useCrimeStore.getState().crimeData).toEqual([]);
+  });
+
+  it("reset 전에 출발한 목록 요청 결과는 버린다", async () => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    mswServer.use(
+      http.get("*/crime", async () => {
+        await gate;
+        return HttpResponse.json([{ aprthng_no: "늦은응답", top: [], mid: [], bottom: [], outline: [] }]);
+      })
+    );
+
+    const inflight = useCrimeStore.getState().refetch();
+    useCrimeStore.getState().reset();
+    release();
+    await inflight;
+
+    expect(useCrimeStore.getState().crimeData).toEqual([]);
+  });
+});
