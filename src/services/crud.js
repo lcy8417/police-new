@@ -1,3 +1,6 @@
+// @MX:DEBT: [AUTO] 레거시 CRUD API 계층 - services/api.js(이미지 처리, 무변환)와 짝을 이루는 이중 API 컨벤션 중 camelCase 변환 계층. entities/crime·entities/shoe의 타입드 API로 점진 대체 중이나 아직 활성 상태(레거시 .jsx 컴포넌트 다수가 참조)
+// @MX:CEILING: entities/{crime,shoe}/api가 이 파일의 모든 export(fetchCrimeData/fetchShoesData/fetchCurrentShoes/fetchShoesEdit/fetchHistoryData/fetchCrimeRegister/fetchPatterns/fetchHistorySave/fetchEditImageSave)를 대체하기 전까지 유효
+// @MX:UPGRADE: 레거시 .jsx 컴포넌트(components/*, pages/EditorMode.jsx 등)가 모두 FSD entities/api 계층으로 이전되면 이 파일 삭제
 import { onlyPatternName } from "../utils/get-input-change";
 import { convertKeysToCamelCase } from "../utils/get-convert-camelcase";
 
@@ -140,6 +143,9 @@ export const fetchPatterns = async (crimeNumber, currentCrimeData) => {
       mid: onlyPatternName(currentCrimeData, "mid"),
       bottom: onlyPatternName(currentCrimeData, "bottom"),
       outline: onlyPatternName(currentCrimeData, "outline"),
+      // REQ-SCENE-009(a): 통합 DINOv2 추출 원본이 있으면 함께 영속화한다
+      // (신발 등 extractedRaw가 없는 레코드는 undefined → JSON에서 생략됨).
+      extracted_raw: currentCrimeData.extractedRaw,
     }),
   });
 
@@ -165,6 +171,7 @@ export const fetchHistorySave = async ({
       bottom: onlyPatternName(currentCrimeData, "bottom"),
       outline: onlyPatternName(currentCrimeData, "outline"),
       crimeNumber: currentCrimeData.crimeNumber,
+      // @MX:NOTE: [AUTO] KST +9시간 하드코딩 중복 - shared/lib/kst.ts#toKstIso와 동일 로직이 여기 별도로 인라인 중복됨(레거시 미마이그레이션 지점)
       registerTime: new Date(Date.now() + 9 * 60 * 60 * 1000)
         .toISOString()
         .replace("Z", "+09:00"),

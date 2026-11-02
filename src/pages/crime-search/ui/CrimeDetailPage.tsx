@@ -9,7 +9,6 @@ import {
   History,
   ListTree,
   Loader2,
-  Pencil,
   Search,
   X,
 } from "lucide-react"
@@ -25,6 +24,7 @@ import {
 
 import { crimeKeys, fetchCrimeDetail, useCrimeStore } from "@/entities/crime"
 import {
+  ExtractedPatternList,
   PatternCanvas,
   PatternPalette,
   PatternZones,
@@ -35,7 +35,16 @@ import {
   ShoeDetailContent,
   type RetrievalResultItem,
 } from "@/features/crime-search"
-import { EditWorkbench } from "@/features/crime-edit"
+import {
+  EditToolbar,
+  PolygonCaptureCanvas,
+  useImageEdit,
+} from "@/features/crime-edit"
+import { AlignmentGate } from "@/features/crime-align"
+// SPEC-MATCH-TOP10-001: top-10 대응 카드 그리드(REQ-MATCH-006) — pages 계층에서
+// 조립해 ShoeDetailContent의 topMatchSlot으로 주입한다(features↔features
+// cross-import 금지, FSD 단방향 규칙). 레거시 /similarity 흐름은 무변경(REQ-MATCH-007a).
+import { MatchTop10Panel } from "@/features/match-top10"
 import { stripPatternPath, type PatternZone } from "@/entities/pattern"
 import { usePageHeader } from "@/widgets/app-shell"
 import { Badge } from "@/shared/ui/badge"
@@ -150,9 +159,17 @@ export function CrimeDetailPage() {
   const [isExtracting, setIsExtracting] = useState(false)
   // 검색이력은 기본 접힘 — 문양 작업이 주 흐름이라 필요할 때만 펼친다.
   const [historyOpen, setHistoryOpen] = useState(false)
-  // 이미지 편집 워크벤치를 담는 우측 Sheet — 헤더 [편집] 버튼으로 연다.
-  const [editSheetOpen, setEditSheetOpen] = useState(false)
-  // 신발 결과 상세를 담는 우측 컴팩트 Sheet — 검색 결과 카드 클릭으로 연다.
+  // 문양추출 활성 여부 — 상단 [문양추출] 토글로 제어(기본 꺼짐). 현장/편집과 독립이며,
+  // 이미지 편집 도구와는 배타적이다(아래 editActive를 sceneView·patternActive에서 파생).
+  const [patternActive, setPatternActive] = useState(false)
+  // 이미지 편집 상태(useImageEdit 소유). 편집 대상은 editImage ?? image에서 시작하고,
+  // "원본 복원"은 raw image로 되돌린다. 편집 모드가 아니어도 훅은 유지된다.
+  const edit = useImageEdit({
+    crimeNumber,
+    seedImage: currentCrimeData?.editImage ?? currentCrimeData?.image,
+    originalImage: currentCrimeData?.image,
+  })
+  // 신발 결과 상세를 담는 우측 컴팩트 Sheet — 정렬 게이트 통과("다음 단계로") 후 연다.
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailTarget, setDetailTarget] = useState<{
     modelNumber: string
@@ -160,6 +177,16 @@ export function CrimeDetailPage() {
   } | null>(null)
   // 상세 저장 진행 상태 — 저장 중에는 Sheet 강제 닫기(오버레이·Esc)를 무시한다.
   const [detailSaving, setDetailSaving] = useState(false)
+
+  // SPEC-ALIGN-SETUP-001 REQ-ALIGN-001/001a: 신발 선택 시 정렬(폴리곤 ROI + 방향)
+  // 설정이 유사 영역 검색 결과보다 항상 먼저 표시된다 — 스킵 경로는 제공하지 않는다.
+  // alignmentTarget이 detailTarget과 별도 상태인 이유: 정렬 게이트를 통과("다음
+  // 단계로")해야만 detailOpen이 열리므로, 두 Sheet가 동시에 열리는 경우는 없다.
+  const [alignmentOpen, setAlignmentOpen] = useState(false)
+  const [alignmentTarget, setAlignmentTarget] = useState<{
+    modelNumber: string
+    ranking: number
+  } | null>(null)
 
   // 인라인 신발 검색 상태(레거시 ShoesResultPage에서 이관). searchActive가 true면
   // 본문이 검색모드(이미지·문양정보·결과 그리드)로 전환된다.
@@ -170,6 +197,10 @@ export function CrimeDetailPage() {
   // 검색모드에서 편집이미지로 전환하면 검색도 그 이미지로 자동 재실행된다.
   const [sceneView, setSceneView] = useState<"origin" | "edit">("origin")
   const searchEdit = sceneView === "edit"
+  // 이미지 편집 도구 활성 여부(파생) — "편집" 뷰이면서 문양추출이 꺼진 동안만 편집 도구를
+  // 띄운다. 문양추출을 켜면 배타적으로 편집 도구가 숨고, 다시 끄면 "편집" 뷰였던 경우 편집
+  // 도구가 자동 복귀한다(별도 상태를 두지 않아 "편집이었다"는 맥락이 유실되지 않는다).
+  const editActive = sceneView === "edit" && !patternActive
   // 편집 이미지 존재 여부 — 편집 뷰 검색은 편집 이미지가 있을 때만 돌린다(없으면 검색 무의미).
   const hasEditImage = Boolean(currentCrimeData?.editImage)
   const queryClient = useQueryClient()
@@ -205,6 +236,8 @@ export function CrimeDetailPage() {
 
   // 2단계: 로드된 이미지 + 현장 문양으로 신발 검색을 수행한다. 쿼리 키에 디바운스된
   // 문양 시그니처를 포함해, 필수 토글이 바뀌면 300ms 후 결과가 자동 갱신된다.
+  // @MX:WARN: [AUTO] searchResultQuery - 디바운스된 patternsKey와 라이브 patternsSignature의 settled 게이트 패턴(docs/api-communication.md §5)
+  // @MX:REASON: enabled 조건의 patternsKey === patternsSignature 비교가 깨지면 스테일 값으로 먼저 나가는 빈 요청이 발생해 이중 요청 트랩에 빠짐
   const searchResultQuery = useQuery({
     queryKey: [
       "crimeSearch",
@@ -259,8 +292,23 @@ export function CrimeDetailPage() {
   }, [currentCrimeData])
   const showEdit = useCallback(() => {
     setSceneView("edit")
+    // 이미지 편집 도구 진입 → 문양추출 배타 종료(editActive는 scene+pattern에서 파생됨).
+    setPatternActive(false)
     imageChangeHandler("edit", imgRef, currentCrimeData)
   }, [currentCrimeData])
+
+  // 문양추출 — "활성화 → 추출" 2단계를 한 번의 클릭으로 합친다. 현장(crime) 경로는
+  // line_ys/render_size를 전송하지 않으므로(REQ-SCENE-015, use-pattern-manager.ts)
+  // 경계선을 먼저 지정할 필요가 없다 — 활성화 단계는 대기만 늘렸다.
+  //
+  // patternActive는 켜지 않는다. 그 플래그는 캔버스의 문양추출 chrome(신발 영역 사각·
+  // 밑창 실루엣 폴리곤·상중하 경계선)을 띄우는데, 이것들은 신발(shoes) 경로의 영역분할
+  // 입력을 위한 도구다. 현장 경로는 그 좌표를 전송하지 않으므로 화면에 띄워봐야 추출
+  // 결과에 아무 영향이 없는 노이즈이고, 실제로 "신발 모양 폴리곤이 생긴다"는 버그로
+  // 보고됐다. 추출만 수행한다.
+  const handleTogglePattern = useCallback(() => {
+    void handleExtract()
+  }, [handleExtract])
 
   // 검색이력: 레거시의 ad hoc `fetch(/crime/:crimeNumber)`를 entities
   // `fetchCrimeDetail`(같은 엔드포인트, camelCase) + useQuery로 승격했다.
@@ -302,14 +350,23 @@ export function CrimeDetailPage() {
     }
   }, [crimeNumber, currentCrimeData, setSearchParams])
 
-  // 결과 카드 클릭 → 페이지 이동 대신 우측 컴팩트 Sheet에 상세를 인라인 표시한다.
+  // 결과 카드 클릭 → 상세로 곧바로 가지 않고 정렬 게이트를 먼저 연다(REQ-ALIGN-001).
+  // 정렬 게이트의 "다음 단계로"를 눌러야 비로소 상세 Sheet가 열린다(handleAlignmentProceed).
   const handleSelect = useCallback(
     (item: RetrievalResultItem, ranking: number) => {
-      setDetailTarget({ modelNumber: item.shoesName, ranking })
-      setDetailOpen(true)
+      setAlignmentTarget({ modelNumber: item.shoesName, ranking })
+      setAlignmentOpen(true)
     },
     []
   )
+
+  // 정렬 게이트 통과 — 정렬 Sheet를 닫고 같은 (crimeNumber, modelNumber)로 상세 Sheet를 연다.
+  const handleAlignmentProceed = useCallback(() => {
+    if (!alignmentTarget) return
+    setAlignmentOpen(false)
+    setDetailTarget(alignmentTarget)
+    setDetailOpen(true)
+  }, [alignmentTarget])
 
   const toggleBinary = useCallback(() => {
     setBinary((prev) => (prev === BINARY_ON ? BINARY_OFF : BINARY_ON))
@@ -331,6 +388,8 @@ export function CrimeDetailPage() {
   // 보장하지 않아(또는 PUT 커밋 전에 GET이 나가) 방금 저장한 값을 덮어써 재진입 반영이
   // 깨질 수 있기 때문(레거시 저장 흐름도 낙관적 store 갱신만 했다).
   // 또한 Sheet를 닫지 않는다 — 여러 편집을 연속으로 스택(되돌리기 가능)하며 이어가도록.
+  // @MX:WARN: [AUTO] handleEditSaved - 편집 이미지 저장 후 의도적으로 refetch()를 호출하지 않는 수동 낙관적 갱신(setCrimeData만 수행)
+  // @MX:REASON: GET /crime 목록 응답이 항목별 editImage를 보장하지 않아 refetch 시 방금 저장한 값이 덮어써질 수 있음 — 이 생략은 의도적이므로 무심코 refetch를 추가하면 안 됨
   const handleEditSaved = useCallback(
     (finalImage: string) => {
       // 해당 사건 레코드의 editImage를 낙관적으로 치환.
@@ -358,6 +417,16 @@ export function CrimeDetailPage() {
     [crimeNumber, setCrimeData, searchEdit, queryClient]
   )
 
+  // 편집 푸터의 [저장] — useImageEdit.save가 서버 PUT을 수행하고, 성공 시 handleEditSaved로
+  // store 갱신·검색 재실행을 잇는다. 실패 안내는 save 내부 toast가 담당한다.
+  const handleEditSave = useCallback(async () => {
+    try {
+      await edit.save(handleEditSaved)
+    } catch {
+      // 상태 유지 — 사용자 피드백은 edit.save 내부 toast.
+    }
+  }, [edit, handleEditSaved])
+
   const headerActions = useMemo(() => {
     // 두 모드 공통: [목록으로][편집].
     const commonActions = (
@@ -370,15 +439,6 @@ export function CrimeDetailPage() {
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
           목록으로
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => setEditSheetOpen(true)}
-          className="border border-[#1E2A3C] bg-[#0F1826] text-[#C7CEDB] hover:border-[#3B82F6]/50 hover:bg-[#141F30] hover:text-white"
-        >
-          <Pencil className="size-4" aria-hidden="true" />
-          편집
         </Button>
       </>
     )
@@ -487,6 +547,42 @@ export function CrimeDetailPage() {
             onShowOrigin={showOrigin}
             onShowEdit={showEdit}
             isExtracting={isExtracting}
+            patternActive={patternActive}
+            onTogglePatternActive={handleTogglePattern}
+            viewIsEdit={sceneView === "edit"}
+            editMode={editActive}
+            editImage={edit.displayImage}
+            editOverlay={
+              editActive ? (
+                <PolygonCaptureCanvas
+                  activeTool={edit.activeTool}
+                  points={edit.points}
+                  onAddPoint={edit.addPoint}
+                  onSubmitPolygon={edit.submitPolygon}
+                  isProcessing={edit.isProcessing}
+                  processingLabel={edit.processingLabel}
+                />
+              ) : undefined
+            }
+            editFooter={
+              editActive ? (
+                <EditToolbar
+                  activeTool={edit.activeTool}
+                  onToolChange={edit.setActiveTool}
+                  canUndo={edit.canUndo}
+                  onUndo={edit.undo}
+                  onRestore={edit.restoreOriginal}
+                  onSave={handleEditSave}
+                  onRunDenoise={edit.runDenoise}
+                  isProcessing={edit.isProcessing}
+                  threshold={edit.threshold}
+                  thresholdMode={edit.thresholdMode}
+                  onThresholdChange={edit.setThreshold}
+                  onThresholdModeChange={edit.setThresholdMode}
+                  onApplyThreshold={edit.applyThreshold}
+                />
+              ) : undefined
+            }
           />
         </div>
 
@@ -516,12 +612,23 @@ export function CrimeDetailPage() {
         ) : (
           <>
             <div className="grid min-h-[420px] grid-rows-[minmax(0,1fr)] xl:h-full xl:min-h-0">
-              <PatternPalette
-                patterns={patterns}
-                patternsKindSelect={patternsKindSelect}
-                insertPattern={insertPattern}
-                isInserted={isInserted}
-              />
+              {/* REQ-SCENE-006/017(v0.2.0, Amendment A-001): 통합 추출란은 문양
+                  팔레트를 대체하지 않고 보강(augment)한다 — 추출 성공 여부와
+                  무관하게 두 컴포넌트가 항상 동시에 렌더되며, 각각 독립된 드래그
+                  소스로 동작한다(v0.1.0의 "대체" 삼항 분기는 번복됨). 같은 열
+                  안에서 세로로 절반씩 분할해 둘 다 상시 가시·조작 가능하게 한다. */}
+              <div className="grid min-h-0 grid-rows-2 gap-4">
+                <ExtractedPatternList
+                  items={currentCrimeData?.extractedRaw ?? []}
+                  isInserted={isInserted}
+                />
+                <PatternPalette
+                  patterns={patterns}
+                  patternsKindSelect={patternsKindSelect}
+                  insertPattern={insertPattern}
+                  isInserted={isInserted}
+                />
+              </div>
             </div>
 
             {/* 맨 오른쪽 세로 열 — 사건 탐색 패널(핀 카드 + 통합검색 + 사건 목록) */}
@@ -682,32 +789,34 @@ export function CrimeDetailPage() {
         </SheetContent>
       </Sheet>
 
-      {/* 이미지 편집 — 넓은 우측 슬라이드 시트(Sheet). 헤더 [편집] 버튼으로 연다.
-          EditWorkbench가 h-full을 채우므로 SheetContent가 flex 컬럼으로 높이를 제공한다. */}
-      <Sheet open={editSheetOpen} onOpenChange={setEditSheetOpen}>
+      {/* 정렬 설정 게이트 — SPEC-ALIGN-SETUP-001 REQ-ALIGN-001/001a: 신발 선택 시
+          유사 영역 검색(상세)보다 항상 먼저 표시된다. 스킵 경로는 제공하지 않으며,
+          "다음 단계로"는 정렬이 설정된 상태(폴리곤+화살표 모두 저장됨)에서만
+          활성화된다(handleAlignmentProceed가 상세 Sheet로 전환). */}
+      <Sheet open={alignmentOpen} onOpenChange={setAlignmentOpen}>
         <SheetContent
           side="right"
-          className="flex w-full flex-col border-l border-[#1E2A3C] bg-[#0B121D] p-4 text-[#C7CEDB] sm:max-w-[min(1100px,95vw)]"
+          className="flex w-full flex-col gap-0 border-l border-[#1E2A3C] bg-[#0B121D] p-0 text-[#C7CEDB] sm:max-w-[min(900px,96vw)]"
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>이미지 편집</SheetTitle>
-            <SheetDescription>검색 성능을 위한 현장 이미지 보정</SheetDescription>
+            <SheetTitle>정렬 설정</SheetTitle>
+            <SheetDescription>
+              폴리곤 관심영역과 방향 화살표를 지정해 정렬을 저장합니다
+            </SheetDescription>
           </SheetHeader>
-          {currentCrimeData && (
-            <div className="min-h-0 flex-1">
-              <EditWorkbench
-                crimeNumber={crimeNumber}
-                seedImage={currentCrimeData.editImage ?? currentCrimeData.image}
-                onSaved={handleEditSaved}
-              />
-            </div>
+          {alignmentTarget && (
+            <AlignmentGate
+              crimeNumber={crimeNumber}
+              modelNumber={alignmentTarget.modelNumber}
+              onProceed={handleAlignmentProceed}
+            />
           )}
         </SheetContent>
       </Sheet>
 
       {/* 신발 결과 상세 — 우측 컴팩트 Sheet(3층: 고정 헤더/본문 스크롤/고정 판정바).
-          검색 결과 카드 클릭으로 열고, 이력 저장 성공 시 닫으며 store를 refetch한다.
-          저장 중에는 강제 닫기를 무시해 이중 제출·유실을 막는다. */}
+          정렬 게이트 통과("다음 단계로") 후 열리고, 이력 저장 성공 시 닫으며 store를
+          refetch한다. 저장 중에는 강제 닫기를 무시해 이중 제출·유실을 막는다. */}
       <Sheet
         open={detailOpen}
         onOpenChange={(open) => {
@@ -734,6 +843,9 @@ export function CrimeDetailPage() {
                 setDetailOpen(false)
                 useCrimeStore.getState().refetch()
               }}
+              topMatchSlot={
+                <MatchTop10Panel crimeNumber={crimeNumber} modelNumber={detailTarget.modelNumber} />
+              }
             />
           )}
         </SheetContent>

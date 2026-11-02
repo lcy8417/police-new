@@ -1,6 +1,7 @@
 import { ShieldCheck } from "lucide-react"
 
 import { EdgeGlow } from "@/shared/ui/glow-fx"
+import { SidebarTrigger } from "@/shared/ui/sidebar"
 
 import { usePageHeaderStore } from "../model/page-header"
 
@@ -16,6 +17,10 @@ export function TopNav() {
   return (
     <header className="relative flex h-[110px] shrink-0 items-center justify-between border-b border-[#1C2636] bg-[#0D1420] px-6">
       <div className="flex min-w-0 items-center gap-6">
+        <SidebarTrigger
+          aria-label="사이드바 접기/펼치기"
+          className="text-[#8A93A6] hover:bg-white/5 hover:text-[#4A9EFF]"
+        />
         <div className="flex shrink-0 items-center gap-3">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#16233B] shadow-[0_0_14px_rgba(59,130,246,0.45)] ring-1 ring-[#2A3B54]">
             {/* TODO: replace with 경찰청 emblem asset */}

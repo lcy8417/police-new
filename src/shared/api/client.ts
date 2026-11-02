@@ -18,6 +18,8 @@ export class ApiError extends Error {
 }
 
 /** GET a JSON resource and parse the body as `T`. Throws `ApiError` on non-2xx. */
+// @MX:ANCHOR: [AUTO] apiGet - 유일한 GET 요청 경로, entities/crime·entities/shoe API 계층이 공유하는 단일 HTTP 클라이언트
+// @MX:REASON: 구조상 유일한 fetch 래퍼(services/crud.js·services/api.js의 fetch 보일러플레이트를 대체하는 정본) — VITE_API_URL 처리·에러 계약이 여기 집중
 export async function apiGet<T>(path: string): Promise<T> {
   const response = await fetch(`${BASE}${path}`, {
     method: "GET",
@@ -32,6 +34,8 @@ export async function apiGet<T>(path: string): Promise<T> {
 }
 
 /** POST/PUT/PATCH/DELETE a JSON body. Returns the raw `Response` (mirrors crud.js/api.js, which mostly discard or partially read the body). */
+// @MX:ANCHOR: [AUTO] apiSend - 유일한 POST/PUT/PATCH/DELETE 요청 경로, entities/crime·entities/shoe 쓰기 API가 공유
+// @MX:REASON: apiGet과 동일한 단일 HTTP 클라이언트 계약(에러 시 ApiError) — 변경 시 모든 쓰기 요청에 영향
 export async function apiSend(
   path: string,
   method: "POST" | "PUT" | "PATCH" | "DELETE",

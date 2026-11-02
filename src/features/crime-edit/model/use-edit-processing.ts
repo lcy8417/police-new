@@ -73,6 +73,7 @@ function buildRenderSizeParams([width, height]: [number, number]): URLSearchPara
 }
 
 /** 배경제거(segmentation): 폴리곤+이미지 → 배경이 분리된 image 문자열. */
+// @MX:TODO: [AUTO] 콜로케이트된 .test.ts 파일 없음 - useSegmentation/useInpainting/useDenoising/useSaveEditImage 4개 mutation 훅 미검증
 export function useSegmentation(
   crimeNumber: string
 ): UseMutationResult<string, Error, PolygonProcessInput> {

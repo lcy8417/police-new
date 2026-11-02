@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, type ReactNode } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import {
   ArrowLeftRight,
@@ -9,6 +9,7 @@ import {
   ImageOff,
   Loader2,
   Radar,
+  Shapes,
   ShieldCheck,
   Target,
   XCircle,
@@ -20,19 +21,16 @@ import { Button } from "@/shared/ui/button"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 import { TechCorners } from "@/shared/ui/tech-corners"
 import { cn } from "@/shared/lib/utils"
+import { ImageLoadingOverlay, LoadingImage } from "@/shared/ui/image-loading-overlay"
+import { useImageLoadState } from "@/shared/lib/use-image-load-state"
 import { fetchCurrentShoes } from "@/services/crud"
 import { fetchSimilarity } from "@/services/api"
 import { toPatternPaths } from "@/utils/path-utils"
 
+import type { SimilarityResponse } from "../model/similarity"
 import { PartialPatternsCompare, type PatternCompareGroup } from "./PartialPatternsCompare"
 
 const url = import.meta.env.VITE_API_URL
-
-/** 유사도 응답의 어텐션 맵 2종(현장 질의맵 / DB 참조맵). */
-interface SimilarityResult {
-  query_attn_map?: string | null
-  ref_attn_map?: string | null
-}
 
 /**
  * 결과상세 이미지 3종 URL을 조립하는 로컬 헬퍼(services 미수정).
@@ -44,7 +42,7 @@ interface SimilarityResult {
  */
 function buildDetailImages(
   modelNumber: string,
-  attns: SimilarityResult | undefined,
+  attns: SimilarityResponse | undefined,
   sceneImage: string | null | undefined
 ) {
   return {
@@ -84,6 +82,8 @@ function AttentionTile({
   loading = false,
 }: AttentionTileProps) {
   const Icon = icon ?? (emphasis ? Radar : null)
+  // 어텐션 맵/신발 원본은 수백 KB라 로딩 동안 빈 칸이 보였다 — 오버레이로 알린다.
+  const tileLoad = useImageLoadState(image)
   return (
     <div
       className={cn(
@@ -125,9 +125,11 @@ function AttentionTile({
             <span className="text-[11px] font-medium">어텐션 분석 중…</span>
           </div>
         ) : image ? (
+          <>
           <img
             src={image}
             alt={label}
+            {...tileLoad.handlers}
             className={cn(
               "object-contain p-3",
               // page: 절대배치로 타일을 꽉 채움 / compact: 원본 비율 유지 + 높이 상한(좌우
@@ -135,6 +137,8 @@ function AttentionTile({
               fill ? "absolute inset-0 size-full" : "mx-auto block max-h-[440px] w-auto max-w-full"
             )}
           />
+          <ImageLoadingOverlay status={tileLoad.status} />
+          </>
         ) : (
           <div className="flex flex-col items-center gap-2 text-[#5B6B85]">
             <ImageOff className="size-6" aria-hidden="true" />
@@ -204,13 +208,30 @@ function patternEssential(src: PatternSrc): boolean {
   return typeof src !== "string" && Boolean(src[1])
 }
 
-/** 부위(상/중/하/윤곽) 순서·라벨. */
+/** 부위(상/중/하/윤곽) 순서·라벨·전체 이름(섹션 헤더 부제). */
 const PATTERN_ZONES = [
-  { key: "top", label: "상" },
-  { key: "mid", label: "중" },
-  { key: "bottom", label: "하" },
-  { key: "outline", label: "윤곽" },
+  { key: "top", label: "상", full: "상단부" },
+  { key: "mid", label: "중", full: "중단부" },
+  { key: "bottom", label: "하", full: "하단부" },
+  { key: "outline", label: "윤곽", full: "윤곽선" },
 ] as const
+
+/**
+ * 좌우 비교(현장 ↔ 신발) 사이에 놓는 대응 배지. 두 항목이 '나란한 목록'이 아니라
+ * '비교 대상'임을 시각적으로 잇는다(어텐션 쌍의 PairConnector와 같은 시각 언어).
+ */
+function CompareConnector() {
+  return (
+    <div
+      className="flex w-6 shrink-0 items-center justify-center self-stretch"
+      aria-hidden="true"
+    >
+      <span className="flex size-7 items-center justify-center rounded-full border border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF] shadow-[0_0_10px_rgba(37,99,235,0.4)]">
+        <ArrowLeftRight className="size-3.5" aria-hidden="true" />
+      </span>
+    </div>
+  )
+}
 
 /** 한 출처(현장/DB)의 문양 셀 — 라벨 + 큰 썸네일 그리드. 필수 문양은 붉은 코너 점. */
 function PatternCell({
@@ -224,29 +245,39 @@ function PatternCell({
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-2 rounded-lg border border-[#1E2A3C] bg-[#0F1826] p-2.5">
-      <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase">
-        <Icon className="size-3 text-[#4A9EFF]" aria-hidden="true" />
-        {label}
-      </span>
+      {/* 셀 헤더: 출처 라벨(좌) + 문양 수(우) — 좌우로 균형을 잡는다. */}
+      <div className="flex items-center justify-between gap-2 border-b border-[#141D2C] pb-2">
+        <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.1em] text-[#8A93A6] uppercase">
+          <Icon className="size-3 text-[#4A9EFF]" aria-hidden="true" />
+          {label}
+        </span>
+        <span className="font-mono text-[10px] tabular-nums text-[#5B6B85]">
+          {patterns.length}
+        </span>
+      </div>
       {patterns.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {patterns.map((src, i) => (
             <div
               key={i}
               className={cn(
-                "relative size-24 overflow-hidden rounded-lg border bg-[#05080D]",
-                patternEssential(src) ? "border-[#EF4444]/40" : "border-[#1E2A3C]"
+                "relative size-16 overflow-hidden rounded-md border bg-[#05080D]",
+                patternEssential(src)
+                  ? "border-[#EF4444]/45 shadow-[0_0_0_1px_rgba(239,68,68,0.12)]"
+                  : "border-[#1E2A3C]"
               )}
             >
-              <img
+              <LoadingImage
                 src={patternSrcPath(src)}
                 alt={`${label} 문양 ${i + 1}`}
-                className="absolute inset-0 size-full object-contain p-2"
+                containerClassName="absolute inset-0"
+                className="absolute inset-0 size-full object-contain p-1.5"
+                compactOverlay
               />
               {patternEssential(src) && (
                 <span
                   aria-hidden="true"
-                  className="absolute top-1.5 right-1.5 size-2 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
+                  className="absolute top-1 right-1 size-1.5 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
                 />
               )}
             </div>
@@ -276,17 +307,23 @@ function PatternGroups({
       {PATTERN_ZONES.map((zone) => (
         <div
           key={zone.key}
-          className="rounded-xl border border-[#1E2A3C] bg-[#0D1420]/40 p-3"
+          className="rounded-xl border border-[#1E2A3C] bg-[#0D1420]/40 p-3.5"
         >
-          <div className="mb-2.5 flex items-center gap-2">
+          {/* 부위 헤더: 약칭 배지 + 전체 이름 + 하단 룰 → 네 섹션이 제목처럼 읽히게. */}
+          <div className="mb-3 flex items-center gap-2.5">
             <span className="rounded-md border border-[#3B82F6]/50 bg-[#152238] px-2 py-0.5 font-mono text-[12px] font-semibold text-[#4A9EFF]">
               {zone.label}
             </span>
+            <span className="font-mono text-[10px] tracking-[0.14em] text-[#8A93A6] uppercase">
+              {zone.full}
+            </span>
+            <span className="h-px flex-1 bg-[#1E2A3C]" aria-hidden="true" />
           </div>
-          {/* 현장 | DB 좌우 비교 */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* 현장 ↔ 신발 좌우 비교(가운데 대응 배지로 '비교'임을 명시). */}
+          <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
             <PatternCell icon={Camera} label="현장" patterns={scene?.[zone.key] ?? []} />
-            <PatternCell icon={Database} label="DB" patterns={db?.[zone.key] ?? []} />
+            <CompareConnector />
+            <PatternCell icon={Database} label="신발" patterns={db?.[zone.key] ?? []} />
           </div>
         </div>
       ))}
@@ -305,6 +342,11 @@ export interface ShoeDetailContentProps {
   onSaved?: () => void
   /** 저장 진행 상태 보고 — 컴팩트 Sheet가 저장 중 강제 닫기를 막는 데 쓴다. */
   onPendingChange?: (pending: boolean) => void
+  /** SPEC-MATCH-TOP10-001: top-10 대응 카드 그리드 슬롯(REQ-MATCH-006) — 상위
+   * pages 계층이 `@/features/match-top10`의 `MatchTop10Panel`을 조립해 주입한다
+   * (features↔features cross-import 금지, FSD 단방향 규칙). 미전달 시 섹션
+   * 자체가 렌더되지 않는다(레거시 흐름 무변경, REQ-MATCH-007a). */
+  topMatchSlot?: ReactNode
 }
 
 /**
@@ -321,6 +363,7 @@ export function ShoeDetailContent({
   variant = "page",
   onSaved,
   onPendingChange,
+  topMatchSlot,
 }: ShoeDetailContentProps) {
   // 상위 3위는 검색결과 그리드의 TOP 뱃지와 같은 톤(그린 티어)으로 강조한다.
   const rankNum = ranking != null && ranking !== "" ? Number.parseInt(String(ranking), 10) : null
@@ -334,12 +377,14 @@ export function ShoeDetailContent({
 
   // 신발 상세 + 유사도 어텐션 맵을 한 쿼리로 병렬 로드한다. DB 신발 문양은
   // `toPatternPaths`로 전체 경로로 hydrate한다.
+  // @MX:WARN: [AUTO] detailQuery - fetchCurrentShoes와 fetchSimilarity를 Promise.all로 병렬 호출, 둘 중 하나만 실패해도 개별 구분 없이 전체 쿼리가 에러로 처리됨
+  // @MX:REASON: 부분 실패 시 어느 요청이 실패했는지 구분 불가 — 신발 상세는 성공했지만 유사도만 실패한 경우도 동일하게 전체 에러 상태로 렌더됨
   const detailQuery = useQuery({
     queryKey: ["crimeSearch", "detail", crimeNumber, modelNumber],
     queryFn: async () => {
       const [shoesInfo, attns] = await Promise.all([
         fetchCurrentShoes(modelNumber),
-        fetchSimilarity({ crimeNumber, modelNumber }) as Promise<SimilarityResult>,
+        fetchSimilarity({ crimeNumber, modelNumber }) as Promise<SimilarityResponse>,
       ])
 
       const shoesData = {
@@ -519,38 +564,44 @@ export function ShoeDetailContent({
           )}
         </div>
 
-        {/* ② 본문(세로 스크롤) — 유사부위(족적|신발 좌우) → 문양 비교(부위별 현장|DB 좌우).
-            사건 정보는 헤더로 대체해 제거했다. */}
-        <div className="relative flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
+        {/* ② 본문 — 바깥은 스크롤되지 않는 프레임(모서리 브래킷을 고정), 안쪽 div만
+            세로 스크롤한다. TechCorners를 스크롤 컨테이너 안에 두면 콘텐츠와 함께
+            떠내려가므로, 프레임(바깥)에 두어 패널 네 모서리에 고정한다. 사건 정보는
+            헤더로 대체해 제거했다. */}
+        <div className="relative min-h-0 flex-1">
           <TechCorners size={20} />
+          <div className="absolute inset-0 flex flex-col gap-4 overflow-y-auto p-4">
 
-          {/* 유사부위 히트맵 — 족적/신발을 좌우로 넓게. 로딩 중엔 원본 폴백 대신 스피너. */}
-          <div className="grid grid-cols-2 gap-3">
-            <AttentionTile
-              code=""
-              label="족적 이미지 유사부위"
-              image={images.query}
-              emphasis
-              icon={Camera}
-              fill={false}
-              loading={detailQuery.isLoading}
-            />
-            <AttentionTile
-              code=""
-              label="신발 이미지 유사부위"
-              image={images.bottom}
-              emphasis
-              icon={Database}
-              fill={false}
-              loading={detailQuery.isLoading}
-            />
-          </div>
+          {/* SPEC-MATCH-TOP10-001 v0.6.0 REQ-MATCH-014(CHANGE 2): 레거시 "유사부위
+              대응" 뷰어(MatchViewer)는 이 위치에서 렌더 트리 제거됨 — top-10 슬롯이
+              그 자리를 점유한다(최상단, REQ-MATCH-006 유일 필수 표면). 프런트 한정
+              대체이며, 백엔드 `/similarity`·`/similarity_grid`·`grid_analysis`는
+              무변경 병존한다(REQ-MATCH-014a). MatchViewer 컴포넌트 파일·
+              `fetchSimilarity`는 존치(회귀 안전) — 이 화면의 어텐션 맵
+              (images.query/images.bottom)이 여전히 그 응답을 소비한다.
 
-          {/* 문양 비교 — 부위별로 묶고 각 부위 안에서 현장|DB를 좌우로. */}
-          <div className="overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]">
-            <div className="flex items-center gap-2.5 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
+              [CORRECTION 1] top-10 슬롯을 문양 비교보다 먼저(최상단) 렌더한다 —
+              슬롯으로 주입받는다(features↔features cross-import 금지, FSD 단방향
+              규칙). 실제 컴포넌트 조립은 pages 계층(CrimeDetailPage)이
+              `@/features/match-top10`을 import해 담당한다. shrink-0 필수(본문
+              flex-col 스크롤 유지). */}
+          {topMatchSlot && (
+            <section className="shrink-0 overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]">
+              <div className="flex items-center gap-2 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
+                <Radar className="size-4 text-[#4A9EFF]" aria-hidden="true" />
+                <span className="text-[13px] font-semibold text-[#E5E9F0]">Top-10 대응 매칭</span>
+              </div>
+              <div className="p-3">{topMatchSlot}</div>
+            </section>
+          )}
+
+          {/* 문양 비교 — 부위별로 묶고 각 부위 안에서 현장|DB를 좌우로.
+              shrink-0 필수: 본문 flex-col에서 눌리면 overflow-hidden이 하단 부위를 잘라 스크롤 불가. */}
+          <section className="shrink-0 overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]">
+            <div className="flex items-center gap-2 border-b border-[#141D2C] bg-[#0D1420]/60 px-4 py-2.5">
+              <Shapes className="size-4 text-[#4A9EFF]" aria-hidden="true" />
               <span className="text-[13px] font-semibold text-[#E5E9F0]">문양 비교</span>
-              <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-[#8A93A6] uppercase">
+              <span className="ml-auto flex items-center gap-1.5 rounded-md border border-[#EF4444]/30 bg-[#1A1013] px-2 py-0.5 font-mono text-[10px] tracking-[0.1em] text-[#8A93A6] uppercase">
                 <span
                   className="size-1.5 rounded-full bg-[#EF4444] shadow-[0_0_5px_rgba(239,68,68,0.7)]"
                   aria-hidden="true"
@@ -559,6 +610,7 @@ export function ShoeDetailContent({
               </span>
             </div>
             <PatternGroups scene={patternItems[0]} db={patternItems[1]} />
+          </section>
           </div>
         </div>
 

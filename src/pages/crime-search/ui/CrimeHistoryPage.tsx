@@ -14,6 +14,7 @@ import { usePageHeader } from "@/widgets/app-shell"
 import { Button } from "@/shared/ui/button"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 import { TechCorners } from "@/shared/ui/tech-corners"
+import { LoadingImage } from "@/shared/ui/image-loading-overlay"
 import { fetchHistoryData, fetchCurrentShoes } from "@/services/crud"
 import { imageSearch } from "@/services/api"
 import { toPatternPaths } from "@/utils/path-utils"
@@ -73,9 +74,10 @@ function ImageTile({ index, code, label, image }: ImageTileProps) {
       </div>
       <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#05080D]">
         {image ? (
-          <img
+          <LoadingImage
             src={image}
             alt={label}
+            containerClassName="absolute inset-0"
             className="absolute inset-0 size-full object-contain p-3"
           />
         ) : (

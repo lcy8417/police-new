@@ -68,6 +68,11 @@ export interface UseImageEditParams {
   crimeNumber: string;
   /** 편집 시작 원본(currentCrimeData.editImage ?? image). */
   seedImage: string | null | undefined;
+  /**
+   * 원본(scene) 이미지 — "원본 복원"이 되돌아갈 대상. seedImage가 editImage(편집본)일 수
+   * 있으므로, 편집이 전혀 없는 raw `image`를 별도로 받는다(없으면 복원 no-op).
+   */
+  originalImage?: string | null | undefined;
 }
 
 /**
@@ -88,6 +93,11 @@ export interface UseImageEdit {
   canUndo: boolean;
   /** 직전 workingImage로 되돌린다(레거시 returnMemo 되돌리기). */
   undo: () => void;
+  /**
+   * 편집 캔버스를 원본(scene) 이미지로 되돌린다. 현재 편집본을 history에 쌓고 원본으로
+   * 교체하므로 되돌리기로 복구 가능하며(로컬 리셋), 저장을 눌러야 서버 editImage에 반영된다.
+   */
+  restoreOriginal: () => void;
   /** 현재 선택된 편집 툴(null = 미선택). */
   activeTool: EditTool | null;
   /** 툴을 전환한다; 폴리곤 points를 초기화한다. */
@@ -129,7 +139,11 @@ export interface UseImageEdit {
   save: (onSaved?: (finalImage: string) => void) => Promise<string>;
 }
 
-export function useImageEdit({ crimeNumber, seedImage }: UseImageEditParams): UseImageEdit {
+export function useImageEdit({
+  crimeNumber,
+  seedImage,
+  originalImage,
+}: UseImageEditParams): UseImageEdit {
   const [workingImage, setWorkingImage] = useState<string>(seedImage ?? "");
   const [displayImage, setDisplayImage] = useState<string>(seedImage ?? "");
   const [history, setHistory] = useState<string[]>([]);
@@ -150,6 +164,9 @@ export function useImageEdit({ crimeNumber, seedImage }: UseImageEditParams): Us
   workingImageRef.current = workingImage;
   const historyRef = useRef(history);
   historyRef.current = history;
+  // "원본 복원" 대상 — 매 렌더 최신값 동기화(비동기 seed 로드로 값→값 갱신될 수 있음).
+  const originalImageRef = useRef(originalImage);
+  originalImageRef.current = originalImage;
 
   // 세션 초기화 트리거는 둘뿐이다: (1) 최초/비동기 로드로 seedImage가 빈 값→실제 값이
   // 되거나, (2) 편집 대상 사건(crimeNumber)이 바뀔 때. 저장 후 낙관적 editImage 갱신처럼
@@ -209,6 +226,19 @@ export function useImageEdit({ crimeNumber, seedImage }: UseImageEditParams): Us
     setHistory(h.slice(0, -1));
     setWorkingImage(prev);
   }, []);
+
+  // 편집 캔버스를 원본(scene)으로 되돌린다. commit이 현재 편집본을 history에 쌓으므로
+  // 되돌리기로 복구 가능하고(스택 유지 = "되돌리기는 그대로"), 저장 전에는 서버 미반영.
+  // 진행 중이던 툴/폴리곤/이진화 상태는 초기화한다. 원본이 없으면 no-op.
+  const restoreOriginal = useCallback(() => {
+    const original = originalImageRef.current;
+    if (!original) return;
+    commit(original);
+    setPoints([]);
+    setActiveToolState(null);
+    setThreshold(DEFAULT_THRESHOLD);
+    setThresholdMode(DEFAULT_THRESHOLD_MODE);
+  }, [commit]);
 
   const setActiveTool = useCallback((tool: EditTool | null) => {
     setPoints([]);
@@ -337,6 +367,7 @@ export function useImageEdit({ crimeNumber, seedImage }: UseImageEditParams): Us
     displayImage,
     canUndo,
     undo,
+    restoreOriginal,
     activeTool,
     setActiveTool,
     points,

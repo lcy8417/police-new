@@ -45,6 +45,7 @@ const PREVIEW_DEBOUNCE = 120
  * 상호 배타적인 오버레이 모드인 반면, 이 조정값들은 항상 켜져 있는 연속 파라미터다 —
  * 분석관은 크롭하는 *동안에도* 대비를 높일 수 있다.
  */
+// @MX:TODO: [AUTO] 콜로케이트된 .test.ts 파일 없음 - 밝기/대비/감마/임계값 조정 훅(useImageAdjustments) 미검증, bake()의 디바운스 재굽기 로직 포함
 export function useImageAdjustments(source: string | null): ImageAdjustments {
   const [adjustments, setAdjustments] = useState<Adjustments>(DEFAULT_ADJUSTMENTS)
   const [displayImage, setDisplayImage] = useState<string | null>(source)

@@ -1,3 +1,6 @@
+// @MX:ANCHOR: [AUTO] search-paths 경로 빌더 모음 - CrimeDetailPage/PatternExtractPage/ResultDetailPage/ShoesResultPage 등 6개 파일이 공유하는 유일한 /search 하위 라우트 경로 생성 지점
+// @MX:REASON: fan_in 6 — 하드코딩된 문자열 경로를 대체하는 정본, App.jsx 라우트 정의와 시그니처가 어긋나면 전 화면 네비게이션이 깨짐
+// @MX:TODO: [AUTO] 콜로케이트된 .test.ts 파일 없음 - 순수 함수 5개(searchDetailPath 등) 전부 미검증, 쿼리스트링 조합·엣지케이스(ranking=0 등) 테스트 부재
 /**
  * `/search/:crimeNumber/...` 하위 라우트 경로 빌더 모음.
  *

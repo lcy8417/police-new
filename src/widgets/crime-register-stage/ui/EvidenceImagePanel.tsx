@@ -12,6 +12,8 @@ import {
 
 import type { ImageAdjustments, ImageEditor } from "@/features/crime-register"
 import { Slider } from "@/shared/ui/slider"
+import { ImageLoadingOverlay } from "@/shared/ui/image-loading-overlay"
+import { useImageLoadState } from "@/shared/lib/use-image-load-state"
 import { TechCorners } from "@/shared/ui/tech-corners"
 import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/toggle-group"
 
@@ -98,6 +100,8 @@ export function EvidenceImagePanel({
   // 원본은 커밋된 픽셀을 그대로 보여주고, 보정은 조정된 미리보기를 보여준다.
   const showRaw = viewMode === "원본"
   const displaySrc = showRaw ? image : (adjust.displayImage ?? image)
+  // 좌표 계약: 편집 오버레이가 img rect를 기준으로 하므로 DOM은 그대로 두고 오버레이만 얹는다.
+  const evidenceLoad = useImageLoadState(displaySrc)
   const displayFilter = showRaw ? "none" : adjust.cssFilter
 
   // 순수하게 표시용: 눈금자가 정적인 범례가 아니라 편집기의 각도 게이지처럼
@@ -240,15 +244,19 @@ export function EvidenceImagePanel({
                 draggable={false}
                 onLoad={(e) => {
                   const el = e.currentTarget
+                  evidenceLoad.markLoaded()
                   setDimensions([el.naturalWidth, el.naturalHeight])
                   editor.recomputeOverlay()
                 }}
+                onError={evidenceLoad.handlers.onError}
                 className="max-h-full max-w-full object-contain select-none"
                 style={{
                   filter: displayFilter,
                   transform: rotation ? `rotate(${rotation}deg)` : undefined,
                 }}
               />
+
+              <ImageLoadingOverlay status={evidenceLoad.status} />
               {editor.mode !== "none" && editor.overlayRect && (
                 <canvas
                   ref={editor.overlayRef}

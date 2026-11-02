@@ -62,13 +62,17 @@ export async function registerCrime(input: CrimeRegisterInput): Promise<Response
 /** PUT /crime/:crimeNumber. Mirror of crud.js#fetchPatterns. */
 export async function putCrimePatterns(
   crimeNumber: string,
-  currentCrimeData: Pick<Crime, PatternZone>
+  currentCrimeData: Pick<Crime, PatternZone> & {
+    extractedRaw?: Crime["extractedRaw"];
+  }
 ): Promise<Response> {
   const body: PatternsPutBody = {
     top: stripZone(currentCrimeData.top),
     mid: stripZone(currentCrimeData.mid),
     bottom: stripZone(currentCrimeData.bottom),
     outline: stripZone(currentCrimeData.outline),
+    // REQ-SCENE-009(a): 있으면 그대로 전달(없으면 생략 — 신발/레거시 경로 영향 없음).
+    extracted_raw: currentCrimeData.extractedRaw,
   };
 
   return apiSend(`/crime/${crimeNumber}`, "PUT", body);
@@ -92,6 +96,8 @@ export async function saveCrimeHistory({
     ranking: ranking ? parseInt(String(ranking), 10) : 0,
     editImage: stripDataUrl(currentCrimeData.editImage),
     matchingShoes: modelNumber,
+    // REQ-SCENE-009(c): 있으면 히스토리 스냅샷에 포함(없으면 생략).
+    extractedRaw: currentCrimeData.extractedRaw,
   };
 
   return apiSend(`/crime/${crimeNumber}`, "POST", body);

@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/shared/lib/utils";
+import { ImageLoadingOverlay } from "@/shared/ui/image-loading-overlay";
+import { useImageLoadState } from "@/shared/lib/use-image-load-state";
 import { TechCorners } from "@/shared/ui/tech-corners";
 import { ToggleGroup, ToggleGroupItem } from "@/shared/ui/toggle-group";
 
@@ -100,6 +102,35 @@ interface PatternCanvasProps {
   viewportStyle?: CSSProperties;
   /** view(조회) 모드: 하단의 추출/초기화 액션을 숨긴다(좌표 수학 무관, 표시 전용). */
   readOnly?: boolean;
+  /**
+   * 편집 모드 — 경계선·영역·부위라벨·추출/초기화 등 문양추출 UI를 숨기고, 이미지 위에
+   * editOverlay를, 하단에 editFooter를 렌더한다. 좌표 수학(recompute/toCanvasY/line 전송)은
+   * 그대로 두고 렌더만 분기하는 순수 가산 확장이다. 편집 로직은 페이지(crime-edit)가 소유하고
+   * 슬롯으로 주입한다(FSD: patterns-extract는 crime-edit를 import하지 않는다).
+   */
+  editMode?: boolean;
+  /** 편집 모드에서 표시할 이미지(useImageEdit.displayImage). 없으면 image로 폴백. */
+  editImage?: string | null;
+  /** 편집 모드에서 이미지 위에 얹는 오버레이(폴리곤 입력 등, 페이지 주입). */
+  editOverlay?: ReactNode;
+  /** 편집 모드에서 하단에 렌더할 도구 푸터(페이지 주입). */
+  editFooter?: ReactNode;
+  /**
+   * 문양추출 활성 여부 — 경계선·영역·부위라벨 오버레이와 추출/초기화 노출을 게이트한다.
+   * 기본값 true(하위호환): 등록/편집 화면(ShoeWorkbench)은 이 프롭을 넘기지 않아
+   * 기존처럼 항상 표시된다. 검색화면은 상단 토글로 이 값을 제어한다.
+   */
+  patternActive?: boolean;
+  /**
+   * 넘어오면 헤더에 "문양추출" 활성화 토글을 렌더하고, 추출/초기화를 상단 액션 밴드로
+   * 올린다(하단 상태표시줄에서는 제거). 없으면 레거시 레이아웃(하단 버튼 · 상시 표시).
+   */
+  onTogglePatternActive?: () => void;
+  /**
+   * 편집 도구가 아닐 때 표시 이미지를 편집본으로 볼지 여부(현장/편집 뷰 소스). 문양추출을
+   * 편집 이미지 위에서 켤 수 있도록, 표시 이미지를 editMode가 아니라 이 값에서 파생한다.
+   */
+  viewIsEdit?: boolean;
 }
 
 /** 도크 툴바용 소형 버튼(crime-register EvidenceImagePanel 톤 준용). */
@@ -154,6 +185,8 @@ function ToolButton({
  * canvas 비트맵 정렬, `toCanvasY`/`pickDraggableLine`/`moveLine` 좌표 수학,
  * `extractPattern`이 읽는 `lineState.lineYs`/`render_size` 값은 손대지 않았다.
  */
+// @MX:ANCHOR: [AUTO] PatternCanvas - 문양추출 캔버스 컴포넌트, EditToolbar/PolygonCaptureCanvas/CrimeDetailPage/ShoeWorkbench 4개 파일에서 사용되는 좌표 크리티컬 UI 진입점
+// @MX:REASON: fan_in >= 3 — 검색·등록·편집 세 화면이 공유하는 유일한 캔버스 구현, 좌표 수학(recompute/toCanvasY)은 "수정 금지" 문서화됨
 export function PatternCanvas({
   canvasRef,
   imgRef,
@@ -170,6 +203,13 @@ export function PatternCanvas({
   topToolbar,
   viewportStyle,
   readOnly = false,
+  editMode = false,
+  editImage = null,
+  editOverlay,
+  editFooter,
+  patternActive = true,
+  onTogglePatternActive,
+  viewIsEdit = false,
 }: PatternCanvasProps) {
   // 업로드 드롭존(onUpload가 있을 때만)용 숨은 파일 입력.
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
@@ -204,6 +244,8 @@ export function PatternCanvas({
 
   // 표시된 이미지에 맞춰 canvas 비트맵 크기를 재측정한다. 마우스/canvas 좌표가
   // 1:1로 대응하도록 비트맵 크기를 표시 크기에 맞춘다(useImageEditor.recomputeOverlay 준용).
+  // @MX:WARN: [AUTO] recompute - canvas 비트맵 크기를 표시 이미지 rect에 맞추는 좌표계 기준점, "수정 금지" 문서화된 영역
+  // @MX:REASON: 여기서 만든 canvas.width/height가 extractPattern의 render_size와 toCanvasY의 스케일 기준이 됨 — 변경 시 좌표계 전체가 어긋남
   const recompute = useCallback(() => {
     const img = imgRef.current;
     const canvas = canvasRef.current;
@@ -428,6 +470,8 @@ export function PatternCanvas({
   }, [canvasRef, lineState, canvasSize, region]);
 
   // 마우스 clientY를 canvas 비트맵 y 좌표로 변환한다.
+  // @MX:WARN: [AUTO] toCanvasY - clientY를 canvas 비트맵 y좌표로 변환하는 유일한 지점, 경계선 드래그·line_ys 전송 좌표계의 기준
+  // @MX:REASON: recompute가 설정한 canvas.width/height와 짝을 이루는 좌표 변환 — 스케일 계산을 손대면 경계선 드래그와 전송 좌표가 어긋나 백엔드 크래시로 이어짐
   const toCanvasY = useCallback(
     (clientY: number): number | null => {
       const canvas = canvasRef.current;
@@ -560,7 +604,20 @@ export function PatternCanvas({
     [minY, maxY, regionTop, regionBottom]
   );
 
-  const showOverlayChrome = Boolean(image) && canvasSize.h > 0;
+  // 문양추출이 꺼졌거나 편집 모드면 chrome(틴트·영역·부위라벨·경계선 핸들)을 숨긴다.
+  const showOverlayChrome =
+    patternActive && !editMode && Boolean(image) && canvasSize.h > 0;
+  // 표시 이미지: 편집 도구 중에는 라이브 편집본, 그 외에는 뷰 소스(현장/편집)에서 파생한다.
+  // → 편집 도구를 끄고 문양추출을 켜도 보던 이미지(현장 원본 또는 편집본)가 유지된다.
+  const canvasImageLoad = useImageLoadState(editMode ? editImage ?? image : image);
+  const shownImage = editMode
+    ? editImage ?? image
+    : viewIsEdit
+      ? editImage ?? image
+      : image;
+  // onTogglePatternActive가 있으면 "활성화 토글" 레이아웃(상단 토글 + 상단 추출/초기화)을
+  // 쓴다. 없으면(등록/편집 화면) 레거시 레이아웃(하단 버튼 · 상시 표시)을 유지한다.
+  const activatable = Boolean(onTogglePatternActive);
 
   return (
     <section className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#1E2A3C] bg-[#0B121D]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_0_40px_rgba(0,0,0,0.35)] backdrop-blur-sm">
@@ -587,7 +644,30 @@ export function PatternCanvas({
           <ScanSearch className="size-4 text-[#4A9EFF]" aria-hidden="true" />
           신발 이미지
         </span>
-        {!hideViewSwapper && (
+        <div className="flex items-center gap-2">
+          {/* 한 번 누르면 곧바로 추출까지 수행한다(활성화→추출 2단계 통합 — 호출부
+              `CrimeDetailPage.handleTogglePattern`이 추출을 실행). 토글이 아니라 액션
+              버튼이므로 aria-pressed를 쓰지 않는다. */}
+          {activatable && (
+            <button
+              type="button"
+              onClick={onTogglePatternActive}
+              disabled={isExtracting}
+              className={cn(
+                "flex h-6 items-center gap-1 rounded-[5px] border px-2 text-[11px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                isExtracting
+                  ? "border-[#3B82F6]/50 bg-[#152238] text-[#4A9EFF]"
+                  : "border-[#1E2A3C] bg-[#0F1826] text-[#8A93A6] hover:border-[#3B82F6]/40 hover:text-[#C7CEDB]"
+              )}
+            >
+              <ScanSearch
+                className={cn("size-3", isExtracting && "animate-pulse")}
+                aria-hidden="true"
+              />
+              {isExtracting ? "추출중" : "문양추출"}
+            </button>
+          )}
+          {!hideViewSwapper && (
           <ToggleGroup
             type="single"
             value={activeView}
@@ -612,11 +692,28 @@ export function PatternCanvas({
               편집
             </ToggleGroupItem>
           </ToggleGroup>
-        )}
+          )}
+        </div>
       </div>
 
       {/* 헤더 아래 툴바 밴드(예: 회전 슬라이더) — 넘겨졌을 때만 렌더. */}
       {topToolbar}
+
+      {/* 문양추출 상단 액션 밴드 — 활성화 토글 레이아웃 전용. 추출은 헤더의 [문양추출]
+          버튼이 직접 수행하므로 별도 "추출" 버튼은 두지 않고, 되돌리기용 초기화만 남긴다
+          (레거시 레이아웃의 하단 추출/초기화 쌍은 무변경).
+          patternActive에 묶지 않는다 — 그 플래그는 이제 켜지지 않으며(신발용 chrome
+          노출 방지), 초기화는 추출 여부와 무관하게 상시 필요하다. */}
+      {activatable && !editMode && (
+        <div className="flex items-center gap-2 border-b border-[#141D2C] bg-[#0D1420]/40 px-4 py-2">
+          <ToolButton
+            icon={RotateCcw}
+            label="초기화"
+            onClick={onClear}
+            disabled={isExtracting}
+          />
+        </div>
+      )}
 
       {/* 뷰포트: 이미지 + 경계선 오버레이 canvas.
           체커보드 눈금 바 / 모서리 십자선 / 하단 상태표시줄은 crime-register
@@ -662,12 +759,20 @@ export function PatternCanvas({
           >
             <img
               ref={imgRef}
-              src={image}
+              src={shownImage ?? image}
               alt="현장 신발 이미지"
               draggable={false}
-              onLoad={handleImageLoad}
+              onLoad={(e) => {
+                canvasImageLoad.markLoaded();
+                handleImageLoad(e);
+              }}
+              onError={canvasImageLoad.handlers.onError}
               className="h-full w-auto max-w-full object-contain select-none"
             />
+
+            {/* 로딩/실패 표시 — pointer-events-none이라 경계선 드래그를 막지 않는다.
+                좌표 계약상 img/canvas 사이징은 건드리지 않고 형제로만 얹는다. */}
+            <ImageLoadingOverlay status={canvasImageLoad.status} />
 
             {/* 상/중/하 영역 배경 틴트 — 같은 파란 계열에서 깊이(투명도/명도)만 달리해
                 세 구간을 은은히 구분한다(알록달록 X). canvas보다 아래(이미지 위)에 두어
@@ -707,14 +812,21 @@ export function PatternCanvas({
               </>
             )}
 
-            <canvas
-              ref={canvasRef}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={stopDragging}
-              onMouseLeave={stopDragging}
-              className="absolute inset-0 size-full"
-            />
+            {/* 경계선 편집 canvas — 편집 모드이거나 문양추출이 꺼지면 렌더하지 않는다
+                (문양추출 전용). 꺼진 상태에서는 이미지 위 클릭이 순수하게 통과한다. */}
+            {!editMode && patternActive && (
+              <canvas
+                ref={canvasRef}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={stopDragging}
+                onMouseLeave={stopDragging}
+                className="absolute inset-0 size-full"
+              />
+            )}
+
+            {/* 편집 모드 오버레이(폴리곤 입력 등) — 페이지가 주입한다. */}
+            {editMode && editOverlay}
 
             {/* 신발 영역(사각 마스크) 오버레이 — 테두리·틴트·신발 실루엣은
                 pointer-events-none, 엣지/꼭짓점 핸들만 pointer-events-auto로 드래그를
@@ -952,40 +1064,51 @@ export function PatternCanvas({
           유지 — onShowOrigin/onShowEdit/activeView 상태 변경 로직 무수정).
           경계선 안내 문구는 좁은 열에서 줄바꿈으로 행이 늘지 않도록 md 이상에서만
           보이고 truncate로 흘러넘치지 않게 한다. */}
-      <div className="flex items-center gap-2 border-t border-[#141D2C] px-4 py-2">
-        {/* 조회(readOnly) 모드에서는 추출/초기화 액션을 숨긴다 — 편집은 [편집] 진입 후에만. */}
-        {!readOnly && (
-          <>
-            <ToolButton
-              icon={Radar}
-              label={isExtracting ? "추출중" : "추출"}
-              onClick={onExtract}
-              variant="accent"
-              disabled={isExtracting}
-              pending={isExtracting}
-            />
-            <ToolButton
-              icon={RotateCcw}
-              label="초기화"
-              onClick={onClear}
-              disabled={isExtracting}
-            />
-            <div className="h-5 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
-          </>
-        )}
-        <span className="shrink-0 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-1 font-mono text-[10px] tabular-nums text-[#8A93A6]">
-          {naturalSize.w}×{naturalSize.h}
-        </span>
-        <span className="hidden min-w-0 flex-1 items-center gap-1 truncate font-mono text-[10px] text-[#8A93A6] md:flex">
-          <GripHorizontal className="size-3 shrink-0 text-[#4A9EFF]" aria-hidden="true" />
-          <span className="truncate">
-            {readOnly ? "조회 모드 · 편집하려면 [편집]" : "경계선 드래그로 상/중/하 분할"}
+      {/* 편집 모드: 하단 푸터를 편집 도구(editFooter)로 대체한다. 아니면 문양추출
+          상태표시줄(추출/초기화 + 치수/안내/경계선 수). */}
+      {editMode ? (
+        <div className="border-t border-[#141D2C]">{editFooter}</div>
+      ) : (
+        <div className="flex items-center gap-2 border-t border-[#141D2C] px-4 py-2">
+          {/* 조회(readOnly) 모드 또는 활성화 토글 레이아웃(추출/초기화가 상단으로 이동)에서는
+              하단 추출/초기화를 숨긴다. 레거시 레이아웃(등록/편집 화면)만 여기 유지. */}
+          {!readOnly && !activatable && (
+            <>
+              <ToolButton
+                icon={Radar}
+                label={isExtracting ? "추출중" : "추출"}
+                onClick={onExtract}
+                variant="accent"
+                disabled={isExtracting}
+                pending={isExtracting}
+              />
+              <ToolButton
+                icon={RotateCcw}
+                label="초기화"
+                onClick={onClear}
+                disabled={isExtracting}
+              />
+              <div className="h-5 w-px shrink-0 bg-[#1E2A3C]" aria-hidden="true" />
+            </>
+          )}
+          <span className="shrink-0 rounded-md border border-[#1E2A3C] bg-[#0F1826] px-2 py-1 font-mono text-[10px] tabular-nums text-[#8A93A6]">
+            {naturalSize.w}×{naturalSize.h}
           </span>
-        </span>
-        <span className="ml-auto shrink-0 font-mono text-[11px] tracking-wide text-[#6B7688] uppercase">
-          {lineState.lineYs.length} Boundaries
-        </span>
-      </div>
+          <span className="hidden min-w-0 flex-1 items-center gap-1 truncate font-mono text-[10px] text-[#8A93A6] md:flex">
+            <GripHorizontal className="size-3 shrink-0 text-[#4A9EFF]" aria-hidden="true" />
+            <span className="truncate">
+              {readOnly
+                ? "조회 모드 · 편집하려면 [편집]"
+                : activatable && !patternActive
+                  ? "상단 [문양추출]을 누르면 바로 추출됩니다"
+                  : "경계선 드래그로 상/중/하 분할"}
+            </span>
+          </span>
+          <span className="ml-auto shrink-0 font-mono text-[11px] tracking-wide text-[#6B7688] uppercase">
+            {lineState.lineYs.length} Boundaries
+          </span>
+        </div>
+      )}
     </section>
   );
 }
