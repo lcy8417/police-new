@@ -12,6 +12,7 @@ import { CrimeRegisterPage } from "@/pages/crime-register";
 import { ShoeRepositoryPage } from "@/pages/shoe-repository";
 import { LoginPage } from "@/pages/login";
 import { PasswordChangePage } from "@/pages/password-change";
+import { ManageUsersPage } from "@/pages/manage-users";
 import EditorMode from "./pages/EditorMode";
 import { FEATURES } from "@/entities/session";
 import {
@@ -153,8 +154,8 @@ function App() {
           <Route path="/shoesEdit/:ftwrId" element={<ShoesEditRedirect />} />
         </Route>
 
-        {/* 관리자 화면(API `/admin/*`와 겹치지 않게 `/manage/*`). 하위 화면(`users`·`logs`)은
-            이 묶음 안에 추가한다. `*`는 아직 없는 하위 주소도 관리자 가드를 거치게 하는 자리. */}
+        {/* 관리자 화면(API `/admin/*`와 겹치지 않게 `/manage/*`). `/manage`와 없는 하위 주소는
+            관리자 가드를 거친 뒤 사용자·권한 화면으로 보낸다. */}
         <Route
           path="/manage"
           element={
@@ -163,7 +164,9 @@ function App() {
             </RequireAdmin>
           }
         >
-          <Route path="*" element={null} />
+          <Route index element={<Navigate to="/manage/users" replace />} />
+          <Route path="users" element={<ManageUsersPage />} />
+          <Route path="*" element={<Navigate to="/manage/users" replace />} />
         </Route>
       </Route>
 

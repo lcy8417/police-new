@@ -18,6 +18,9 @@ function messageOf(error: unknown): string | undefined {
  * cache toasts on every failed query, the mutation cache toasts on every
  * failed mutation, and on success reads `mutation.meta.success` (a Korean
  * string) to fire a success toast. Callers never call `toast` directly.
+ *
+ * `mutation.meta.inlineError === true`면 실패 토스트를 띄우지 않는다 — 그 화면이 오류 문구를
+ * 폼·패널 안에 직접 보여 주는 경우(관리자 화면의 서버 안내 문구 등) 같은 문구가 두 번 뜨지 않게.
  */
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,7 +36,8 @@ export const queryClient = new QueryClient({
     },
   }),
   mutationCache: new MutationCache({
-    onError: (error) => {
+    onError: (error, _variables, _context, mutation) => {
+      if (mutation.meta?.inlineError === true) return;
       toast.error(messageOf(error) ?? "요청 처리에 실패했습니다");
     },
     onSuccess: (_data, _variables, _context, mutation) => {
