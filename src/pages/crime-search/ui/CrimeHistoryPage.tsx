@@ -102,14 +102,15 @@ const HEADER_TITLE = (
 )
 
 /**
- * 커맨드 센터 `/search/:crimeNumber/crimeHistory/:historyId`. 레거시
+ * 커맨드 센터 `/search/:aprthngNo/crimeHistory/:searchNo`. 레거시
  * `CrimeHistoryMain`(useEffect 2개 + 로컬 state)을 TanStack `useQuery` 두 개로
  * 옮겼다: (1) 이력 상세 + 매칭 신발을 로드해 현장/DB 문양을 구성하고,
  * (2) 과거 검색결과(현재는 더미)를 페이지 단위로 조회한다. 읽기 전용 화면이라
  * 이미지 4분할은 표시 전용 타일로 렌더한다.
  */
 export function CrimeHistoryPage() {
-  const { crimeNumber = "", historyId = "" } = useParams()
+  // 라우트 변수는 `:aprthngNo`·`:searchNo`. 내부 변수명 정리는 Task 5에서 한다.
+  const { aprthngNo: crimeNumber = "", searchNo: historyId = "" } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const ranking = searchParams.get("ranking")

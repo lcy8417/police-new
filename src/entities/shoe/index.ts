@@ -8,6 +8,8 @@ export {
 } from "./api/shoe-api";
 export { shoeKeys } from "./api/query-keys";
 export { EMPTY_SHOE_FORM } from "./model/form";
+export { shoeImageUrl } from "./lib/shoe-image-url";
+export type { ShoeImageKind } from "./lib/shoe-image-url";
 export type {
   Shoe,
   ShoeDto,

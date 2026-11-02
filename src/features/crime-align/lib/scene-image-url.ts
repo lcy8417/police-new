@@ -9,9 +9,10 @@
  * (본 슬라이스는 정적 검사로 해당 필드명 리터럴을 소스에 두지 않는다 — AC-ALIGN-021.)
  *
  * 백엔드 정적 마운트(`(final) police-server/main.py`의 `/crime_images`)를 직접
- * 가리켜, 페이지의 `imageLoad({ crimeNumber, edit })` 토글 경로를 우회한다.
+ * 가리켜, 페이지의 `imageLoad({ aprthngNo, edit })` 토글 경로를 우회한다.
+ * 파일명은 감정물 번호(`aprthngNo`)이며 방어용으로 `encodeURIComponent`로 감싼다.
  */
-export function sceneImageUrl(crimeNumber: string): string {
+export function sceneImageUrl(aprthngNo: string): string {
   const base = import.meta.env.VITE_API_URL ?? "";
-  return `${base}/crime_images/${crimeNumber}.png`;
+  return `${base}/crime_images/${encodeURIComponent(aprthngNo)}.png`;
 }

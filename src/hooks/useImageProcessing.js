@@ -2,7 +2,7 @@
 import { imageProcessing } from "../services/api";
 
 const useImageProcessing = ({
-  crimeNumber,
+  aprthngNo,
   scrollState,
   setScrollState,
   setReturnMemo,
@@ -18,7 +18,7 @@ const useImageProcessing = ({
       }
 
       console.log("dd", body, "dd");
-      const image = await imageProcessing(crimeNumber, endpoint, body, params);
+      const image = await imageProcessing(aprthngNo, endpoint, body, params);
 
       setScrollState((prev) => ({ ...prev, image }));
       if (endpoint !== "binarization") {

@@ -22,13 +22,13 @@ const HEADER_TITLE = (
 )
 
 /**
- * 커맨드 센터 `/search/:crimeNumber/shoesResult/detail/:modelNumber`(풀페이지 딥링크
+ * 커맨드 센터 `/search/:aprthngNo/shoesResult/detail/:ftwrId`(풀페이지 딥링크
  * 스텁). 데이터 로드·4섹션 렌더·이력 저장은 공용 `ShoeDetailContent`(variant="page")가
  * 담당하고, 이 페이지는 헤더(제목·ranking 뱃지)와 저장 후 navigate만 조립한다.
  * `/search`의 우측 컴팩트 Sheet가 같은 콘텐츠를 variant="compact"로 재사용한다.
  */
 export function ResultDetailPage() {
-  const { modelNumber = "", crimeNumber = "" } = useParams()
+  const { ftwrId = "", aprthngNo = "" } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const ranking = searchParams.get("ranking")
@@ -75,10 +75,10 @@ export function ResultDetailPage() {
   return (
     <ShoeDetailContent
       variant="page"
-      crimeNumber={crimeNumber}
-      modelNumber={modelNumber}
+      crimeNumber={aprthngNo}
+      modelNumber={ftwrId}
       ranking={ranking}
-      onSaved={() => navigate(searchDetailPath(crimeNumber))}
+      onSaved={() => navigate(searchDetailPath(aprthngNo))}
     />
   )
 }

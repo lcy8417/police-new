@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import useImageProcessing from "../hooks/useImageProcessing";
 import LoadingModal from "../components/LoadingModal";
@@ -36,7 +36,7 @@ const EditorMode = () => {
   });
 
   const handleProcessing = useImageProcessing({
-    crimeNumber: id,
+    aprthngNo: id,
     scrollState,
     setScrollState,
     setReturnMemo,

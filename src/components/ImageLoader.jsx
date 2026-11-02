@@ -2,7 +2,6 @@ import "./ImageLoader.css";
 import Button from "./Button";
 import React, { useRef } from "react";
 import { resizeImage } from "../utils/get-input-change";
-import { useNavigate } from "react-router-dom";
 import { saveEditImage } from "../services/api";
 
 const ImageLoader = ({
@@ -16,7 +15,6 @@ const ImageLoader = ({
   onLoad = null,
   imgRef = null,
   calibrationCanvas = null,
-  originSize = null,
   setOriginSize = null,
   disableDoubleClick = false,
 }) => {
@@ -48,8 +46,8 @@ const ImageLoader = ({
         }
 
         // 서버에 이미지 저장
-        const id = formData.modelNumber || formData.crimeNumber;
-        const folder = formData.modelNumber ? "shoes" : "crime";
+        const id = formData.ftwrId || formData.aprthngNo;
+        const folder = formData.ftwrId ? "shoes" : "crime";
 
         try {
           await saveEditImage({

@@ -5,6 +5,7 @@ import { cn } from "@/shared/lib/utils"
 import { ImageLoadingOverlay } from "@/shared/ui/image-loading-overlay"
 import { useImageLoadState } from "@/shared/lib/use-image-load-state"
 import type { MatchCorrespondence } from "@/entities/match"
+import { shoeImageUrl } from "@/entities/shoe"
 
 import { matchTop10Color } from "../lib/match-colors"
 import {
@@ -297,16 +298,16 @@ export function MatchCorrespondenceViewer({
 
   // 표시와 크롭이 모두 CORS 파티션 URL을 쓴다 — 다른 화면의 일반 <img>가 만든 no-cors
   // 캐시 항목과 섞이지 않게 하기 위함이다(corsPartitionedUrl 주석에 근거 상세).
+  // 파일명은 감정물 번호(aprthngNo)·신발 ID(ftwrId) — 방어용으로 encodeURIComponent.
   const apiBase = import.meta.env.VITE_API_URL ?? ""
+  const sceneFile = `${encodeURIComponent(crimeNumber)}.png`
   const rawSceneImageSrc = corsPartitionedUrl(
     mode === "실사"
-      ? `${apiBase}/crime_images/${crimeNumber}.png`
-      : `${apiBase}/crime_outlines/${crimeNumber}.png`
+      ? `${apiBase}/crime_images/${sceneFile}`
+      : `${apiBase}/crime_outlines/${sceneFile}`
   )
   const shoeImageSrc = corsPartitionedUrl(
-    mode === "실사"
-      ? `${apiBase}/shoes_images/B/${modelNumber}.png`
-      : `${apiBase}/shoes_images/Shoerinsics/${modelNumber}.png`
+    shoeImageUrl(modelNumber, mode === "실사" ? "B" : "Shoerinsics")
   )
 
   // [CORRECTION 3b] 정렬 폴리곤 경계상자로 크롭 + flipHorizontal 반영. 폴리곤이
@@ -318,7 +319,7 @@ export function MatchCorrespondenceViewer({
   // Shoerinsics 원본 크기는 두 곳에 쓰인다: RGB 모드 좌표 정규화(normalizeFrom)와,
   // 아래 "밑창 대비 같은 비율" 박스 환산의 기준 폭 — 후자는 모드와 무관하게 필요하다.
   const shoerinsicsSize = useImageNaturalSize({
-    src: `${apiBase}/shoes_images/Shoerinsics/${modelNumber}.png`,
+    src: shoeImageUrl(modelNumber, "Shoerinsics"),
   })
   // 정렬 폴리곤 크롭이 없을 때(레거시 폴백)의 현장 기준 폭 — 표시 이미지가 원본 전체다.
   const sceneNaturalSize = useImageNaturalSize({
@@ -354,7 +355,7 @@ export function MatchCorrespondenceViewer({
     size: m.box.size,
   }))
   const outlineCrops = useMatchCrops({
-    src: corsPartitionedUrl(`${apiBase}/crime_outlines/${crimeNumber}.png`),
+    src: corsPartitionedUrl(`${apiBase}/crime_outlines/${sceneFile}`),
     boxes: sceneCropBoxes,
     enabled: mode === "스케치이진",
   })

@@ -38,7 +38,7 @@ function renderCrimeDetailPage() {
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[`/search/${CRIME_NUMBER}`]}>
         <Routes>
-          <Route path="/search/:crimeNumber" element={<CrimeDetailPage />} />
+          <Route path="/search/:aprthngNo" element={<CrimeDetailPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>

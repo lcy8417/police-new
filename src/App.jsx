@@ -21,41 +21,48 @@ import EditorMode from "./pages/EditorMode";
 import { useEffect } from "react";
 import { useCrimeStore } from "@/entities/crime";
 
-// 패턴추출 화면은 통합 커맨드센터(`/search/:crimeNumber`)로 흡수됐다. 기존
+// URL 변수 정본(설계서 §3): 사건 = `:aprthngNo`(감정물 번호), 신발 = `:ftwrId`(신발 ID,
+// 앞자리 0 보존 문자열), 이력 = `:searchNo`(정수). `useParams`는 디코딩된 값을 주므로
+// 리다이렉트 경로를 다시 만들 때 `encodeURIComponent`로 감싼다.
+
+// 패턴추출 화면은 통합 커맨드센터(`/search/:aprthngNo`)로 흡수됐다. 기존
 // `/patternExtract` 경로는 detail URL로 리다이렉트해 하위 호환을 유지한다.
 function PatternExtractRedirect() {
-  const { crimeNumber = "" } = useParams();
-  return <Navigate to={`/search/${crimeNumber}`} replace />;
+  const { aprthngNo = "" } = useParams();
+  return <Navigate to={`/search/${encodeURIComponent(aprthngNo)}`} replace />;
 }
 
-// 검색 결과는 이제 통합 커맨드센터(`/search/:crimeNumber`) 안에 인라인으로
-// 표시된다(검색모드). 기존 `/search/:crimeNumber/shoesResult` 경로(북마크·
+// 검색 결과는 이제 통합 커맨드센터(`/search/:aprthngNo`) 안에 인라인으로
+// 표시된다(검색모드). 기존 `/search/:aprthngNo/shoesResult` 경로(북마크·
 // 레거시 링크)는 detail URL로 리다이렉트해 하위 호환을 유지한다.
 function ShoesResultRedirect() {
-  const { crimeNumber = "" } = useParams();
-  return <Navigate to={`/search/${crimeNumber}`} replace />;
+  const { aprthngNo = "" } = useParams();
+  return <Navigate to={`/search/${encodeURIComponent(aprthngNo)}`} replace />;
 }
 
 // 신발 등록·조회·편집은 통합 커맨드센터(`/shoesRepository`)로 흡수됐다. 레거시
-// `/shoesRegister`·`/shoesEdit/:modelNumber` 경로(사이드바·북마크·레거시 링크)는
+// `/shoesRegister`·`/shoesEdit/:ftwrId` 경로(사이드바·북마크·레거시 링크)는
 // 각각 등록 모드·편집 모드 URL로 리다이렉트해 하위 호환을 유지한다.
 function ShoeRegisterRedirect() {
   return <Navigate to="/shoesRepository?mode=new" replace />;
 }
 
 function ShoesEditRedirect() {
-  const { modelNumber = "" } = useParams();
+  const { ftwrId = "" } = useParams();
   return (
-    <Navigate to={`/shoesRepository/${modelNumber}?mode=edit`} replace />
+    <Navigate
+      to={`/shoesRepository/${encodeURIComponent(ftwrId)}?mode=edit`}
+      replace
+    />
   );
 }
 
-// 현장 이미지 편집은 통합 커맨드센터(`/search/:crimeNumber`)의 우측 편집 Sheet로
-// 흡수됐다(신규 `features/crime-edit`). 레거시 `/edit/:crimeNumber` 경로(북마크·
+// 현장 이미지 편집은 통합 커맨드센터(`/search/:aprthngNo`)의 우측 편집 Sheet로
+// 흡수됐다(신규 `features/crime-edit`). 레거시 `/edit/:aprthngNo` 경로(북마크·
 // 외부 링크)는 detail URL로 리다이렉트해 하위 호환을 유지한다.
 function EditRedirect() {
-  const { crimeNumber = "" } = useParams();
-  return <Navigate to={`/search/${crimeNumber}`} replace />;
+  const { aprthngNo = "" } = useParams();
+  return <Navigate to={`/search/${encodeURIComponent(aprthngNo)}`} replace />;
 }
 
 function App() {
@@ -77,36 +84,36 @@ function App() {
           {/* 사건 등록은 독립 라우트다. 이관된 `RegisterStage` 위젯을 얇은 페이지가
               감싸 렌더한다(등록↔검색 통합은 되돌림). */}
           <Route path="/crimeRegister" element={<CrimeRegisterPage />} />
-          {/* `/search`(param 없음)와 `/search/:crimeNumber` 모두 통합 커맨드센터.
+          {/* `/search`(param 없음)와 `/search/:aprthngNo` 모두 통합 커맨드센터.
               param 없이 진입하면 빈 상태(사건 미선택)로 열려, 4열 사건 탐색 패널의
               목록에서 사건을 골라 워크벤치를 채운다. */}
           <Route path="/search" element={<CrimeDetail />} />
-          <Route path="/search/:crimeNumber" element={<CrimeDetail />} />
+          <Route path="/search/:aprthngNo" element={<CrimeDetail />} />
             <Route
-              path="/search/:crimeNumber/crimeHistory/:historyId"
+              path="/search/:aprthngNo/crimeHistory/:searchNo"
               element={<CrimeHistory />}
             />
             <Route
-              path="/search/:crimeNumber/patternExtract"
+              path="/search/:aprthngNo/patternExtract"
               element={<PatternExtractRedirect />}
             />
             <Route
-              path="/search/:crimeNumber/shoesResult"
+              path="/search/:aprthngNo/shoesResult"
               element={<ShoesResultRedirect />}
             />
             <Route
-              path="/search/:crimeNumber/shoesResult/detail/:modelNumber"
+              path="/search/:aprthngNo/shoesResult/detail/:ftwrId"
               element={<ResultDetail />}
             />
-            <Route path="/edit/:crimeNumber" element={<EditRedirect />} />
+            <Route path="/edit/:aprthngNo" element={<EditRedirect />} />
             <Route path="/shoesRegister" element={<ShoeRegisterRedirect />} />
             <Route path="/shoesRepository" element={<ShoeRepositoryPage />} />
             <Route
-              path="/shoesRepository/:modelNumber"
+              path="/shoesRepository/:ftwrId"
               element={<ShoeRepositoryPage />}
             />
             <Route
-              path="/shoesEdit/:modelNumber"
+              path="/shoesEdit/:ftwrId"
               element={<ShoesEditRedirect />}
             />
           </Route>

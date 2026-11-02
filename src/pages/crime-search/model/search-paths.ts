@@ -1,18 +1,21 @@
 // @MX:ANCHOR: [AUTO] search-paths 경로 빌더 모음 - CrimeDetailPage/PatternExtractPage/ResultDetailPage/ShoesResultPage 등 6개 파일이 공유하는 유일한 /search 하위 라우트 경로 생성 지점
 // @MX:REASON: fan_in 6 — 하드코딩된 문자열 경로를 대체하는 정본, App.jsx 라우트 정의와 시그니처가 어긋나면 전 화면 네비게이션이 깨짐
-// @MX:TODO: [AUTO] 콜로케이트된 .test.ts 파일 없음 - 순수 함수 5개(searchDetailPath 등) 전부 미검증, 쿼리스트링 조합·엣지케이스(ranking=0 등) 테스트 부재
 /**
- * `/search/:crimeNumber/...` 하위 라우트 경로 빌더 모음.
+ * `/search/:aprthngNo/...` 하위 라우트 경로 빌더 모음.
  *
  * 현재 `RetrievalResults.jsx` / `ShoesResult.jsx` / `ResultDetail.jsx` /
  * `DetailMain.jsx`가 하드코딩한 경로들을 대체하기 위한 순수 함수들이다.
  * 각 시그니처는 `App.jsx`의 라우트 정의와 실제 컴포넌트가 읽는 쿼리
  * 파라미터를 근거로 맞췄다(추측 없음):
- *   - `/search/:crimeNumber`                              → CrimeDetail
- *   - `/search/:crimeNumber/patternExtract`               → PatternExtract
- *   - `/search/:crimeNumber/shoesResult`      (?edit&page) → ShoesResult
- *   - `/search/:crimeNumber/shoesResult/detail/:modelNumber` (?ranking) → ResultDetail
- *   - `/search/:crimeNumber/crimeHistory/:historyId`         (?ranking) → CrimeHistory
+ *   - `/search/:aprthngNo`                                  → CrimeDetail
+ *   - `/search/:aprthngNo/patternExtract`                   → PatternExtract
+ *   - `/search/:aprthngNo/shoesResult`          (?edit&page) → ShoesResult
+ *   - `/search/:aprthngNo/shoesResult/detail/:ftwrId` (?ranking) → ResultDetail
+ *   - `/search/:aprthngNo/crimeHistory/:searchNo`     (?ranking) → CrimeHistory
+ *
+ * `aprthngNo`(감정물 번호)·`ftwrId`(신발 ID)는 허용 문자(영문·숫자·`-`·`_`)만 쓰지만
+ * 방어용으로 모두 `encodeURIComponent`로 감싼다. `useParams`가 디코딩한 값을 돌려주므로
+ * 화면 쪽에서는 원래 문자열 그대로 받는다.
  *
  * 모두 부수효과 없는 순수 함수이며, 문자열 경로만 반환한다.
  */
@@ -30,14 +33,17 @@ function buildQuery(
   return query ? `?${query}` : ""
 }
 
-/** 사건 상세: `/search/:crimeNumber` */
-export function searchDetailPath(crimeNumber: string): string {
-  return `/search/${crimeNumber}`
+/** 경로 조각 하나를 안전하게 인코딩한다(`/`·`#`·공백 등이 경로를 깨지 않게). */
+const seg = encodeURIComponent
+
+/** 사건 상세: `/search/:aprthngNo` */
+export function searchDetailPath(aprthngNo: string): string {
+  return `/search/${seg(aprthngNo)}`
 }
 
-/** 패턴 추출: `/search/:crimeNumber/patternExtract` */
-export function patternExtractPath(crimeNumber: string): string {
-  return `/search/${crimeNumber}/patternExtract`
+/** 패턴 추출: `/search/:aprthngNo/patternExtract` */
+export function patternExtractPath(aprthngNo: string): string {
+  return `/search/${seg(aprthngNo)}/patternExtract`
 }
 
 /** shoesResultPath의 선택 쿼리 옵션(`ShoesResultMain.jsx`가 읽는 `edit`/`page`). */
@@ -49,7 +55,7 @@ export interface ShoesResultPathOptions {
 }
 
 /**
- * 신발 검색 결과: `/search/:crimeNumber/shoesResult` (?edit&page)
+ * 신발 검색 결과: `/search/:aprthngNo/shoesResult` (?edit&page)
  *
  * 검색 결과가 `CrimeDetailPage`의 검색모드로 인라인화되면서 이 경로로의
  * 페이지 이동은 더 이상 필요하지 않다(`/shoesResult` 라우트는 `App.jsx`에서
@@ -58,10 +64,10 @@ export interface ShoesResultPathOptions {
  * `setSearchActive(true)`로 대체되면 `@deprecated` 처리 후 제거를 검토할 것.
  */
 export function shoesResultPath(
-  crimeNumber: string,
+  aprthngNo: string,
   { edit, page }: ShoesResultPathOptions = {}
 ): string {
-  return `/search/${crimeNumber}/shoesResult${buildQuery({ edit, page })}`
+  return `/search/${seg(aprthngNo)}/shoesResult${buildQuery({ edit, page })}`
 }
 
 /** resultDetailPath의 선택 쿼리 옵션(`ResultDetailMain.jsx`가 읽는 `ranking`). */
@@ -71,15 +77,16 @@ export interface ResultDetailPathOptions {
 }
 
 /**
- * 검색 결과 상세: `/search/:crimeNumber/shoesResult/detail/:modelNumber` (?ranking)
- * (`RetrievalResults.jsx`의 상대 경로 `detail/:modelNumber`가 이 절대 경로로 해석됨)
+ * 검색 결과 상세: `/search/:aprthngNo/shoesResult/detail/:ftwrId` (?ranking)
+ * (`RetrievalResults.jsx`의 상대 경로 `detail/:ftwrId`가 이 절대 경로로 해석됨)
+ * `ftwrId`는 앞자리 0을 보존하는 문자열이다(예 `"00758"`).
  */
 export function resultDetailPath(
-  crimeNumber: string,
-  modelNumber: string,
+  aprthngNo: string,
+  ftwrId: string,
   { ranking }: ResultDetailPathOptions = {}
 ): string {
-  return `/search/${crimeNumber}/shoesResult/detail/${modelNumber}${buildQuery({
+  return `/search/${seg(aprthngNo)}/shoesResult/detail/${seg(ftwrId)}${buildQuery({
     ranking,
   })}`
 }
@@ -91,15 +98,15 @@ export interface CrimeHistoryPathOptions {
 }
 
 /**
- * 사건 이력 상세: `/search/:crimeNumber/crimeHistory/:historyId` (?ranking)
- * (`DetailMain.jsx`가 쓰는 경로 규약)
+ * 사건 이력 상세: `/search/:aprthngNo/crimeHistory/:searchNo` (?ranking)
+ * (`DetailMain.jsx`가 쓰는 경로 규약). `searchNo`는 서버가 주는 정수 이력 번호.
  */
 export function crimeHistoryPath(
-  crimeNumber: string,
-  historyId: string | number,
+  aprthngNo: string,
+  searchNo: number,
   { ranking }: CrimeHistoryPathOptions = {}
 ): string {
-  return `/search/${crimeNumber}/crimeHistory/${historyId}${buildQuery({
+  return `/search/${seg(aprthngNo)}/crimeHistory/${searchNo}${buildQuery({
     ranking,
   })}`
 }

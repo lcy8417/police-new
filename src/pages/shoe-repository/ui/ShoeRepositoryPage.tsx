@@ -46,7 +46,7 @@ function hydrateShoe(shoe: Shoe): Shoe {
  * 통합 커맨드센터 `/shoesRepository`. 신발 **신규 등록 / 기존 편집**을 한 라우트로
  * 묶은 화면이다. 4번째 열의 탭([새 신발]/[기존 신발 목록])으로 두 국면을 전환한다:
  *  - `?mode=new`               → 신규 등록 워크벤치(정보 폼 인라인, POST)
- *  - `:modelNumber`(mode=edit) → 기존 신발 편집(문양 편집 + 목록). 목록의 선택 행을
+ *  - `:ftwrId`(mode=edit) → 기존 신발 편집(문양 편집 + 목록). 목록의 선택 행을
  *    한 번 더 클릭하면 우측 Sheet에서 기본정보 편집 + 저장(PUT).
  *  - `/shoesRepository`(무선택) → 기존 신발 목록 브라우즈(신발을 고르면 편집).
  *
@@ -55,7 +55,8 @@ function hydrateShoe(shoe: Shoe): Shoe {
  * 이름만 주므로 이 페이지에서 경로를 hydrate해 편집 시드로 넘긴다.
  */
 export function ShoeRepositoryPage() {
-  const { modelNumber = "" } = useParams()
+  // 라우트 변수는 `:ftwrId`(앞자리 0 보존 문자열). 내부 변수명 정리는 Task 6에서 한다.
+  const { ftwrId: modelNumber = "" } = useParams()
   const [searchParams] = useSearchParams()
   const isNew = searchParams.get("mode") === "new"
   const navigate = useNavigate()

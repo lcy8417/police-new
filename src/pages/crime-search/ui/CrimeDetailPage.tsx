@@ -96,14 +96,15 @@ const BINARY_OFF = "원본보기"
 const SIMILARITY_ON = "유사부위표출보기"
 
 /**
- * 통합 커맨드센터 `/search/:crimeNumber`. 기존 사건상세(사건정보·검색이력)와 패턴추출
+ * 통합 커맨드센터 `/search/:aprthngNo`. 기존 사건상세(사건정보·검색이력)와 패턴추출
  * (경계선 분할·문양 추출/편집)을 한 화면으로 병합했다. 상태는 이 페이지가 소유하는
  * `usePatternManager`가 관리하고, 3열 그리드(캔버스 워크벤치 · 문양 정보 · 문양 리스트)로
  * 조립한다. 사건정보는 상단 슬림 바로, 검색이력은 하단 접이식 섹션으로 격납해 문양
  * 정보/리스트가 화면의 주인공이 되게 한다.
  */
 export function CrimeDetailPage() {
-  const { crimeNumber = "" } = useParams()
+  // 라우트 변수는 `:aprthngNo`(감정물 번호). 내부 변수명 정리는 Task 4에서 한다.
+  const { aprthngNo: crimeNumber = "" } = useParams()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const imgRef = useRef<HTMLImageElement | null>(null)
