@@ -10,6 +10,8 @@ import {
 } from "@/pages/crime-search";
 import { CrimeRegisterPage } from "@/pages/crime-register";
 import { ShoeRepositoryPage } from "@/pages/shoe-repository";
+import { LoginPage } from "@/pages/login";
+import { PasswordChangePage } from "@/pages/password-change";
 import EditorMode from "./pages/EditorMode";
 import { FEATURES } from "@/entities/session";
 import {
@@ -23,16 +25,6 @@ import {
 // (`RequireFeature`), `/manage/*` = 관리자 전용(`RequireAdmin`). 권한 없는 주소로 들어오면
 // "접근 권한이 없습니다" 안내 후 허용된 첫 화면으로 간다.
 // 사건 목록 초기 로딩은 여기서 하지 않는다 — `SessionProvider`가 "사건 조회 자격"이 생길 때 부른다.
-
-/** 임시 자리표시(Task 3에서 실제 로그인 화면으로 교체). */
-function LoginPlaceholder() {
-  return <p className="p-6 text-[#8A93A6]">로그인 화면 준비 중</p>;
-}
-
-/** 임시 자리표시(Task 3에서 실제 비밀번호 변경 화면으로 교체). */
-function PasswordPlaceholder() {
-  return <p className="p-6 text-[#8A93A6]">비밀번호 변경 화면 준비 중</p>;
-}
 
 // URL 변수 정본(설계서 §3): 사건 = `:aprthngNo`(감정물 번호), 신발 = `:ftwrId`(신발 ID,
 // 앞자리 0 보존 문자열), 이력 = `:searchNo`(정수). `useParams`는 디코딩된 값을 주므로
@@ -82,12 +74,12 @@ function App() {
   return (
     <Routes>
       {/* 로그인·비밀번호 변경은 셸(사이드바·상단바) 밖 전체 화면. */}
-      <Route path="/login" element={<LoginPlaceholder />} />
+      <Route path="/login" element={<LoginPage />} />
       <Route
         path="/password"
         element={
           <RequireAuth>
-            <PasswordPlaceholder />
+            <PasswordChangePage />
           </RequireAuth>
         }
       />
