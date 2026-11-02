@@ -17,7 +17,7 @@
 ## 설치 · 실행
 
 ```bash
-git clone -b feat/similarity-correspondence-viewer https://github.com/lcy8417/police-new.git
+git clone https://github.com/lcy8417/police-new.git
 cd police-new
 npm ci                          # package-lock.json 그대로 의존성 설치
 copy .env.example .env          # Linux/macOS: cp .env.example .env
