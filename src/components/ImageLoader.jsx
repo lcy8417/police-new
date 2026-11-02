@@ -3,6 +3,7 @@ import Button from "./Button";
 import React, { useRef } from "react";
 import { resizeImage } from "../utils/get-input-change";
 import { saveEditImage } from "../services/api";
+import { resolveImageToDataUrl } from "@/shared/lib";
 
 const ImageLoader = ({
   formData,
@@ -25,25 +26,9 @@ const ImageLoader = ({
     console.log(formData);
     if (formData?.image) {
       try {
-        let imageToSend = formData.image;
-
-        // 이미지가 정적 URL인 경우 base64로 변환
-        if (
-          formData.image.startsWith("http://") ||
-          formData.image.startsWith("https://")
-        ) {
-          const response = await fetch(formData.image);
-          const blob = await response.blob();
-
-          // blob을 base64로 변환
-          const base64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(blob);
-          });
-
-          imageToSend = base64;
-        }
+        // 서버 이미지 주소·경로든 순수 base64든 공용 로더로 data URL을 만든다
+        // (경로를 그대로 서버에 보내지 않음, 보호된 이미지는 쿠키 포함 backendFetch로 받음).
+        const imageToSend = await resolveImageToDataUrl(formData.image);
 
         // 서버에 이미지 저장
         const id = formData.ftwrId || formData.aprthngNo;

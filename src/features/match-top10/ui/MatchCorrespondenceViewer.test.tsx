@@ -215,7 +215,8 @@ describe("MatchCorrespondenceViewer — 족적↔신발 대응 뷰어 레이아�
     await renderViewer(1)
     const sceneFigure = screen.getByTestId("match-scene-image")
     const img = within(sceneFigure).getByAltText("족적 현장 이미지")
-    expect(img).toHaveAttribute("crossorigin", "anonymous")
+    // 보호된 이미지라 CORS 모드에서도 로그인 쿠키를 보낸다.
+    expect(img).toHaveAttribute("crossorigin", "use-credentials")
 
     fireEvent.error(img)
 
@@ -226,6 +227,19 @@ describe("MatchCorrespondenceViewer — 족적↔신발 대응 뷰어 레이아�
   })
 
   it("재시도까지 실패하면 대체 안내를 표시하고 박스를 렌더하지 않는다", async () => {
+    let meCalls = 0
+    mswServer.use(
+      http.get("*/auth/me", () => {
+        meCalls += 1
+        return HttpResponse.json({
+          user_id: "kim01",
+          user_nm: "김수사",
+          user_se: "USER",
+          features: ["CRIME_SEARCH"],
+          password_change_required: false,
+        })
+      })
+    )
     await renderViewer(1)
     const sceneFigure = screen.getByTestId("match-scene-image")
 
@@ -234,6 +248,8 @@ describe("MatchCorrespondenceViewer — 족적↔신발 대응 뷰어 레이아�
 
     expect(within(sceneFigure).getByText("이미지 없음")).toBeInTheDocument()
     expect(within(sceneFigure).queryByRole("button", { name: /대응/ })).toBeNull()
+    // 최종 실패는 세션 만료일 수 있어 /auth/me로 한 번 재확인한다.
+    await waitFor(() => expect(meCalls).toBe(1))
   })
 })
 

@@ -13,8 +13,12 @@
  * 모드가 엇갈리면 브라우저가 no-cors 캐시 응답을 cors 요청에 재사용하며 차단한다
  * (`crop-image.ts`의 `loadCorsImage`/`corsPartitionedUrl` 주석 참조). 이 훅은 캔버스를
  * 쓰지 않으므로, CORS를 주지 않는 서버에서는 일반 모드로 폴백한다.
+ * 이미지는 로그인 쿠키로 보호되므로 CORS 모드는 `use-credentials`(쿠키 보냄)다. 일반 모드까지
+ * 실패하면 세션 만료일 수 있어 `revalidateSession()`으로 한 번 확인한다(끝났으면 로그인 화면).
  */
 import { useEffect, useState } from "react"
+
+import { revalidateSession } from "@/shared/api"
 
 import { corsPartitionedUrl } from "../lib/crop-image"
 import type { NaturalSize } from "../lib/overlay-geometry"
@@ -42,12 +46,14 @@ export function useImageNaturalSize({
 
     const load = (useCors: boolean) => {
       const img = new Image()
-      if (useCors) img.crossOrigin = "anonymous"
+      if (useCors) img.crossOrigin = "use-credentials"
       img.onload = () => {
         if (!cancelled) setSize({ width: img.naturalWidth, height: img.naturalHeight })
       }
       img.onerror = () => {
-        if (!cancelled && useCors) load(false)
+        if (cancelled) return
+        if (useCors) load(false)
+        else void revalidateSession()
       }
       img.src = url
     }

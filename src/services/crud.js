@@ -3,12 +3,19 @@
 // @MX:UPGRADE: 레거시 .jsx 컴포넌트(components/*, pages/EditorMode.jsx 등)가 모두 FSD entities/api 계층으로 이전되면 이 파일 삭제
 import { onlyPatternName } from "../utils/get-input-change";
 import { convertKeysToCamelCase } from "../utils/get-convert-camelcase";
+// 모든 요청은 공용 backendFetch(쿠키 포함·401 세션 종료·403 권한 재확인)로 보낸다.
+import { backendFetch, backendMediaUrl } from "@/shared/api";
 
-const url = import.meta.env.VITE_API_URL;
+// 서버가 준 루트 기준 이미지 경로(image·pidinet_outline)에 VITE_API_URL을 붙인다(중계면 그대로).
+const withMediaUrls = (row) => ({
+  ...row,
+  ...("image" in row && { image: backendMediaUrl(row.image) }),
+  ...("pidinet_outline" in row && { pidinet_outline: backendMediaUrl(row.pidinet_outline) }),
+});
 
-// 서버에서 범죄 데이터 가져오기
+// 서버에서 범죄 데이터 가져오기 — 목록 API는 끝에 `/`를 붙인다(빼면 서버 리다이렉트, 설계서 §3-1).
 export const fetchCrimeData = async () => {
-  const response = await fetch(`${url}/crime`, {
+  const response = await backendFetch(`/crime/`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -20,13 +27,13 @@ export const fetchCrimeData = async () => {
   }
 
   const data = await response.json();
-  return convertKeysToCamelCase(data);
+  return convertKeysToCamelCase(data.map(withMediaUrls));
 };
 
 // 서버에서 현재 page에 해당되는 신발 데이터 가져오기
 export const fetchShoesData = async (page = 0) => {
-  const fullUrl = `${url}/shoes?page=${page}`;
-  const response = await fetch(fullUrl, {
+  const fullUrl = `/shoes/?page=${page}`;
+  const response = await backendFetch(fullUrl, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -38,12 +45,12 @@ export const fetchShoesData = async (page = 0) => {
   }
 
   const data = await response.json();
-  return convertKeysToCamelCase(data);
+  return convertKeysToCamelCase(data.map(withMediaUrls));
 };
 
 // 서버에서 신발 ID(ftwrId, 문자열 — 앞자리 0 보존)에 해당되는 신발 데이터 가져오기
 export const fetchCurrentShoes = async (ftwrId) => {
-  const response = await fetch(`${url}/shoes/${encodeURIComponent(ftwrId)}`, {
+  const response = await backendFetch(`/shoes/${encodeURIComponent(ftwrId)}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -55,12 +62,12 @@ export const fetchCurrentShoes = async (ftwrId) => {
   }
 
   const data = await response.json();
-  return convertKeysToCamelCase(data);
+  return convertKeysToCamelCase(withMediaUrls(data));
 };
 
 // 서버에서 검색 번호(searchNo)와 매칭되는 이력 스냅샷 가져오기
 export const fetchHistoryData = async (searchNo) => {
-  const response = await fetch(`${url}/crime/history/${encodeURIComponent(searchNo)}`, {
+  const response = await backendFetch(`/crime/history/${encodeURIComponent(searchNo)}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -87,7 +94,7 @@ export const fetchHistoryData = async (searchNo) => {
 };
 
 export const fetchCrimeRegister = async (formData) => {
-  const response = await fetch(`${url}/crime/register`, {
+  const response = await backendFetch(`/crime/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -107,7 +114,7 @@ export const fetchCrimeRegister = async (formData) => {
 
 // 신발 검색 클릭시, 현재까지 패턴의 정보들 DB에 저장
 export const fetchPatterns = async (aprthngNo, currentCrimeData) => {
-  const response = await fetch(`${url}/crime/${encodeURIComponent(aprthngNo)}`, {
+  const response = await backendFetch(`/crime/${encodeURIComponent(aprthngNo)}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",

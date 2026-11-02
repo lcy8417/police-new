@@ -53,7 +53,23 @@ const SHOE = {
   outline: [],
 };
 
-describe("fetchShoesList (GET /shoes?page=N)", () => {
+describe("fetchShoesList (GET /shoes/?page=N)", () => {
+  it("list paths have trailing slash", async () => {
+    let path = "";
+    mswServer.use(
+      http.get("*/shoes/", ({ request }) => {
+        const url = new URL(request.url);
+        path = url.pathname + url.search;
+        return HttpResponse.json([]);
+      })
+    );
+
+    await fetchShoesList(0);
+
+    // 끝 `/`를 빼면 서버가 리다이렉트하며 중계 환경에서 scheme이 틀어진다(설계서 §3-1).
+    expect(path).toBe("/shoes/?page=0");
+  });
+
   it("fetchShoesList maps ftwr fields — ftwrId(앞자리 0 보존)·colctPlace·ftwrGroupNm", async () => {
     mswServer.use(
       http.get("*/shoes", ({ request }) => {

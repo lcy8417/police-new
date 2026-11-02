@@ -1,4 +1,4 @@
-import { apiGet, apiSend, stripDataUrl, stripDataUrlPrefix } from "@/shared/api";
+import { apiGet, apiSend, backendMediaUrl, stripDataUrl, stripDataUrlPrefix } from "@/shared/api";
 import { convertKeysToCamelCase } from "@/shared/lib";
 import { insertPatternPath, stripPatternPath, type PatternEntry, type PatternZone } from "@/entities/pattern";
 import type {
@@ -23,10 +23,21 @@ const stripZone = (entries: PatternEntry[]) => entries.map(stripPatternPath);
 /** 감정물 번호를 URL 경로 조각으로 — 허용 문자만 쓰지만 방어용으로 인코딩한다. */
 const crimePath = (aprthngNo: string) => `/crime/${encodeURIComponent(aprthngNo)}`;
 
-/** GET /crime — 앱에서 등록한 감정물 목록. Mirror of crud.js#fetchCrimeData. */
+/**
+ * GET /crime/ — 앱에서 등록한 감정물 목록. Mirror of crud.js#fetchCrimeData.
+ * 목록 API는 끝에 `/`를 붙인다(빼면 서버가 리다이렉트하며 중계 환경에서 scheme이 틀어짐, 설계서 §3-1).
+ * 서버가 준 루트 기준 이미지 경로(`image`·`pidinet_outline`)는 `backendMediaUrl`로 화면용 주소로 바꾼다.
+ */
 export async function fetchCrimeList(): Promise<Crime[]> {
-  const data = await apiGet<CrimeDto[]>("/crime");
-  return convertKeysToCamelCase<Crime[]>(data);
+  const data = await apiGet<CrimeDto[]>("/crime/");
+  const withMedia = data.map((row) => ({
+    ...row,
+    ...(row.image !== undefined && { image: backendMediaUrl(row.image) }),
+    ...(row.pidinet_outline !== undefined && {
+      pidinet_outline: backendMediaUrl(row.pidinet_outline),
+    }),
+  }));
+  return convertKeysToCamelCase<Crime[]>(withMedia);
 }
 
 /**

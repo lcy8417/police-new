@@ -5,12 +5,12 @@ import LoadingModal from "../components/LoadingModal";
 import Preprocessing from "../components/Preprocessing";
 import Canvas from "../components/Canvas";
 import Button from "../components/Button";
+import { resolveImageToDataUrl } from "@/shared/lib";
 import "./EditorMode.css";
 
 const EditorMode = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const url = import.meta.env.VITE_API_URL;
 
   // 쿼리 파라미터 파싱
   const queryParams = new URLSearchParams(location.search);
@@ -48,18 +48,10 @@ const EditorMode = () => {
       // 서버에서 이미지 가져오기
       const loadImage = async () => {
         try {
-          const imageUrl = `${url}/crime_history/${folder}_${id}.png`;
-
-          // 이미지를 fetch하여 base64로 변환
-          const response = await fetch(imageUrl);
-          const blob = await response.blob();
-
-          // blob을 base64로 변환
-          const imageData = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(blob);
-          });
+          // 보호된 이미지라 공용 로더(backendFetch — 쿠키 포함, 401이면 로그인 화면)로 base64를 만든다.
+          const imageData = await resolveImageToDataUrl(
+            `/crime_history/${encodeURIComponent(`${folder}_${id}`)}.png`
+          );
 
           setScrollState((prev) => ({
             ...prev,

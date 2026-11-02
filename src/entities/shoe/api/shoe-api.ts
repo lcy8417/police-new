@@ -1,4 +1,4 @@
-import { apiGet, apiSend, stripDataUrlPrefix, ApiError } from "@/shared/api";
+import { apiGet, apiSend, backendMediaUrl, stripDataUrlPrefix, ApiError } from "@/shared/api";
 import { convertKeysToCamelCase } from "@/shared/lib";
 import { stripPatternPath } from "@/entities/pattern";
 import type {
@@ -11,6 +11,10 @@ import type {
 
 const stripZone = (entries: string[]): string[] =>
   entries.map((entry) => stripPatternPath(entry) as string);
+
+/** 서버가 준 루트 기준 이미지 경로(`image`)를 화면용 주소로(`backendMediaUrl`, 중계면 그대로). */
+const withMediaUrl = (shoe: ShoeDto): ShoeDto =>
+  shoe.image !== undefined ? { ...shoe, image: backendMediaUrl(shoe.image) } : shoe;
 
 /**
  * 신발 → 수정/등록 공통 본문(설계서 §4-4 키만). 그룹·성별·크기 등 읽기 전용 필드는
@@ -35,8 +39,9 @@ const toEditBody = (shoe: Shoe): ShoesEditBody => ({
  */
 export async function fetchShoesList(page = 0): Promise<Shoe[]> {
   try {
-    const data = await apiGet<ShoeDto[]>(`/shoes?page=${page}`);
-    return convertKeysToCamelCase<Shoe[]>(data);
+    // 목록 API는 끝에 `/`를 붙인다(빼면 서버가 리다이렉트하며 중계 환경에서 scheme이 틀어짐, 설계서 §3-1).
+    const data = await apiGet<ShoeDto[]>(`/shoes/?page=${page}`);
+    return convertKeysToCamelCase<Shoe[]>(data.map(withMediaUrl));
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return [];
     throw error;
@@ -55,7 +60,7 @@ export async function fetchShoesCount(): Promise<number> {
 /** GET /shoes/:ftwrId. ID는 문자열 그대로(앞자리 0 보존) 경로에 넣는다. */
 export async function fetchShoeDetail(ftwrId: string): Promise<Shoe> {
   const data = await apiGet<ShoeDto>(`/shoes/${encodeURIComponent(ftwrId)}`);
-  return convertKeysToCamelCase<Shoe>(data);
+  return convertKeysToCamelCase<Shoe>(withMediaUrl(data));
 }
 
 /**

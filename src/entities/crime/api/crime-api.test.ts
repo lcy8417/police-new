@@ -288,10 +288,48 @@ describe("saveCrimeEditImage (PUT /crime/edit_image/:aprthngNo)", () => {
   });
 });
 
-describe("fetchCrimeList (GET /crime)", () => {
+describe("fetchCrimeList (GET /crime/)", () => {
+  it("list paths have trailing slash", async () => {
+    let path = "";
+    mswServer.use(
+      http.get("*/crime/", ({ request }) => {
+        path = new URL(request.url).pathname;
+        return HttpResponse.json([]);
+      })
+    );
+
+    await fetchCrimeList();
+
+    // 끝 `/`를 빼면 서버가 리다이렉트하며 중계 환경에서 scheme이 틀어진다(설계서 §3-1).
+    expect(path).toBe("/crime/");
+  });
+
+  it("서버가 준 루트 기준 이미지 경로는 backendMediaUrl을 거친다(중계면 그대로)", async () => {
+    mswServer.use(
+      http.get("*/crime/", () =>
+        HttpResponse.json([
+          {
+            aprthng_no: "A-1",
+            image: "/crime_images/A-1.png",
+            pidinet_outline: "/crime_outlines/A-1.png",
+            top: [],
+            mid: [],
+            bottom: [],
+            outline: [],
+          },
+        ])
+      )
+    );
+
+    const [row] = await fetchCrimeList();
+
+    expect(row.image).toBe("/crime_images/A-1.png");
+    expect(row.pidinetOutline).toBe("/crime_outlines/A-1.png");
+  });
+
   it("SCAS 감정물 키를 camelCase로 바꾸고 문양 경로는 붙이지 않는다", async () => {
     mswServer.use(
-      http.get("*/crime", () =>
+      http.get("*/crime/", () =>
         HttpResponse.json([
           {
             aprthng_no: "05019-24-0017_5",

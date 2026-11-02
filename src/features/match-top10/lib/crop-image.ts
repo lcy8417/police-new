@@ -37,14 +37,15 @@ async function loadSameOriginImage(src: string): Promise<HTMLImageElement> {
 }
 
 /**
- * CORS 모드(`crossOrigin="anonymous"`)로 이미지를 로드한다 — 표시용 `<img>`와
+ * CORS 모드(`crossOrigin="use-credentials"`)로 이미지를 로드한다 — 표시용 `<img>`와
  * **같은 요청 모드**라서 브라우저 캐시 항목을 공유한다(같은 이미지를 두 번
- * 내려받지 않는다).
+ * 내려받지 않는다). 이미지는 로그인 쿠키로 보호되므로 `anonymous`(쿠키 안 보냄)가 아니라
+ * `use-credentials`(쿠키 보냄)여야 한다(설계서 §3).
  *
  * ⚠ 모드 일치가 핵심이다. 같은 URL을 `<img>`(no-cors)와 `fetch`(cors)로 각각
  * 요청하면, 브라우저가 먼저 캐시된 no-cors 응답을 cors 요청에 재사용하면서
  * CORS 컨텍스트 부재로 실패한다(전형적인 "이미지는 보이는데 fetch만 CORS 오류").
- * 이 경로와 표시용 `<img crossOrigin="anonymous">`는 반드시 짝을 이뤄야 한다.
+ * 이 경로와 표시용 `<img crossOrigin="use-credentials">`는 반드시 짝을 이뤄야 한다.
  */
 /**
  * CORS 모드 전용 캐시 파티션 URL을 만든다(쿼리 파라미터 1개 추가).
@@ -68,7 +69,7 @@ export function corsPartitionedUrl(src: string): string {
 
 async function loadCorsImage(src: string): Promise<HTMLImageElement> {
   const img = new Image()
-  img.crossOrigin = "anonymous"
+  img.crossOrigin = "use-credentials"
   img.src = src
   // onload/onerror 대신 decode()를 쓴다 — 로드 실패든 디코드 실패든 반드시 reject되어
   // 아래 폴백으로 넘어간다(onerror가 오지 않는 환경에서 영원히 대기하지 않는다).
@@ -80,6 +81,8 @@ async function loadCorsImage(src: string): Promise<HTMLImageElement> {
  * 캔버스 가공용 이미지 로더. 원격 URL은 CORS 모드를 우선 시도하고(캐시 공유 →
  * 중복 다운로드 없음), 실패하면 기존 `fetch → data URL` 경로로 폴백한다 —
  * CORS 헤더를 주지 않는 서버에서도 동작이 깨지지 않도록 하는 안전장치다.
+ * 폴백은 `resolveImageToDataUrl` → 공용 `backendFetch`라, 실패 원인이 세션 만료(401)면
+ * 거기서 로그인 화면 이동까지 처리된다(별도 `revalidateSession` 불필요).
  */
 async function loadImageForCanvas(src: string): Promise<HTMLImageElement> {
   const isRemoteUrl = /^(https?:)?\/\//.test(src) || src.startsWith("/")

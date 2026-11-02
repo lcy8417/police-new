@@ -6,19 +6,21 @@
  * `getImageData`/`toDataURL`이 SecurityError로 실패한다. 서버 이미지는 data URL · 접두어 없는
  * raw base64 · 서버 URL/경로 등 형태가 섞이므로, 편집 세션 경계에서 여기로 통일한다.
  *
- * URL/경로인 경우 `fetch` → blob → `FileReader.readAsDataURL`로 변환한다. 이 fetch는 백엔드가
- * 교차 출처를 허용(CORS)해야 성공한다(앱의 나머지 API도 교차 출처 fetch이므로 통상 허용됨).
+ * 서버 이미지(루트 기준 경로, 또는 `VITE_API_URL`·현재 주소로 시작하는 절대 주소)는 로그인
+ * 쿠키로 보호되므로 공용 `backendFetch`로 내려받는다(401이면 세션 종료 처리까지 그쪽이 한다).
+ * 그 외 외부 주소만 쿠키 없이 일반 `fetch`로 받는다.
  */
+import { backendFetch, toBackendPath } from "@/shared/api";
 
-const BASE = import.meta.env.VITE_API_URL ?? "";
-
-function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error ?? new Error("이미지 인코딩 실패"));
-    reader.readAsDataURL(blob);
-  });
+/** blob → data URL. `FileReader` 대신 바이트를 직접 base64로 바꾼다(테스트 환경 Blob 호환). */
+async function blobToDataUrl(blob: Blob): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  const CHUNK = 0x8000; // String.fromCharCode 인자 수 한도를 넘지 않게 나눠 처리
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return `data:${blob.type || "image/png"};base64,${btoa(binary)}`;
 }
 
 /** 이미지가 이미 data URL인지. */
@@ -30,21 +32,18 @@ export function isDataUrl(image: string): boolean {
  * `image`를 base64 data URL로 변환한다.
  * - data URL → 그대로(멱등).
  * - 접두어 없는 raw base64 → `data:image/png;base64,` 를 붙인다.
- * - 절대/상대 URL(경로) → `fetch` 후 data URL로 인코딩(교차 출처면 CORS 필요).
+ * - 서버 이미지 주소/경로 → `backendFetch`(쿠키 포함) 후 data URL로 인코딩.
+ * - 외부 절대 주소 → 일반 `fetch` 후 data URL로 인코딩(교차 출처면 CORS 필요).
  * 실패 시 예외를 던진다(호출부에서 사용자에게 알리고 원본 URL을 표시용으로 유지할 수 있다).
  */
-// @MX:TODO: [AUTO] 콜로케이트된 .test.ts 파일 없음 - data URL 판별·raw base64 접두어 부착·cross-origin fetch 분기 3가지 경로 모두 미검증
 export async function resolveImageToDataUrl(image: string): Promise<string> {
   if (!image || isDataUrl(image)) return image;
 
   const isUrl = /^(https?:)?\/\//.test(image) || image.startsWith("/");
   if (!isUrl) return `data:image/png;base64,${image}`;
 
-  // 상대 경로면 API 베이스를 붙인다(`//host` 형태의 프로토콜-상대 URL은 그대로).
-  const url =
-    image.startsWith("/") && !image.startsWith("//") ? `${BASE}${image}` : image;
-
-  const res = await fetch(url);
+  const backendPath = toBackendPath(image);
+  const res = backendPath ? await backendFetch(backendPath) : await fetch(image);
   if (!res.ok) throw new Error(`이미지 로드 실패: ${res.status}`);
   return blobToDataUrl(await res.blob());
 }

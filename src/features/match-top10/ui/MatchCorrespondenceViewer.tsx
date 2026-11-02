@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { Camera, Database, ImageOff, Loader2 } from "lucide-react"
 
+import { backendMediaUrl, revalidateSession } from "@/shared/api"
 import { cn } from "@/shared/lib/utils"
 import { ImageLoadingOverlay } from "@/shared/ui/image-loading-overlay"
 import { useImageLoadState } from "@/shared/lib/use-image-load-state"
@@ -88,7 +89,8 @@ function ImageWithBoxes({
   /** CORS 모드로 로드할지 — 크롭 경로(`loadImageForCanvas`)와 요청 모드를 일치시켜
    * 같은 캐시 항목을 공유하기 위함이다(같은 이미지를 두 번 내려받지 않고, no-cors
    * 응답이 cors 요청에 재사용되어 CORS 오류가 나는 캐시 오염도 막는다).
-   * 실패하면 한 번만 일반 모드로 재시도한다(CORS 헤더 없는 서버 대비). */
+   * 실패하면 한 번만 일반 모드로 재시도한다(CORS 헤더 없는 서버 대비).
+   * 이미지는 로그인 쿠키로 보호되므로 CORS 모드는 `use-credentials`(쿠키 보냄)다. */
   const [corsMode, setCorsMode] = useState(true)
   // 원본 이미지(수백 KB)를 받는 동안 빈 검은 칸이 아니라 로딩 상태를 보인다.
   const load = useImageLoadState(src)
@@ -132,15 +134,19 @@ function ImageWithBoxes({
             ref={imgRef}
             src={src}
             alt={alt}
-            crossOrigin={corsMode ? "anonymous" : undefined}
+            crossOrigin={corsMode ? "use-credentials" : undefined}
             onLoad={() => {
               load.markLoaded()
               measure()
             }}
             onError={() => {
               // CORS 모드 실패 → 일반 모드로 1회 재시도, 그래도 실패해야 "이미지 없음".
+              // 최종 실패는 세션 만료일 수 있어 세션을 한 번 재확인한다(끝났으면 로그인 화면).
               if (corsMode) setCorsMode(false)
-              else setErrored(true)
+              else {
+                setErrored(true)
+                void revalidateSession()
+              }
             }}
             draggable={false}
             /* max-w-*를 두지 않는다: 래퍼가 w-fit(=이미지 폭)이라 이미지에 컨테이너
@@ -301,12 +307,11 @@ export function MatchCorrespondenceViewer({
   // 표시와 크롭이 모두 CORS 파티션 URL을 쓴다 — 다른 화면의 일반 <img>가 만든 no-cors
   // 캐시 항목과 섞이지 않게 하기 위함이다(corsPartitionedUrl 주석에 근거 상세).
   // 파일명은 감정물 번호(aprthngNo)·신발 ID(ftwrId) — 방어용으로 encodeURIComponent.
-  const apiBase = import.meta.env.VITE_API_URL ?? ""
   const sceneFile = `${encodeURIComponent(aprthngNo)}.png`
   const rawSceneImageSrc = corsPartitionedUrl(
-    mode === "실사"
-      ? `${apiBase}/crime_images/${sceneFile}`
-      : `${apiBase}/crime_outlines/${sceneFile}`
+    backendMediaUrl(
+      mode === "실사" ? `/crime_images/${sceneFile}` : `/crime_outlines/${sceneFile}`
+    )
   )
   const shoeImageSrc = corsPartitionedUrl(
     shoeImageUrl(ftwrId, mode === "실사" ? "B" : "Shoerinsics")
@@ -357,7 +362,7 @@ export function MatchCorrespondenceViewer({
     size: m.box.size,
   }))
   const outlineCrops = useMatchCrops({
-    src: corsPartitionedUrl(`${apiBase}/crime_outlines/${sceneFile}`),
+    src: corsPartitionedUrl(backendMediaUrl(`/crime_outlines/${sceneFile}`)),
     boxes: sceneCropBoxes,
     enabled: mode === "스케치이진",
   })

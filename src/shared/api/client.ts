@@ -1,20 +1,22 @@
 /**
  * Small typed fetch wrapper shared by every entity's `api` module.
  * Port of the fetch boilerplate duplicated across services/crud.js and
- * services/api.js — same base URL env var, same JSON content type, same
- * "throw on !res.ok" contract.
+ * services/api.js — same JSON content type, same "throw on !res.ok" contract.
+ * 실제 요청은 공용 `backendFetch`(쿠키 포함·401/403 처리)가 보낸다.
  */
-
-const BASE = import.meta.env.VITE_API_URL ?? "";
+import { backendFetch } from "./backend-fetch";
 
 const DEFAULT_ERROR_MESSAGE = "서버 요청에 실패했습니다";
 
-/** 서버가 사용자용 한국어 `detail` 문구를 돌려주는 상태 코드(검증 실패 400, 중복 409). */
-const DETAIL_STATUSES = new Set([400, 409]);
+/**
+ * 서버가 사용자용 한국어 `detail` 문구를 돌려주는 상태 코드: 검증 실패 400, 로그인 실패 401,
+ * 권한 없음·사용 중지 403, 중복 409, 계정 잠김 423(설계서 §6).
+ */
+const DETAIL_STATUSES = new Set([400, 401, 403, 409, 423]);
 
 export class ApiError extends Error {
   readonly status: number;
-  /** 서버 응답 `{"detail": "..."}`의 한국어 문구(400·409일 때만). 없으면 null. */
+  /** 서버 응답 `{"detail": "..."}`의 한국어 문구(`DETAIL_STATUSES`일 때만). 없으면 null. */
   readonly detail: string | null;
 
   constructor(message: string, status: number, detail: string | null = null) {
@@ -26,11 +28,11 @@ export class ApiError extends Error {
 }
 
 /**
- * 실패 응답을 `ApiError`로 바꾼다. 400·409이고 본문 `detail`이 문자열이면 그 문구를
+ * 실패 응답을 `ApiError`로 바꾼다. `DETAIL_STATUSES`이고 본문 `detail`이 문자열이면 그 문구를
  * `detail`과 `message`(토스트가 읽는 값) 양쪽에 담는다. 그 외(404·500, FastAPI 422의
  * 배열 detail, JSON이 아닌 본문)는 기본 문구로 둔다.
  */
-async function toApiError(response: Response): Promise<ApiError> {
+export async function toApiError(response: Response): Promise<ApiError> {
   let detail: string | null = null;
   if (DETAIL_STATUSES.has(response.status)) {
     try {
@@ -47,9 +49,9 @@ async function toApiError(response: Response): Promise<ApiError> {
 
 /** GET a JSON resource and parse the body as `T`. Throws `ApiError` on non-2xx. */
 // @MX:ANCHOR: [AUTO] apiGet - 유일한 GET 요청 경로, entities/crime·entities/shoe API 계층이 공유하는 단일 HTTP 클라이언트
-// @MX:REASON: 구조상 유일한 fetch 래퍼(services/crud.js·services/api.js의 fetch 보일러플레이트를 대체하는 정본) — VITE_API_URL 처리·에러 계약이 여기 집중
+// @MX:REASON: entities API 계층의 GET 정본 — 에러 계약(ApiError)이 여기 집중, 전송은 backendFetch
 export async function apiGet<T>(path: string): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, {
+  const response = await backendFetch(path, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
   });
@@ -69,7 +71,7 @@ export async function apiSend(
   method: "POST" | "PUT" | "PATCH" | "DELETE",
   body?: unknown
 ): Promise<Response> {
-  const response = await fetch(`${BASE}${path}`, {
+  const response = await backendFetch(path, {
     method,
     headers: { "Content-Type": "application/json" },
     ...(body !== undefined && { body: JSON.stringify(body) }),

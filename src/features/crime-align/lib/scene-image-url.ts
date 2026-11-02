@@ -1,3 +1,5 @@
+import { backendMediaUrl } from "@/shared/api";
+
 /**
  * 저장 현장 이미지 정적 URL.
  *
@@ -11,8 +13,8 @@
  * 백엔드 정적 마운트(`(final) police-server/main.py`의 `/crime_images`)를 직접
  * 가리켜, 페이지의 `imageLoad({ aprthngNo, edit })` 토글 경로를 우회한다.
  * 파일명은 감정물 번호(`aprthngNo`)이며 방어용으로 `encodeURIComponent`로 감싼다.
+ * 앞부분은 `backendMediaUrl`이 붙인다(중계면 루트 기준 경로 그대로).
  */
 export function sceneImageUrl(aprthngNo: string): string {
-  const base = import.meta.env.VITE_API_URL ?? "";
-  return `${base}/crime_images/${encodeURIComponent(aprthngNo)}.png`;
+  return backendMediaUrl(`/crime_images/${encodeURIComponent(aprthngNo)}.png`);
 }
