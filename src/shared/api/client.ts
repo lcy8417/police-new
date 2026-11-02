@@ -7,14 +7,42 @@
 
 const BASE = import.meta.env.VITE_API_URL ?? "";
 
+const DEFAULT_ERROR_MESSAGE = "서버 요청에 실패했습니다";
+
+/** 서버가 사용자용 한국어 `detail` 문구를 돌려주는 상태 코드(검증 실패 400, 중복 409). */
+const DETAIL_STATUSES = new Set([400, 409]);
+
 export class ApiError extends Error {
   readonly status: number;
+  /** 서버 응답 `{"detail": "..."}`의 한국어 문구(400·409일 때만). 없으면 null. */
+  readonly detail: string | null;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, detail: string | null = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.detail = detail;
   }
+}
+
+/**
+ * 실패 응답을 `ApiError`로 바꾼다. 400·409이고 본문 `detail`이 문자열이면 그 문구를
+ * `detail`과 `message`(토스트가 읽는 값) 양쪽에 담는다. 그 외(404·500, FastAPI 422의
+ * 배열 detail, JSON이 아닌 본문)는 기본 문구로 둔다.
+ */
+async function toApiError(response: Response): Promise<ApiError> {
+  let detail: string | null = null;
+  if (DETAIL_STATUSES.has(response.status)) {
+    try {
+      const body: unknown = await response.json();
+      if (body && typeof body === "object" && "detail" in body && typeof body.detail === "string") {
+        detail = body.detail;
+      }
+    } catch {
+      // 본문이 JSON이 아니면 기본 문구를 쓴다.
+    }
+  }
+  return new ApiError(detail ?? DEFAULT_ERROR_MESSAGE, response.status, detail);
 }
 
 /** GET a JSON resource and parse the body as `T`. Throws `ApiError` on non-2xx. */
@@ -27,7 +55,7 @@ export async function apiGet<T>(path: string): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new ApiError("서버 요청에 실패했습니다", response.status);
+    throw await toApiError(response);
   }
 
   return (await response.json()) as T;
@@ -48,7 +76,7 @@ export async function apiSend(
   });
 
   if (!response.ok) {
-    throw new ApiError("서버 요청에 실패했습니다", response.status);
+    throw await toApiError(response);
   }
 
   return response;

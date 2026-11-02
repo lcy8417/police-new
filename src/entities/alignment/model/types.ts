@@ -25,20 +25,24 @@ export interface AlignmentDto {
 /** 앱 모델 — wire shape과 동일(변환 불필요). */
 export type Alignment = AlignmentDto;
 
-/** 같은 사건의 "직전 정렬" 응답 — `AlignmentDto`에 출처 신발 모델이 붙는다. */
+/** 같은 사건의 "직전 정렬" 응답 — `AlignmentDto`에 출처 신발 ID가 붙는다. */
 export interface LatestAlignmentDto extends AlignmentDto {
-  /** 이 정렬을 가져온 원본 쌍의 신발 모델(참고용). 저장된 정렬이 없으면 null. */
-  modelNumber: string | null;
+  /** 이 정렬을 가져온 원본 쌍의 신발 ID(참고용). 저장된 정렬이 없으면 null. */
+  ftwrId: string | null;
 }
 
 export interface FetchAlignmentInput {
-  crimeNumber: string;
-  modelNumber: string;
+  /** 감정물 번호(URL 경로). */
+  aprthngNo: string;
+  /** 신발 ID(쿼리 `ftwr_id`). */
+  ftwrId: string;
 }
 
 export interface SaveAlignmentInput {
-  crimeNumber: string;
-  modelNumber: string;
+  /** 감정물 번호(URL 경로). */
+  aprthngNo: string;
+  /** 신발 ID(쿼리 `ftwr_id`). */
+  ftwrId: string;
   polygon: AlignmentPoint[];
   arrow: AlignmentPoint[];
   /** 좌우 반전 상태(REQ-ALIGN-020c) — 기존 UPSERT 경로에 포함되며 재설정 시 덮어써진다. */

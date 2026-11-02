@@ -41,9 +41,9 @@ export const fetchShoesData = async (page = 0) => {
   return convertKeysToCamelCase(data);
 };
 
-// 서버에서 현재 모델 번호에 해당되는 신발 데이터 가져오기
-export const fetchCurrentShoes = async (modelNumber) => {
-  const response = await fetch(`${url}/shoes/${modelNumber}`, {
+// 서버에서 신발 ID(ftwrId, 문자열 — 앞자리 0 보존)에 해당되는 신발 데이터 가져오기
+export const fetchCurrentShoes = async (ftwrId) => {
+  const response = await fetch(`${url}/shoes/${encodeURIComponent(ftwrId)}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -60,7 +60,7 @@ export const fetchCurrentShoes = async (modelNumber) => {
 
 // 서버에서 현재 모델 번호에 해당되는 신발 데이터 수정하기
 export const fetchShoesEdit = async ({ modelNumber, body }) => {
-  const { image, ...restBody } = body; // 이미지 필드는 제외하고 나머지 필드만 전송
+  const { image: _image, ...restBody } = body; // 이미지 필드는 제외하고 나머지 필드만 전송
 
   const response = await fetch(`${url}/shoes/${modelNumber}`, {
     method: "PUT",
@@ -84,9 +84,9 @@ export const fetchShoesEdit = async ({ modelNumber, body }) => {
   return convertKeysToCamelCase(data);
 };
 
-// 서버에서 id와 매칭되는 범죄 데이터 가져오기
-export const fetchHistoryData = async (id) => {
-  const response = await fetch(`${url}/crime/history/${id}`, {
+// 서버에서 검색 번호(searchNo)와 매칭되는 이력 스냅샷 가져오기
+export const fetchHistoryData = async (searchNo) => {
+  const response = await fetch(`${url}/crime/history/${encodeURIComponent(searchNo)}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -132,8 +132,8 @@ export const fetchCrimeRegister = async (formData) => {
 };
 
 // 신발 검색 클릭시, 현재까지 패턴의 정보들 DB에 저장
-export const fetchPatterns = async (crimeNumber, currentCrimeData) => {
-  const response = await fetch(`${url}/crime/${crimeNumber}`, {
+export const fetchPatterns = async (aprthngNo, currentCrimeData) => {
+  const response = await fetch(`${url}/crime/${encodeURIComponent(aprthngNo)}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",

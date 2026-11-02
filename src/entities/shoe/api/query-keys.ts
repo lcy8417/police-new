@@ -2,5 +2,5 @@
 export const shoeKeys = {
   list: (page: number) => ["shoes", "list", page] as const,
   count: () => ["shoes", "count"] as const,
-  detail: (modelNumber: string) => ["shoes", modelNumber] as const,
+  detail: (ftwrId: string) => ["shoes", ftwrId] as const,
 };

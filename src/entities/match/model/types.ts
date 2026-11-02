@@ -1,7 +1,7 @@
 /**
  * SPEC-MATCH-TOP10-001: 현장↔신발 top-10 대응 매칭 도메인 타입.
  *
- * `POST /crime/:crimeNumber/match_top10` 응답 wire shape. 필드는 snake_case가
+ * `POST /crime/:aprthngNo/match_top10` 응답 wire shape. 필드는 snake_case가
  * 아니므로(fx/fy/sx/sy/score/box/box_image) camelCase 변환은 box_image 한
  * 필드에만 필요하다 — 나머지는 그대로 사용 가능(SPEC-3 alignment-api.ts와 동일
  * 규약: 좌표/설정 데이터 클래스는 그대로, 서버 전용 스네이크만 개별 매핑).
@@ -40,13 +40,17 @@ export type MatchCorrespondence = MatchCorrespondenceDto;
 
 export interface MatchTop10ResponseDto {
   matches: MatchCorrespondenceDto[];
-  crime_number: string;
-  model_number: string;
+  /** 감정물 번호(서버 원형 snake — 이 계층은 camel 변환 안 함). */
+  aprthng_no: string;
+  /** 신발 ID(서버 원형 snake). */
+  ftwr_id: string;
 }
 
 export interface FetchMatchTop10Input {
-  crimeNumber: string;
-  modelNumber: string;
+  /** 감정물 번호(URL 경로). */
+  aprthngNo: string;
+  /** 신발 ID(쿼리 `ftwr_id`). */
+  ftwrId: string;
 }
 
 /**
@@ -67,8 +71,10 @@ export type MatchGateCode =
 /** 409 게이트 응답 본문(FastAPI `{"detail": {...}}` 래핑을 벗긴 형태). */
 export interface MatchGateErrorDetail {
   code: MatchGateCode;
-  crime_number: string;
-  model_number?: string;
+  /** 감정물 번호(서버 원형 snake). */
+  aprthng_no: string;
+  /** 신발 ID(서버 원형 snake). */
+  ftwr_id?: string;
   recompute_path?: string;
   reason?: string;
   outline_size?: [number, number];

@@ -14,47 +14,61 @@ beforeAll(() => mswServer.listen({ onUnhandledRequest: "error" }));
 afterEach(() => mswServer.resetHandlers());
 afterAll(() => mswServer.close());
 
+/** 서버 신발 응답 1건(SCAS 열 이름, snake_case). 메타데이터는 null일 수 있다. */
+const SHOE_DTO = {
+  ftwr_id: "00758",
+  ftwr_group_id: "G038",
+  ftwr_group_nm: "crocs(크록스)-038",
+  modl_nm: "클래식 클로그",
+  brand_code: "B0001",
+  makr_code: "M001",
+  colct_place: "서울",
+  colct_year: "2023",
+  sexdstn_se: null,
+  swing_se: null,
+  ftwr_size: null,
+  image: "http://api.test/shoes_images/B/00758.png",
+  top: ["무늬1"],
+  mid: [],
+  bottom: [],
+  outline: [],
+};
+
+const SHOE = {
+  ftwrId: "00758",
+  ftwrGroupId: "G038",
+  ftwrGroupNm: "crocs(크록스)-038",
+  modlNm: "클래식 클로그",
+  brandCode: "B0001",
+  makrCode: "M001",
+  colctPlace: "서울",
+  colctYear: "2023",
+  sexdstnSe: null,
+  swingSe: null,
+  ftwrSize: null,
+  image: "http://api.test/shoes_images/B/00758.png",
+  top: ["무늬1"], // bare names — fetchShoesData never hydrates paths
+  mid: [],
+  bottom: [],
+  outline: [],
+};
+
 describe("fetchShoesList (GET /shoes?page=N)", () => {
-  it("camelCases the snake_case DTO page without hydrating pattern paths", async () => {
+  it("fetchShoesList maps ftwr fields — ftwrId(앞자리 0 보존)·colctPlace·ftwrGroupNm", async () => {
     mswServer.use(
       http.get("*/shoes", ({ request }) => {
         const page = new URL(request.url).searchParams.get("page");
         expect(page).toBe("2");
-        return HttpResponse.json([
-          {
-            id: 1,
-            model_number: "SHOE-1",
-            find_location: "서울",
-            manufacturer: "나이키",
-            find_year: 2023,
-            emblem: "스우시",
-            image: "data:image/png;base64,AAAA",
-            top: ["무늬1"],
-            mid: [],
-            bottom: [],
-            outline: [],
-          },
-        ]);
+        return HttpResponse.json([SHOE_DTO]);
       })
     );
 
     const result = await fetchShoesList(2);
 
-    expect(result).toEqual([
-      {
-        id: 1,
-        modelNumber: "SHOE-1",
-        findLocation: "서울",
-        manufacturer: "나이키",
-        findYear: 2023,
-        emblem: "스우시",
-        image: "data:image/png;base64,AAAA",
-        top: ["무늬1"], // bare names — fetchShoesData never hydrates paths
-        mid: [],
-        bottom: [],
-        outline: [],
-      },
-    ]);
+    expect(result).toEqual([SHOE]);
+    expect(result[0].ftwrId).toBe("00758");
+    expect(result[0].colctPlace).toBe("서울");
+    expect(result[0].ftwrGroupNm).toBe("crocs(크록스)-038");
   });
 
   it("defaults to page 0 when called with no arguments", async () => {
@@ -98,70 +112,34 @@ describe("fetchShoesCount (GET /shoes/count)", () => {
   });
 });
 
-describe("fetchShoeDetail (GET /shoes/:modelNumber)", () => {
-  it("camelCases the snake_case DTO without hydrating pattern paths", async () => {
+describe("fetchShoeDetail (GET /shoes/:ftwrId)", () => {
+  it("camelCases the SCAS DTO without hydrating pattern paths, keeping the leading zero", async () => {
     mswServer.use(
-      http.get("*/shoes/SHOE-1", () =>
-        HttpResponse.json({
-          id: 1,
-          model_number: "SHOE-1",
-          find_location: "서울",
-          manufacturer: "나이키",
-          find_year: 2023,
-          emblem: "스우시",
-          image: "data:image/png;base64,AAAA",
-          top: ["무늬1"],
-          mid: ["선2"],
-          bottom: [],
-          outline: [],
-        })
-      )
+      http.get("*/shoes/00758", () => HttpResponse.json({ ...SHOE_DTO, mid: ["선2"] }))
     );
 
-    const result = await fetchShoeDetail("SHOE-1");
+    const result = await fetchShoeDetail("00758");
 
-    expect(result).toEqual({
-      id: 1,
-      modelNumber: "SHOE-1",
-      findLocation: "서울",
-      manufacturer: "나이키",
-      findYear: 2023,
-      emblem: "스우시",
-      image: "data:image/png;base64,AAAA",
-      top: ["무늬1"],
-      mid: ["선2"],
-      bottom: [],
-      outline: [],
-    });
+    expect(result).toEqual({ ...SHOE, mid: ["선2"] });
   });
 });
 
-describe("updateShoe (PUT /shoes/:modelNumber)", () => {
-  it("drops image, strips every pattern zone to bare-name strings, and keeps other fields camelCase", async () => {
-    let captured: unknown;
+describe("updateShoe (PUT /shoes/:ftwrId)", () => {
+  it("설계서 §4-4 키만 보낸다 — image·ftwrId·그룹·성별 등은 빼고, 문양은 이름 문자열로, null 메타데이터는 그대로", async () => {
+    let captured: Record<string, unknown> | undefined;
     mswServer.use(
-      http.put("*/shoes/SHOE-1", async ({ request }) => {
-        captured = await request.json();
-        return HttpResponse.json({
-          model_number: "SHOE-1",
-          top: ["무늬1"],
-          mid: [],
-          bottom: [],
-          outline: [],
-        });
+      http.put("*/shoes/00758", async ({ request }) => {
+        captured = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ message: "신발 정보가 성공적으로 업데이트되었습니다." });
       })
     );
 
     await updateShoe({
-      modelNumber: "SHOE-1",
+      ftwrId: "00758",
       body: {
-        id: 1,
-        modelNumber: "SHOE-1",
-        findLocation: "서울",
-        manufacturer: "나이키",
-        findYear: 2023,
-        emblem: "스우시",
-        // hydrated full asset paths — as they'd appear in ShoesEdit.jsx's live state
+        ...SHOE,
+        colctYear: null,
+        // hydrated full asset paths — as they'd appear in the workbench live state
         image: "data:image/png;base64,DROPPEDME",
         top: [`${PATTERNS_ROOT}무늬1.png`, `${PATTERNS_ROOT}무늬2.png`],
         mid: [],
@@ -170,46 +148,35 @@ describe("updateShoe (PUT /shoes/:modelNumber)", () => {
       },
     });
 
-    // Golden shape: `image` is ABSENT (dropped, never sent); patterns are
-    // bare-name strings (shoe patterns are strings, not [path, essential]
-    // tuples, so stripPatternPath's string branch applies); other fields
-    // pass through camelCase, unconverted.
     expect(captured).toEqual({
-      id: 1,
-      modelNumber: "SHOE-1",
-      findLocation: "서울",
-      manufacturer: "나이키",
-      findYear: 2023,
-      emblem: "스우시",
+      colctPlace: "서울",
+      colctYear: null,
+      makrCode: "M001",
+      brandCode: "B0001",
+      modlNm: "클래식 클로그",
       top: ["무늬1", "무늬2"],
       mid: [],
       bottom: [],
       outline: ["원3"],
     });
     expect(captured).not.toHaveProperty("image");
+    expect(captured).not.toHaveProperty("ftwrId");
   });
 
-  it("camelCases the server's response", async () => {
+  it("빈 칸 메타데이터(\"\")도 그대로 보낸다", async () => {
+    let captured: Record<string, unknown> | undefined;
     mswServer.use(
-      http.put("*/shoes/SHOE-2", async () =>
-        HttpResponse.json({
-          model_number: "SHOE-2",
-          find_location: "부산",
-          manufacturer: "아디다스",
-          find_year: 2024,
-          emblem: "삼선",
-          top: [],
-          mid: [],
-          bottom: [],
-          outline: [],
-        })
-      )
+      http.put("*/shoes/00759", async ({ request }) => {
+        captured = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ message: "ok" });
+      })
     );
 
-    const result = await updateShoe({
-      modelNumber: "SHOE-2",
+    await updateShoe({
+      ftwrId: "00759",
       body: {
-        modelNumber: "SHOE-2",
+        ftwrId: "00759",
+        colctPlace: "",
         image: null,
         top: [],
         mid: [],
@@ -218,37 +185,27 @@ describe("updateShoe (PUT /shoes/:modelNumber)", () => {
       },
     });
 
-    expect(result).toEqual({
-      modelNumber: "SHOE-2",
-      findLocation: "부산",
-      manufacturer: "아디다스",
-      findYear: 2024,
-      emblem: "삼선",
-      top: [],
-      mid: [],
-      bottom: [],
-      outline: [],
-    });
+    expect(captured).toMatchObject({ colctPlace: "", colctYear: null, makrCode: null });
   });
 });
 
 describe("registerShoe (POST /shoes/register)", () => {
-  it("strips patterns to bare names, drops the image data-URL prefix (but KEEPS image), and keeps other fields camelCase", async () => {
-    let captured: unknown;
+  it("설계서 §4-4 키로 보낸다 — image는 접두어만 떼고 유지, 문양은 이름 문자열", async () => {
+    let captured: Record<string, unknown> | undefined;
     mswServer.use(
       http.post("*/shoes/register", async ({ request }) => {
-        captured = await request.json();
-        return new HttpResponse(null, { status: 200 });
+        captured = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ message: "ok" }, { status: 201 });
       })
     );
 
     await registerShoe({
-      id: 7,
-      modelNumber: "SHOE-9",
-      findLocation: "인천",
-      manufacturer: "뉴발란스",
-      findYear: 2025,
-      emblem: "N",
+      ftwrId: "00999",
+      colctPlace: "인천",
+      colctYear: "2025",
+      makrCode: "M002",
+      brandCode: "B0002",
+      modlNm: "러너",
       // hydrated full asset paths — as they appear in the live register form state
       image: "data:image/png;base64,KEEPME",
       top: [`${PATTERNS_ROOT}무늬1.png`, `${PATTERNS_ROOT}무늬2.png`],
@@ -257,17 +214,14 @@ describe("registerShoe (POST /shoes/register)", () => {
       outline: [`${PATTERNS_ROOT}원3.png`],
     });
 
-    // Golden shape: unlike updateShoe, `image` is PRESENT but with the
-    // `data:image/...;base64,` prefix removed; patterns are bare-name strings;
-    // other fields pass through camelCase, unconverted.
     expect(captured).toEqual({
-      id: 7,
-      modelNumber: "SHOE-9",
-      findLocation: "인천",
-      manufacturer: "뉴발란스",
-      findYear: 2025,
-      emblem: "N",
       image: "KEEPME",
+      ftwrId: "00999",
+      colctPlace: "인천",
+      colctYear: "2025",
+      makrCode: "M002",
+      brandCode: "B0002",
+      modlNm: "러너",
       top: ["무늬1", "무늬2"],
       mid: [],
       bottom: ["삼각5"],
@@ -285,7 +239,7 @@ describe("registerShoe (POST /shoes/register)", () => {
     );
 
     await registerShoe({
-      modelNumber: "SHOE-10",
+      ftwrId: "00010",
       image: null,
       top: [],
       mid: [],
@@ -294,5 +248,6 @@ describe("registerShoe (POST /shoes/register)", () => {
     });
 
     expect(captured?.image).toBe("");
+    expect(captured?.ftwrId).toBe("00010");
   });
 });

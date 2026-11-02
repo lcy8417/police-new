@@ -13,6 +13,22 @@ const stripZone = (entries: string[]): string[] =>
   entries.map((entry) => stripPatternPath(entry) as string);
 
 /**
+ * 신발 → 수정/등록 공통 본문(설계서 §4-4 키만). 그룹·성별·크기 등 읽기 전용 필드는
+ * 보내지 않는다. 비어 있는 메타데이터는 `""`/`null` 그대로(서버가 NULL로 저장).
+ */
+const toEditBody = (shoe: Shoe): ShoesEditBody => ({
+  colctPlace: shoe.colctPlace ?? null,
+  colctYear: shoe.colctYear ?? null,
+  makrCode: shoe.makrCode ?? null,
+  brandCode: shoe.brandCode ?? null,
+  modlNm: shoe.modlNm ?? null,
+  top: stripZone(shoe.top),
+  mid: stripZone(shoe.mid),
+  bottom: stripZone(shoe.bottom),
+  outline: stripZone(shoe.outline),
+});
+
+/**
  * GET /shoes?page=N — 신발 목록 한 페이지(서버 페이지 크기 50). Mirror of
  * crud.js#fetchShoesData. 백엔드는 빈 페이지(데이터 없음/범위 밖)를 404로 응답하므로
  * 이를 빈 목록으로 흡수한다(전체 개수는 fetchShoesCount로 따로 조회한다).
@@ -36,53 +52,29 @@ export async function fetchShoesCount(): Promise<number> {
   return data.count;
 }
 
-/** GET /shoes/:modelNumber. Mirror of crud.js#fetchCurrentShoes. */
-export async function fetchShoeDetail(modelNumber: string): Promise<Shoe> {
-  const data = await apiGet<ShoeDto>(`/shoes/${modelNumber}`);
+/** GET /shoes/:ftwrId. ID는 문자열 그대로(앞자리 0 보존) 경로에 넣는다. */
+export async function fetchShoeDetail(ftwrId: string): Promise<Shoe> {
+  const data = await apiGet<ShoeDto>(`/shoes/${encodeURIComponent(ftwrId)}`);
   return convertKeysToCamelCase<Shoe>(data);
 }
 
 /**
- * PUT /shoes/:modelNumber. Mirror of crud.js#fetchShoesEdit: drops `image`
- * from the body entirely, strips every pattern zone to bare names. The
- * remaining fields stay camelCase on the wire (no re-conversion to
- * snake_case before sending).
+ * PUT /shoes/:ftwrId — 설계서 §4-4 수정 키만 보낸다(`image`·`ftwrId` 제외, 문양은 이름만).
+ * 서버는 `{message}`만 돌려주므로 반환값은 없다.
  */
-export async function updateShoe({ modelNumber, body }: UpdateShoeInput): Promise<Shoe> {
-  const { image: _image, ...restBody } = body;
-
-  const editBody: ShoesEditBody = {
-    ...restBody,
-    top: stripZone(restBody.top),
-    mid: stripZone(restBody.mid),
-    bottom: stripZone(restBody.bottom),
-    outline: stripZone(restBody.outline),
-  };
-
-  const response = await apiSend(`/shoes/${modelNumber}`, "PUT", editBody);
-  const data = await response.json();
-  return convertKeysToCamelCase<Shoe>(data);
+export async function updateShoe({ ftwrId, body }: UpdateShoeInput): Promise<void> {
+  await apiSend(`/shoes/${encodeURIComponent(ftwrId)}`, "PUT", toEditBody(body));
 }
 
 /**
- * POST /shoes/register — register a new shoe. Typed successor to legacy
- * `ShoesRegister.jsx`'s inline `fetch(POST /shoes/register)`:
- *  - strips every pattern zone to bare names (`stripPatternPath`),
- *  - removes the `data:image/...;base64,` prefix from `image` (`stripDataUrlPrefix`),
- *    but — unlike `updateShoe` — KEEPS the image in the body,
- *  - leaves the remaining field names camelCase on the wire (CRUD write shape).
- * Returns `void` (mirrors the legacy call, which discarded the response body).
+ * POST /shoes/register — 새 신발 등록. 수정 본문에 `image`(접두어 제거, 없으면 `""`)와
+ * `ftwrId`를 더해 보낸다. Returns `void` (서버 응답은 `{message}`뿐).
  */
 export async function registerShoe(input: Shoe): Promise<void> {
-  const { image, ...rest } = input;
-
   const body: ShoesRegisterBody = {
-    ...rest,
-    image: stripDataUrlPrefix(image ?? ""),
-    top: stripZone(rest.top),
-    mid: stripZone(rest.mid),
-    bottom: stripZone(rest.bottom),
-    outline: stripZone(rest.outline),
+    image: stripDataUrlPrefix(input.image ?? ""),
+    ftwrId: input.ftwrId,
+    ...toEditBody(input),
   };
 
   await apiSend("/shoes/register", "POST", body);

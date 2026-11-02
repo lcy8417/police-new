@@ -1,17 +1,17 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { mswServer } from "@/test/msw-server";
-import { fetchAlignment, saveAlignment } from "./alignment-api";
+import { fetchAlignment, fetchLatestAlignment, saveAlignment } from "./alignment-api";
 
 beforeAll(() => mswServer.listen({ onUnhandledRequest: "error" }));
 afterEach(() => mswServer.resetHandlers());
 afterAll(() => mswServer.close());
 
-describe("fetchAlignment (GET /crime/:crimeNumber/alignment)", () => {
-  it("passes model_number as a query param and returns polygon/arrow/flipHorizontal as-is", async () => {
+describe("fetchAlignment (GET /crime/:aprthngNo/alignment)", () => {
+  it("passes ftwr_id as a query param and returns polygon/arrow/flipHorizontal as-is", async () => {
     let capturedUrl = "";
     mswServer.use(
-      http.get("*/crime/2024-001/alignment", ({ request }) => {
+      http.get("*/crime/05019-24-0017_5/alignment", ({ request }) => {
         capturedUrl = request.url;
         return HttpResponse.json({
           polygon: [
@@ -28,9 +28,10 @@ describe("fetchAlignment (GET /crime/:crimeNumber/alignment)", () => {
       })
     );
 
-    const result = await fetchAlignment({ crimeNumber: "2024-001", modelNumber: "SHOE-1" });
+    const result = await fetchAlignment({ aprthngNo: "05019-24-0017_5", ftwrId: "00758" });
 
-    expect(capturedUrl).toContain("model_number=SHOE-1");
+    expect(capturedUrl).toContain("ftwr_id=00758");
+    expect(capturedUrl).not.toContain("model_number");
     expect(result).toEqual({
       polygon: [
         [10, 10],
@@ -47,23 +48,42 @@ describe("fetchAlignment (GET /crime/:crimeNumber/alignment)", () => {
 
   it("returns null polygon/arrow when unset", async () => {
     mswServer.use(
-      http.get("*/crime/2024-002/alignment", () =>
+      http.get("*/crime/2024-002_1/alignment", () =>
         HttpResponse.json({ polygon: null, arrow: null, flipHorizontal: false })
       )
     );
 
-    const result = await fetchAlignment({ crimeNumber: "2024-002", modelNumber: "SHOE-2" });
+    const result = await fetchAlignment({ aprthngNo: "2024-002_1", ftwrId: "SHOE-2" });
 
     expect(result).toEqual({ polygon: null, arrow: null, flipHorizontal: false });
   });
 });
 
-describe("saveAlignment (POST /crime/:crimeNumber/alignment)", () => {
-  it("sends polygon/arrow/flipHorizontal as the body and model_number as a query param", async () => {
+describe("fetchLatestAlignment (GET /crime/:aprthngNo/alignment/latest)", () => {
+  it("응답의 ftwrId(출처 신발)를 그대로 돌려준다", async () => {
+    mswServer.use(
+      http.get("*/crime/05019-24-0017_5/alignment/latest", () =>
+        HttpResponse.json({
+          polygon: [[1, 1]],
+          arrow: [[2, 2]],
+          flipHorizontal: false,
+          ftwrId: "00758",
+        })
+      )
+    );
+
+    const result = await fetchLatestAlignment({ aprthngNo: "05019-24-0017_5" });
+
+    expect(result.ftwrId).toBe("00758");
+  });
+});
+
+describe("saveAlignment (POST /crime/:aprthngNo/alignment)", () => {
+  it("sends polygon/arrow/flipHorizontal as the body and ftwr_id as a query param", async () => {
     let capturedUrl = "";
     let capturedBody: unknown;
     mswServer.use(
-      http.post("*/crime/2024-001/alignment", async ({ request }) => {
+      http.post("*/crime/2024-001_1/alignment", async ({ request }) => {
         capturedUrl = request.url;
         capturedBody = await request.json();
         return HttpResponse.json({
@@ -82,8 +102,8 @@ describe("saveAlignment (POST /crime/:crimeNumber/alignment)", () => {
     );
 
     const result = await saveAlignment({
-      crimeNumber: "2024-001",
-      modelNumber: "SHOE-1",
+      aprthngNo: "2024-001_1",
+      ftwrId: "SHOE-1",
       polygon: [
         [1, 1],
         [2, 1],
@@ -96,7 +116,7 @@ describe("saveAlignment (POST /crime/:crimeNumber/alignment)", () => {
       flipHorizontal: false,
     });
 
-    expect(capturedUrl).toContain("model_number=SHOE-1");
+    expect(capturedUrl).toContain("ftwr_id=SHOE-1");
     expect(capturedBody).toEqual({
       polygon: [
         [1, 1],
@@ -119,7 +139,7 @@ describe("saveAlignment (POST /crime/:crimeNumber/alignment)", () => {
   it("H2(하중 단언): flipHorizontal on/off 사이에 polygon/arrow 좌표가 바이트 단위로 동일하다 — 오직 불리언만 다르다", async () => {
     const capturedBodies: unknown[] = [];
     mswServer.use(
-      http.post("*/crime/2024-005/alignment", async ({ request }) => {
+      http.post("*/crime/2024-005_1/alignment", async ({ request }) => {
         const body = await request.json();
         capturedBodies.push(body);
         return HttpResponse.json(body as object);
@@ -137,15 +157,15 @@ describe("saveAlignment (POST /crime/:crimeNumber/alignment)", () => {
     ];
 
     await saveAlignment({
-      crimeNumber: "2024-005",
-      modelNumber: "SHOE-5",
+      aprthngNo: "2024-005_1",
+      ftwrId: "SHOE-5",
       polygon,
       arrow,
       flipHorizontal: false,
     });
     await saveAlignment({
-      crimeNumber: "2024-005",
-      modelNumber: "SHOE-5",
+      aprthngNo: "2024-005_1",
+      ftwrId: "SHOE-5",
       polygon,
       arrow,
       flipHorizontal: true,

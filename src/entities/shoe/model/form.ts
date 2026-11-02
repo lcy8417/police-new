@@ -6,7 +6,7 @@ import type { Shoe } from "./types";
  * FSD 단방향 규칙상 pages를 import할 수 없기 때문이다.
  *
  * `image`는 업로드 전 `null`이고 저장 시점에 검증한다. 문양은 경로 문자열 배열,
- * 나머지 메타 필드는 컨트롤드 입력을 위해 빈 문자열로 채운다.
+ * 입력칸이 있는 메타 필드(설계서 §4-4 등록 키)는 컨트롤드 입력을 위해 빈 문자열로 채운다.
  */
 export const EMPTY_SHOE_FORM: Shoe = {
   image: null,
@@ -14,9 +14,10 @@ export const EMPTY_SHOE_FORM: Shoe = {
   mid: [],
   bottom: [],
   outline: [],
-  modelNumber: "",
-  findLocation: "",
-  manufacturer: "",
-  emblem: "",
-  findYear: "",
+  ftwrId: "",
+  modlNm: "",
+  brandCode: "",
+  makrCode: "",
+  colctPlace: "",
+  colctYear: "",
 };

@@ -3,8 +3,11 @@
 // @MX:UPGRADE: entities/crime(또는 신규 entities/image-processing)에 타입드 래퍼가 추가되고 이 파일의 호출부가 모두 이전되면 삭제 검토
 const url = import.meta.env.VITE_API_URL;
 
+// 감정물 번호(aprthngNo)를 URL 경로 조각으로 — 허용 문자만 쓰지만 방어용으로 인코딩한다.
+const crimeUrl = (aprthngNo) => `${url}/crime/${encodeURIComponent(aprthngNo)}`;
+
 export const imageProcessing = async (
-  crimeNumber,
+  aprthngNo,
   endPoint,
   body = null,
   params = null
@@ -12,7 +15,7 @@ export const imageProcessing = async (
   const queryString =
     params instanceof URLSearchParams ? `?${params.toString()}` : "";
 
-  const fullUrl = `${url}/crime/${crimeNumber}/${endPoint}${queryString}`;
+  const fullUrl = `${crimeUrl(aprthngNo)}/${endPoint}${queryString}`;
   const response = await fetch(fullUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -27,8 +30,8 @@ export const imageProcessing = async (
   return data.image;
 };
 
-export const patternsExtract = async ({ crimeNumber = "", body }) => {
-  const fullUrl = `${url}/crime/${crimeNumber}/patterns_extract`;
+export const patternsExtract = async ({ aprthngNo = "", body }) => {
+  const fullUrl = `${crimeUrl(aprthngNo)}/patterns_extract`;
   const response = await fetch(fullUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -57,14 +60,14 @@ export const patternsExtract = async ({ crimeNumber = "", body }) => {
 };
 
 export const imageSearch = async ({
-  crimeNumber = "",
+  aprthngNo = "",
   body,
   page = 0,
   binary = "원본",
   similarity = false,
 }) => {
   const queryString = new URLSearchParams({ page, similarity }).toString();
-  const fullUrl = `${url}/crime/${crimeNumber}/search?${queryString}`;
+  const fullUrl = `${crimeUrl(aprthngNo)}/search?${queryString}`;
   const response = await fetch(fullUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -79,18 +82,20 @@ export const imageSearch = async ({
 
   let shoesDir = binary === "이진화보기" ? "B" : "Shoerinsics";
 
+  // 서버 응답 항목은 { ftwr_id, similarity } — 신발 ID는 문자열 그대로(앞자리 0 보존) 쓰고,
+  // 화면용 이미지 URL은 그 ID로 만든다. 결과 항목: { ftwrId, image, similarity }.
   const total = data.total;
   const result = data.result.map((item) => ({
-    ...item,
-    image: `${url}/shoes_images/${shoesDir}/${item.image}.png`, // Adjust the path as needed
-    shoesName: item.image,
+    ftwrId: item.ftwr_id,
+    image: `${url}/shoes_images/${shoesDir}/${encodeURIComponent(item.ftwr_id)}.png`,
+    similarity: item.similarity,
   }));
   return { result, total };
 };
 
-export const imageLoad = async ({ crimeNumber, edit }) => {
+export const imageLoad = async ({ aprthngNo, edit }) => {
   const queryString = new URLSearchParams({ edit }).toString();
-  const fullUrl = `${url}/crime/${crimeNumber}/image_load?${queryString}`;
+  const fullUrl = `${crimeUrl(aprthngNo)}/image_load?${queryString}`;
   const response = await fetch(fullUrl, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
@@ -126,8 +131,8 @@ export const fetchPerspective = async (image, points) => {
 };
 
 export const fetchSimilarity = async ({
-  crimeNumber,
-  modelNumber,
+  aprthngNo,
+  ftwrId,
   maxMatches = 6,
   minScore = 0.25,
   verify = true,
@@ -137,7 +142,7 @@ export const fetchSimilarity = async ({
   // 이미지 처리 API라 camelCase 변환은 하지 않는다(응답은 서버 원형 snake_case 그대로).
   // 강화 응답(query/ref/matches[])을 받기 위한 파라미터를 추가한다.
   const queryString = new URLSearchParams({
-    model_number: modelNumber,
+    ftwr_id: ftwrId,
     max_matches: maxMatches,
     min_score: minScore,
     verify,
@@ -145,7 +150,7 @@ export const fetchSimilarity = async ({
     edge,
   }).toString();
 
-  const fullUrl = `${url}/crime/${crimeNumber}/similarity?${queryString}`;
+  const fullUrl = `${crimeUrl(aprthngNo)}/similarity?${queryString}`;
 
   const response = await fetch(fullUrl, {
     method: "POST",

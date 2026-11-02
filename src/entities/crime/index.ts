@@ -12,6 +12,8 @@ export { useCrimeStore } from "./model/crime-store";
 export type {
   Crime,
   CrimeDto,
+  CrimeHistoryRow,
+  CrimeHistoryRowDto,
   CrimeRegisterBody,
   CrimeRegisterInput,
   EditImageSaveBody,
@@ -19,5 +21,6 @@ export type {
   PatternsPutBody,
   SaveCrimeEditImageInput,
   SaveCrimeHistoryInput,
+  SaveCrimeHistoryResult,
   StrippedPatternEntry,
 } from "./model/types";
