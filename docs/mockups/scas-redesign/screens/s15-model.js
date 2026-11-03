@@ -71,13 +71,95 @@
       ["문양 추출", "v2.3", "07-23 09:40", "1.2초", "상 2 · 중 3 · 하 1"],
       ["검색", "v3.1", "07-23 09:42", "1.8초", "검색번호 572355 · 후보 2,355"],
       ["리랭킹", "v1.2", "07-23 09:42", "0.9초", "Top-100 다시 정렬"],
-      ["정밀 대조", "v1.0", "07-24 17:31", "2.4초", "305657 종합 신뢰도 87%"],
+      ["정밀 대조", "v1.0", "07-24 17:31", "2.4초", "305659 종합 신뢰도 87%"],
     ]
       .map((c) => `<tr><td style="color:var(--fg)">${c[0]}</td><td class="mono" style="color:var(--blue)">${c[1]}</td><td class="mono" style="color:var(--mute);font-size:12px">${c[2]}</td><td class="r num">${c[3]}</td><td style="white-space:normal;line-height:1.35;color:var(--fg2);font-size:12px">${c[4]}</td></tr>`)
       .join("");
 
+    /* r3: 운영 배포 표시 */
+    const deploy = `<div class="pinbox" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-bottom:12px;padding:10px 14px;border:1px solid #1f4a2f;border-radius:10px;background:linear-gradient(90deg,var(--green-bg),var(--panel) 55%);font-size:12px;color:var(--mute)">
+        ${apin(11, "plus", true)}
+        <span class="chip green" style="height:24px;font-weight:600;gap:6px"><span class="fx-live" style="width:6px;height:6px;background:#4ade80"></span>운영 배포 · 정상</span>
+        <span>지금 사건에 쓰는 조합 <b class="mono" style="color:var(--fg)">문양 추출 v2.3 · 검색 v3.1 · 리랭킹 v1.2 · 정밀 대조 v1.0</b></span>
+        <span>마지막 전환 <span class="mono" style="color:var(--fg2)">07-22 10:00</span> 검색 v3.0 → v3.1 · <span class="mono" style="color:var(--blue)">admin01</span></span>
+        <span style="margin-left:auto">되돌릴 버전 v3.0 대기 ✓ · 오류 0.2% · 평균 응답 1.8초 <span style="color:var(--faint)">(예시)</span></span>
+      </div>`;
+
+    /* r3: 버전별 지표 추이(검색 모델, 시험셋) — 칸마다 눈금이 다름 */
+    const VS = ["v2.9", "v3.0", "v3.1", "v3.2"];
+    const TREND = [
+      ["Top-10", [48.05, 49.3, 51.43, 52.9], 47, 54, "var(--blue)"],
+      ["Top-50", [61.37, 62.1, 64.29, 66.02], 60, 67, "var(--violet)"],
+      ["Top-100", [76.4, 77.02, 78.57, 79.61], 75.5, 80.5, "var(--green)"],
+    ];
+    const mini = ([k, vs, lo, hi, c], i) => {
+      const X = [40, 150, 260, 370], Y = (v) => 64 - ((v - lo) / (hi - lo)) * 44;
+      const P = vs.map((v, j) => [X[j], Y(v)]);
+      return `<div style="display:grid;grid-template-columns:92px minmax(0,1fr);gap:8px;align-items:center;min-width:0;padding:6px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--bg2)">
+        <span style="display:grid;gap:3px"><b style="color:${c};font-size:13px">${k}</b>${i === 0 ? `<span class="chip blue" style="height:17px;font-size:10px;padding:0 5px;justify-self:start">주 지표</span>` : ""}<span class="mono" style="color:var(--mute);font-size:11px">${vs[2].toFixed(2)} → <b style="color:var(--fg)">${vs[3].toFixed(2)}</b></span><span class="mono" style="color:#4ade80;font-size:10.5px">+${(vs[3] - vs[2]).toFixed(2)}%p</span></span>
+        <svg viewBox="0 0 410 86" width="100%" style="display:block" aria-label="${k} 버전별 추이">
+          <rect x="${X[2] - 26}" y="4" width="52" height="68" rx="5" style="fill:var(--green-bg)"/>
+          <text x="${X[2] + 22}" y="13" text-anchor="end" style="fill:#4ade80;font:600 9px var(--font-ui)">운영</text>
+          <line x1="14" x2="400" y1="72" y2="72" style="stroke:var(--line3)"/>
+          <polyline points="${P.slice(0, 3).map((p) => p.join(",")).join(" ")}" style="fill:none;stroke:${c};stroke-width:2"/>
+          <line x1="${P[2][0]}" y1="${P[2][1]}" x2="${P[3][0]}" y2="${P[3][1]}" style="stroke:${c};stroke-width:2;stroke-dasharray:5 4"/>
+          ${P.map((p, j) => `<circle cx="${p[0]}" cy="${p[1]}" r="${j === 2 ? 5 : 3.5}" style="fill:${j === 3 ? "var(--bg2)" : c};stroke:${c};stroke-width:${j === 3 ? 1.8 : 0}"/><text x="${p[0] + (j === 3 ? -10 : 0)}" y="${p[1] - 8}" text-anchor="${j === 3 ? "end" : "middle"}" style="fill:${j >= 2 ? "var(--fg)" : "var(--dim)"};font:${j >= 2 ? 600 : 400} 10px var(--font-mono)">${vs[j].toFixed(2)}</text>`).join("")}
+          ${VS.map((v, j) => `<text x="${X[j]}" y="84" text-anchor="middle" style="fill:${j === 3 ? "var(--amber)" : "var(--dim)"};font:9.5px var(--font-mono)">${v}${j === 3 ? " 평가 중" : ""}</text>`).join("")}
+        </svg></div>`;
+    };
+    const trend = `<div class="panel pinbox">
+        ${apin(12, "plus")}
+        <div class="panel-h"><span class="lbl">TREND</span><span class="t">버전별 검색 적중률 추이</span><span class="r"><span style="color:var(--dim);font-size:12px">BP p5 시험셋 · %</span></span></div>
+        <div class="panel-b" style="display:grid;gap:8px">
+          <div style="color:var(--dim);font-size:11px;line-height:1.45">읽는 법: Top-10 = 진짜 신발이 AI 결과 10위 안에 든 비율. 실선 = 지나온 버전, 점선·빈 점 = 평가 중인 v3.2, 초록 띠 = 지금 운영 버전. 줄마다 세로 눈금이 달라 기울기만 비교합니다.</div>
+          <div style="display:grid;gap:8px">${TREND.map(mini).join("")}</div>
+        </div>
+      </div>`;
+
+    /* r3: 후보 v3.2 ↔ 운영 v3.1 평가 비교 */
+    const fx = (v, ex) => (typeof v === "number" ? v.toFixed(ex ? 1 : 2) : v);
+    const CMP = [
+      ["Top-10 (시험셋)", 51.43, 52.9, "%", "+1.47%p"],
+      ["Top-50 (시험셋)", 64.29, 66.02, "%", "+1.73%p"],
+      ["Top-100 (시험셋)", 78.57, 79.61, "%", "+1.04%p"],
+      ["Top-100 (현장 평가셋)", 57.1, 58.3, "%", "+1.2%p", true],
+      ["확인대상 순위 중앙값", "14위", "11위", "", "3계단 위", true],
+      ["검색 시간(1건)", "1.8초", "1.9초", "", "+0.1초", true, "var(--mute)"],
+    ]
+      .map((r) => {
+        const bar = typeof r[1] === "number" ? `<span style="display:grid;gap:2px;width:90px"><span style="height:4px;border-radius:2px;background:var(--line3);width:${r[1]}%"></span><span style="height:4px;border-radius:2px;background:var(--blue);width:${r[2]}%"></span></span>` : "";
+        return `<tr><td style="color:var(--fg)">${r[0]}${r[5] ? ` <span style="color:var(--faint);font-size:10.5px">예시</span>` : ""}</td><td class="r mono" style="color:var(--mute)">${fx(r[1], r[5])}${r[3]}</td><td class="r mono" style="color:var(--fg)">${fx(r[2], r[5])}${r[3]}</td><td class="r mono" style="color:${r[6] || "#4ade80"}">${r[4]}</td><td>${bar}</td></tr>`;
+      })
+      .join("");
+    const compare = `<div class="panel tc pinbox">
+        ${apin(13, "plus")}
+        <div class="panel-h"><span class="lbl">EVAL</span><span class="t">평가 비교 · <span class="mono">v3.2</span> 후보 ↔ <span class="mono">v3.1</span> 운영</span><span class="r"><span class="chip amber" style="height:20px;font-size:11px">관리자 판단 대기</span></span></div>
+        <table class="grid"><thead><tr><th>지표</th><th class="r">v3.1 운영</th><th class="r">v3.2 후보</th><th class="r">차이</th><th><span style="display:inline-flex;gap:8px;align-items:center;font-weight:400"><i style="width:10px;height:4px;background:var(--line3)"></i>운영 <i style="width:10px;height:4px;background:var(--blue)"></i>후보</span></th></tr></thead><tbody>${CMP}</tbody></table>
+        <div class="panel-b" style="padding-top:6px">
+          <div class="check"><span class="ic ok">✓</span><span>같은 평가셋·같은 문양 입력으로 두 버전을 나란히 돌림</span><span class="mono" style="color:var(--dim);font-size:10.5px">07-23</span></div>
+          <div class="check"><span class="ic ok">✓</span><span>적중률 지표 4개 모두 운영 버전보다 높음</span><span></span></div>
+          <div class="check"><span class="ic warn">!</span><span>뒤로 밀린 사건 3건 — v3.1에선 확인대상이 10위 안, v3.2에선 밖 · 감정관 확인 필요</span><span class="chip amber" style="height:19px;font-size:10.5px">3건</span></div>
+          <div style="margin-top:6px;color:var(--dim);font-size:11px">전환은 위 「버전 이력」 표의 「운영 전환」으로 관리자가 직접 합니다. 숫자 가운데 BP p5에 없는 값은 예시입니다.</div>
+        </div>
+      </div>`;
+
+    /* r3: 데이터 계보 — 원본에서 모델까지 따라가기 */
+    const LIN = [
+      ["원본 증거", "신발 104,933 · 현장 3,210", "해시 잠금 · 고칠 수 없음", "var(--fg2)"],
+      ["처리본", "이진화 · 배경 제거", "원본과 따로 저장", "var(--fg2)"],
+      ["비식별", "사건번호 · 이름 지움", "메타데이터만", "var(--fg2)"],
+      ["DS-2025.07", "라벨 수정 214 포함", "07-22 · 목록 보관", "var(--blue)"],
+      ["검색 v3.2", "07-23 학습", "평가 중", "var(--amber)"],
+    ];
+    const lineage = `<div class="pinbox" style="margin:10px 14px 0;padding:10px;border:1px solid var(--line2);border-radius:8px;background:var(--bg2)">
+        ${apin(14, "plus", true)}
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;font-size:11.5px"><b style="color:var(--fg2)">데이터 계보</b><span style="color:var(--dim)">· 이 모델은 무엇으로 배웠나</span></div>
+        <div style="display:flex;align-items:stretch;gap:4px">${LIN.map((l, i) => `${i ? `<span style="align-self:center;color:var(--dim);font-size:12px">›</span>` : ""}<div style="flex:1;min-width:0;padding:6px 7px;border:1px solid ${i === 4 ? "#4d3a12" : "var(--line2)"};border-radius:6px;background:var(--panel)"><div style="color:${l[3]};font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l[0]}</div><div style="color:var(--mute);font-size:10px;line-height:1.3">${l[1]}</div><div style="color:var(--dim);font-size:10px;line-height:1.3">${l[2]}</div></div>`).join("")}</div>
+        <div style="margin-top:7px;color:var(--dim);font-size:10.5px">거꾸로 따라가기: 감정서에 적힌 모델 버전 → 데이터셋 → 원본 이미지 목록(해시)까지 한 번에 열립니다.</div>
+      </div>`;
+
     return M.shell(
-      { active: "모델 관리", tabs: ["사건관리", "사용 기록", "모델 관리"], title: "모델 관리", h: 1290 },
+      { active: "모델 관리", tabs: ["사건관리", "사용 기록", "모델 관리"], title: "모델 관리", h: 2120 },
       `<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;padding:9px 12px;border:1px solid color-mix(in srgb,var(--amber) 35%,var(--panel));border-radius:10px;background:var(--amber-bg);color:var(--fg2);font-size:12.5px">
         <b style="color:var(--amber)">관리자 전용 메뉴</b> — 감정관·기술책임자는 사건 화면에서 「이 결과를 낸 모델 버전」만 봅니다.
       </div>
@@ -85,6 +167,7 @@
         <div><div class="crumb">족윤적 · 족윤적관리 · 모델 관리 +α</div><h3>모델 관리</h3><p>AI 모델 4개의 운영 버전과 성능을 봅니다. 감정관이 고친 결과로 다시 학습하고, 문제가 생기면 이전 버전으로 되돌립니다.</p></div>
         <div style="display:flex;gap:8px"><button class="btn">엑셀</button><button class="btn ai" data-lock="admin">● 재학습 시작</button></div>
       </div>
+      ${deploy}
 
       <div class="pinbox" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:12px">${apin(1, "plus", true)}${cards}</div>
 
@@ -123,11 +206,14 @@
         </div>
       </div>
 
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:12px;align-items:start">${trend}${compare}</div>
+
       <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
         <div class="panel pinbox">
           ${apin(5, "plus")}
           <div class="panel-h"><span class="lbl">DATASETS</span><span class="t">데이터셋 버전</span></div>
           <table class="grid"><thead><tr><th>버전</th><th class="r">신발</th><th class="r">현장 족적</th><th class="r">라벨 수정</th><th>만든 날</th><th>쓰는 모델</th></tr></thead><tbody>${ds}</tbody></table>
+          ${lineage}
           <div class="pinbox" style="margin:8px 14px 12px;padding:8px 10px;border:1px dashed var(--line3);border-radius:8px;color:var(--mute);font-size:11.5px;line-height:1.5">
             ${apin(7, "plus")}원본 이미지는 그대로 두고, 학습에는 처리본(이진화·배경 제거)과 비식별 메타데이터만 씁니다. 데이터셋마다 어느 원본에서 나왔는지 목록을 남깁니다.
           </div>
@@ -152,7 +238,7 @@
     title: "모델 관리",
     plus: true,
     refs: [{ t: "사업계획서 MLOps", v: "p14" }, { t: "발표", v: "s13" }, { t: "사업계획서 성능", v: "p5" }, { t: "인터뷰 결과 비교 시간", v: "5613 21:50 · 28:40", voice: true }],
-    lead: "SCAS에는 없는 새 화면입니다. 문양 추출·검색·리랭킹·정밀 대조 모델 4개의 운영 버전과 성능을 한 화면에서 봅니다. 감정관이 고른 확인대상이 AI 결과 몇 위에 있었는지를 주된 신호로 모아 다시 학습하고, 문제가 생기면 이전 버전으로 되돌립니다.",
+    lead: "SCAS에는 없는 새 화면입니다. 문양 추출·검색·리랭킹·정밀 대조 모델 4개의 운영 버전과 성능을 한 화면에서 봅니다. 감정관이 고른 확인대상이 AI 결과 몇 위에 있었는지를 주된 신호로 모아 다시 학습하고, 문제가 생기면 이전 버전으로 되돌립니다. r3: 지금 운영 중인 모델 조합 표시, 버전별 Top-10/50/100 추이 차트, 후보 v3.2와 운영 v3.1의 평가 비교, 원본에서 모델까지의 데이터 계보를 더했습니다.",
     fit: {
       area: ["na", "SCAS에 없는 화면 — 현행 police-new 관리자 화면처럼 위 요약 카드 + 아래 표·오른쪽 칸"],
       buttons: ["na", "SCAS 버튼 없음. 새 버튼(재학습 시작 · 운영 전환 · 롤백)은 관리자만"],
@@ -171,6 +257,10 @@
       { n: 8, kind: "voice", title: "핵심 신호 = 정답이 몇 위에 있었나", text: "감정관이 가장 오래 쓰는 시간은 검색 결과 비교입니다. 그래서 재학습의 첫 신호를 「확인대상이 AI 결과 몇 위였나」로 두고, 이 순위를 위로 올리는 것을 목표로 봅니다(목표 10위 안은 예시). 「검색 결과를 이제 비교할 때가 제일 오래 걸리죠. 다 눈으로 봐야 되니까. 어떤 거는 엄청 밑에 있을 수도 있고」.", src: "5613 21:50–22:00" },
       { n: 9, kind: "voice", title: "문양 추출 모델의 약한 곳을 카드에", text: "윤곽, 반스 같은 반복 무늬, 가격표 가림을 약한 곳으로 적어 두고 재학습 때 따로 봅니다. 「얘는 윤곽을 못 잡아요」, 「인공지능은 아예 더 못해」(반복 무늬), 「가격표 그런 것들 때문에 인공지능은 못잡을 수 있겠지」.", src: "5613 04:10 · 28:40 · 5616 00:31" },
       { n: 10, kind: "better", title: "보는 사람에 따라", text: "관리자만 메뉴가 보이고 재학습·운영 전환·롤백 버튼을 누를 수 있습니다. 감정관·기술책임자는 이 화면 대신 사건 화면에서 「이 결과를 낸 모델 버전」만 봅니다(다른 역할로 보면 안내 막대가 뜨고 버튼이 잠김)." },
+      { n: 11, kind: "plus", title: "운영 배포 표시(r3)", text: "지금 실제 사건에 쓰이는 모델 4개의 버전 조합과 마지막 전환(누가·언제·무엇에서 무엇으로), 되돌릴 버전이 준비됐는지를 맨 위 초록 막대 하나로 보여 줍니다. 07-22 10:00 전환은 사용·감사 기록(S14) 관리자 행위와 같은 건입니다. 오류율·응답 시간은 예시입니다.", src: "사업계획서 p14 버전관리·롤백 · S14 관리자 행위" },
+      { n: 12, kind: "plus", title: "버전별 적중률 추이(r3)", text: "검색 모델 v2.9 → v3.2의 Top-10·50·100을 작은 꺾은선 3개로 그립니다. 운영 중인 v3.1은 초록 띠, 평가 중인 v3.2는 점선·빈 점입니다. 새 버전이 정말 나아지는지, 거꾸로 떨어지는지를 표보다 빨리 봅니다. v3.1 값은 BP p5, 나머지는 예시입니다.", src: "사업계획서 p5 기준 성능 · p14 모델 버전관리" },
+      { n: 13, kind: "plus", title: "후보 ↔ 운영 평가 비교(r3)", text: "운영 전환 전에 후보(v3.2)와 운영(v3.1)을 같은 평가셋으로 나란히 돌린 결과를 지표별 차이와 막대로 보여 줍니다. 평균은 올라도 「예전엔 10위 안이던 사건이 밀려난」 경우(3건)를 따로 짚어, 감정관이 확인한 뒤 관리자가 전환하게 합니다. AI가 스스로 바꾸지 않습니다.", src: "사업계획서 p14 버전관리·롤백 · 5613 21:50 정답 순위" },
+      { n: 14, kind: "plus", title: "데이터 계보(r3)", text: "원본 증거 → 처리본 → 비식별 → 데이터셋 → 모델 버전을 한 줄로 잇습니다. 감정서에 적힌 모델 버전에서 거꾸로 따라가면 어떤 원본 이미지 목록(해시)으로 배웠는지까지 나와, 법정에서 「무엇으로 학습한 AI인가」에 답할 근거가 됩니다.", src: "사업계획서 p14 데이터셋 버전관리 · p16–19 원본·처리 데이터 분리" },
     ],
   });
 })();

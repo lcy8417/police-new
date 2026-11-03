@@ -89,7 +89,7 @@
           <div style="position:absolute;inset:0;${anim(`0%,8%{clip-path:inset(0 0 100% 0);opacity:1}22%,94%{clip-path:inset(0 0 0 0);opacity:1}100%{clip-path:inset(0 0 0 0);opacity:0}`)}">${sole({ kind: "bin", zones: ["dots", "herring", "grid"] })}</div>
           <span aria-hidden="true" style="position:absolute;left:-4px;right:-4px;height:2px;top:100%;opacity:0;background:var(--teal);box-shadow:0 0 12px 3px rgba(45,212,191,.7);${anim(`0%,8%{top:0;opacity:0}9%{opacity:1}22%{top:100%;opacity:1}23%,100%{top:100%;opacity:0}`)}"></span>
           ${roi}
-          <span class="mono" style="position:absolute;left:5px;bottom:4px;padding:1px 5px;border-radius:4px;background:rgba(5,8,13,.8);color:var(--fg2);font-size:9.5px">IMG_03.jpg</span>
+          <span class="mono" style="position:absolute;left:5px;bottom:4px;padding:1px 5px;border-radius:4px;background:rgba(5,8,13,.8);color:var(--fg2);font-size:9.5px">0649_2.jpg</span>
         </div>
         <div style="display:grid;grid-template-rows:repeat(3,1fr);gap:4px">${chips}</div>
       </div>`);
@@ -99,7 +99,7 @@
     const ROWS = [
       { no: "305657", sim: 61.2, from: 4, to: 0, r0: "137위", r1: "1위", ans: true },
       { no: "281904", sim: 61.0, from: 0, to: 1, r0: "1위", r1: "2위" },
-      { no: "299310", sim: 60.8, from: 1, to: 2, r0: "2위", r1: "3위" },
+      { no: "305659", sim: 60.8, from: 1, to: 2, r0: "2위", r1: "3위" },
       { no: "274466", sim: 60.7, from: 2, to: 3, r0: "3위", r1: "4위" },
       { no: "301122", sim: 60.1, from: 3, to: 4, r0: "4위", r1: "5위" },
     ];
@@ -178,7 +178,7 @@
       <div style="display:grid;gap:8px;align-content:start">
         <div style="position:relative;display:grid;gap:6px;align-content:start;height:272px;padding:10px 10px 8px;border-radius:4px;background:#f4f2ec;box-shadow:0 10px 26px rgba(0,0,0,.45)">
           <b style="text-align:center;color:#111;font-size:12px;letter-spacing:.5em">감정서</b>
-          <span class="mono" style="text-align:center;color:#5a6474;font-size:8px">00001-25-0646 · 주거침입</span>
+          <span class="mono" style="text-align:center;color:#5a6474;font-size:8px">00001-25-0649 · 주거침입</span>
           ${paperLines}
           <div style="display:flex;gap:4px;${appear(89)}">
             <span style="width:26px;height:44px;border:1px solid #c9ced8;background:#fff">${sole({ kind: "bin", zones: ["dots", "herring", "grid"] })}</span>
@@ -238,7 +238,7 @@
 
           <div class="panel tc pinbox" style="background:color-mix(in srgb,var(--panel) 92%,transparent)">
             ${apin(7, "plus")}
-            <div class="panel-h"><span class="lbl">LIVE DEMO</span><span class="t">AI 감정 흐름 — 사건 00001-25-0646 · 현장 이미지 3번</span>
+            <div class="panel-h"><span class="lbl">LIVE DEMO</span><span class="t">AI 감정 흐름 — 사건 00001-25-0649 · 현장 이미지 _2</span>
               <span class="r"><span style="display:inline-flex;align-items:center;gap:6px;color:var(--mute);font-size:11px"><span style="width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red);${anim(`0%,100%{opacity:1}50%{opacity:.25}`)}"></span>자동 재생 · 전체 <b class="mono" style="color:var(--fg2)">9.1초</b> (예시)</span></span></div>
             <div class="panel-b" style="display:grid;gap:14px;padding:14px 16px 16px">
               <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px">${rail}</div>

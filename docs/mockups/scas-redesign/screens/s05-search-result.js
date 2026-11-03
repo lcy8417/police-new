@@ -66,10 +66,56 @@
         <div style="font-size:11px;color:var(--dim);line-height:1.6">키보드 ← → 한 장 · PgDn 한 쪽 · Enter 상세조회 · S ★</div>
       </div>`;
 
+    /* AI가 먼저 보라는 10건(r3): 순위 1–10, 본 것 ✓ · 확인대상 ★ · 부위별 근거 한 줄 */
+    const TOP = [
+      { r: 1, id: "305657", s: 61.2, z: ["dots", "herring", "grid"], why: "상·중 헤링본 주기 일치", seen: 1 },
+      { r: 2, id: "281904", s: 61.0, z: ["herring", "lines", "blocks"], why: "중 헤링본 · 하 다름", seen: 1 },
+      { r: 3, id: "305659", s: 60.8, z: ["herring", "herring", "grid"], why: "상·중·하 모두 비슷", seen: 1, star: 1 },
+      { r: 4, id: "274466", s: 60.7, z: ["tri", "herring", "grid"], why: "중 헤링본 · 윤곽 일치", seen: 1 },
+      { r: 5, id: "301122", s: 60.1, z: ["herring", "dots", "herring"], why: "상 헤링본 각도 차이", seen: 1 },
+      { r: 6, id: "290318", s: 59.9, z: ["grid", "herring", "blocks"], why: "중만 일치" },
+      { r: 7, id: "288741", s: 59.6, z: ["herring", "grid", "herring"], why: "상·하 헤링본" },
+      { r: 8, id: "299310", s: 59.0, z: ["wave", "herring", "grid"], why: "중 헤링본 · 하 격자" },
+      { r: 9, id: "306012", s: 58.9, z: ["herring", "herring", "lines"], why: "상·중 일치 · 하 마모" },
+      { r: 10, id: "283377", s: 58.7, z: ["blocks", "herring", "herring"], why: "중·하 헤링본" },
+    ];
+    const rail = `<div class="pinbox" style="display:grid;gap:8px;padding:10px 12px;border:1px solid #1d4a44;border-radius:12px;background:linear-gradient(160deg,#0c1d20,var(--panel2))">${apin(13, "plus", true)}
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span class="fx-live"></span><b style="color:var(--teal)">AI가 먼저 보라는 10건</b><span style="color:var(--mute);font-size:11px">이미지 유사도 + 필수 문양 + 부위별 근거로 다시 매긴 순위</span>
+          <span style="margin-left:auto;display:flex;gap:10px;align-items:center;font-size:11px;color:var(--mute)"><span>본 것 <b class="num" style="color:var(--fg2)">5</b> / 10</span><span style="width:90px" class="fx-bar"><i style="width:50%"></i></span></span></div>
+        <div style="display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px">${TOP.map((t) => `<div style="position:relative;display:grid;gap:3px;padding:4px;border:1px solid ${t.star ? "#4d3a12" : t.r === 1 ? "#1d6b62" : "var(--line)"};border-radius:8px;background:var(--panel);${t.seen && !t.star ? "opacity:.72" : ""}">
+            <span style="position:relative;height:74px;border-radius:5px;overflow:hidden;background:#e9ecf0">${sole({ kind: "shoe", zones: t.z, heat: t.r <= 3 })}
+              <b class="mono" style="position:absolute;left:3px;top:3px;padding:0 4px;border-radius:3px;background:${t.r === 1 ? "var(--teal)" : "rgba(11,18,29,.85)"};color:${t.r === 1 ? "#04201c" : "var(--fg)"};font-size:9.5px">${t.r}</b>
+              ${t.star ? `<span style="position:absolute;right:3px;top:1px;color:var(--amber);font-size:12px">★</span>` : t.seen ? `<span style="position:absolute;right:3px;top:2px;color:#4ade80;font-size:10px">✓</span>` : ""}</span>
+            <span style="display:flex;justify-content:space-between;font-size:10px"><b class="mono">${t.id}</b><span class="mono" style="color:var(--mute)">${t.s.toFixed(1)}</span></span>
+            <span style="color:var(--dim);font-size:9.5px;line-height:1.3;height:25px;overflow:hidden">${t.why}</span></div>`).join("")}</div>
+      </div>`;
+
+    /* 빠른 비교(r3): 키보드 초점 카드(137위) 옆에 뜨는 작은 창 — 현장 ↔ 후보, 부위별 점수. Enter = 상세조회 */
+    const peek = `<div class="pinbox" style="position:absolute;left:calc(12.5% + 6px);top:-6px;z-index:6;width:400px;padding:10px;border:1px solid #2b4a78;border-radius:12px;background:rgba(11,18,29,.97);box-shadow:0 18px 50px rgba(0,0,0,.75),0 0 0 1px rgba(74,158,255,.15)">${apin(14, "plus")}
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px"><b>빠른 비교</b><span class="mono" style="color:var(--mute)">137위 · 305102 · 58.4%</span><span style="margin-left:auto;color:var(--dim);font-size:10.5px">Enter 상세조회 · S ★</span></div>
+        <div style="display:grid;grid-template-columns:96px 96px minmax(0,1fr);gap:8px">
+          <span style="position:relative;height:148px;border-radius:7px;overflow:hidden;border:1px solid var(--line)">${M.photo({ zones: ["herring", "herring", "herring"], rot: 0, flip: true, tag: "" })}<span class="mono" style="position:absolute;left:4px;top:4px;padding:0 4px;border-radius:3px;background:rgba(5,8,13,.8);font-size:9px;color:var(--fg2)">현장</span></span>
+          <span style="position:relative;height:148px;border-radius:7px;overflow:hidden;border:1px solid #2b4a78;background:#e9ecf0">${sole({ kind: "shoe", zones: Z[0], heat: true })}<span class="mono" style="position:absolute;left:4px;top:4px;padding:0 4px;border-radius:3px;background:rgba(5,8,13,.8);font-size:9px;color:var(--teal)">305102</span></span>
+          <div style="display:grid;gap:7px;align-content:start;font-size:11px">
+            ${[["상", 71, "헤링본 각도·간격 비슷"], ["중", 64, "헤링본 · 가장자리 마모"], ["하", 39, "격자 vs 헤링본 — 다름"]].map(([z, v, why]) => `<div style="display:grid;gap:3px">
+              <span style="display:flex;justify-content:space-between"><b>${z}</b><b class="mono" style="color:${v < 50 ? "var(--amber)" : "var(--teal)"}">${v}</b></span>
+              <span class="fx-bar" style="height:4px"><i style="width:${v}%;${v < 50 ? "background:var(--amber)" : ""}"></i></span>
+              <span style="color:var(--dim);font-size:10px;line-height:1.3">${why}</span></div>`).join("")}
+            <span class="chip amber" style="height:19px;font-size:10px;justify-self:start">하 부위 다름 → 확인대상 신중</span>
+          </div>
+        </div></div>`;
+
+    const filters = `<div class="pinbox" style="display:flex;align-items:center;gap:6px;font-size:11px;padding-right:16px">${apin(15, "better")}
+        <span style="color:var(--dim)">보기</span>
+        <span class="chip blue" style="height:21px">이미 본 것 흐리게</span><span class="chip" style="height:21px">같은 그룹 묶기</span><span class="chip" style="height:21px">하 부위 다른 것 뒤로</span><span class="chip" style="height:21px">제조사별</span>
+        <span style="margin-left:auto;color:var(--dim)">끝까지 보기는 그대로 — 거르는 건 보기만 바꿉니다</span></div>`;
+
     const right = `<div style="display:grid;gap:8px;align-content:start;min-width:0">
+        ${rail}
+        ${filters}
         <div style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px">${row1}</div>
         <div class="pinbox" style="display:flex;align-items:center;gap:8px;color:var(--blue);font-size:11px;padding-right:16px"><span style="flex:1;height:1px;background:var(--blue2)"></span>여기까지 봤음 · 136위 · 07-24 17:52<span style="flex:1;height:1px;background:var(--blue2)"></span></div>
-        <div style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px">${rest}</div>
+        <div style="position:relative">${peek}<div style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px">${rest}</div></div>
         <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mute)"><span class="num">« ‹ 17 / 108 › »</span><span class="num" style="color:var(--dim)">129–152위 / 857건</span>
           <span style="margin-left:auto;font-size:11px;color:var(--dim)">카드 ☆ = 확인대상 지름길(상세조회 버튼과 같음)</span></div>
       </div>`;
@@ -171,7 +217,7 @@
       { t: "SCAS 현장문양검색결과 상세조회", v: "5613 08:52–09:20" },
       { t: "인터뷰: 결과 비교가 제일 오래", v: "5613 21:50–22:48", voice: true },
     ],
-    lead: "SCAS 「문양검색결과」 팝업의 배치(왼쪽 현장 족적, 오른쪽 결과 그리드, 위쪽 결과형태 1–4열·확인대상보기)를 그대로 둡니다. 감정관이 가장 오래 쓰는 「결과 눈으로 비교」를 줄이려고 촘촘한 8열 빠른 넘겨보기, 키보드 넘기기, 어디까지 봤는지 기억을 덧붙였습니다. 확인대상 등록은 SCAS처럼 상세조회의 「확인대상」 버튼이 기본이고, 카드 ☆은 지름길입니다.",
+    lead: "SCAS 「문양검색결과」 팝업의 배치(왼쪽 현장 족적, 오른쪽 결과 그리드, 위쪽 결과형태 1–4열·확인대상보기)를 그대로 둡니다. 감정관이 가장 오래 쓰는 「결과 눈으로 비교」를 줄이려고 촘촘한 8열 빠른 넘겨보기, 키보드 넘기기, 어디까지 봤는지 기억을 덧붙였습니다. 확인대상 등록은 SCAS처럼 상세조회의 「확인대상」 버튼이 기본이고, 카드 ☆은 지름길입니다. r3: 그리드 위에 「AI가 먼저 보라는 10건」(근거 한 줄씩), 초점 카드 옆 빠른 비교 창(상·중·하 부위별 점수), 보기 거르기 칩, 왼쪽 유사도 분포를 더했습니다(결과형태 1–4열·끝까지 보기는 그대로).",
     scas,
     ours,
     fit: {
@@ -192,6 +238,9 @@
       { n: 9, kind: "voice", title: "확인대상 보고 제외", text: "「비교를 했는데 아니야. 그러면 여기서 확인대상 제외를 다시 누르면 되고.」 왼쪽 확인대상 칸에 고른 후보를 모아 두고, 다시 비교해 아니면 「확인대상 제외」를 누릅니다.", src: "5613 09:10–09:22" },
       { n: 10, kind: "better", title: "숫자 표기 통일 · 원본/이진화", text: "「1 | 49」「1 /857」「1/108」처럼 화면마다 달랐던 표기를 「1위 / 857건」, 카드는 「137위 · 58.4%」로 맞췄습니다. AI 창에만 있던 「이진화 이미지」 전환은 현장 족적 위 원본/이진화로 남겼습니다.", src: "5613 05:07 · 07:22" },
       { n: 12, kind: "plus", title: "유사도 분포 · 일치 부위(r3)", text: "857건이 순위별로 얼마나 비슷한지 막대로 보여 주고, 본 위치(136위)와 확인대상(3위·140위)을 표시합니다. 「어떤 거는 엄청 밑에 있을 수도 있고」 — 남은 후보가 앞쪽과 얼마나 차이 나는지 보고 어디까지 볼지 정할 수 있습니다(끝까지 보는 것은 그대로 가능). 카드마다 유사도 막대를 달고, 지금 보는 카드와 상세조회 발견 이미지에는 AI가 비슷하다고 본 부위를 색으로 겹칩니다. 측면 이미지 칸도 채웠습니다.", src: "5613 21:50–22:48 · 사업계획서 p13" },
+      { n: 13, kind: "plus", title: "AI가 먼저 보라는 10건(r3)", text: "결과 그리드 위에 이미지 유사도 + 필수 문양 + 부위별 근거로 다시 매긴 상위 10건을 한 줄로 둡니다. 카드마다 본 것 ✓ · 확인대상 ★와 「상·중 헤링본 주기 일치」 같은 근거 한 줄이 붙습니다. 「몇천 개가 나와도 처음부터 끝까지 보거든요」 — 끝까지 보는 길은 그대로 두고, 먼저 볼 곳만 앞에 모았습니다.", src: "5613 22:28–22:39 · 사업계획서 p13 리랭킹" },
+      { n: 14, kind: "plus", title: "빠른 비교 창(r3)", text: "키보드로 카드를 옮기면 옆에 작은 창이 떠서 현장 사진과 후보 밑창을 나란히, 상·중·하 부위별 점수와 이유(예: 하 부위 격자 vs 헤링본 — 다름)를 보여 줍니다. 상세조회(Enter)를 열기 전에 걸러 볼 수 있습니다.", src: "5613 06:02–07:16 · 08:44–09:34" },
+      { n: 15, kind: "better", title: "보기 거르기(r3)", text: "이미 본 것 흐리게 · 같은 그룹 묶기 · 하 부위 다른 것 뒤로 · 제조사별. 결과 목록 자체를 지우지 않고 보는 방식만 바꿉니다.", src: "5613 21:50–22:48" },
       { n: 11, kind: "better", title: "보는 사람마다 다른 권한", text: "감정관·관리자만 확인대상 등록·제외·그룹등록을 합니다. 기술책임자는 결재 때 결과를 보기만 하고(☆ 잠김), 수사관에게는 이 화면이 열리지 않습니다." },
     ],
   });

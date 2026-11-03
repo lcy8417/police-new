@@ -8,7 +8,7 @@
   const CASES = [
     { no: "00001-25-0649", doc: "SCAS수사부-871", nm: "주거침입", req: "대구청", sc: "2025-03321", occ: "동부서", kind: "현장", sh: 12, ti: 0, sus: "무", reg: "2025-07-24", st: [9, 2, 1], rs: [1, 0, 0], cs: -1, src: "auto" },
     { no: "00001-25-0647", doc: "SCAS수사부-2951", nm: "절도", req: "경북청", sc: "2025-11707", occ: "포항남부서", kind: "현장", sh: 2, ti: 0, sus: "무", reg: "2025-07-24", st: [0, 2, 0], rs: [0, 0, 0], cs: -1, src: "auto" },
-    { no: "00001-25-0646", doc: "SCAS수사부-2944", nm: "주거침입", req: "대구청", sc: "2025-03318", occ: "수성서", kind: "현장", sh: 3, ti: 0, sus: "유", reg: "2025-07-23", st: [0, 0, 3], rs: [2, 1, 0], cs: 1, who: "김○○", src: "auto" },
+    { no: "00001-25-0646", doc: "SCAS수사부-2944", nm: "주거침입", req: "대구청", sc: "2025-03318", occ: "수성서", kind: "현장", sh: 3, ti: 0, sus: "유", reg: "2025-07-23", st: [0, 0, 3], rs: [1, 1, 1], cs: 1, who: "김○○", src: "auto" },
     { no: "00001-25-0640", doc: "SCAS수사부-2911", nm: "절도", req: "부산청", sc: "2025-09120", occ: "해운대서", kind: "대조", sh: 1, ti: 0, sus: "유", reg: "2025-07-22", st: [0, 0, 1], rs: [1, 0, 0], cs: 2, src: "auto" },
     { no: "00001-25-0633", doc: "SCAS수사부-2870", nm: "강도", req: "서울청", sc: "2025-20114", occ: "강서서", kind: "현장", sh: 4, ti: 0, sus: "무", reg: "2025-07-21", st: [0, 0, 4], rs: [0, 3, 1], cs: 3, src: "auto" },
     { no: "00001-25-0621", doc: "SCAS수사부-2802", nm: "기타", req: "경기남부청", sc: "2025-07731", occ: "화성동탄서", kind: "현장", sh: 1, ti: 1, sus: "무", reg: "2025-07-18", st: [0, 0, 2], rs: [0, 0, 2], cs: 4, src: "auto" },
@@ -71,7 +71,7 @@
       </tr>
       ${i === 2 ? `<tr><td colspan="15" style="height:auto;padding:0;background:var(--panel2)">
         <div class="pinbox" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 260px;gap:10px;padding:10px 12px 12px 48px;white-space:normal">${apin(10, "better", true)}
-          ${[["_1", "발견", "572414", "1 / 869", "305657", "61.2"], ["_2", "발견", "572420", "1 / 512", "305657", "60.4"], ["_3", "불발견", "572431", "0 / 1,204", "", ""]].map(
+          ${[["_1", "발견", "572420", "2 / 500", "305659", "60.8"], ["_2", "불발견", "572356", "0 / 1,204", "", ""], ["_3", "감정불능", "—", "검색 안 함", "", ""]].map(
             ([n, r, sn, cnt, top, sim], k) => {
               const z = [["dots", "grid", "herring"], ["tri", "wave", "blocks"], ["grid", "grid", "lines"]][k];
               const found = r === "발견";
@@ -84,7 +84,7 @@
                 <span style="color:var(--dim);font:600 10px var(--font-mono)">›</span>
                 ${found ? `<span class="imgbox" style="width:30px;height:44px;border-radius:5px;flex:none;border-color:#1d4a44">${sole({ kind: "shoe", zones: z, heat: true })}</span>
                 <span style="display:grid;line-height:1.3;font-size:10.5px;min-width:0"><b class="mono" style="color:var(--teal)">${top}</b><span class="mono" style="color:var(--mute)">${sim}</span><span style="color:var(--dim)">확인대상 ${cnt}</span></span>`
-                : `<span style="display:grid;place-items:center;width:30px;height:44px;border:1px dashed var(--line3);border-radius:5px;color:var(--faint);font-size:10px">—</span><span style="display:grid;line-height:1.3;font-size:10.5px"><span style="color:var(--mute)">끝까지 봄</span><span style="color:var(--dim)">확인대상 ${cnt}</span></span>`}
+                : `<span style="display:grid;place-items:center;width:30px;height:44px;border:1px dashed var(--line3);border-radius:5px;color:var(--faint);font-size:10px">—</span><span style="display:grid;line-height:1.3;font-size:10.5px"><span style="color:var(--mute)">${r === "감정불능" ? "족적 30%만 남음" : "끝까지 봄"}</span><span style="color:var(--dim)">${r === "감정불능" ? cnt : `확인대상 ${cnt}`}</span></span>`}
               </div></div>`;
             }
           ).join("")}

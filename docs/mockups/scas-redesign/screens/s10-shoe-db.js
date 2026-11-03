@@ -15,20 +15,37 @@
     ["303337", "문양 대기"], ["303336", "승인 대기"], ["303335", "문양 대기"], ["303334", "승인 대기"],
   ];
   const ST = { "승인 대기": "blue", "문양 대기": "", "측면 없음": "red", "AI 확인 필요": "amber" };
+  /* r3: 카드 위 AI 표시(시안 예시) — 숫자 = 문양 제안 확신도, scan = 지금 AI가 읽는 중, dup = 중복 의심 */
+  const CAI = {
+    "303352": "0.95", "303351": "0.93", "303349": "dup", "303348": "0.88", "303347": "0.91", "303344": "scan", "303342": "0.96", "303341": "0.94",
+    "303340": "0.82", "303339": "0.61", "303338": "0.92", "303337": "0.90", "303336": "0.89", "303335": "0.86", "303334": "0.97",
+  };
+  const cardTag = (no) => {
+    const a = CAI[no];
+    if (!a) return "";
+    const pos = "position:absolute;right:4px;top:4px;height:15px;padding:0 5px;font-size:9px;box-shadow:0 2px 6px rgba(0,0,0,.5)";
+    if (a === "scan") return `<span class="fx-scan"></span><span class="ai-tag" style="${pos};background:#0b2a26"><span class="fx-live" style="width:5px;height:5px"></span>AI 읽는 중</span>`;
+    if (a === "dup") return `<span class="ai-tag" style="${pos};background:#2a1f08;color:var(--amber);border-color:#4d3a12">중복 의심</span>`;
+    const low = parseFloat(a) < 0.7;
+    return `<span class="ai-tag" style="${pos};background:${low ? "#2a1f08" : "#0b2a26"};${low ? "color:var(--amber);border-color:#4d3a12" : ""}">AI ${a}</span>`;
+  };
+  /* 확신도 막대(모달 문양 행) */
+  const confBar = (v, warn) => `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:${warn ? "var(--amber)" : "var(--teal)"}"><span style="color:var(--dim);font-size:10.5px">AI 확신도</span>
+      <span class="fx-bar" style="width:64px">${warn ? `<i style="width:${v * 100}%;background:var(--amber)"></i>` : `<i style="width:${v * 100}%"></i>`}</span><b class="num">${v.toFixed(2)}</b></span>`;
 
   function ours() {
     const sb = (t, cls = "") => `<button class="btn sm ${cls}">${t}</button>`;
     const cards = CARDS.map(
       ([no, st], i) => `<div style="display:grid;gap:4px;padding:4px;border:1px solid ${no === "303349" ? "var(--blue)" : "var(--line)"};border-radius:8px;background:${no === "303349" ? "var(--blue-bg)" : "var(--panel2)"}">
-        <span class="imgbox" style="height:92px;border-radius:6px">${sole({ kind: "shoe", zones: Z[i % Z.length] })}</span>
+        <span class="imgbox" style="height:92px;border-radius:6px">${sole({ kind: "shoe", zones: Z[i % Z.length] })}${cardTag(no)}</span>
         <span style="display:flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:3px;border:1px solid var(--line3)"></span><span class="mono" style="color:var(--fg);font-size:11.5px">${no}</span></span>
         <span class="chip ${ST[st]}" style="height:18px;padding:0 6px;font-size:10px;justify-self:start">${st}</span>
       </div>`
     ).join("");
 
-    const stage = (n, t, c, on, extra = "") => `<span style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid ${on ? "var(--blue)" : "var(--line2)"};border-radius:8px;background:${on ? "var(--blue-bg)" : "var(--bg2)"}">
+    const stage = (n, t, c, on, extra = "", ai = "") => `<span style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid ${on ? "var(--blue)" : "var(--line2)"};border-radius:8px;background:${on ? "var(--blue-bg)" : "var(--bg2)"}">
         <span style="display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--panel3);color:var(--fg2);font:700 10px var(--font-mono)">${n}</span>
-        <span style="display:grid;line-height:1.25"><span style="color:${on ? "var(--fg)" : "var(--fg2)"};font-size:12px">${t}</span><span style="color:var(--dim);font-size:10.5px">${extra}</span></span>
+        <span style="display:grid;line-height:1.25"><span style="color:${on ? "var(--fg)" : "var(--fg2)"};font-size:12px">${t}</span><span style="color:var(--dim);font-size:10.5px">${extra}</span>${ai}</span>
         <b class="num" style="color:${on ? "var(--blue)" : "var(--fg)"};font-size:14px">${c}</b></span>`;
     const arrow = `<span style="color:var(--faint)">→</span>`;
 
@@ -55,6 +72,12 @@
           <div style="display:grid;gap:8px;align-content:start">
             <span class="crumb">바닥 이미지</span>
             <span class="imgbox pinbox" style="height:270px">${sole({ kind: "shoe", zones: ["herring", "grid", "herring"] })}
+              <span style="position:absolute;left:0;right:0;top:36%;border-top:1px dashed var(--teal);opacity:.8"></span>
+              <span style="position:absolute;left:0;right:0;top:66%;border-top:1px dashed var(--teal);opacity:.8"></span>
+              ${[["상", "6%", "0.94"], ["중", "40%", "0.58"], ["하", "70%", "0.94"]].map(([z, t, v]) => `<span class="ai-tag" style="position:absolute;left:6px;top:${t};height:15px;padding:0 5px;font-size:9px;background:#0b2a26;${v === "0.58" ? "color:var(--amber);border-color:#4d3a12;background:#2a1f08" : ""}">${z} ${v}</span>`).join("")}
+              <span style="position:absolute;left:41%;top:39%;width:78px;height:44px;border:1.5px dashed var(--amber);border-radius:4px"></span>
+              <span style="position:absolute;left:41%;top:calc(39% - 14px);color:var(--amber);font:600 9.5px var(--font-mono);text-shadow:0 1px 2px #000">가림 18%</span>
+              <span class="fx-scan"></span>
               <span style="position:absolute;left:44%;top:43%;width:62px;height:30px;border-radius:4px;background:var(--amber);opacity:.85;display:grid;place-items:center;color:var(--bg);font:700 10px var(--font-ui);transform:rotate(-8deg)">가격표</span>${apin(8, "voice")}</span>
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center;font-size:10.5px;color:var(--dim)">
               <span><span class="imgbox" style="display:grid;place-items:center;height:38px;color:var(--green);font-size:11px;background:var(--panel2)">측면 ✓</span></span>
@@ -66,9 +89,13 @@
           </div>
           <div style="display:grid;gap:6px;align-content:start">
             <span class="crumb">신발 문양</span>
-            ${zrow("상", picon("n32_04", "sm ai"), `<span class="ai-mark">AI 제안</span>`)}
-            ${zrow("중", picon("n21_05", "sm ai") + picon("s81b", "sm ai", "마크"), `<span class="chip amber" style="height:20px;font-size:10.5px">확인 필요 · 가격표가 가림</span>`)}
-            ${zrow("하", picon("n32_04", "sm ai"), `<span class="ai-mark">AI 제안</span>`, true)}
+            <div class="pinbox" style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid #1d4a44;border-radius:7px;background:var(--teal-bg);font-size:11.5px">
+              ${pin(12, "plus")}<span class="ai-tag"><span class="fx-live" style="width:5px;height:5px"></span>AI 1차 입력</span>
+              <span style="color:var(--fg2)">상·하가 같은 헤링본(<span class="mono">n32_04</span>)이라 <b style="color:var(--fg)">한 번에</b> 채움 · 행 3번 → 1번</span>
+              <span style="margin-left:auto;color:var(--dim);font-size:11px">확정은 문양 입력 담당</span></div>
+            ${zrow("상", picon("n32_04", "sm ai"), confBar(0.94))}
+            ${zrow("중", picon("n21_05", "sm ai") + picon("s81b", "sm ai", "마크"), `${confBar(0.58, true)}<span class="chip amber" style="height:20px;font-size:10.5px">확인 필요 · 가격표가 가림</span>`)}
+            ${zrow("하", picon("n32_04", "sm ai"), confBar(0.94), true)}
             ${zrow("윤곽", picon("s10c", "sm sel"), `<span style="color:var(--dim);font-size:11px">AI 미지원 · 사람이 입력</span>`)}
             ${zrow("문자열", `<span style="color:var(--faint);font-size:11.5px">—</span>`, `<button class="btn sm pri">저장</button>`)}
             <div class="pinbox" style="display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px dashed var(--line3);border-radius:7px">
@@ -78,17 +105,27 @@
               <span class="inp" style="flex:1;min-width:150px;height:22px;color:var(--dim);font-size:11.5px">⌕ 문양 이름·설명 검색</span></div>
             <div style="display:flex;flex-wrap:wrap;gap:4px">${palette}</div>
             <div style="display:flex;gap:4px"><span class="chip blue" style="height:20px;font-size:11px">단선</span><span class="chip" style="height:20px;font-size:11px">다선1</span><span class="chip" style="height:20px;font-size:11px">다선2</span></div>
+            <div class="pinbox" style="display:grid;grid-template-columns:44px 44px minmax(0,1fr) auto;gap:10px;align-items:center;margin-top:2px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--amber) 35%,var(--panel));border-radius:8px;background:var(--amber-bg)">
+              ${apin(13, "plus")}
+              <span style="display:grid;gap:2px;text-align:center;font-size:9.5px;color:var(--dim)"><span class="imgbox" style="height:58px;border-radius:5px;background:#e9ecf0">${sole({ kind: "shoe", zones: ["herring", "grid", "herring"] })}</span><span class="mono">303349</span></span>
+              <span style="display:grid;gap:2px;text-align:center;font-size:9.5px;color:var(--dim)"><span class="imgbox" style="height:58px;border-radius:5px;background:#e9ecf0">${sole({ kind: "shoe", zones: ["herring", "grid", "herring"] })}</span><span class="mono">298114</span></span>
+              <span style="display:grid;gap:2px;font-size:11.5px;line-height:1.45">
+                <span><span class="ai-tag" style="background:#2a1f08;color:var(--amber);border-color:#4d3a12">AI 중복 의심</span> <b style="color:var(--fg)">이미 등록된 <span class="mono">298114</span>와 바닥이 거의 같음</b></span>
+                <span style="color:var(--fg2)">바닥 유사도 <b class="num" style="color:var(--amber)">0.96</b> · 같은 상표 · 2023-11 등록(예시)</span>
+                <span style="color:var(--dim)">같은 신발이면 등록 취소, 연도만 바뀐 재출시면 같은 그룹으로 연결</span></span>
+              <span style="display:grid;gap:4px"><button class="btn sm">나란히 보기</button><button class="btn sm" data-role="analyst admin">그룹으로 연결</button></span>
+            </div>
           </div>
         </div>
         <div class="pinbox" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 14px;border-top:1px solid var(--line2);background:var(--strip);border-radius:0 0 14px 14px;font-size:11.5px">
           ${apin(10, "better", true)}
           <span style="color:var(--mute)">진행</span><span class="chip">등록 · 서○○ 03-14</span>${arrow}<span class="chip">문양 입력 · 박○○ 07-24</span>${arrow}<span class="chip blue">승인 대기</span>
-          <span style="margin-left:auto;color:var(--mute)">승인 조건</span><span style="color:var(--green)">측면 ✓</span><span style="color:var(--green)">바닥 ✓</span><span style="color:var(--green)">상·중·하 ✓</span><span style="color:var(--amber)">AI 확인 필요 1건 ✗</span>
+          <span style="margin-left:auto;color:var(--mute)">승인 조건</span><span style="color:var(--green)">측면 ✓</span><span style="color:var(--green)">바닥 ✓</span><span style="color:var(--green)">상·중·하 ✓</span><span style="color:var(--amber)">AI 확인 필요 2건 ✗ (가림 1 · 중복 의심 1)</span>
         </div>
       </div>`;
 
     return M.shell(
-      { active: "신발문양 관리", tabs: ["사건관리", "신발문양 관리"], title: "신발문양 관리", h: 1270 },
+      { active: "신발문양 관리", tabs: ["사건관리", "신발문양 관리"], title: "신발문양 관리", h: 1340 },
       `<div class="page-head">
         <div><div class="crumb">족윤적 · 문양관리 · 신발문양 관리</div><h3>신발문양 관리</h3><p>SCAS와 같은 순서: 위 검색 → 가운데 카드 목록 → 카드를 누르면 같은 자리에 신발정보관리 창.</p></div>
       </div>
@@ -124,14 +161,16 @@
         <div class="pinbox" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line2)">
           ${apin(4, "voice", true)}
           <span style="color:var(--dim);font-size:11.5px;margin-right:2px">작업 단계<br>(분업)</span>
-          ${stage(1, "등록됨 · 문양 대기", "214", false, "등록 담당 → 문양 입력 담당")}${arrow}
-          ${stage(2, "문양 입력됨 · 그룹 대기", "98", false, "그룹 담당")}${arrow}
-          ${stage(3, "승인 대기", "224", true, "승인 담당")}${arrow}
+          ${stage(1, "등록됨 · 문양 대기", "214", false, "등록 담당 → 문양 입력 담당", `<span class="ai-tag" style="justify-self:start;margin-top:3px"><span class="fx-live" style="width:5px;height:5px"></span>AI 문양 제안 198 / 214</span>`)}${arrow}
+          ${stage(2, "문양 입력됨 · 그룹 대기", "98", false, "그룹 담당", `<span class="ai-tag" style="justify-self:start;margin-top:3px">AI 그룹 후보 71</span>`)}${arrow}
+          ${stage(3, "승인 대기", "224", true, "승인 담당", `<span class="ai-tag" style="justify-self:start;margin-top:3px;color:var(--amber);border-color:#4d3a12;background:#2a1f08">AI 확인 필요 9</span>`)}${arrow}
           ${stage(4, "승인", "0", false, "신발 DB 확정")}
-          <span class="pinbox" style="margin-left:auto;display:grid;gap:3px;min-width:170px;font-size:11.5px">${apin(5, "voice")}
-            <span style="display:flex;justify-content:space-between;color:var(--mute)"><span>오늘 승인</span><b class="num" style="color:var(--fg)">37 / 50매</b></span>
-            <span style="height:5px;border-radius:3px;background:var(--line3)"><span style="display:block;width:74%;height:100%;border-radius:3px;background:var(--blue2)"></span></span>
-            <span style="color:var(--dim)">3월 등록 536 · 전부 미승인</span></span>
+          <span class="pinbox" style="margin-left:auto;display:grid;gap:4px;min-width:196px;font-size:11.5px">
+            <span style="display:flex;justify-content:space-between;align-items:center;color:var(--mute)"><span>2025-03 미승인 ${pin(11, "plus")}</span><b class="num" style="color:var(--amber);font-size:14px">536</b></span>
+            <span title="문양 대기 214 · 그룹 대기 98 · 승인 대기 224" style="display:flex;gap:1px;height:6px;border-radius:3px;overflow:hidden"><i style="flex:214;background:var(--line3)"></i><i style="flex:98;background:var(--violet)"></i><i style="flex:224;background:var(--blue2)"></i></span>
+            <span style="display:flex;justify-content:space-between;align-items:center;color:var(--mute)"><span>오늘 승인 ${pin(5, "voice")}</span><b class="num" style="color:var(--fg)">37 / 50매</b></span>
+            <span class="fx-bar run" style="height:5px"><i style="width:74%"></i></span>
+            <span style="color:var(--dim)">하루 50매면 3월분 약 11일</span></span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:8px;padding:10px 14px">${cards}</div>
         <div style="display:flex;justify-content:space-between;padding:6px 14px 12px;color:var(--mute);font-size:12px"><span class="num">« ‹ 페이지 [1] / 34 › » ⟳</span><span class="num">전체 536 중 1 - 16</span></div>
@@ -236,7 +275,7 @@
     group: "문양관리",
     title: "신발문양 관리",
     refs: [{ t: "SCAS 신발문양 관리", v: "5616 00:00 · 02:50–06:00" }, { t: "신발정보관리 모달", v: "5614 00:00–02:30" }, { t: "인터뷰 분업·승인", v: "5616 04:30–06:12", voice: true }],
-    lead: "SCAS 배치를 그대로 씁니다. 위에 검색폼 3열×4행, 그 아래 「신발문양 관리 목록」 머리와 툴바, 카드 9열, 페이지 순서입니다. 카드를 누르면 같은 자리에 신발정보관리 창이 뜹니다. 바뀐 것은 세 가지입니다. 분업 단계별로 일감이 보이고, AI 추천이 새 창 대신 이 창 안에서 동작하며, 승인은 승인 담당만 합니다.",
+    lead: "SCAS 배치를 그대로 씁니다. 위에 검색폼 3열×4행, 그 아래 「신발문양 관리 목록」 머리와 툴바, 카드 9열, 페이지 순서입니다. 카드를 누르면 같은 자리에 신발정보관리 창이 뜹니다. 바뀐 것은 세 가지입니다. 분업 단계별로 일감이 보이고, AI 추천이 새 창 대신 이 창 안에서 동작하며, 승인은 승인 담당만 합니다. r3: 작업 단계 줄에 AI가 미리 해 둔 일(문양 제안 198건 등)과 3월분 536건 미승인 막대를, 카드와 창 안에 문양별 AI 확신도·부위 구분선·중복 의심을 더했습니다(자리·버튼 순서는 그대로).",
     fit: {
       area: ["same", "검색폼 위 · 목록 머리+툴바 · 카드 9열 · 페이지 순서 그대로. 「작업 단계」 줄 하나만 목록 머리 아래 덧붙임"],
       buttons: ["same", "툴바(목록보기/문양보기 조회 엑셀 삭제 승인 등록 초기화)와 창 버튼(인공지능문양관리 이전 다음 승인 그룹등록 닫기) 원문 순서. 「엑셀 일괄 등록」만 구분선 뒤 끝에"],
@@ -256,6 +295,9 @@
       { n: 8, kind: "voice", title: "가격표가 가린 사진은 「확인 필요」", text: "가격표·스티커가 문양을 가리면 그 행의 AI 제안을 노란 「확인 필요」로 표시하고, 확인 전에는 승인되지 않게 합니다. 「가격표 그런 것들 때문에 인공지능은 못잡을 수 있겠지」.", src: "5616 00:31–00:35" },
       { n: 9, kind: "better", title: "상·중·하 같은 문양 한 번에", text: "고른 문양을 세 행에 한 번에 넣습니다. 헤링본처럼 밑창 전체가 같은 무늬일 때 행을 3번 눌러 같은 아이콘을 3번 찍던 일을 줄입니다. 코드 설명은 SCAS처럼 왼쪽 아래 그대로 둡니다.", src: "5616 0:30–2:45" },
       { n: 10, kind: "better", title: "승인 조건과 승인 권한(보는 사람에 따라)", text: "측면·바닥 사진, 상·중·하 문양, AI 확인 필요 0건이 모두 갖춰져야 승인됩니다(「측면도 없고, 바닥만 있어. 그럼 못 넣어요」 5616 12:26). 「승인」 버튼은 신발 승인 권한(사용자 관리 S13)이 있는 승인 담당에게만 눌립니다. 시안에서는 관리자만 눌리고, 감정관으로 보면 승인·삭제가 흐리게 잠깁니다." },
+      { n: 11, kind: "plus", title: "AI가 미리 해 둔 일 · 밀린 일감 막대(r3)", text: "등록된 신발은 담당자가 열기 전에 AI가 문양 제안(198/214)과 그룹 후보(71)를 미리 만들어 둡니다. 단계마다 청록 「AI …」 표로 몇 건이 준비됐는지 보이고, 오른쪽에는 3월분 536건이 어느 단계에 몇 건씩 쌓였는지(문양 대기 214 · 그룹 대기 98 · 승인 대기 224) 막대 하나로, 오늘 승인 37/50매는 진행 막대로 보여 줍니다. 카드 오른쪽 위에는 문양 제안 확신도가 붙고, 낮으면(0.7 미만) 노란색입니다. 숫자 중 198·71·9와 카드 확신도는 시안 예시입니다.", src: "5616 05:09 · 05:51 「하루에 거의 한 50매」 · 사업계획서 p5" },
+      { n: 12, kind: "plus", title: "상·중·하를 AI가 한 번에, 확신도와 함께(r3)", text: "AI가 바닥 사진에 상·중·하 구분선을 긋고 부위마다 문양과 확신도(0.94 · 0.58 · 0.94)를 채웁니다. 상·하처럼 같은 무늬는 한 번에 넣어 「같은 헤링본을 행마다 3번 찍던」 일이 1번 확인으로 줄어듭니다. 가격표가 가린 중간(가림 18%)은 확신도가 낮아 노란 「확인 필요」로 남고, 확정은 문양 입력 담당이 합니다.", src: "5616 0:30–2:45 · 00:31 「가격표 그런 것들 때문에」" },
+      { n: 13, kind: "plus", title: "중복 신발 의심(r3)", text: "새로 등록한 신발의 바닥이 이미 DB에 있는 신발(예: 298114)과 거의 같으면 AI가 「중복 의심」으로 알려 줍니다. 같은 신발이면 등록을 취소하고, 연도만 바뀐 재출시면 같은 그룹으로 연결합니다. 중복 확인이 끝나기 전에는 승인 조건이 채워지지 않습니다. 298114·0.96은 시안 예시입니다.", src: "5616 02:10–02:16 「똑같은 바닥이 신상으로 나오는 경우」" },
     ],
   });
 })();

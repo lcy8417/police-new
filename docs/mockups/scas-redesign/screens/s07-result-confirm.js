@@ -26,20 +26,26 @@
         ["572420", "하이브리드검색", "확인대상선정", "2/500", "2025-07-24 17:40:05", true],
       ],
       cands: [
-        { no: "305659", z: ["herring", "grid", "tri"], from: "572355 · 572420", ai: "" },
+        { no: "305659", z: ["herring", "grid", "tri"], from: "572355 · 572420", ai: "", best: true },
         { no: "301122", z: ["wave", "grid", "blocks"], from: "572420", ai: "AI ↑ 14→2위" },
         { no: "288410", z: ["herring", "grid", "lines"], from: "572420", ai: "AI ↑ 31→5위", ex: true },
       ],
+      /* r3: AI 추천(참고). 판정 라디오는 감정관이 고른다 */
+      rec: "발견", rot: -4,
     },
     {
       img: "00001-25-0646_2", z: ["dots", "grid", "lines"], on: "불발견", done: true,
       hist: [["572356", "현장문양검색", "결과확인완료", "0/1204", "2025-07-23 09:51:02"]],
       cands: [],
+      rec: "불발견", rot: 3,
+      why: [["bad", "×", "후보 1,204건 중 가장 비슷한 것도 41.3% — 기준 50% 미만"], ["bad", "×", "상위 10건 모두 상 부위 문양(점 배열)이 다름"]],
     },
     {
       img: "00001-25-0646_3", z: ["grid", "grid", "lines"], cut: true, on: "감정불능", done: true,
       hist: [],
       cands: [],
+      rec: "감정불능", rot: -7, loss: true,
+      why: [["warn", "!", "족적이 약 30%만 남음 — 상·하 부위가 보이지 않음"], ["warn", "!", "문양이 읽힌 부위 1/3(중) — 검색 조건으로 부족"]],
     },
   ];
 
@@ -50,16 +56,33 @@
           (h) => `<tr><td style="${td}">☑</td><td style="${td}" class="mono">${h[0]}</td><td style="${td}">${h[1]}${h[5] ? ` <span class="ai-mark">AI</span>` : ""}</td><td style="${td}">${stChip(h[2])}</td><td style="${td}" class="mono">${h[3]}</td><td style="${td};color:var(--mute)" class="num">${h[4]}</td></tr>`
         ).join("")
       : `<tr><td style="${td};color:var(--dim)" colspan="6">검색 이력 없음 — 족적이 약 30%만 남아 검색하지 않음</td></tr>`;
+    /* r3: 첫 확인대상은 「현장 → 후보(일치 부위 히트맵)」 한 쌍으로, 정밀 대조 신뢰도(S06 87%)를 함께 */
+    const bestCard = (c) => `<div class="pinbox" style="display:grid;gap:2px;justify-items:center;width:132px;padding:3px 0 2px;border-radius:8px;background:linear-gradient(180deg,rgba(15,38,36,.75),transparent);box-shadow:inset 0 0 0 1px #1d4a44">${apin(13, "plus")}
+        <span style="display:flex;align-items:center;gap:3px">
+          <span class="imgbox" style="display:block;width:54px;height:84px;border-radius:6px">${M.photo({ zones: b.z, rot: b.rot, tag: "", ruler: false })}</span>
+          <span style="color:var(--teal);font-size:11px">→</span>
+          <span class="imgbox" style="display:block;width:54px;height:84px;border-radius:6px;background:#e9ecf0">${sole({ kind: "shoe", zones: c.z, heat: true })}<span class="fx-scan" style="animation-duration:2.8s"></span></span></span>
+        <b class="mono" style="font-size:11px;color:var(--fg)">${c.no}</b>
+        <span class="mono" style="font-size:9.5px;color:var(--dim)">${c.from}</span>
+        <span style="display:flex;gap:3px"><span class="ai-tag" style="height:16px">AI 추천</span><span class="chip teal" style="height:16px;font-size:9.5px;padding:0 5px">대조 87%</span></span>
+        <span style="font-size:11px;color:var(--mute)">☐ 제외</span></div>`;
     const cards = b.cands.length
       ? b.cands.map(
-          (c) => `<div style="display:grid;gap:2px;justify-items:center;width:112px;${c.ex ? "opacity:.45" : ""}">
-            <span class="imgbox" style="display:block;width:62px;height:88px">${sole({ kind: "shoe", zones: c.z })}</span>
+          (c) => c.best ? bestCard(c) : `<div style="display:grid;gap:2px;justify-items:center;width:112px;padding-top:3px;${c.ex ? "opacity:.45" : ""}">
+            <span class="imgbox" style="display:block;width:62px;height:84px">${sole({ kind: "shoe", zones: c.z })}</span>
             <b class="mono" style="font-size:11px;color:var(--fg);${c.ex ? "text-decoration:line-through" : ""}">${c.no}</b>
             <span class="mono" style="font-size:9.5px;color:var(--dim)">${c.from}</span>
             ${c.ai ? `<span class="chip teal" style="height:16px;font-size:9.5px;padding:0 5px">${c.ai}</span>` : `<span style="height:16px"></span>`}
             <span style="font-size:11px;color:${c.ex ? "var(--amber)" : "var(--mute)"}">${c.ex ? "☑" : "☐"} 제외</span></div>`
         ).join("")
-      : `<span style="align-self:center;color:var(--dim);font-size:12px">확인대상 없음</span>`;
+      : `<div style="display:grid;gap:2px;width:100%;align-content:start">
+          <span style="display:flex;align-items:center;justify-content:space-between;color:var(--dim);font-size:12px">확인대상 없음<span class="ai-tag">AI 근거 · ${b.rec} 추천 이유</span></span>
+          ${(b.why || []).map(([c, ic, t]) => `<div class="check" style="padding:4px 0"><span class="ic ${c}">${ic}</span><span style="color:var(--fg2)">${t}</span><span></span></div>`).join("")}
+        </div>`;
+    /* r3: _3처럼 족적이 대부분 사라진 사진 — 아래쪽을 바닥색으로 덮어 「약 30%만 남음」을 보이게 */
+    const loss = b.loss
+      ? `<span style="position:absolute;inset:0;background:linear-gradient(172deg,transparent 0 30%,rgba(60,56,49,.94) 46%,rgba(60,56,49,.97))"></span><span class="chip amber" style="position:absolute;left:5px;bottom:5px;height:17px;font-size:9.5px;padding:0 5px">남은 면적 30%</span>`
+      : "";
     return `<div class="${first ? "pinbox" : ""}" style="display:grid;grid-template-columns:120px minmax(0,1fr) 430px;gap:6px 12px;padding:10px 14px;border-bottom:1px solid var(--line2)">
         ${first ? apin(3, "keep", true) : ""}
         <span class="mono" style="font-size:12px;color:var(--fg)">${b.img}</span>
@@ -67,10 +90,11 @@
           <span style="display:flex;gap:6px;align-items:center">검색방법 <span class="inp" style="width:120px">전체<span class="caret">▾</span></span></span></div>
         <div class="${first ? "pinbox" : ""}" style="display:flex;justify-content:space-between;align-items:center">
           <span class="radio" style="font-size:12.5px">${["발견", "불발견", "감정불능"].map((v) => `<span class="${v === b.on ? "on" : ""}">${v}</span>`).join("")}</span>${first ? pin(4, "voice") : ""}
+          <span style="display:inline-flex;align-items:center;gap:4px"><span class="ai-tag" title="AI는 추천만 — 판정은 감정관이 왼쪽 라디오로 고릅니다">AI 추천 · ${b.rec}</span>${first ? pin(12, "plus") : ""}</span>
           ${b.done ? `<button class="btn sm ok" data-role="analyst admin">✓ 결과확인완료</button>` : `<button class="btn sm pri" data-role="analyst admin">결과확인완료</button>`}
         </div>
         ${first ? `<div style="grid-column:3;display:flex;gap:8px;align-items:center;justify-content:flex-end;padding:4px 6px 4px 10px;border:1px solid #4d3a12;border-radius:8px;background:var(--amber-bg);font-size:12px;color:var(--fg2)" data-role="analyst admin">${pin(7, "better")}확인대상을 저장하시겠습니까? <button class="btn sm ok">예</button><button class="btn sm">아니오</button></div>` : ""}
-        <span class="imgbox" style="display:block;height:${b.hist.length > 1 ? 150 : 104}px">${sole({ kind: "scene", zones: b.z, cut: b.cut })}</span>
+        <span class="imgbox" style="display:block;height:${b.hist.length > 1 ? 150 : 104}px">${M.photo({ zones: b.z, rot: b.rot, tag: String(i + 1) })}${loss}${first ? `<span class="fx-scan" style="animation-duration:3.4s"></span>` : ""}</span>
         <div style="min-width:0"><table style="width:100%;border-collapse:collapse"><thead><tr><th style="${th}">☑</th><th style="${th}">검색번호</th><th style="${th}">검색방법</th><th style="${th}">진행상태</th><th style="${th}">결과수</th><th style="${th}">검색일</th></tr></thead><tbody>${rows}</tbody></table></div>
         <div style="display:grid;gap:6px;align-content:start">
           <div class="${first ? "pinbox" : ""}" style="display:flex;gap:8px;min-height:${b.cands.length ? 150 : 60}px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)">${first ? apin(5, "better") + apin(6, "plus", true) : ""}${cards}</div>
@@ -96,7 +120,9 @@
       <div class="pinbox" style="display:flex;align-items:center;gap:10px;margin:8px 14px 0;padding:0 12px;height:32px;border-radius:8px;background:var(--blue3);color:#fff;font-weight:600;font-size:12.5px">검색이력
         <span style="margin-left:auto;display:flex;gap:5px;align-items:center;font-weight:400;font-size:11.5px">${pin(9, "voice")} 이미지 바로가기
           <span class="chip amber" style="height:19px;font-size:10.5px">_1 확인 중</span><span class="chip green" style="height:19px;font-size:10.5px">_2 ✓</span><span class="chip green" style="height:19px;font-size:10.5px">_3 ✓</span>
-          <span style="margin-left:6px">결과확인완료 <b class="mono">2 / 3</b></span></span>
+          <span style="margin-left:6px">결과확인완료 <b class="mono">2 / 3</b></span>
+          <span class="fx-bar run" style="width:96px;height:5px;background:rgba(5,8,13,.45)"><i style="width:66.7%"></i></span>
+          <span style="color:#cfe6ff">AI 추천과 판정 일치 <b class="mono">2 / 2</b></span>${pin(14, "plus")}</span>
       </div>
       ${BLOCKS.map(block).join("")}
       <div class="pinbox" style="display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:10px 14px;background:var(--strip);border-radius:0 0 14px 14px">${pin(8, "voice")}
@@ -175,7 +201,7 @@
       { t: "인터뷰", v: "5613 14:09 · 16:28 · 17:34–17:59", voice: true },
       { t: "플랫폼 개선 사항", v: "p1–5" },
     ],
-    lead: "SCAS 「검색결과 확인」 레이어 팝업을 같은 자리·같은 배치로 둡니다. 위 사건 요약표, 파란 「검색이력」 띠, 이미지마다 [사진 | 검색이력 표 | 확인대상 상자] 블록과 블록 오른쪽 위의 발견/불발견/감정불능·결과확인완료 그대로입니다. 판정은 이미지마다 따로 하고, 모든 이미지가 끝나면 맨 아래에서 동료 감정관에게 교차 검증을 요청합니다.",
+    lead: "SCAS 「검색결과 확인」 레이어 팝업을 같은 자리·같은 배치로 둡니다. 위 사건 요약표, 파란 「검색이력」 띠, 이미지마다 [사진 | 검색이력 표 | 확인대상 상자] 블록과 블록 오른쪽 위의 발견/불발견/감정불능·결과확인완료 그대로입니다. 판정은 이미지마다 따로 하고, 모든 이미지가 끝나면 맨 아래에서 동료 감정관에게 교차 검증을 요청합니다. r3: 사진을 실제 촬영본처럼 바꾸고, 블록마다 「AI 추천」 표와 그 이유(현장 → 후보 히트맵 · 대조 87%, 또는 불발견·감정불능 근거 2줄)를 붙였으며, 검색이력 띠에 결과확인완료 진행 막대를 두었습니다 — 판정은 여전히 감정관이 라디오로 고릅니다.",
     fit: {
       area: ["same", "요약표 → 검색이력 띠 → 이미지 블록(사진|이력표|확인대상) 반복 그대로"],
       buttons: ["same", "전체선택·검색방법·판정 라디오·결과확인완료가 블록마다 같은 자리, 교차 검증 요청만 팝업 끝에 추가"],
@@ -196,6 +222,9 @@
       { n: 9, kind: "voice", title: "이미지가 많아도 길을 잃지 않게", text: "「20개도 보내는 경우도 있거든」, 「12장이 파일이 엄청나게 많겠지… 엄청나게 많아」 — 검색이력 띠에 이미지별 상태 칩(_1 확인 중 · _2 ✓)과 「결과확인완료 2 / 3」을 두어 바로 이동합니다.", src: "5613 16:07–16:44" },
       { n: 10, kind: "better", title: "판정 메모(선택)", text: "판정 이유를 적는 칸을 더했지만 필수는 아닙니다. 인터뷰에 근거가 없어 필수로 할지는 열린 질문으로 남깁니다. 적은 메모는 교차 검증자와 감정서 판독소견 초안에 함께 보입니다." },
       { n: 11, kind: "better", title: "보는 사람에 따라", text: "감정관·관리자는 결과확인완료·확인 막대·교차 검증 요청을 봅니다. 기술책임자는 읽기 전용, 수사관은 결재완료 뒤 공개 안내만 봅니다." },
+      { n: 12, kind: "plus", title: "「AI 추천」은 표시만, 판정은 감정관(r3)", text: "판정 라디오(발견 · 불발견 · 감정불능) 옆에 청록 「AI 추천 · 발견」 표를 붙입니다. 라디오를 대신 눌러 두지 않습니다 — 고르는 것은 감정관이고, 「결과확인완료」를 눌러야 반영됩니다. AI 추천과 다르게 골라도 되며, 그럴 때는 아래 판정 메모에 이유를 남기도록 권합니다.", src: "5613 13:56–14:09 · 사업계획서 p13" },
+      { n: 13, kind: "plus", title: "이미지마다 근거를 한눈에(r3)", text: "발견 쪽은 첫 확인대상을 「현장 사진 → 후보 밑창(일치 부위 히트맵)」 한 쌍과 정밀 대조 신뢰도 87%(S06과 같은 값)로 보여 줍니다. 확인대상이 없는 이미지는 AI가 왜 불발견·감정불능을 추천했는지 2줄로 적습니다(예: 가장 비슷한 후보도 41.3%, 족적이 약 30%만 남음). 상세조회(S06)를 열지 않고도 판정 이유를 확인할 수 있습니다.", src: "5613 14:15 · 29:37 · 사업계획서 p36" },
+      { n: 14, kind: "plus", title: "결과확인완료 진행 막대(r3)", text: "검색이력 띠에 「결과확인완료 2 / 3」을 막대로 보여 주고, 끝난 이미지 가운데 AI 추천과 판정이 같은 수(2 / 2)를 적습니다. 모두 완료되면 맨 아래 교차 검증 요청이 켜집니다.", src: "5613 16:07–17:59" },
     ],
   });
 })();

@@ -25,6 +25,8 @@
   const SIMILAR = { FT002047: "FT002014 화승상사", FT002014: "FT002047 화승화학", FT002167: "FT002008 휠라코리아", FT002008: "FT002167 휠라코(주)" };
   /* 연결 상표 수(시안 예시) */
   const LINKS = { FT002158: 1, FT002142: 2, FT002085: 1, FT002301: 1, FT002254: 3, FT002126: 2, FT002149: 1, FT002076: 1, FT002183: 1, FT002047: 1, FT002014: 2, FT002167: 0, FT002008: 2, FT002277: 1 };
+  /* r3: 이 코드를 쓰는 신발 수(시안 예시, 합계는 신발 DB 128,406켤레보다 훨씬 작게) */
+  const USE = { FT002158: 412, FT002142: 1876, FT002085: 97, FT002301: 3, FT002254: 655, FT002126: 520, FT002149: 38, FT002076: 211, FT002183: 14, FT002047: 126, FT002014: 1342, FT002167: 0, FT002008: 4906, FT002277: 61 };
 
   const sw = (on) => `<span data-lock="admin" title="사용여부 ${on ? "Y" : "N"}" style="display:inline-flex;align-items:center;width:30px;height:16px;padding:2px;border-radius:999px;background:${on ? "var(--blue2)" : "var(--line3)"};justify-content:${on ? "flex-end" : "flex-start"}"><span style="width:12px;height:12px;border-radius:50%;background:var(--fg)"></span></span>`;
 
@@ -48,7 +50,8 @@
           <td style="color:var(--fg)"><b style="color:var(--blue);font-weight:600">${nm.slice(0, 1)}</b>${nm.slice(1)}</td>
           <td><span style="color:var(--faint);font-size:11.5px">설명 없음</span></td>
           <td>${sw(true)}</td>
-          <td>${ln ? `<span class="chip blue" style="height:20px;font-size:11px">상표 ${ln}</span>` : `<span class="chip" style="height:20px;font-size:11px;color:var(--dim)">연결 없음</span>`}</td>
+          <td>${ln ? `<span class="chip blue" style="height:20px;font-size:11px">상표 ${ln}</span>` : `<span class="chip" style="height:20px;font-size:11px;color:var(--dim)">연결 없음</span>`}
+            <span class="num" style="display:block;margin-top:2px;font-size:10.5px;color:${USE[code] ? "var(--dim)" : "var(--amber)"}">${USE[code] ? `신발 ${USE[code].toLocaleString("ko-KR")}켤레` : "신발 0 · 안 쓰는 코드"}</span></td>
           <td style="white-space:normal;line-height:1.35;font-size:11.5px">${sim ? `<span style="color:var(--amber)">비슷한 이름 <span class="mono">${sim}</span> — 같은 회사인지 확인</span>` : `<span style="color:var(--faint)">—</span>`}</td></tr>`;
       })
       .join("");
@@ -65,12 +68,21 @@
     const brand = (t, sub = "") => `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border:1px solid var(--line3);border-radius:8px;background:var(--panel2);font-size:12px;color:var(--fg2)">${t}${sub ? ` <span class="mono" style="color:var(--dim);font-size:10.5px">${sub}</span>` : ""}</span>`;
 
     return M.shell(
-      { active: "기초코드관리", tabs: ["사건관리", "신발문양 관리", "기초코드관리"], title: "기초코드관리", h: 1080 },
+      { active: "기초코드관리", tabs: ["사건관리", "신발문양 관리", "기초코드관리"], title: "기초코드관리", h: 1890 },
       `<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;padding:9px 12px;border:1px solid color-mix(in srgb,var(--amber) 35%,var(--panel));border-radius:10px;background:var(--amber-bg);color:var(--fg2);font-size:12.5px">
         <b style="color:var(--amber)">관리자 전용 메뉴</b> — 관리자가 아니면 코드표를 볼 수만 있고, 등록·삭제·사용여부·병합이 흐리게 잠깁니다(위 「보는 사람」을 바꿔 확인).
       </div>
       <div class="page-head">
         <div><div class="crumb">족윤적 · 족윤적관리 · 기초코드관리</div><h3>기초코드관리</h3><p>SCAS와 같은 2단 화면입니다. 왼쪽에서 분류를 고르면 오른쪽에 그 분류의 코드가 나옵니다.</p></div>
+      </div>
+
+      <div class="pinbox" style="display:flex;gap:10px;margin-bottom:12px">
+        ${apin(11, "better", true)}
+        <div class="stat" style="flex:1;min-width:0"><span class="k">제조사 <span class="mono">FT002</span></span><span class="v">313</span><span class="s">사용 안 함 6 · 상표 연결 없음 21</span></div>
+        <div class="stat" style="flex:1;min-width:0;--glow:rgba(245,158,11,.18);border-color:#4d3a12"><span class="k" style="color:var(--amber)">상표 <span class="mono">FT003</span> · 제조사 미연결</span><span class="v">48<small style="font:500 11px var(--font-ui);color:var(--dim)"> / 677</small></span><span class="fx-bar"><i style="width:93%"></i></span><span class="s">629개(93%)는 제조사에 연결됨 · AI 제안 2</span></div>
+        <div class="stat" style="flex:1;min-width:0"><span class="k">안 쓰는 제조사 코드</span><span class="v">11</span><span class="s">이 코드를 쓴 신발 0켤레 · 병합·사용 안 함 후보</span></div>
+        <div class="stat" style="flex:1;min-width:0"><span class="k">비슷한 제조사 이름 · 겹치는 분류</span><span class="v">2 · 3<small style="font:500 11px var(--font-ui);color:var(--dim)"> 쌍</small></span><span class="s">화승·휠라 2쌍 확인 · 분류 3쌍 병합 제안</span></div>
+        <div class="stat" style="flex:1;min-width:0;--glow:rgba(45,212,191,.16)"><span class="k">최근 30일 새 상표</span><span class="v">7</span><span class="s">수집 검수(S11)에서 넘어와 대기 3</span></div>
       </div>
 
       <div style="display:grid;grid-template-columns:410px minmax(0,1fr);gap:12px;align-items:start">
@@ -114,7 +126,7 @@
                 <span class="chip blue">전체 313</span><span class="chip amber">비슷한 이름 4 ${pin(6, "better")}</span><span class="chip">상표 연결 없음 21</span><span class="chip">설명 없음 207</span><span class="chip">사용 안 함 6</span>
               </div>
             </div>
-            <table class="grid"><thead><tr><th>순번</th><th>코드</th><th>코드명</th><th>코드 설명</th><th>사용여부 ${pin(8, "better")}</th><th>연결 상표</th><th style="width:180px">점검</th></tr></thead><tbody>${rightRows}</tbody></table>
+            <table class="grid"><thead><tr><th>순번</th><th>코드</th><th>코드명</th><th>코드 설명</th><th>사용여부 ${pin(8, "better")}</th><th>연결 상표 · 사용 ${pin(12, "better")}</th><th style="width:180px">점검</th></tr></thead><tbody>${rightRows}</tbody></table>
             <div style="display:flex;justify-content:space-between;padding:8px 14px;color:var(--mute);font-size:12px"><span class="num">「ㅎ」 14건 / 313</span><span>열 5개는 SCAS 순서 그대로, 「연결 상표」「점검」만 끝에 추가</span></div>
           </div>
 
@@ -128,6 +140,22 @@
                   <div style="margin-top:4px;color:var(--fg2)">금강 → ${brand("엘칸토")} ${brand("탠디(TANDY)", "FT003070")}</div></div>
                 <div style="padding:8px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--bg2)"><span class="crumb">이름이 같아도 정상</span>
                   <div style="margin-top:4px;color:var(--fg2)">나이키 → ${brand("나이키")} <span style="color:var(--green);font-size:11px">✓ 경고 없음</span></div></div>
+              </div>
+              <div class="pinbox" style="display:grid;gap:6px;padding:8px 10px;border:1px solid #1d4a44;border-radius:8px;background:var(--teal-bg)">
+                ${apin(13, "plus")}
+                <span style="display:flex;align-items:center;gap:8px;padding-right:22px"><span class="ai-tag">AI 연결 제안</span><span style="color:var(--fg2)">제조사가 비어 있는 상표 48개 중 근거가 있는 것만</span><span style="margin-left:auto;color:var(--dim);font-size:11px">관리자가 눌러야 연결</span></span>
+                ${[
+                  ["한스(예시)", "FT002301", "한스산업", "수집 상품 페이지에 「제조원: 한스산업」 3건 · 07-24 함께 등록", "0.93", false],
+                  ["학산워크(예시)", "FT002142", "학산", "상표 이름 앞부분이 같음 · 같은 수집처 상품 8건", "0.71", true],
+                ]
+                  .map(
+                    ([b, c, m, why, v, low]) => `<div style="display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--line2);border-radius:7px;background:var(--panel)">
+                    ${brand(b)}<span style="color:var(--fg2);white-space:nowrap">→ <span class="mono" style="color:var(--blue)">${c}</span> ${m}</span>
+                    <span style="color:var(--dim);font-size:11px;line-height:1.35">${why}</span>
+                    <b class="num" style="color:${low ? "var(--amber)" : "var(--teal)"}">${v}</b>
+                    <span style="display:flex;gap:4px"><button class="btn sm" data-lock="admin">연결</button><button class="btn sm ghost" data-lock="admin">아님</button></span></div>`
+                  )
+                  .join("")}
               </div>
               <div class="pinbox" style="display:flex;align-items:center;gap:8px;color:var(--mute)">${pin(7, "voice")}새 상표는 수집 검수(S11)에서 발견되면 여기로 넘어와 상표 등록 → 제조사 연결 순서로 넣습니다.</div>
             </div>
@@ -182,7 +210,7 @@
     group: "족윤적관리",
     title: "기초코드관리",
     refs: [{ t: "SCAS 기초코드관리", v: "5616 08:00–14:00" }, { t: "인터뷰 제조사·상표", v: "5616 08:03–09:57", voice: true }, { t: "사업계획서 관리자 로그", v: "p16–19" }],
-    lead: "SCAS의 2단 화면(왼쪽 분류, 오른쪽 코드)과 열 순서를 그대로 둡니다. 검색칸을 크게 쓰게 하고, 제조사 아래 어떤 상표가 있는지 묶어 보여 줍니다. 경고는 같은 분류 안에서 이름이 겹치거나 비슷한 것에만 띄웁니다.",
+    lead: "SCAS의 2단 화면(왼쪽 분류, 오른쪽 코드)과 열 순서를 그대로 둡니다. 검색칸을 크게 쓰게 하고, 제조사 아래 어떤 상표가 있는지 묶어 보여 줍니다. 경고는 같은 분류 안에서 이름이 겹치거나 비슷한 것에만 띄웁니다. r3: 위에 코드 정리 현황 타일(제조사 미연결 상표 48 등)을, 코드마다 그 코드를 쓰는 신발 수를, 제조사 아래 상표 칸에 근거가 붙은 AI 연결 제안을 더했습니다(열 순서·버튼은 그대로).",
     fit: {
       area: ["same", "왼쪽 기초 분류 코드(약 35%) · 오른쪽 족윤적 기초 코드 그대로. 「제조사 아래 상표」 칸과 변경 이력은 오른쪽 아래 빈자리에 덧붙임"],
       buttons: ["same", "왼쪽 등록·삭제 / 오른쪽 코드명 조회·등록·삭제 같은 자리. 엑셀만 구분선 뒤 끝에"],
@@ -202,6 +230,9 @@
       { n: 8, kind: "better", title: "사용여부 Y/N → 스위치", text: "사용여부를 스위치로 바로 바꿉니다. 「사용 안 함」 코드는 새로 입력할 때 고르기 목록에서만 빠지고, 이미 그 코드를 쓴 신발·사건 기록은 그대로 남습니다." },
       { n: 9, kind: "plus", title: "코드 변경 이력", text: "누가·언제·무엇을·왜 바꿨는지 남깁니다(등록·사용여부·상표 연결·병합). 사유는 꼭 적어야 저장됩니다.", src: "사업계획서 p16–19 관리자 로그" },
       { n: 10, kind: "better", title: "보는 사람에 따라", text: "관리자만 등록·삭제·사용여부·병합·상표 연결을 할 수 있습니다. 다른 역할로 보면 그 버튼·스위치가 흐리게 잠기고, 조회와 엑셀은 그대로 됩니다." },
+      { n: 11, kind: "better", title: "코드 정리 현황 타일(r3)", text: "관리자가 화면을 열면 먼저 정리할 거리가 숫자로 보입니다: 제조사 313(사용 안 함 6), 제조사에 연결되지 않은 상표 48 / 677, 신발이 0켤레인 안 쓰는 제조사 코드 11, 비슷한 제조사 이름 2쌍 · 겹치는 분류 3쌍, 최근 30일 새 상표 7. 313·677 말고는 시안 예시입니다.", src: "5616 08:03–09:57 · 사업계획서 p16–19" },
+      { n: 12, kind: "better", title: "코드마다 쓰는 신발 수(r3)", text: "「연결 상표」 칸 아래에 이 코드를 쓰는 신발이 몇 켤레인지 붙였습니다(예: 휠라코리아 4,906켤레). 0켤레인 코드는 노란 「안 쓰는 코드」로 보여, 병합하거나 사용 안 함으로 돌릴 때 기존 신발 기록이 얼마나 영향을 받는지 미리 압니다. 열을 늘리지 않고 기존 칸 안에 넣었습니다." },
+      { n: 13, kind: "plus", title: "상표 ↔ 제조사 AI 연결 제안(r3)", text: "제조사가 비어 있는 상표마다, 수집한 상품 페이지의 「제조원」 표기나 이름이 겹치는 정도를 근거로 어느 제조사에 묶일지 제안합니다(숫자는 확신도). 근거를 한 줄로 보여 주고, 관리자가 「연결」을 눌러야 반영되며 「아님」을 누르면 다시 제안하지 않습니다. 확신도가 낮으면(0.71) 노란색입니다. 상표 이름·숫자는 시안 예시입니다.", src: "5616 09:19–09:49 「회사 자체는 금강이야. 근데 엘칸토도 있고」" },
     ],
   });
 })();

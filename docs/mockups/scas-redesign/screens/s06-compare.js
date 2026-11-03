@@ -21,22 +21,79 @@
     [58, 236, 0],
   ];
   const W1 = 245, W2 = 205, GAP = 10, H = 340, S = H / 264; /* 유류·발견 상자 크기와 밑창 배율 */
-  const OX1 = (W1 - 100 * S) / 2, OX2 = W1 + GAP + (W2 - 100 * S) / 2;
+  const OX2 = W1 + GAP + (W2 - 100 * S) / 2;
+
+  /* r3: 유류 이미지는 M.photo(viewBox 200×300, slice). 사진 속 족적은 rot° 기울어 있다.
+     밑창 좌표(0–100 × 0–264) → 유류 상자 좌표: 사진 안 회전 → slice 배율(W1/200) → 위아래 잘림 보정 */
+  const ROT = -4, PS = W1 / 200, POY = (H - 300 * PS) / 2;
+  const photoXY = (x, y) => {
+    const r = (ROT * Math.PI) / 180, dx = x - 50, dy = y - 134;
+    return [(100 + dx * Math.cos(r) - dy * Math.sin(r)) * PS, (150 + dx * Math.sin(r) + dy * Math.cos(r)) * PS + POY];
+  };
+  const shoeXY = (x, y) => [OX2 + S * x, S * y];
+
+  /* r3: AI가 찾은 나머지 대응점(가짜 예시). 대표 5개(PTS)와 합쳐 일치 28 · 불일치 11 = 39.
+     부위별: 상 일치 12/13 · 중 10/12 · 하 6/14 — 아래 부위별 근거와 같은 숫자 */
+  const MORE_OK = [[30, 24], [70, 30], [50, 18], [46, 40], [24, 70], [76, 66], [50, 58], [60, 46], [36, 86], [64, 90], [34, 104], [66, 112], [48, 122], [22, 120], [28, 150], [52, 160], [44, 170], [38, 140], [60, 132], [36, 188], [50, 196], [30, 214], [48, 214], [40, 250]];
+  const MORE_BAD = [[18, 44], [76, 150], [74, 170], [60, 204], [34, 232], [70, 222], [46, 246], [56, 254], [74, 190], [28, 200]];
 
   function pairSvg() {
     const W = W1 + GAP + W2;
-    const L = PTS.map(([x, y]) => [OX1 + S * x, S * y]);
-    const R = PTS.map(([x, y], i) => [OX2 + S * (x + (i % 2 ? 1.5 : -1)), S * (y + (i % 2 ? -1.2 : 1))]);
+    const f = (n) => n.toFixed(1);
+    const L = PTS.map(([x, y]) => photoXY(x, y));
+    const R = PTS.map(([x, y], i) => shoeXY(x + (i % 2 ? 1.5 : -1), y + (i % 2 ? -1.2 : 1)));
     const col = (ok) => (ok ? "var(--teal)" : "var(--red)");
+    /* 구역 선: 상|중 = 92, 중|하 = 176 (밑창 좌표) */
+    const bands = [92, 176]
+      .map((y) => {
+        const a = photoXY(-4, y), b = photoXY(104, y), c = shoeXY(-4, y), d = shoeXY(104, y);
+        return `<line x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}" style="stroke:#f5c518;stroke-width:1;stroke-dasharray:5 4;opacity:.55"/>
+          <line x1="${f(c[0])}" y1="${f(c[1])}" x2="${f(d[0])}" y2="${f(d[1])}" style="stroke:#b7791f;stroke-width:1;stroke-dasharray:5 4;opacity:.7"/>`;
+      })
+      .join("");
+    const zl = [["상", 46], ["중", 134], ["하", 220]]
+      .map(([t, y]) => {
+        const a = photoXY(108, y), c = shoeXY(104, y);
+        return `<text x="${f(a[0])}" y="${f(a[1] + 4)}" style="fill:#f5c518;font:700 11px var(--font-sans,sans-serif);opacity:.85">${t}</text>
+          <text x="${f(c[0] + 4)}" y="${f(c[1] + 4)}" style="fill:#8a5a12;font:700 11px var(--font-sans,sans-serif)">${t}</text>`;
+      })
+      .join("");
+    /* 나머지 대응점: 흐린 선 + 점(일치 청록 실선, 불일치 빨강 점선) */
+    const faint = (list, ok) =>
+      list
+        .map(([x, y], i) => {
+          const a = photoXY(x, y), b = shoeXY(x + (ok ? 0 : i % 2 ? 9 : -10), y + (ok ? 0 : i % 2 ? -14 : 12));
+          const c = ok ? "#2dd4bf" : "#f87171";
+          return `<line x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}" style="stroke:${c};stroke-width:.8;opacity:${ok ? 0.26 : 0.34};${ok ? "" : "stroke-dasharray:2 2"}"/>
+            <circle cx="${f(a[0])}" cy="${f(a[1])}" r="2" style="fill:${c};opacity:.85"/><circle cx="${f(b[0])}" cy="${f(b[1])}" r="2" style="fill:${c};opacity:.85"/>`;
+        })
+        .join("");
     const lines = PTS.map(
       (p, i) =>
-        `<line x1="${(L[i][0] + 8).toFixed(1)}" y1="${L[i][1].toFixed(1)}" x2="${(R[i][0] - 8).toFixed(1)}" y2="${R[i][1].toFixed(1)}" style="stroke:${col(p[2])};stroke-width:1.3;stroke-dasharray:${p[2] ? "none" : "4 3"};opacity:.85"/>`
+        `<line x1="${f(L[i][0] + 8)}" y1="${f(L[i][1])}" x2="${f(R[i][0] - 8)}" y2="${f(R[i][1])}" style="stroke:${col(p[2])};stroke-width:1.5;stroke-dasharray:${p[2] ? "none" : "4 3"};opacity:.95;${p[2] ? "filter:drop-shadow(0 0 3px rgba(45,212,191,.7))" : ""}"/>`
     ).join("");
     const box = ([x, y], i) =>
-      `<rect x="${(x - 8).toFixed(1)}" y="${(y - 8).toFixed(1)}" width="16" height="16" rx="3" style="fill:rgba(5,8,13,.78);stroke:${col(PTS[i][2])};stroke-width:1.4"/>
-       <text x="${x.toFixed(1)}" y="${(y + 3.6).toFixed(1)}" text-anchor="middle" style="fill:${PTS[i][2] ? "var(--teal)" : "#f87171"};font:700 10px var(--font-mono)">${i + 1}</text>`;
-    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="position:absolute;left:0;top:0;width:${W}px;height:${H}px;pointer-events:none;z-index:2" aria-hidden="true">${lines}${L.map(box).join("")}${R.map(box).join("")}</svg>`;
+      `<rect x="${f(x - 8)}" y="${f(y - 8)}" width="16" height="16" rx="3" style="fill:rgba(5,8,13,.82);stroke:${col(PTS[i][2])};stroke-width:1.4"/>
+       <text x="${f(x)}" y="${f(y + 3.6)}" text-anchor="middle" style="fill:${PTS[i][2] ? "var(--teal)" : "#f87171"};font:700 10px var(--font-mono)">${i + 1}</text>`;
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="position:absolute;left:0;top:0;width:${W}px;height:${H}px;pointer-events:none;z-index:2" aria-hidden="true">${bands}${zl}${faint(MORE_OK, true)}${faint(MORE_BAD, false)}${lines}${L.map(box).join("")}${R.map(box).join("")}</svg>`;
   }
+
+  /* r3: 겹쳐 보기 히트맵(밑창 좌표). 붉을수록 일치 근거가 몰린 곳, 하 부위는 약함 + 소실 표시 */
+  let hid = 0;
+  const heatSvg = () => {
+    const id = "s06h" + ++hid;
+    return `<svg viewBox="0 0 100 264" width="100%" height="100%" preserveAspectRatio="none" aria-hidden="true" style="display:block">
+      <defs><radialGradient id="${id}a"><stop offset="0" stop-color="#ef4444" stop-opacity=".9"/><stop offset=".45" stop-color="#f59e0b" stop-opacity=".55"/><stop offset="1" stop-color="#f59e0b" stop-opacity="0"/></radialGradient>
+        <radialGradient id="${id}b"><stop offset="0" stop-color="#facc15" stop-opacity=".55"/><stop offset="1" stop-color="#facc15" stop-opacity="0"/></radialGradient></defs>
+      <ellipse cx="48" cy="52" rx="38" ry="40" fill="url(#${id}a)"/><ellipse cx="48" cy="136" rx="34" ry="36" fill="url(#${id}a)" opacity=".8"/><ellipse cx="42" cy="214" rx="22" ry="22" fill="url(#${id}b)"/>
+      <ellipse cx="86" cy="168" rx="14" ry="26" style="fill:none;stroke:#f87171;stroke-width:1.6;stroke-dasharray:3 3"/></svg>`;
+  };
+
+  /* r3: 부위 잘라 보기(유류 사진 / 발견 밑창). y0 = 부위 시작(밑창 좌표) */
+  const cropPhoto = (y0) =>
+    `<span style="position:relative;display:block;width:38px;height:34px;overflow:hidden;border-radius:5px;border:1px solid var(--line3)"><span style="position:absolute;left:-19px;top:${-Math.round((16 + y0) * 0.38)}px;width:76px;height:114px">${M.photo({ zones: ["herring", "grid", "tri"], rot: 0, tag: "", ruler: false, look: "eq" })}</span></span>`;
+  const cropShoe = (y0) =>
+    `<span style="position:relative;display:block;width:38px;height:34px;overflow:hidden;border-radius:5px;border:1px solid var(--line3);background:#e9ecf0"><span style="position:absolute;left:0;top:${-Math.round(y0 * 0.38)}px;width:38px;height:100px">${sole({ kind: "shoe", zones: ["herring", "grid", "tri"] })}</span></span>`;
 
   /* 신발 옆모습(가짜) — 측면 이미지 자리 */
   const sideShoe = () =>
@@ -73,10 +130,11 @@
     { z: "윤곽", a: ["s10c"], b: ["s10c"] },
   ];
 
+  /* r3: 부위 점수(0–1)와 대응점 일치 수 추가 — 위 대응점 그림(일치 28/39)과 같은 숫자 */
   const BASIS = [
-    { z: "상", ok: true, why: "헤링본 줄 9 ↔ 9줄 · 기울기 32° ↔ 31°" },
-    { z: "중", ok: true, why: "격자 칸 수 가로 7 ↔ 7칸 · 세로 5 ↔ 5칸" },
-    { z: "하", ok: false, why: "삼각형 5 ↔ 6개 · 현장 하 부위 일부 소실" },
+    { z: "상", y0: 0, ok: true, sc: 0.93, pts: "12/13", why: "헤링본 줄 9 ↔ 9줄 · 기울기 32° ↔ 31°" },
+    { z: "중", y0: 92, ok: true, sc: 0.88, pts: "10/12", why: "격자 칸 수 가로 7 ↔ 7칸 · 세로 5 ↔ 5칸" },
+    { z: "하", y0: 176, ok: false, sc: 0.45, pts: "6/14", why: "삼각형 5 ↔ 6개 · 현장 하 부위 일부 소실" },
   ];
 
   function ours() {
@@ -105,13 +163,26 @@
     ].map(([k, v]) => `<span style="display:flex;justify-content:space-between;gap:6px"><span style="color:var(--mute)">${k}</span><b class="mono" style="color:var(--teal)">${v}</b></span>`).join("");
 
     const basis = BASIS.map(
-      (r) => `<div style="display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:6px;align-items:baseline;padding:5px 0;border-top:1px solid var(--line2);font-size:11.5px">
-        <b style="color:var(--fg)">${r.z}</b><span style="color:var(--fg2);line-height:1.4">${r.why}</span>
-        <span class="chip ${r.ok ? "green" : "amber"}" style="height:18px;font-size:10px">${r.ok ? "일치" : "불일치"}</span></div>`
+      (r) => `<div style="display:grid;grid-template-columns:90px minmax(0,1fr);gap:7px;align-items:center;padding:5px 0;border-top:1px solid var(--line2);font-size:11.5px">
+        <span style="display:flex;align-items:center;gap:2px">${cropPhoto(r.y0)}<span style="color:${r.ok ? "var(--teal)" : "#f87171"};font-size:10px">${r.ok ? "↔" : "≠"}</span>${cropShoe(r.y0)}</span>
+        <span style="display:grid;gap:2px;min-width:0">
+          <span style="display:flex;align-items:center;gap:6px"><b style="color:var(--fg)">${r.z}</b><span class="mono" style="font-size:10px;color:var(--dim)">대응 ${r.pts}</span>
+            <span class="fx-bar" style="flex:1;height:3px"><i style="width:${r.sc * 100}%;${r.ok ? "" : "background:var(--amber)"}"></i></span><b class="mono" style="font-size:10.5px;color:${r.ok ? "var(--teal)" : "var(--amber)"}">${r.sc.toFixed(2)}</b>
+            <span class="chip ${r.ok ? "green" : "amber"}" style="height:17px;font-size:10px;padding:0 5px">${r.ok ? "일치" : "불일치"}</span></span>
+          <span style="color:var(--fg2);line-height:1.35;font-size:10.5px;letter-spacing:-.01em">${r.why}</span>
+        </span></div>`
     ).join("");
 
+    /* r3: AI가 미리 해 둔 대조 요약 — S15 정밀 대조 모델 기록(07-24 17:31 · 2.4초)과 같은 값 */
+    const aiPre = [
+      ["특징점", "412↔398"],
+      ["대응점", "39"],
+      ["일치", "28"],
+      ["정합 각도", "−4.0°"],
+    ].map(([k, v]) => `<span style="display:grid;gap:1px;padding:4px 6px;border-radius:6px;background:rgba(5,8,13,.45)"><span style="font-size:9.5px;color:var(--mute)">${k}</span><b class="mono" style="font-size:12.5px;color:var(--fg)">${v}</b></span>`).join("");
+
     const modalBody = `<div style="display:grid;grid-template-columns:820px minmax(0,1fr);gap:14px;padding:12px 14px 14px">
-      <div style="display:grid;gap:8px;min-width:0">
+      <div style="display:grid;gap:8px;min-width:0;align-content:start">
         <div class="pinbox" style="display:flex;justify-content:flex-end;align-items:center;gap:5px">${apin(2, "keep", true)}
           <button class="btn sm">이전</button><button class="btn sm">다음</button>
           <button class="btn sm" data-role="analyst admin">그룹등록</button><button class="btn sm warn" data-role="analyst admin">확인대상</button>
@@ -123,13 +194,21 @@
           ${pin(3, "better")}확인대상에 등록하시겠습니까? <button class="btn sm ok">예</button><button class="btn sm">아니오</button>${pin(7, "voice")}
         </div>
         <div style="display:grid;grid-template-columns:${W1 + GAP + W2}px 350px;gap:10px">
-          <div class="pinbox">${apin(6, "voice", true)}
+          <div class="pinbox">${apin(6, "voice", true)}${apin(12, "plus")}
             <div style="display:grid;grid-template-columns:${W1}px ${W2}px;gap:${GAP}px;margin-bottom:4px">
-              <span class="crumb" style="padding:3px 6px;border-radius:4px;background:var(--strip)">유류 이미지</span><span class="crumb" style="padding:3px 6px;border-radius:4px;background:var(--strip)">발견 이미지</span></div>
+              <span class="crumb" style="padding:3px 6px;border-radius:4px;background:var(--strip)">유류 이미지</span><span class="crumb" style="display:flex;align-items:center;padding:3px 6px;border-radius:4px;background:var(--strip)">발견 이미지</span></div>
             <div style="position:relative;display:grid;grid-template-columns:${W1}px ${W2}px;gap:${GAP}px;width:${W1 + GAP + W2}px;height:${H}px">
-              <span class="imgbox" style="display:block;height:${H}px">${sole({ kind: "scene", zones: ["herring", "grid", "tri"], cut: true })}<span class="cap">00001-25-0646_1</span></span>
+              <span class="imgbox" style="display:block;height:${H}px">${M.photo({ zones: ["herring", "grid", "tri"], rot: ROT, tag: "1" })}<span class="fx-scan" style="animation-duration:3.6s"></span><span class="cap">00001-25-0646_1</span>
+                <span class="ai-tag" style="position:absolute;left:56px;top:7px">AI 정합 −4.0° 보정</span></span>
               <span class="imgbox" style="display:block;height:${H}px">${sole({ kind: "shoe", zones: ["herring", "grid", "tri"] })}<span class="cap" style="color:#1f2a3a;text-shadow:none">305659</span></span>
               ${pairSvg()}
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;margin-top:5px;font-size:11px;color:var(--mute)">
+              <span class="ai-tag">AI 대응점 39</span>
+              <span style="display:inline-flex;align-items:center;gap:5px"><i style="display:inline-block;width:16px;height:2px;background:var(--teal);box-shadow:0 0 4px var(--teal)"></i>일치 <b class="mono" style="color:var(--teal)">28</b></span>
+              <span style="display:inline-flex;align-items:center;gap:5px"><i style="display:inline-block;width:16px;border-top:2px dashed #f87171"></i>불일치 <b class="mono" style="color:#f87171">11</b></span>
+              <span style="display:inline-flex;align-items:center;gap:5px"><i style="display:inline-block;width:16px;border-top:1px dashed #f5c518"></i>상·중·하 구역 선</span>
+              <span style="margin-left:auto;color:var(--dim)">번호 1–5 = 대표 대응점(감정관이 옮기거나 지울 수 있음)</span>
             </div>
             <div class="pinbox" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:6px">${pin(5, "better")}
               <span style="color:var(--dim);font-size:11px">두 이미지 함께</span>
@@ -156,26 +235,37 @@
 
       <div style="display:grid;gap:9px;align-content:start;padding-left:14px;border-left:1px dashed #1d4a44">
         <div style="display:flex;justify-content:space-between;align-items:center"><span class="ai-mark">● +α 정밀 대조</span><span class="chip" style="height:19px;font-size:10.5px">덧붙임 · 접기 ▴</span></div>
-        <div style="padding:7px 9px;border-radius:8px;background:var(--panel2);font-size:11.5px;color:var(--mute);line-height:1.5">1:1 정밀 대조는 처리 구분 <b style="color:var(--fg2)">「대조」</b>(용의자 신발과 비교) 사건의 주 기능입니다. 이 사건은 「현장」이라 <b style="color:var(--fg2)">참고용</b>으로만 보입니다.</div>
+        <div style="padding:7px 9px;border-radius:8px;background:var(--panel2);font-size:11.5px;color:var(--mute);line-height:1.45">1:1 정밀 대조는 <b style="color:var(--fg2)">「대조」</b>(용의자 신발과 비교) 사건의 주 기능. 이 사건은 「현장」이라 <b style="color:var(--fg2)">참고용</b>입니다.</div>
+        <div class="pinbox" style="display:grid;gap:6px;padding:7px 9px;border:1px solid #1d4a44;border-radius:8px;background:linear-gradient(160deg,rgba(15,38,36,.7),rgba(15,38,36,.15))">${apin(14, "plus")}
+          <div style="display:flex;align-items:center;gap:6px;font-size:11.5px"><span class="fx-live"></span><b style="color:var(--teal)">AI가 미리 대조해 둠</b><span class="mono" style="margin-left:auto;margin-right:18px;font-size:10px;color:var(--dim)">07-24 17:31 · 2.4초</span></div>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px">${aiPre}</div>
+        </div>
         <div class="pinbox">${apin(8, "plus")}
           <span class="seg" style="width:100%"><button aria-pressed="false">대응점</button><button aria-pressed="true">겹쳐 보기</button><button aria-pressed="false">히트맵</button></span>
-          <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;margin-top:7px;align-items:center">
-            <span class="imgbox" style="display:block;height:128px">
-              <span style="position:absolute;inset:0">${sole({ kind: "scene", zones: ["herring", "grid", "tri"], heat: true })}</span>
-              <span style="position:absolute;inset:0;opacity:.42">${sole({ kind: "shoe", zones: ["herring", "grid", "tri"], bg: "transparent" })}</span></span>
+          <div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:9px;margin-top:7px;align-items:center">
+            <span class="imgbox" style="display:block;width:96px;height:144px">
+              <span style="position:absolute;inset:0">${M.photo({ zones: ["herring", "grid", "tri"], rot: 0, tag: "", ruler: false })}</span>
+              <span style="position:absolute;left:25%;top:5.33%;width:50%;height:88%;opacity:.42">${sole({ kind: "shoe", zones: ["herring", "grid", "tri"], bg: "transparent" })}</span>
+              <span style="position:absolute;left:25%;top:5.33%;width:50%;height:88%;mix-blend-mode:screen">${heatSvg()}</span>
+              <span class="fx-scan" style="animation-duration:3s"></span></span>
             <div style="display:grid;gap:6px;font-size:11px;color:var(--mute)">
               <span>투명도 <b class="mono" style="color:var(--fg2)">42%</b></span>
               <span style="position:relative;height:4px;border-radius:2px;background:var(--line3)"><span style="position:absolute;left:0;top:0;height:4px;width:42%;border-radius:2px;background:var(--teal)"></span><span style="position:absolute;left:42%;top:-5px;width:13px;height:13px;margin-left:-6px;border-radius:50%;background:var(--fg)"></span></span>
-              <span style="line-height:1.4">Homography(각도·크기 맞춤) 정합 뒤 겹침. 붉을수록 일치 근거가 몰린 곳</span>
+              <span style="line-height:1.4">Homography(각도·크기 맞춤) 뒤 겹침 · 붉을수록 근거가 몰린 곳</span>
+              <span style="display:grid;gap:2px"><span style="height:6px;border-radius:3px;background:linear-gradient(90deg,rgba(250,204,21,.25),#f59e0b,#ef4444)"></span><span style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--dim)"><span>약함</span><span>강함</span></span></span>
+              <span style="display:flex;align-items:center;gap:5px;font-size:10.5px"><i style="display:inline-block;width:12px;height:12px;border:1.5px dashed #f87171;border-radius:50%"></i>현장 소실(비교 제외)</span>
             </div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:104px minmax(0,1fr);gap:8px;align-items:center;padding-top:6px;border-top:1px solid var(--line2)">
-          <div style="position:relative;width:104px;height:59px">${gauge(87)}<b class="mono" style="position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:18px">87%</b></div>
-          <div style="display:grid;gap:2px;font-size:11px">${metrics}</div>
+        <div style="display:grid;gap:6px;padding-top:6px;border-top:1px solid var(--line2)">
+          <div style="display:grid;grid-template-columns:104px minmax(0,1fr);gap:8px;align-items:center">
+            <div style="position:relative;width:104px;height:59px;filter:drop-shadow(0 0 8px rgba(45,212,191,.25))">${gauge(87)}<b class="mono" style="position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:18px">87%</b></div>
+            <div style="display:grid;gap:2px;font-size:11px">${metrics}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--mute)"><span class="ai-tag">AI 의견 · 참고</span><span>같은 밑창 쪽 근거가 강함 — 판정은 감정관</span></div>
         </div>
         <div class="pinbox">${apin(10, "voice")}
-          <div class="crumb" style="margin-bottom:2px">근거 — 칸 수 · 도형 개수 · 각도</div>
+          <div class="crumb" style="display:flex;align-items:center;gap:5px;margin-bottom:2px">근거 — 칸 수 · 도형 개수 · 각도 ${pin(13, "plus")}</div>
           ${basis}
         </div>
         <div class="pinbox" style="display:grid;gap:4px;font-size:11px;color:var(--mute)">${pin(11, "better")}
@@ -187,8 +277,8 @@
     </div>`;
 
     return M.shell(
-      { active: "사건관리", tabs: ["사건관리", "감정서작성", "족윤적 검증", "결재 대기함"], title: "사건관리", h: 920 },
-      `<div style="min-height:790px">
+      { active: "사건관리", tabs: ["사건관리", "감정서작성", "족윤적 검증", "결재 대기함"], title: "사건관리", h: 940 },
+      `<div style="min-height:810px">
         <div class="page-head"><div><div class="crumb">족윤적 · 사건관리 · 문양검색결과</div><h3>문양검색결과 <span class="mono" style="font-size:14px;color:var(--mute)">00001-25-0646_1 · 검색 572414 · 후보 869</span></h3></div></div>
         <div style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px">${bg}</div>
       </div>
@@ -265,7 +355,7 @@
       { t: "사업계획서", v: "p13 · p36" },
       { t: "발표", v: "s14" },
     ],
-    lead: "SCAS 상세조회 레이어 팝업을 같은 자리·같은 배치로 그립니다. 위는 유류 · 발견 · 측면 이미지 3단, 아래는 유류 ↔ 발견 이미지 문양이고, 오른쪽 위 버튼 줄은 「이전 다음 그룹등록 확인대상 프린트 닫기」 순서 그대로입니다. 정밀 대조(지표·겹쳐 보기·히트맵)는 오른쪽에 덧붙였고, 현장 사건에서는 참고용이라고 화면에 적었습니다.",
+    lead: "SCAS 상세조회 레이어 팝업을 같은 자리·같은 배치로 그립니다. 위는 유류 · 발견 · 측면 이미지 3단, 아래는 유류 ↔ 발견 이미지 문양이고, 오른쪽 위 버튼 줄은 「이전 다음 그룹등록 확인대상 프린트 닫기」 순서 그대로입니다. 정밀 대조(지표·겹쳐 보기·히트맵)는 오른쪽에 덧붙였고, 현장 사건에서는 참고용이라고 화면에 적었습니다. r3: 유류 이미지를 실제 사진처럼 바꾸고 AI가 찾은 대응점 39개(일치 28 · 불일치 11)와 상·중·하 구역 선을 겹쳤으며, 오른쪽에 AI 사전 대조 요약 · 히트맵 겹쳐 보기 · 부위별 근거(잘라 낸 그림 + 점수)를 붙였습니다.",
     fit: {
       area: ["same", "위 유류|발견|측면 3단·아래 문양 2칸 그대로, 정밀 대조는 오른쪽 덧붙임"],
       buttons: ["same", "이전 다음 그룹등록 확인대상 프린트 닫기 순서 그대로, 구분선 뒤 청록 1개만 추가"],
@@ -286,6 +376,9 @@
       { n: 9, kind: "voice", title: "현장 검색의 목적 = 수사망 좁히기", text: "「그건 대조에서 일어나는 부분」, 「이런 종류의 신발이다라는 거를 알려주는 거야. 수사망을 좁히기 위해서. 1대1이 아니니까」 — 팝업 머리에 처리 구분과 목적을 적고, 정밀 대조는 「대조」 사건의 주 기능·「현장」에서는 참고용이라고 구분합니다.", src: "5613 29:26–30:07" },
       { n: 10, kind: "voice", title: "칸 수 · 도형 개수로 근거 남기기", text: "「이 개수까지도 정확하게 맞게 그거를 인공지능이 잡아낸다면 좋겠지… 칸 수가 어떤 거는 7개 있고 어떤 거는 6개」 — 근거 항목을 지표보다 앞에, 부위별 칸 수·삼각형/마름모 개수·각도 비교로 적습니다.", src: "5613 28:45–29:19" },
       { n: 11, kind: "better", title: "보는 사람에 따라", text: "감정관·관리자는 그룹등록·확인대상·감정서 첨부 버튼과 확인 막대를 봅니다. 기술책임자는 결재 참고용 읽기 전용, 수사관에게는 이 팝업이 없습니다." },
+      { n: 12, kind: "plus", title: "실제 사진 위 대응점 39개 · 구역 선(r3)", text: "유류 이미지를 실제 촬영본처럼 그리고(자·증거 번호표 포함), AI가 찾은 대응점 39개를 모두 선으로 잇습니다 — 일치 28개는 청록 실선, 불일치 11개는 빨강 점선. 굵은 번호 1–5는 대표점이고 감정관이 옮기거나 지울 수 있습니다. 노란 점선은 상·중·하 구역 경계라, 불일치가 하 부위에 몰린 것이 한눈에 보입니다. 사진이 4° 기울어 있어도 AI가 맞춰 놓았다는 표시(「AI 정합 −4.0° 보정」)를 붙였습니다.", src: "5613 06:02 · 28:45 · 사업계획서 p13 · p36" },
+      { n: 13, kind: "plus", title: "부위별 근거 = 잘라 낸 그림 + 점수(r3)", text: "상·중·하마다 유류 사진과 발견 밑창의 같은 부위를 작게 잘라 나란히 놓고, 칸 수·도형 개수 비교, 대응점 일치 수(12/13 · 10/12 · 6/14), 부위 점수 막대(0.93 · 0.88 · 0.45)를 함께 적습니다. 「칸 수가 어떤 거는 7개 있고 어떤 거는 6개」를 글이 아니라 그림으로 바로 확인합니다.", src: "5613 28:45–29:19" },
+      { n: 14, kind: "plus", title: "AI가 미리 대조해 둠 · AI 의견은 참고(r3)", text: "팝업을 열 때 이미 끝나 있는 계산(특징점 412 ↔ 398개 → 대응점 39 → 일치 28, 각도 −4.0° 맞춤, 2.4초)을 맨 위에 보여 줍니다. 겹쳐 보기에는 히트맵(붉을수록 근거가 몰린 곳)과 현장 소실 부분(빨강 점선, 비교 제외)을 겹칩니다. 종합 신뢰도 87% 아래 「AI 의견 · 참고」는 의견일 뿐이고, 판정은 감정관이 합니다.", src: "사업계획서 p13 · p36 · 발표 s14" },
     ],
   });
 })();
