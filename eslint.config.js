@@ -84,6 +84,8 @@ export default [
   {
     ignores: [
       'dist',
+      // 정적 HTML 시안(앱 코드 아님, 브라우저 전역 M 사용)
+      'docs/mockups',
       'src/components/CrimeRegisterMain.jsx',
       'src/components/Sidebar.jsx',
     ],
