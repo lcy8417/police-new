@@ -10,7 +10,7 @@
   <aside class="toc" aria-label="목차">
     <div class="brand">
       <span class="emblem"><svg viewBox="0 0 24 24" fill="none" stroke="#7fb6ff" stroke-width="1.8"><path d="M12 2l8 3v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5l8-3z"/><path d="M8.5 12.5l2.4 2.3 4.6-5" stroke="#4a9eff"/></svg></span>
-      <b>족윤적 감정 플랫폼<small>MOCKUP · r1</small></b>
+      <b>족윤적 감정 플랫폼<small>MOCKUP · r2</small></b>
     </div>
     <h4>개요</h4>
     <a href="#principles"><span class="mono">01</span>원칙</a>
@@ -25,10 +25,11 @@
 
   <main class="main">
     <header class="hero">
-      <div class="eyebrow">폴리스랩 3.0 · 시안 r1 · 2026-11-03</div>
-      <h1>SCAS 그대로의 순서, 그 위에 AI</h1>
-      <p>경찰청 족윤적 감정관이 매일 쓰는 SCAS의 메뉴·화면 순서·라벨은 그대로 둡니다. 그 위에 사업계획서의 AI 기능(전처리, 문양 자동 추출, 하이브리드 검색·리랭킹, 정밀 대조, 감정서 초안)과 역할별 권한을 더했습니다.
-        화면마다 오른쪽 위 <b>「SCAS 지금 | 개선안」</b>으로 비교하고, 위 막대의 <b>보는 사람</b>으로 역할마다 달라지는 메뉴·버튼을 확인하세요. 화면 속 사람·사건 정보는 모두 가짜 예시입니다.</p>
+      <div class="eyebrow">폴리스랩 3.0 · 시안 r2 · 2026-11-03</div>
+      <h1>SCAS 그대로의 자리, 그 위에 AI</h1>
+      <p>경찰청 족윤적 감정관이 매일 쓰는 SCAS의 메뉴·화면 순서·라벨에 더해, r2부터는 <b>영역 위치·버튼 줄·팝업 방식·열 순서</b>까지 SCAS를 따릅니다. 실증 첫날 손에 익은 자리에서 바로 일할 수 있게 하려는 것입니다. 그 위에 사업계획서의 AI 기능과 역할별 권한을 더했습니다.
+        화면마다 <b>「SCAS 배치 일치도」</b>로 무엇이 같고 무엇이 달라졌는지 표시했고, 감정관 인터뷰 녹취(영상 3개, 약 47분)에서 나온 말은 <b style="color:var(--violet)">보라색 핀</b>으로 근거를 달았습니다.
+        오른쪽 위 <b>「SCAS 지금 | 개선안」</b>으로 비교하고, 위 막대의 <b>보는 사람</b>으로 역할마다 달라지는 메뉴·버튼을 확인하세요. 화면 속 사람·사건 정보는 모두 가짜 예시입니다.</p>
     </header>
 
     <div class="controls">
@@ -36,7 +37,7 @@
       <div class="seg" id="viewer" role="group" aria-label="보는 사람">
         <button data-viewer="investigator" aria-pressed="false">수사관</button>
         <button data-viewer="analyst" aria-pressed="true">감정관</button>
-        <button data-viewer="verifier" aria-pressed="false">검증자</button>
+        <button data-viewer="verifier" aria-pressed="false">기술책임자</button>
         <button data-viewer="admin" aria-pressed="false">관리자</button>
       </div>
       <span id="viewer-hint" style="color:var(--mute);font-size:12px"></span>
@@ -52,8 +53,8 @@
     <section class="sec" id="principles">
       <div class="sec-head"><div><div class="code">01</div><h2>원칙</h2></div></div>
       <div class="cards">
-        <div class="card"><h3>SCAS 순서·라벨 유지</h3><p>메뉴 트리(사건관리·문양관리·문양검색·문양대조·감정서관리·족윤적관리), 열린 화면 탭, 감정번호·문서번호 같은 용어를 그대로 씁니다. 실증 첫날부터 손에 익은 순서로 일할 수 있게 하는 것이 목표입니다.</p></div>
-        <div class="card"><h3>팝업 대신 한 창</h3><p>SCAS는 레이어 팝업·별도 크롬 창·윈도 프로그램 창이 4~5겹 쌓입니다. 개선안은 한 화면 안에서 오른쪽 상세 칸과 편집 창으로 처리하고, 디자인도 하나로 맞춥니다.</p></div>
+        <div class="card"><h3>SCAS 자리 그대로</h3><p>메뉴 트리, 열린 화면 탭, 라벨은 물론 영역 위치·버튼 줄 순서·열 순서까지 SCAS를 따릅니다. 새 기능은 기존 자리를 밀어내지 않고 빈 자리나 버튼 줄 끝에 붙입니다.</p></div>
+        <div class="card"><h3>팝업은 팝업으로, 창은 하나로</h3><p>SCAS에서 팝업이던 화면은 같은 자리에 같은 크기로 뜹니다. 대신 윈도 프로그램 창·크롬 새 창을 없애 창 종류를 하나로 맞추고, 4~5겹 쌓이던 것을 최대 2겹으로 줄입니다.</p></div>
         <div class="card"><h3>AI는 "추천"으로 얹기</h3><p>AI가 문양·후보·감정서 초안을 먼저 채우면 감정관이 고칩니다. 최종 판단은 항상 사람이 하고, AI가 채운 값에는 표시가 남습니다.</p></div>
         <div class="card"><h3>근거가 보이는 결과</h3><p>순위 옆에 유사도, 일치 부위, 대응점 수를 함께 보여 줍니다. 실무자 설문의 "유사점 설명·객관성" 요구에 답하는 부분입니다.</p></div>
       </div>
@@ -61,28 +62,29 @@
 
     <section class="sec" id="workflow">
       <div class="sec-head"><div><div class="code">02</div><h2>업무 흐름</h2><div class="ref"><span class="chip-ref">실무자 설문 문항3</span><span class="chip-ref">IMG_5613 전 구간</span></div></div></div>
-      <p class="sec-lead">SCAS의 진행상태(등록 → 검색 → 확인대상선정 → 결과확인완료 → 검증요청 → 결재)를 그대로 따릅니다. 청록 테두리 단계는 이번에 더하는 AI 기능입니다.</p>
+      <p class="sec-lead">감정관 설명대로 흐름은 3층입니다. <b>사건</b> 안에 <b>이미지</b>(12~20장도 옴)가 있고, 이미지마다 따로 편집 → 검색 → 확인합니다. 사건관리 목록의 진행상태 숫자는 이 이미지 장수를 셉니다. 청록 테두리 단계는 이번에 더하는 AI 기능입니다.</p>
       <div class="flow">
-        <div class="step"><small>시도청 · 수사관</small><b>등록·의뢰</b><span>현장 족적 사진, 사건정보</span></div><span class="arrow">→</span>
-        <div class="step"><small>본청 · 감정관</small><b>접수·배당</b><span>감정번호 부여</span></div><span class="arrow">→</span>
-        <div class="step plus"><small>감정관 + AI</small><b>전처리·문양</b><span>배경제거·이진화, 문양 자동 추출</span></div><span class="arrow">→</span>
-        <div class="step plus"><small>감정관 + AI</small><b>검색·대조</b><span>하이브리드 검색, 리랭킹, 정밀 대조</span></div><span class="arrow">→</span>
-        <div class="step"><small>감정관</small><b>결과확인</b><span>발견 · 불발견 · 감정불능</span></div><span class="arrow">→</span>
-        <div class="step"><small>팀장 · 기술책임자</small><b>검증·결재</b><span>1차 팀장, 2차 기술책임자</span></div><span class="arrow">→</span>
-        <div class="step plus"><small>감정관 + AI</small><b>감정서</b><span>초안 자동 작성 → 검토</span></div>
+        <div class="step"><small>공문 접수 · 자동 생성</small><b>사건 등록</b><span>감정관 임의 등록도 가능 (5613 11:31, 19:55)</span></div><span class="arrow">→</span>
+        <div class="step"><small>감정관 · 1차 작업</small><b>의뢰 점검·커팅</b><span>중복 이미지 정리, 자르기·회전·좌우반전</span></div><span class="arrow">→</span>
+        <div class="step plus"><small>이미지마다 · 감정관 + AI</small><b>문양·검색</b><span>편집본으로 AI 추출, 이미지 검색, 리랭킹</span></div><span class="arrow">→</span>
+        <div class="step"><small>이미지마다 · 감정관</small><b>확인대상·판정</b><span>발견 · 불발견 · 감정불능</span></div><span class="arrow">→</span>
+        <div class="step"><small>다른 감정관</small><b>교차 검증</b><span>의견 일치 / 불일치 (5613 17:42)</span></div><span class="arrow">→</span>
+        <div class="step plus"><small>감정관 + AI</small><b>감정서</b><span>초안 자동 작성 → 검토</span></div><span class="arrow">→</span>
+        <div class="step"><small>기술책임자</small><b>결재</b><span>서명란: 감정관 · 감정관 · 기술책임자</span></div>
       </div>
     </section>
 
     <section class="sec" id="roles">
-      <div class="sec-head"><div><div class="code">03</div><h2>역할과 권한</h2><div class="ref"><span class="chip-ref">사업계획서 p18–20</span><span class="chip-ref">실무자 설문 문항22</span></div></div></div>
-      <p class="sec-lead">설문에서 "역할별로 화면을 나눌 필요는 없다"는 답이 있어, 화면은 하나로 두고 <b>메뉴와 버튼만 역할에 따라</b> 달라집니다. 실제 권한은 관리자 화면에서 사람마다 켜고 끕니다(현재 서버의 기능 권한과 연결).</p>
+      <div class="sec-head"><div><div class="code">03</div><h2>역할과 권한</h2><div class="ref"><span class="chip-ref">사업계획서 p18–20</span><span class="chip-ref">실무자 설문 문항22</span><span class="chip-ref v">인터뷰 5613 17:34–18:55 · 5616 04:40</span></div></div></div>
+      <p class="sec-lead">설문에서 "역할별로 화면을 나눌 필요는 없다"는 답이 있어, 화면은 하나로 두고 <b>메뉴와 버튼만 역할에 따라</b> 달라집니다. r2에서 인터뷰를 반영해 바꿨습니다: 검증은 팀장이 아니라 <b>다른 감정관이 하는 교차 검증</b>이고, 결재는 기술책임자가 합니다. 신발 DB는 등록·문양 입력·승인을 <b>사람마다 나눠</b> 맡습니다.</p>
       <div class="tablebox"><table class="doc-table">
         <thead><tr><th>역할</th><th>누가</th><th>할 수 있는 일</th><th>현재 서버 권한 코드</th></tr></thead>
         <tbody>
           <tr><td><span class="chip blue">수사관</span></td><td>시도청 과학수사관</td><td>사건 등록·감정 의뢰, 자기 사건 진행상태 조회</td><td class="mono">CRIME_REGISTER</td></tr>
-          <tr><td><span class="chip blue">감정관</span></td><td>본청 족윤적 감정관</td><td>전처리, 문양 코딩, 검색·대조, 결과확인, 감정서 작성, 신발 DB 관리</td><td class="mono">CRIME_SEARCH · SHOE_VIEW · SHOE_EDIT</td></tr>
-          <tr><td><span class="chip blue">검증자</span></td><td>팀장(1차) · 기술책임자(2차)</td><td>감정 결과 검증, 감정서 결재·반려</td><td class="mono">신규 권한 필요(시안 단계)</td></tr>
+          <tr><td><span class="chip blue">감정관</span></td><td>본청 족윤적 감정관</td><td>사건 등록(임의 등록), 커팅·편집, 문양 코딩, 검색, 확인대상·판정, <b>다른 감정관 결과 교차 검증</b>, 감정서 작성</td><td class="mono">CRIME_REGISTER · CRIME_SEARCH · SHOE_VIEW</td></tr>
+          <tr><td><span class="chip blue">기술책임자</span></td><td>족윤적 기술책임자</td><td>감정서 결재·반려 (감정서 서명란 셋째 칸)</td><td class="mono">신규 권한 필요(시안 단계)</td></tr>
           <tr><td><span class="chip blue">관리자</span></td><td>과학수사관리관실 담당자</td><td>계정·역할·권한, 사용·감사 기록, 기초코드, 모델 관리</td><td class="mono">ADMIN</td></tr>
+          <tr><td><span class="chip">신발 DB 분업</span></td><td>역할과 별개로 사람마다 켬</td><td>신발 등록(월 약 500건) · 문양 입력 · <b>신발 승인</b>(하루 약 50매) 담당</td><td class="mono">SHOE_EDIT + 신규 승인 권한</td></tr>
         </tbody>
       </table></div>
     </section>
@@ -100,10 +102,17 @@
 
     <section class="sec" id="questions">
       <div class="sec-head"><div><div class="code">91</div><h2>열린 질문</h2></div></div>
+      <p class="sec-lead">다음 인터뷰 때 감정관에게 직접 물어 확정할 것들입니다. 위쪽 4개는 녹취에서 답이 나오지 않은 것, 아래 4개는 설계 판단입니다.</p>
+      <div class="cards" style="margin-bottom:12px">
+        <div class="card"><h3>결재 순서</h3><p>교차 검증 뒤 감정서 결재는 누가 몇 단계로 하나요? 서명란의 두 「감정관」은 작성자와 교차 검증자가 맞나요?</p></div>
+        <div class="card"><h3>교차 검증자 정하기</h3><p>교차 검증자는 지정·순번·아무나 중 어떻게 정하나요? 의견이 불일치하면 어떻게 처리하나요?</p></div>
+        <div class="card"><h3>사건 등록 경로와 배당</h3><p>수사관이 직접 등록하나요, 공문 접수로만 들어오나요? 「배당」 절차가 따로 있나요?</p></div>
+        <div class="card"><h3>시간과 순위</h3><p>이미지 1장 처리에 보통 몇 분이 걸리나요? 정답은 보통 몇 위쯤에서 찾나요? 한 달 사건 수(화면상 약 116건)와 「대조」 사건 비율은요?</p></div>
+      </div>
       <div class="cards">
-        <div class="card"><h3>검증자 권한 범위</h3><p>팀장(1차)과 기술책임자(2차)를 한 역할로 둘지, 두 역할로 나눌지 정해야 합니다. 지금 시안은 한 역할 안에서 단계만 나눴습니다.</p></div>
         <div class="card"><h3>SCAS 상단 대메뉴</h3><p>SCAS는 현장감식·몽타주 등 다른 업무가 같은 화면에 있습니다. 우리 플랫폼은 족윤적만 다루므로 상단 대메뉴를 뺐습니다. 실증 때 SCAS와 나란히 쓸지 확인이 필요합니다.</p></div>
         <div class="card"><h3>감정서 양식</h3><p>KOLAS 양식(KPSI-KQP-16-F05)을 그대로 쓰고 AI는 빈칸을 채우는 방식으로 그렸습니다. HWP로 내보내야 하는지, PDF로 충분한지 확인이 필요합니다.</p></div>
+        <div class="card"><h3>검색 성능 수치 표기</h3><p>사업계획서 p5 표3에서 하이브리드 검색은 Top-10만 기존보다 높고(51.43% / 47.14%), Top-50·100은 기존이 높습니다. 시안 검색 화면은 Top-10만 표기했습니다. 행정관 자료에 어떤 수치를 보일지 정해야 합니다.</p></div>
         <div class="card"><h3>인터넷 수집 PC</h3><p>신발 사진은 내부망 밖 인터넷 PC에서 구합니다. 수집 검수 화면(+α)이 내부망에 어떻게 들어올지(반입 절차) 정해야 합니다.</p></div>
       </div>
     </section>

@@ -7,8 +7,12 @@
 
   /* ── 화면 등록 ──
      M.add({ id, code, title, plus, group, refs:[{t, v}], lead, scas: () => html, ours: () => html,
-             notes:[{ n, kind:"keep|better|plus|voice", title, text, src }] }) */
+             fit: { area, buttons, popup, columns },   // SCAS 배치 일치도(r2): 각 값 [상태, 설명]
+             notes:[{ n, kind:"keep|better|plus|voice", title, text, src }] })
+     fit 상태: "same"(SCAS와 같음) | "near"(위치는 같고 모양만 다름) | "diff"(달라짐 — 설명 필수) | "na"(해당 없음) */
   M.add = (s) => M.screens.push(s);
+  M.FIT_LABEL = { area: "영역 위치", buttons: "버튼 줄", popup: "팝업 방식", columns: "열·칸 순서" };
+  M.FIT_STATE = { same: ["●", "SCAS와 같음", "var(--green)"], near: ["◐", "위치 같음·모양 다름", "var(--amber)"], diff: ["○", "달라짐", "var(--red)"], na: ["–", "해당 없음", "var(--faint)"] };
 
   /* ── 문자열 도우미 ── */
   M.esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -18,8 +22,8 @@
   /* ── 역할(보는 사람) ── */
   M.ROLES = {
     investigator: { label: "수사관", who: "이○○ 경사", org: "대구청 과학수사계", hint: "사건 등록·의뢰" },
-    analyst: { label: "감정관", who: "박○○ 경위", org: "경찰청 범죄분석과", hint: "검색·대조·판단·감정서" },
-    verifier: { label: "검증자", who: "최○○ 경감", org: "족윤적 팀장·기술책임자", hint: "검증·결재" },
+    analyst: { label: "감정관", who: "박○○ 경위", org: "경찰청 범죄분석과", hint: "검색·판단·교차 검증·감정서 (인터뷰 5613 17:42)" },
+    verifier: { label: "기술책임자", who: "최○○ 경감", org: "족윤적 기술책임자", hint: "감정서 결재 (감정서 서명란: 감정관·감정관·기술책임자)" },
     admin: { label: "관리자", who: "시스템 관리자", org: "경찰청 과학수사관리관실", hint: "계정·권한·기록·모델" },
   };
 
@@ -108,30 +112,36 @@
   /* ── 우리 개선안 앱 셸 ──
      M.shell({ active:"사건관리", tabs:["사건관리", ...], tabOn:"사건관리", title:"사건관리", menuCount:{}, h:880 }, innerHtml) */
   const SVG_SHIELD = `<svg viewBox="0 0 24 24" fill="none" stroke="#7fb6ff" stroke-width="1.8"><path d="M12 2l8 3v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5l8-3z"/><path d="M8.5 12.5l2.4 2.3 4.6-5" stroke="#4a9eff"/></svg>`;
+  /* r2: SCAS 왼쪽 트리(영상 5613 05:22·18:07, 5616 8:00)와 같은 그룹·순서. +α는 그룹 끝에만 붙인다.
+     oos = 시안에서 그리지 않은 SCAS 메뉴(자리만 유지). 사건 등록은 SCAS처럼 목록의 「등록」 버튼으로 들어간다. */
+  const A = "investigator analyst verifier admin";
   const MENU = [
     { g: "사건관리", items: [
-      { t: "사건관리", role: "investigator analyst verifier admin" },
-      { t: "사건 등록", role: "investigator admin" },
-      { t: "용의자관리", role: "investigator analyst admin" },
+      { t: "사건관리", role: A },
+      { t: "용의자관리", role: "investigator analyst admin", oos: true },
     ] },
     { g: "문양관리", items: [
       { t: "신발문양 관리", role: "analyst admin" },
-      { t: "신발그룹 관리", role: "analyst admin" },
+      { t: "신발문양 조회", role: "analyst verifier admin", oos: true },
+      { t: "타이어문양 관리", role: "analyst admin", oos: true },
+      { t: "타이어문양 조회", role: "analyst verifier admin", oos: true },
+      { t: "신발그룹 관리", role: "analyst admin", oos: true },
       { t: "수집 검수", role: "analyst admin", plus: true },
     ] },
-    { g: "문양검색·대조", items: [
-      { t: "검색 이력", role: "analyst verifier admin" },
-      { t: "정밀 대조", role: "analyst verifier admin", plus: true },
-    ] },
+    { g: "문양검색", items: [{ t: "검색 이력", role: "analyst verifier admin" }] },
+    { g: "문양대조", items: [{ t: "정밀 대조", role: "analyst verifier admin", plus: true }] },
     { g: "감정서관리", items: [
       { t: "감정서작성", role: "analyst admin", cnt: "2" },
       { t: "결재 대기함", role: "verifier admin", cnt: "3" },
     ] },
     { g: "족윤적관리", items: [
-      { t: "족윤적 검증", role: "verifier admin", cnt: "1" },
+      { t: "불발견족윤적관리", role: "analyst admin", oos: true },
+      { t: "진행상태변경", role: "analyst admin", oos: true },
+      { t: "신발정보일괄등록", role: "analyst admin", oos: true },
       { t: "기초코드관리", role: "admin" },
-      { t: "사용자·권한", role: "admin" },
-      { t: "사용 기록", role: "admin" },
+      { t: "사용자 관리", role: "admin" },
+      { t: "족윤적 검증", role: "analyst verifier admin", cnt: "1" },
+      { t: "사용 기록", role: "admin", plus: true },
       { t: "모델 관리", role: "admin", plus: true },
     ] },
   ];
@@ -142,7 +152,7 @@
         g.items
           .map(
             (it) =>
-              `<a class="${[].concat(active).includes(it.t) ? "on" : ""} ${it.plus ? "plus" : ""}" data-role="${it.role}">${it.t}${it.cnt ? `<span class="cnt">${it.cnt}</span>` : ""}</a>`
+              `<a class="${[].concat(active).includes(it.t) ? "on" : ""} ${it.plus ? "plus" : ""} ${it.oos ? "oos" : ""}" data-role="${it.role}" ${it.oos ? 'title="SCAS 메뉴 자리 유지(시안 범위 밖)"' : ""}>${it.t}${it.cnt ? `<span class="cnt">${it.cnt}</span>` : ""}</a>`
           )
           .join("")
     ).join("");
@@ -216,6 +226,14 @@
             </div>
           </div>
           ${s.lead ? `<p class="sec-lead">${s.lead}</p>` : ""}
+          ${s.fit ? `<div class="fit" aria-label="SCAS 배치 일치도"><span class="fit-t">SCAS 배치 일치도</span>${Object.keys(M.FIT_LABEL)
+            .filter((k) => s.fit[k])
+            .map((k) => {
+              const [st, why] = [].concat(s.fit[k]);
+              const [mark, lab, col] = M.FIT_STATE[st] || M.FIT_STATE.na;
+              return `<span class="fit-i" title="${M.esc(lab)}"><b style="color:${col}">${mark}</b> ${M.FIT_LABEL[k]}${why ? ` <span>— ${M.esc(why)}</span>` : ""}</span>`;
+            })
+            .join("")}</div>` : ""}
           <div class="viewport">
             ${s.scas ? `<div class="frame" data-frame="scas" hidden>${s.scas()}</div>` : ""}
             <div class="frame" data-frame="ours">${s.ours()}</div>

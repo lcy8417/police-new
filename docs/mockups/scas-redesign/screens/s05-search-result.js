@@ -1,109 +1,104 @@
-/* S05 검색 결과 — SCAS 「문양검색결과」 레이어 팝업 + 「인공지능 문양 검색 결과」 다크 창 (IMG_5613 05:07, 07:22, 08:52–09:52) */
+/* S05 검색 결과 — SCAS 「문양검색결과」 레이어 팝업 + 「인공지능 문양 검색 결과」 다크 창 + 「현장문양검색결과 상세조회」 팝업
+   (IMG_5613 04:54–05:07, 07:22, 08:44–09:52, 21:50–22:48)
+   r2: SCAS 팝업 배치(좌 현장 / 우 결과 그리드, 결과형태 1–4열 · 확인대상보기) 유지 + 수천 장 빠른 넘겨보기,
+       확인대상 등록은 SCAS처럼 상세조회 버튼으로, 카드 ★은 지름길로만 덧붙임. */
 (function () {
-  const { pin, apin, sole, picon } = M;
+  const { pin, apin, sole } = M;
 
-  /* 후보: mv=AI 리랭킹 이동(+면 위로), zn=[상,중,하] 일치, prev=이전 검색(572355) 순위 */
-  const RES = [
-    { id: "305659", sim: 94.2, mv: 12, zn: [1, 1, 1], br: "나이키", k: "운동화", prev: "이전 13위", z: ["herring", "herring", "herring"], star: true },
-    { id: "305661", sim: 91.8, mv: 3, zn: [1, 1, 0], br: "나이키", k: "운동화", prev: "이전 5위", z: ["herring", "grid", "herring"], hover: true },
-    { id: "288104", sim: 89.5, mv: -1, zn: [1, 0, 1], br: "아디다스", k: "운동화", prev: "이전 2위", z: ["herring", "dots", "herring"], star: true },
-    { id: "301877", sim: 87.0, mv: 0, zn: [1, 1, 0], br: "뉴발란스", k: "운동화", prev: "새로 등장", z: ["herring", "herring", "blocks"] },
-    { id: "276552", sim: 85.3, mv: 27, zn: [0, 1, 1], br: "프로스펙스", k: "운동화", prev: "이전 31위", z: ["grid", "herring", "herring"], star: true },
-    { id: "299410", sim: 84.9, mv: -2, zn: [1, 0, 0], br: "나이키", k: "슬리퍼", prev: "이전 4위", z: ["herring", "wave", "lines"] },
-    { id: "262019", sim: 83.1, mv: 5, zn: [0, 1, 0], br: "휠라", k: "운동화", prev: "이전 11위", z: ["dots", "herring", "grid"] },
-    { id: "305102", sim: 82.7, mv: -4, zn: [1, 0, 0], br: "기타", k: "구두", prev: "이전 6위", z: ["herring", "blocks", "blocks"] },
-  ];
-  const mvBadge = (m) =>
-    m > 0
-      ? `<span class="chip teal num" style="height:19px;padding:0 6px;font-size:10.5px" title="AI 리랭킹으로 ${m}계단 올라옴">▲${m}</span>`
-      : m < 0
-      ? `<span class="chip num" style="height:19px;padding:0 6px;font-size:10.5px;color:var(--dim)">▼${-m}</span>`
-      : `<span class="chip" style="height:19px;padding:0 6px;font-size:10.5px;color:var(--dim)">—</span>`;
-  const zchips = (zn) =>
-    ["상", "중", "하"].map((t, i) => `<span class="chip ${zn[i] ? "green" : ""}" style="height:18px;padding:0 6px;font-size:10.5px;${zn[i] ? "" : "color:var(--faint)"}">${t}</span>`).join("");
+  const modal = ({ x, y, w, title, btns, body }) => `<div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;border:1px solid #2b4a78;border-radius:12px;background:var(--panel);box-shadow:0 24px 70px rgba(0,0,0,.7)">
+      <div style="display:flex;align-items:center;gap:8px;height:42px;padding:0 10px 0 14px;border-bottom:1px solid #2b4a78;border-radius:12px 12px 0 0;background:linear-gradient(90deg,#132445,#0e1a30)"><b style="font-size:13.5px;white-space:nowrap">${title}</b><span style="margin-left:auto;display:flex;gap:6px;align-items:center">${btns}</span></div>${body}</div>`;
+  const band = (t, r = "") => `<div style="display:flex;align-items:center;gap:8px;min-height:30px;padding:0 10px;border-left:3px solid var(--blue2);background:rgba(21,34,56,.7);font-size:12.5px;font-weight:600">${t}<span style="margin-left:auto;display:flex;gap:6px;align-items:center;font-weight:400">${r}</span></div>`;
 
-  function card(r, i) {
-    const hover = r.hover
-      ? `<div style="position:absolute;inset:0;clip-path:inset(0 50% 0 0)">${sole({ kind: "scene", zones: ["herring", "grid", "herring"] })}</div>
-         <div style="position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--blue)"></div>
-         <span class="chip blue" style="position:absolute;left:8px;top:8px;height:20px">빠른 대조</span>
-         <span style="position:absolute;left:0;right:0;bottom:0;padding:5px 8px;background:rgba(5,8,13,.82);color:var(--fg2);font-size:11px">두 번 누르면 편집창(S03)</span>`
-      : `<span class="cap">${r.id}</span>`;
-    const pinHtml = i === 0 ? apin(4, "plus") : i === 1 ? apin(6, "better") : "";
-    return `<div class="pinbox" style="display:grid;gap:6px;padding:8px;border:1px solid ${r.hover ? "var(--blue)" : "var(--line)"};border-radius:12px;background:var(--panel2);${r.hover ? "box-shadow:0 0 0 1px var(--blue),0 10px 30px rgba(0,0,0,.45)" : ""}">${pinHtml}
-      <div style="display:flex;align-items:center;gap:6px">
-        <b class="num" style="font-size:13px">${i + 1}위</b><span class="num" style="color:var(--fg);font-weight:600;font-size:13px">${r.sim.toFixed(1)}%</span>${mvBadge(r.mv)}
-        <button class="btn sm ghost" style="margin-left:auto;padding:0 4px;font-size:16px;color:${r.star ? "var(--amber)" : "var(--faint)"}" data-lock="analyst admin" title="확인대상">${r.star ? "★" : "☆"}</button>
-      </div>
-      <span class="imgbox" style="height:190px">${sole({ kind: "shoe", zones: r.z })}${hover}</span>
-      <div style="display:flex;justify-content:space-between;gap:6px;font-size:11.5px"><span style="color:var(--fg2)"><span class="mono">${r.id}</span> · ${r.br} · ${r.k}</span></div>
-      <div style="display:flex;align-items:center;gap:4px">${zchips(r.zn)}<span style="margin-left:auto;font-size:10.5px;color:${r.prev === "새로 등장" ? "var(--violet)" : "var(--dim)"}">${r.prev}</span></div>
-    </div>`;
-  }
+  /* 17쪽(129–152위). 136위까지 봤음, 137위에 키보드 초점, mv = AI 순위 다시 매김으로 오른 계단 */
+  const Z = [["herring", "grid", "herring"], ["grid", "grid", "blocks"], ["herring", "herring", "lines"], ["dots", "herring", "grid"], ["wave", "grid", "herring"], ["blocks", "herring", "blocks"], ["tri", "herring", "grid"], ["herring", "dots", "herring"]];
+  const SIMS = [61.2, 61.0, 60.8, 60.7, 60.1, 59.9, 59.6, 59.0, 58.4, 58.1, 57.9, 57.6, 57.2, 57.0, 56.8, 56.5, 56.1, 55.9, 55.8, 55.4, 55.0, 54.7, 54.5, 54.1];
+  const RES = SIMS.map((s, i) => ({ r: 129 + i, s, z: Z[i % 8], seen: 129 + i <= 136, focus: 129 + i === 137, star: 129 + i === 140, mv: { 1: 4, 9: 11, 13: 2 }[i] || 0 }));
+
+  const card = (c) => `<div class="pinbox" style="display:grid;gap:3px;padding:4px;border:1px solid ${c.focus ? "var(--blue)" : "var(--line)"};border-radius:9px;background:var(--panel2);${c.seen ? "opacity:.5" : ""}${c.focus ? ";box-shadow:0 0 0 2px var(--blue),0 0 14px rgba(74,158,255,.4)" : ""}">${c.star ? apin(8, "better") : ""}
+      <span class="imgbox" style="height:104px;border-radius:6px">${sole({ kind: "shoe", zones: c.z })}${c.mv ? `<span class="chip teal num" style="position:absolute;left:4px;top:4px;height:17px;padding:0 5px;font-size:10px">▲${c.mv}</span>` : ""}</span>
+      <div style="display:flex;align-items:center;gap:3px;font-size:10.5px;line-height:1.2;white-space:nowrap">
+        <b class="num">${c.r}위</b><span class="num" style="color:var(--mute)">${c.s.toFixed(1)}%</span>
+        <span style="margin-left:auto;font-size:13px;color:${c.star ? "var(--amber)" : "var(--faint)"}" data-lock="analyst admin">${c.star ? "★" : "☆"}</span>
+      </div></div>`;
 
   function ours() {
-    const stars = RES.filter((r) => r.star);
+    /* 뒤 화면: S04 문양 상세보기 팝업(어둡게) */
+    const ghost = `<div style="opacity:.3;pointer-events:none;position:absolute;inset:0">
+        <div class="panel" style="position:absolute;left:0;right:0;top:6px;height:900px"><div style="height:42px;border-bottom:1px solid var(--line)"></div>
+          <div style="display:grid;grid-template-columns:240px 1fr 270px;gap:12px;padding:12px"><div class="panel" style="height:800px"></div><div class="panel" style="height:800px"></div><div class="panel" style="height:800px"></div></div></div></div>`;
+
+    const row1 = RES.slice(0, 8).map(card).join("");
+    const rest = RES.slice(8).map(card).join("");
+
+    const left = `<div style="display:grid;gap:8px;align-content:start">
+        ${band("현장 족적", `<span class="seg" style="padding:2px"><button aria-pressed="true" style="padding:2px 8px">원본</button><button aria-pressed="false" style="padding:2px 8px">이진화</button></span>`)}
+        <span class="imgbox" style="height:330px">${sole({ kind: "scene", zones: ["herring", "herring", "herring"] })}<span class="cap">고정 · 두 번 누르면 뷰어</span></span>
+        <div style="font-size:11.5px;color:var(--mute);line-height:1.6">검색번호 <b class="mono" style="color:var(--fg2)">572433</b> · 이미지 검색<br>필수 문양 상·중 헤링본 · 07-24 17:41</div>
+        <div class="pinbox" style="display:grid;gap:6px;padding:8px 10px;border:1px solid var(--line3);border-radius:8px;background:var(--panel2)">${apin(4, "voice")}
+          <div style="display:flex;justify-content:space-between;font-size:12px"><b>본 위치</b><span class="num" style="color:var(--fg2)">136위 / 857건</span></div>
+          <div style="height:6px;border-radius:3px;background:var(--line3)"><div style="width:16%;height:100%;border-radius:3px;background:var(--blue2)"></div></div>
+          <div style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--dim)">지난번 07-24 17:52까지<button class="btn sm" style="margin-left:auto">137위부터 이어 보기</button></div>
+        </div>
+        <div class="pinbox" style="display:grid;gap:4px;padding:8px 10px;border:1px solid #4d3a12;border-radius:8px;background:var(--amber-bg)">${apin(9, "voice")}
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--amber)"><b>확인대상</b><span class="num">2건</span></div>
+          ${[["3위", "305659"], ["140위", "305102"]].map(([r, id]) => `<div style="display:flex;gap:6px;align-items:center;font-size:11.5px;color:var(--fg2)"><span class="num" style="width:38px">${r}</span><span class="mono">${id}</span><button class="btn sm" style="margin-left:auto;height:20px;padding:0 6px" data-lock="analyst admin">확인대상 제외</button></div>`).join("")}
+        </div>
+        <div style="font-size:11px;color:var(--dim);line-height:1.6">키보드 ← → 한 장 · PgDn 한 쪽 · Enter 상세조회 · S ★</div>
+      </div>`;
+
+    const right = `<div style="display:grid;gap:8px;align-content:start;min-width:0">
+        <div style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px">${row1}</div>
+        <div class="pinbox" style="display:flex;align-items:center;gap:8px;color:var(--blue);font-size:11px;padding-right:16px"><span style="flex:1;height:1px;background:var(--blue2)"></span>여기까지 봤음 · 136위 · 07-24 17:52<span style="flex:1;height:1px;background:var(--blue2)"></span></div>
+        <div style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px">${rest}</div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mute)"><span class="num">« ‹ 17 / 108 › »</span><span class="num" style="color:var(--dim)">129–152위 / 857건</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--dim)">카드 ☆ = 확인대상 지름길(상세조회 버튼과 같음)</span></div>
+      </div>`;
+
+    /* 상세조회(SCAS는 3번째 팝업 → 같은 레이어 아래 칸) */
+    const info = [["화류번호", "305102"], ["제조사", "(주)○○"], ["상표명", "기타"], ["모델번호", "—"], ["화종", "구두"], ["수집년도", "2021"], ["그룹명", "G-1182"]];
+    const detail = `<div style="margin-top:4px">
+        ${band(`현장문양검색결과 상세조회 <span class="num" style="font-weight:400;color:var(--mute);margin-left:4px">137위 · 58.4%</span>`, `<span class="pinbox" style="display:inline-flex;gap:5px">${apin(6, "voice", true)}
+          <button class="btn sm">이전</button><button class="btn sm">다음</button><button class="btn sm" data-lock="analyst admin">그룹등록</button><button class="btn sm ok" data-lock="analyst admin" style="box-shadow:inset 0 0 0 1px #4ade80">확인대상</button><button class="btn sm">프린트</button><button class="btn sm">닫기</button></span>
+          <span style="width:1px;height:18px;background:var(--line3)"></span><button class="btn sm">크게 보기(뷰어)</button>`)}
+        <div style="display:grid;grid-template-columns:150px 150px 190px minmax(0,1fr);gap:10px;padding:10px 0 0">
+          <div style="display:grid;gap:3px;font-size:11px;color:var(--mute)">유류 이미지<span class="imgbox" style="height:150px">${sole({ kind: "scene", zones: ["herring", "herring", "herring"] })}</span></div>
+          <div style="display:grid;gap:3px;font-size:11px;color:var(--mute)">발견 이미지<span class="imgbox" style="height:150px">${sole({ kind: "shoe", zones: Z[0] })}</span></div>
+          <div style="display:grid;gap:3px;font-size:11px;color:var(--mute)">측면 이미지<span class="imgbox" style="height:150px;display:grid;place-items:center;color:var(--faint)">측면 사진</span></div>
+          <div style="display:grid;gap:8px;align-content:start">
+            <div class="form" style="grid-template-columns:72px minmax(0,1fr) 72px minmax(0,1fr)">${info.map(([l, v]) => `<div class="l" style="padding:5px 8px;min-height:30px">${l}</div><div class="v" style="padding:5px 8px;min-height:30px">${v}</div>`).join("")}<div class="l" style="padding:5px 8px;min-height:30px"></div><div class="v" style="padding:5px 8px;min-height:30px"></div></div>
+            <div class="pinbox" style="display:flex;gap:8px;align-items:center;padding:7px 10px;border:1px solid #2b4a78;border-radius:8px;background:var(--blue-bg);font-size:12px">${apin(7, "better", true)}
+              확인대상에 등록하시겠습니까?<span style="margin-left:auto;display:flex;gap:5px"><button class="btn sm pri">예</button><button class="btn sm">아니오</button></span></div>
+          </div>
+        </div>
+      </div>`;
+
+    const toolbar = `<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line2)">
+        <span style="font-size:12px;color:var(--mute)">이미지번호 <b class="mono" style="color:var(--fg)">00001-25-0649_2</b></span>
+        <span class="num pinbox" style="font-size:12px;color:var(--fg2);padding-right:16px">1위 / 857건${apin(10, "better")}</span>
+        <span class="pinbox" style="margin-left:auto;display:inline-flex;gap:5px;align-items:center;padding-left:14px">${apin(2, "keep", true)}
+          <span style="font-size:12px;color:var(--mute);margin-right:2px">결과형태</span>
+          <button class="btn sm">1열</button><button class="btn sm">2열</button><button class="btn sm">3열</button><button class="btn sm">4열</button><button class="btn sm">확인대상보기</button></span>
+        <span style="width:1px;height:20px;background:var(--line3)"></span>
+        <span class="pinbox" style="display:inline-flex;gap:5px;align-items:center">${apin(3, "voice")}<button class="btn sm" style="box-shadow:inset 0 0 0 1px var(--blue);color:var(--fg)">촘촘 8열</button></span>
+        <span class="chip teal pinbox" style="height:22px;margin-right:6px">${apin(5, "voice")}<span class="ai-mark">AI</span> 순위 다시 매김</span>
+      </div>`;
+
+    const body = `${toolbar}<div style="padding:12px 14px 14px">
+        <div class="pinbox" style="display:grid;grid-template-columns:240px minmax(0,1fr);gap:12px">${apin(1, "keep", true)}${left}${right}</div>
+        ${detail}
+      </div>`;
+
     return M.shell(
-      { active: "검색 이력", tabs: ["사건관리", "00001-25-0646", "문양 코딩 · _1", "검색 결과 572414"], tabOn: "검색 결과 572414", title: "검색 결과", h: 1090 },
-      `<div class="page-head">
-        <div><div class="crumb">족윤적 · 문양검색 · 검색 결과</div><h3>검색 결과 <span class="mono" style="font-size:16px;color:var(--mute)">572414</span></h3>
-          <p>현장 족적을 왼쪽에 고정하고 후보를 넘겨 봅니다. 별(★)을 누르면 바로 확인대상에 들어갑니다.</p></div>
-        <div style="display:flex;gap:8px"><button class="btn">엑셀</button><button class="btn">조건 고치기 (S04)</button></div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:240px minmax(0,1fr);gap:12px;align-items:start">
-        <div class="panel tc">
-          <div class="panel-h"><span class="t">현장 족적</span><span class="r"><span class="seg"><button aria-pressed="true">원본</button><button aria-pressed="false">이진화</button></span></span></div>
-          <div class="panel-b pinbox" style="display:grid;gap:10px">${apin(2, "better")}
-            <span class="imgbox" style="height:380px">${sole({ kind: "scene", zones: ["herring", "grid", "herring"] })}<span class="cap">고정 · 스크롤해도 그대로</span></span>
-            <div style="display:flex;gap:4px;align-items:center"><span style="color:var(--dim);font-size:11px;margin-right:2px">이미지번호</span>${["_1", "_2", "_3"].map((n, i) => `<span class="chip ${i === 0 ? "blue" : ""} mono" style="height:20px">${n}</span>`).join("")}</div>
-            <div class="form" style="grid-template-columns:70px minmax(0,1fr)">
-              <div class="l">검색번호</div><div class="v mono">572414</div>
-              <div class="l">검색 방식</div><div class="v"><span class="chip teal" style="height:20px">하이브리드</span></div>
-              <div class="l">검색일</div><div class="v num">07-24 17:29</div>
-              <div class="l">필수 문양</div><div class="v" style="display:flex;gap:4px">${picon("n32_04", "sm")}<span class="chip red" style="height:20px">상·중·하</span></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel tc" style="min-width:0">
-          <div class="panel-h"><span class="lbl">RESULTS</span>
-            <span class="t num pinbox" style="padding-right:16px">1–8위 / 857건${apin(3, "better")}</span>
-            <span class="r pinbox" style="padding-right:12px">${apin(1, "keep")}<span style="color:var(--dim);font-size:11.5px">결과형태</span>
-              <span class="seg"><button aria-pressed="false">1열</button><button aria-pressed="false">2열</button><button aria-pressed="false">3열</button><button aria-pressed="true">4열</button></span>
-              <button class="btn sm">★ 확인대상보기 <span class="num" style="color:var(--amber)">${stars.length}</span></button></span>
-          </div>
-          <div class="pinbox" style="display:flex;gap:8px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line2)">${apin(7, "better")}
-            ${["제조사", "상표", "화종", "성별"].map((t) => `<span class="inp" style="width:96px">${t} 전체<span class="caret">▾</span></span>`).join("")}
-            <span style="width:1px;height:22px;background:var(--line)"></span>
-            <span style="color:var(--dim);font-size:11.5px">이력 간 비교</span>
-            <span class="seg"><button aria-pressed="false">끔</button><button aria-pressed="true">572355와 비교</button></span>
-            <span class="chip teal" style="margin-left:auto"><span class="ai-mark">AI</span> 리랭킹 켬</span>
-          </div>
-          <div class="panel-b" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px">${RES.map(card).join("")}</div>
-          <div style="display:flex;align-items:center;gap:10px;padding:0 14px 12px">
-            <span class="num" style="color:var(--mute);font-size:12px">‹ 1 / 108 ›</span><span class="num" style="color:var(--dim);font-size:12px">1–8위 / 857건</span>
-            <span class="pinbox" style="margin-left:auto;display:inline-flex;gap:10px;align-items:center;padding:6px 12px;border:1px solid var(--line3);border-radius:999px;background:var(--panel3);font-size:12px">${apin(5, "better")}
-              <span style="color:var(--amber)">★</span>276552를 확인대상에 넣었습니다<b style="color:var(--blue);cursor:pointer">되돌리기</b></span>
-          </div>
-        </div>
-      </div>
-
-      <div class="panel pinbox" style="margin-top:12px">${apin(8, "plus", true)}
-        <div class="panel-b" style="display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center">
-          <div style="display:grid;gap:2px;min-width:110px"><b style="font-size:13px">확인대상 그룹</b><span style="color:var(--dim);font-size:11px">끌어서 순서 바꾸기</span></div>
-          <span class="chip amber num">${stars.length}건</span>
-          ${stars.map((r) => `<span style="display:inline-flex;gap:6px;align-items:center;padding:4px 8px 4px 4px;border:1px solid var(--line3);border-radius:8px;background:var(--panel2)"><span class="imgbox" style="width:32px;height:46px;border-radius:5px">${sole({ kind: "shoe", zones: r.z })}</span><span style="display:grid;line-height:1.3"><b class="mono" style="font-size:11.5px">${r.id}</b><span style="font-size:10.5px;color:var(--dim)">${r.br}</span></span><span style="color:var(--faint);margin-left:2px" title="제외">✕</span></span>`).join("")}
-          <span class="inp" style="width:150px">그룹명: 헤링본 계열</span>
-          <span class="pinbox" style="margin-left:auto;display:flex;gap:6px;padding-right:12px">${apin(9, "better")}
-            <button class="btn">정밀 대조 (S06) →</button>
-            <button class="btn ok" data-role="analyst admin">확인대상 저장</button>
-            <button class="btn pri" data-role="analyst admin">검색결과 확인 →</button>
-            <button class="btn warn" data-role="verifier">검증 메모</button>
-            <span class="chip" data-role="investigator">수사관 · 결과 열람만</span></span>
-        </div>
-      </div>
-      <p style="margin:8px 2px 0;color:var(--dim);font-size:11px">참고 · 상위 10위 안에 정답이 든 비율(Top-10) — 문양+이미지 하이브리드 51.43% / 기존 시스템 47.14% <span style="color:var(--faint)">(사업계획서 p5 표3, 폴리스랩 2.0 실증)</span></p>`
+      { active: "사건관리", tabs: ["사건관리", "감정서작성", "족윤적 검증", "결재 대기함", "문서접수대장"], title: "사건관리 · 문양검색결과", h: 1130 },
+      `<div style="position:relative;min-height:1030px">
+        ${ghost}
+        <div style="position:absolute;inset:0;background:rgba(5,8,13,.72);border-radius:12px"></div>
+        ${modal({
+          x: 0, y: 14, w: 1180, title: "문양검색결과",
+          btns: `<span class="pinbox" style="display:inline-flex;gap:6px">${apin(11, "better")}<span class="chip" data-role="verifier" style="height:22px">기술책임자 · 보기만</span><span class="chip" data-role="investigator" style="height:22px">수사관 · 볼 수 없음</span><button class="btn sm ghost">✕</button></span>`,
+          body,
+        })}
+      </div>`
     );
   }
 
@@ -111,8 +106,7 @@
     const caps = ["1 | 49", "2 | 32", "3 | 32", "4 | 30", "5 | 25", "6 | 24", "7 | 24", "8 | 23"];
     return M.scasShell(
       { treeOn: "사건관리", h: 790 },
-      `<div style="height:710px"></div>
-      <div class="modal" style="left:10px;top:8px;width:1200px;height:640px;opacity:.55"><div class="bar">문양 상세보기</div></div>
+      `<div class="modal" style="left:10px;top:8px;width:1200px;height:640px;opacity:.55"><div class="bar">문양 상세보기</div></div>
       <div class="dim"></div>
       <div class="modal" style="left:16px;top:24px;width:740px;height:600px">
         <div class="bar">문양검색결과 <span>✕</span></div>
@@ -139,8 +133,8 @@
         <div style="padding:12px;text-align:center">❔ 확인대상에 등록하시겠습니까?<div style="margin-top:10px"><span class="sbtn b">예</span> <span class="sbtn">아니오</span></div></div>
       </div>
       ${M.pain(70, 210, "<b>숫자 표기가 화면마다 다름</b> — 일반 결과 「1 | 49」, AI 결과 「1 /857」, 페이지 「1/108」, 「전체 470」 (5613 05:07 · 07:22)", 250)}
-      ${M.pain(250, 430, "<b>확인대상 하나에 팝업 2번</b> — 카드 → 상세조회 팝업 → 「확인대상」 → 알림 「예」 (5613 08:52–09:20)", 250)}
-      ${M.pain(960, 640, "<b>일반·AI 결과가 다른 창</b> — 라이트 팝업과 다크 Chrome 창을 오가며 봄 (5613 05:07 vs 07:22)", 240)}`
+      ${M.pain(250, 430, "<b>확인대상 등록은 팝업 3겹째</b> — 카드 → 상세조회 팝업 → 「확인대상」 → 알림 「예」 (5613 08:52–09:20)", 250)}
+      ${M.pain(960, 640, "<b>몇천 장을 4열로 넘김</b> — 애매하면 처음부터 끝까지 보고, 어디까지 봤는지 화면이 기억하지 않음 (5613 22:18–22:48)", 240)}`
     );
   }
 
@@ -152,21 +146,30 @@
     refs: [
       { t: "SCAS 문양검색결과", v: "5613 07:22 · 09:47" },
       { t: "SCAS 인공지능 문양 검색 결과", v: "5613 05:07" },
-      { t: "SCAS 확인대상 등록 알림", v: "5613 09:20" },
+      { t: "SCAS 현장문양검색결과 상세조회", v: "5613 08:52–09:20" },
+      { t: "인터뷰: 결과 비교가 제일 오래", v: "5613 21:50–22:48", voice: true },
     ],
-    lead: "일반 결과 팝업과 AI 결과 다크 창을 결과 화면 하나로 합쳤습니다. 결과형태(1–4열)와 확인대상보기는 그대로 두고, 카드마다 순위·유사도·AI 리랭킹 이동·일치 부위를 보여 주며, 확인대상은 카드의 별 하나로 넣고 뺍니다.",
+    lead: "SCAS 「문양검색결과」 팝업의 배치(왼쪽 현장 족적, 오른쪽 결과 그리드, 위쪽 결과형태 1–4열·확인대상보기)를 그대로 둡니다. 감정관이 가장 오래 쓰는 「결과 눈으로 비교」를 줄이려고 촘촘한 8열 빠른 넘겨보기, 키보드 넘기기, 어디까지 봤는지 기억을 덧붙였습니다. 확인대상 등록은 SCAS처럼 상세조회의 「확인대상」 버튼이 기본이고, 카드 ☆은 지름길입니다.",
     scas,
     ours,
+    fit: {
+      area: ["same", "좌 현장 족적(약 1/4) / 우 결과 그리드, 위에 이미지번호·결과형태"],
+      buttons: ["same", "결과형태 1열·2열·3열·4열·확인대상보기, 상세조회 이전·다음·그룹등록·확인대상·프린트·닫기 순서 그대로"],
+      popup: ["near", "문양 상세보기 위 2번째 겹 그대로. 3번째 겹이던 상세조회는 같은 레이어 아래 칸으로, 알림은 작은 확인 막대로"],
+      columns: ["near", "1–4열 그대로 + 촘촘 8열 덧붙임, 카드 캡션 「1 | 49」 → 「137위 · 58.4%」"],
+    },
     notes: [
-      { n: 1, kind: "keep", title: "결과형태 1열–4열 · 확인대상보기", text: "SCAS 버튼 이름과 순서를 그대로 둡니다. 확인대상보기 옆에 지금 고른 개수(3)를 붙였습니다.", src: "5613 07:22" },
-      { n: 2, kind: "better", title: "현장 족적 고정 + 원본/이진화", text: "왼쪽 현장 족적은 결과를 넘겨도 움직이지 않습니다. AI 창에만 있던 「이진화 이미지」 전환을 원본/이진화 버튼으로 남기고, 이미지번호·검색번호·필수 문양을 함께 보여 줍니다.", src: "5613 05:07 S7a" },
-      { n: 3, kind: "better", title: "숫자 표기 하나로", text: "「1 | 49」「1 /857」「1/108」「전체 470」처럼 화면마다 달랐던 표기를 「1위 / 857건」, 유사도는 %로 통일했습니다. 페이지는 「‹ 1 / 108 ›」 한 가지입니다.", src: "5613 §3-10 카운트 표기" },
-      { n: 4, kind: "plus", title: "AI 리랭킹 이동 · 일치 부위", text: "AI가 다시 줄 세우며 몇 계단 올렸는지(▲12) 청록 배지로, 상·중·하 중 어느 부위 문양이 맞았는지 초록 칩으로 보여 줍니다. 「왜 이 순위인가」를 설명하는 근거입니다.", src: "사업계획서 p3·p12 Top-k 리랭킹 · 설문 유사점 설명" },
-      { n: 5, kind: "better", title: "★ 한 번으로 확인대상 · 되돌리기", text: "상세조회 팝업을 열고 알림에서 「예」를 누르던 2단계를, 카드의 별 하나로 줄였습니다. 확인 창 대신 아래쪽 「되돌리기」 알림이 잠깐 뜹니다.", src: "5613 08:52–09:20 · S10 알림" },
-      { n: 6, kind: "better", title: "마우스 올리면 빠른 대조 · 두 번 누르면 편집창", text: "카드에 마우스를 올리면 현장 족적과 반씩 겹쳐 보고, 두 번 누르면 S03 편집창이 한 겹으로 열립니다. 이미지 뷰어 창을 따로 띄우지 않습니다.", src: "플랫폼 개선 사항 p1–5 결과 이미지 더블클릭 → 편집창" },
-      { n: 7, kind: "better", title: "결과 거르기 · 이력 간 비교", text: "제조사·상표·화종·성별로 결과를 바로 거릅니다. 「572355와 비교」를 켜면 카드마다 이전 검색 순위(이전 13위·새로 등장)가 붙어 재검색 효과를 봅니다.", src: "플랫폼 개선 사항 p1–5 이력 간 비교" },
-      { n: 8, kind: "plus", title: "확인대상 그룹 칸", text: "별을 누른 후보가 아래 칸에 모여 그룹 이름을 붙이고, 순서를 바꾸고, ✕로 제외합니다. 여기서 정밀 대조(S06)로 넘어갑니다.", src: "플랫폼 개선 사항 p1–5 확인 대상 그룹화·제외" },
-      { n: 9, kind: "better", title: "보는 사람마다 다른 버튼", text: "감정관·관리자는 별을 누르고 「확인대상 저장」「검색결과 확인」으로 넘어갑니다. 검증자는 별이 잠긴 채 「검증 메모」만, 수사관은 결과 열람만 합니다." },
+      { n: 1, kind: "keep", title: "문양검색결과 팝업 배치 그대로", text: "문양 상세보기 위에 레이어로 뜨고, 왼쪽에 현장 족적(고정), 오른쪽에 결과 그리드가 있습니다. SCAS와 같은 자리입니다.", src: "5613 S7b" },
+      { n: 2, kind: "keep", title: "결과형태 1–4열 · 확인대상보기", text: "버튼 이름과 순서를 그대로 둡니다. 새 「촘촘 8열」은 구분선 뒤에 붙였습니다." },
+      { n: 3, kind: "voice", title: "촘촘 8열 + 키보드로 빠르게 넘기기", text: "「검색 결과를 이제 비교할 때가 제일 오래 걸리죠. 다 눈으로 봐야 되니까.」 한 쪽에 24장을 보여 주고, ← →로 한 장, PgDn으로 한 쪽씩 넘기며 Enter로 상세조회를 엽니다. 미리보기 사진을 먼저 띄워 넘김이 끊기지 않게 합니다.", src: "5613 21:50–21:59 · 사업계획서 p44 2초 응답" },
+      { n: 4, kind: "voice", title: "어디까지 봤는지 기억", text: "「몇천개가 나와도 처음부터 끝까지 보거든요… 막연한 거는 막 만개도 볼 때가 있고.」 본 카드는 흐리게, 「여기까지 봤음 · 136위」 선을 긋고, 다시 열면 「137위부터 이어 보기」를 제안합니다.", src: "5613 22:18–22:48" },
+      { n: 5, kind: "voice", title: "AI 순위 다시 매김", text: "「어떤 거는 엄청 밑에 있을 수도 있고 하니까. 그걸 좀 위로 올라가면 그 시간은 소요가 좀 줄어들겠다.」 AI가 다시 줄 세워 올린 후보에 청록 ▲(올라간 계단)를 붙입니다. 성공 기준은 「정답 순위가 얼마나 위로 왔나」입니다.", src: "5613 21:59–22:07" },
+      { n: 6, kind: "voice", title: "상세조회에서 다시 보고 확인대상", text: "「확대해서 다시 한 번 봤어… 보고 나서 얘가 맞다. 그러면 확인대상에 등록을 하는 거예요.」 카드를 고르면 아래 칸에 유류·발견·측면 이미지와 신발정보가 열리고, SCAS 버튼 줄(이전·다음·그룹등록·확인대상·프린트·닫기) 그대로 등록합니다. 「크게 보기」는 S03 뷰어를 엽니다.", src: "5613 08:44–09:04" },
+      { n: 7, kind: "better", title: "알림 창 → 같은 자리 확인 막대", text: "SCAS의 「확인대상에 등록하시겠습니까? 예/아니오」 습관은 그대로 두되, 새 팝업 대신 상세조회 칸 안의 작은 막대로 묻습니다.", src: "5613 09:20 S10 알림" },
+      { n: 8, kind: "better", title: "카드 ☆ 지름길(덧붙임)", text: "확실한 후보는 카드의 ☆을 눌러 바로 확인대상에 넣고, 잘못 누르면 「되돌리기」로 취소합니다. 상세조회의 「확인대상」 버튼은 원래 자리에 그대로 있습니다." },
+      { n: 9, kind: "voice", title: "확인대상 보고 제외", text: "「비교를 했는데 아니야. 그러면 여기서 확인대상 제외를 다시 누르면 되고.」 왼쪽 확인대상 칸에 고른 후보를 모아 두고, 다시 비교해 아니면 「확인대상 제외」를 누릅니다.", src: "5613 09:10–09:22" },
+      { n: 10, kind: "better", title: "숫자 표기 통일 · 원본/이진화", text: "「1 | 49」「1 /857」「1/108」처럼 화면마다 달랐던 표기를 「1위 / 857건」, 카드는 「137위 · 58.4%」로 맞췄습니다. AI 창에만 있던 「이진화 이미지」 전환은 현장 족적 위 원본/이진화로 남겼습니다.", src: "5613 05:07 · 07:22" },
+      { n: 11, kind: "better", title: "보는 사람마다 다른 권한", text: "감정관·관리자만 확인대상 등록·제외·그룹등록을 합니다. 기술책임자는 결재 때 결과를 보기만 하고(☆ 잠김), 수사관에게는 이 화면이 열리지 않습니다." },
     ],
   });
 })();

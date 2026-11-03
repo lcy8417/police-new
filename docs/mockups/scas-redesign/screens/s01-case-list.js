@@ -1,115 +1,146 @@
-/* S01 사건관리 목록 — SCAS 「족윤적 > 사건관리 > 사건관리」 탭 (IMG_5613 02:00, 10:04–11:45, 16:37–17:15) */
+/* S01 사건관리 목록 — SCAS 「족윤적 > 사건관리 > 사건관리」 탭 (IMG_5613 02:00, 10:00–11:45, 16:37–17:15, 19:45–20:30)
+   r2: SCAS 검색 폼·툴바·열 순서를 그대로 되돌리고, 진행상태·결과를 「이미지 장수 카운트」로 바로잡음(인터뷰 5613 10:00). */
 (function () {
   const { pin, apin, sole } = M;
 
+  /* sh/ti = 신발·타이어 파일 수, st = [등록, 검색, 확인] 장수, rs = [발견, 불발, 불능] 장수,
+     cs = 사건 층 단계(-1 없음, 0 검증요청, 1 교차 검증, 2 감정서, 3 결재, 4 결재완료), src = 들어온 길 */
   const CASES = [
-    { no: "00001-25-0649", doc: "SCAS수사부-871", nm: "주거침입", req: "대구청", occ: "동부서", imgs: 12, sus: "무", reg: "2025-07-24", step: 1, res: "", who: "박○○" },
-    { no: "00001-25-0647", doc: "SCAS수사부-2951", nm: "절도", req: "경북청", occ: "포항남부서", imgs: 2, sus: "무", reg: "2025-07-24", step: 2, res: "", who: "박○○" },
-    { no: "00001-25-0646", doc: "SCAS수사부-2944", nm: "주거침입", req: "대구청", occ: "수성서", imgs: 3, sus: "유", reg: "2025-07-23", step: 3, res: "발견", who: "박○○" },
-    { no: "00001-25-0640", doc: "SCAS수사부-2911", nm: "절도", req: "부산청", occ: "해운대서", imgs: 1, sus: "무", reg: "2025-07-22", step: 4, res: "발견", who: "김○○" },
-    { no: "00001-25-0633", doc: "SCAS수사부-2870", nm: "강도", req: "서울청", occ: "강서서", imgs: 4, sus: "무", reg: "2025-07-21", step: 3, res: "불발견", who: "박○○" },
-    { no: "00001-25-0621", doc: "SCAS수사부-2802", nm: "기타", req: "경기남부청", occ: "화성동탄서", imgs: 2, sus: "무", reg: "2025-07-18", step: 5, res: "감정불능", who: "김○○" },
-    { no: "00001-25-0612", doc: "SCAS수사부-2755", nm: "절도", req: "인천청", occ: "미추홀서", imgs: 2, sus: "유", reg: "2025-07-16", step: 5, res: "발견", who: "박○○" },
+    { no: "00001-25-0649", doc: "SCAS수사부-871", nm: "주거침입", req: "대구청", sc: "2025-03321", occ: "동부서", kind: "현장", sh: 12, ti: 0, sus: "무", reg: "2025-07-24", st: [9, 2, 1], rs: [1, 0, 0], cs: -1, src: "auto" },
+    { no: "00001-25-0647", doc: "SCAS수사부-2951", nm: "절도", req: "경북청", sc: "2025-11707", occ: "포항남부서", kind: "현장", sh: 2, ti: 0, sus: "무", reg: "2025-07-24", st: [0, 2, 0], rs: [0, 0, 0], cs: -1, src: "auto" },
+    { no: "00001-25-0646", doc: "SCAS수사부-2944", nm: "주거침입", req: "대구청", sc: "2025-03318", occ: "수성서", kind: "현장", sh: 3, ti: 0, sus: "유", reg: "2025-07-23", st: [0, 0, 3], rs: [2, 1, 0], cs: 1, who: "김○○", src: "auto" },
+    { no: "00001-25-0640", doc: "SCAS수사부-2911", nm: "절도", req: "부산청", sc: "2025-09120", occ: "해운대서", kind: "대조", sh: 1, ti: 0, sus: "유", reg: "2025-07-22", st: [0, 0, 1], rs: [1, 0, 0], cs: 2, src: "auto" },
+    { no: "00001-25-0633", doc: "SCAS수사부-2870", nm: "강도", req: "서울청", sc: "2025-20114", occ: "강서서", kind: "현장", sh: 4, ti: 0, sus: "무", reg: "2025-07-21", st: [0, 0, 4], rs: [0, 3, 1], cs: 3, src: "auto" },
+    { no: "00001-25-0621", doc: "SCAS수사부-2802", nm: "기타", req: "경기남부청", sc: "2025-07731", occ: "화성동탄서", kind: "현장", sh: 1, ti: 1, sus: "무", reg: "2025-07-18", st: [0, 0, 2], rs: [0, 0, 2], cs: 4, src: "auto" },
+    { no: "00001-25-0612", doc: "—", nm: "절도", req: "인천청", sc: "—", occ: "미추홀서", kind: "현장", sh: 2, ti: 0, sus: "유", reg: "2025-07-16", st: [0, 0, 2], rs: [2, 0, 0], cs: 4, src: "manual" },
   ];
-  const STEPS = ["등록", "검색", "확인대상선정", "결과확인완료", "검증요청", "결재완료"];
-  const resChip = (r) =>
-    r === "발견" ? `<span class="chip green">발견</span>` : r === "불발견" ? `<span class="chip">불발견</span>` : r === "감정불능" ? `<span class="chip amber">감정불능</span>` : `<span style="color:var(--faint)">—</span>`;
-  const stepper = (k) => `<div style="display:grid;gap:3px"><span class="stepper" title="${STEPS[k]}">${STEPS.map((_, i) => `<i style="width:12px" class="${i < k ? "done" : i === k ? "now" : ""}"></i>`).join("")}</span><span style="color:var(--fg2);font-size:11.5px;line-height:1.2">${STEPS[k]}</span></div>`;
-  const action = (c) => {
-    if (c.step <= 1) return `<button class="btn sm pri" data-role="analyst admin">검색</button>`;
-    if (c.step === 2) return `<button class="btn sm ok" data-role="analyst admin">확인</button>`;
-    if (c.step === 3) return `<button class="btn sm ok" data-role="analyst admin">확인</button> <button class="btn sm" data-role="analyst admin">검증요청</button>`;
-    if (c.step === 4) return `<button class="btn sm warn" data-role="verifier admin">검증하기</button>`;
-    return `<button class="btn sm" data-role="analyst verifier admin">감정서</button>`;
+  const CS = ["검증요청", "교차 검증", "감정서", "결재", "결재완료"];
+  const TD = (h, x = "") => `<td style="padding:0 6px;${x}">${h}</td>`;
+  const TH = (h, x = "") => `<th style="padding:4px 6px;height:auto;line-height:1.25;${x}">${h}</th>`;
+  const n0 = (v) => (v ? `<b style="color:var(--fg)">${v}</b>` : `<span style="color:var(--faint)">0</span>`);
+
+  /* 결과: 발견·불발·불능 장수 */
+  const resCell = (c) => {
+    const [a, b, d] = c.rs;
+    return `<div class="num" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;font-size:11.5px;text-align:center">
+      <span style="color:${a ? "#4ade80" : "var(--faint)"}">${a}</span><span style="color:${b ? "var(--fg2)" : "var(--faint)"}">${b}</span><span style="color:${d ? "var(--amber)" : "var(--faint)"}">${d}</span></div>`;
+  };
+  /* 진행상태: 등록·검색·확인 장수 + 장마다 한 칸짜리 막대 */
+  const stCell = (c) => {
+    const tot = c.sh + c.ti;
+    const cells = [].concat(Array(c.st[2]).fill("var(--blue2)"), Array(c.st[1]).fill("var(--amber)"), Array(c.st[0]).fill("var(--line3)"));
+    return `<div style="display:grid;gap:3px">
+      <div class="num" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;font-size:11.5px;text-align:center"><span>${n0(c.st[0])}</span><span>${n0(c.st[1])}</span><span>${n0(c.st[2])}</span></div>
+      <div style="display:flex;gap:2px" title="${tot}장 중 등록 ${c.st[0]} · 검색 ${c.st[1]} · 확인 ${c.st[2]}">${cells.map((col) => `<i style="flex:1;height:4px;border-radius:2px;background:${col}"></i>`).join("")}</div></div>`;
+  };
+  /* 사건 층: 검증요청 → 교차 검증 → 감정서 → 결재 */
+  const csCell = (c) => {
+    if (c.cs < 0) return `<span style="color:var(--faint);font-size:11px">이미지 확인 중</span>`;
+    return `<div style="display:grid;gap:3px"><span class="stepper">${[0, 1, 2, 3].map((i) => `<i style="width:20px" class="${i < c.cs ? "done" : i === c.cs ? "now" : ""}"></i>`).join("")}</span>
+      <span style="font-size:11px;color:${c.cs === 4 ? "#4ade80" : "var(--fg2)"};line-height:1.2">${CS[Math.min(c.cs, 4)]}${c.cs === 1 && c.who ? ` · ${c.who}` : ""}</span></div>`;
+  };
+  /* SCAS 행 버튼 자리(검색 · 확인 · 검증) 그대로 */
+  const actCell = (c) => {
+    const s = c.st[0] > 0 ? `<button class="btn sm ok" style="padding:0 6px" data-role="analyst admin">검색</button>` : `<span style="display:inline-block;width:36px"></span>`;
+    const k = c.st[1] > 0 || (c.st[2] > 0 && c.cs < 0) ? `<button class="btn sm ok" style="padding:0 6px" data-role="analyst admin">확인</button>` : `<span style="display:inline-block;width:36px"></span>`;
+    const v = c.cs === 0 || (c.st[0] === 0 && c.st[1] === 0 && c.cs < 0) ? `<button class="btn sm" style="padding:0 6px;color:#a5b4fc;border-color:#3b3f7a" data-role="analyst admin">검증요청</button>` : c.cs === 1 ? `<button class="btn sm warn" style="padding:0 6px" data-role="analyst admin" title="다른 감정관(교차 검증자)에게만 보임">검증</button>` : "";
+    return `<span style="display:inline-flex;gap:4px;align-items:center">${s}${k}${v}</span>`;
   };
 
   function ours() {
     const rows = CASES.map(
       (c, i) => `<tr class="${i === 2 ? "sel" : ""}">
-        <td><span class="imgbox" style="display:block;width:30px;height:44px">${sole({ kind: "scene", zones: ["dots", "grid", "herring"] })}</span></td>
-        <td><div class="mono" style="color:var(--fg);line-height:1.3">${c.no}</div><div class="mono" style="color:var(--dim);font-size:11px;line-height:1.3">${c.doc}</div></td>
-        <td>${c.nm}${c.sus === "유" ? ` <span class="chip red" style="height:18px;font-size:10.5px">용의자</span>` : ""}</td><td>${c.req} <span style="color:var(--dim)">/ ${c.occ}</span></td>
-        <td class="r num">${c.imgs}</td><td class="num">${c.reg}</td>
-        <td>${stepper(c.step)}</td><td>${resChip(c.res)}</td><td>${action(c)}</td></tr>`
+        ${TD(`<span class="num" style="color:var(--dim)">${i + 1}</span>`)}
+        ${TD(`<span class="imgbox" style="display:block;width:26px;height:38px;border-radius:5px">${sole({ kind: "scene", zones: ["dots", "grid", "herring"] })}</span>`)}
+        ${TD(`<div class="mono" style="color:var(--fg);line-height:1.3;font-size:12px">${c.no}</div><div style="line-height:1.3;font-size:10.5px;color:var(--dim)">${c.src === "auto" ? `<span style="color:var(--blue)">● 공문 자동</span>` : `<span style="color:var(--violet)">● 임의 등록</span>`}</div>`)}
+        ${TD(`<span class="mono" style="font-size:11.5px">${c.doc}</span>`)}
+        ${TD(c.nm)}
+        ${TD(`<div style="line-height:1.3">${c.req}</div><div class="mono" style="font-size:10.5px;color:var(--dim);line-height:1.3">${c.sc}</div>`)}
+        ${TD(c.occ)}
+        ${TD(c.kind === "대조" ? `<span class="chip violet" style="height:20px;padding:0 6px">대조</span>` : "현장")}
+        ${TD(`<span class="num"><b style="color:var(--fg)">${c.sh + c.ti}</b> <span style="color:var(--dim)">(${c.sh}, ${c.ti})</span></span>`)}
+        ${TD(c.sus === "유" ? `<span style="color:#f87171">유</span>` : "무")}
+        ${TD(`<span class="num" style="font-size:12px">${c.reg}</span>`)}
+        ${TD(resCell(c))}
+        ${TD(stCell(c))}
+        ${TD(actCell(c))}
+        ${TD(csCell(c), "background:rgba(15,38,36,.18)")}
+      </tr>
+      ${i === 2 ? `<tr><td colspan="15" style="height:auto;padding:0;background:var(--panel2)">
+        <div class="pinbox" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 260px;gap:10px;padding:10px 12px 12px 48px;white-space:normal">${apin(10, "better", true)}
+          ${[["_1", "확인", "발견", "572414 · 확인대상 1 / 869"], ["_2", "확인", "발견", "572420 · 확인대상 1 / 512"], ["_3", "확인", "불발견", "572431 · 확인대상 0 / 1,204"]].map(
+            ([n, s, r, h], k) => `<div style="display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel)">
+              <span class="imgbox" style="width:28px;height:40px;border-radius:5px;flex:none">${sole({ kind: "scene", zones: [["dots", "grid", "herring"], ["tri", "wave", "blocks"], ["grid", "grid", "lines"]][k] })}</span>
+              <span style="display:grid;line-height:1.35;font-size:11.5px"><b class="mono">${n}</b><span style="color:var(--mute)">${s} · <span style="color:${r === "발견" ? "#4ade80" : "var(--fg2)"}">${r}</span></span><span class="mono" style="color:var(--dim);font-size:10.5px">${h}</span></span></div>`
+          ).join("")}
+          <div style="display:grid;gap:4px;font-size:11.5px;color:var(--mute);line-height:1.4">
+            <span>07-24 17:35 결과확인완료 → <b style="color:var(--fg2)">검증요청</b></span>
+            <span>교차 검증: <b style="color:var(--amber)">김○○ 경위</b> (다른 감정관, 대기)</span>
+            <span style="display:flex;gap:6px;margin-top:2px"><button class="btn sm">사건 열기 (S02)</button><button class="btn sm" data-role="analyst admin">검색결과 확인</button></span>
+          </div>
+        </div></td></tr>` : ""}`
     ).join("");
 
+    const F = (l, v) => `<div class="l">${l}</div><div class="v">${v}</div>`;
+    const sel = (t) => `<span class="inp w100">${t}<span class="caret">▾</span></span>`;
+    const find = (t) => `<span style="display:flex;gap:4px"><span class="inp w100">${t}</span><button class="btn sm" style="height:26px">검색</button></span>`;
+
     return M.shell(
-      { active: "사건관리", tabs: ["사건관리", "감정서작성", "족윤적 검증", "결재 대기함"], title: "사건관리" },
-      `<div class="page-head">
-        <div><div class="crumb">족윤적 · 사건관리</div><h3>사건관리 목록</h3><p>감정 의뢰가 들어온 사건을 진행상태별로 봅니다. 행을 고르면 오른쪽에 요약이 열립니다.</p></div>
-        <div style="display:flex;gap:8px">
-          <button class="btn">엑셀</button>
-          <button class="btn pri pinbox" data-role="investigator admin">＋ 사건 등록 ${apin(6, "keep")}</button>
+      { active: "사건관리", tabs: ["사건관리", "시험품질경영절차서", "감정서작성", "족윤적 검증", "결재 대기함", "문서접수대장"], title: "사건관리", h: 1000 },
+      `<div class="panel pinbox" style="margin-bottom:12px">${apin(1, "keep", true)}
+        <div class="form" style="grid-template-columns:84px minmax(0,1fr) 84px minmax(0,1fr) 84px minmax(0,1fr);border-top:0">
+          ${F("감정번호", `<span class="inp w100 mono">00001-25-</span>`)}${F("문서번호", `<span class="inp w100"></span>`)}${F("사건명", sel("전체"))}
+          ${F("등록일자", `<span class="inp w100 mono" style="font-size:11.5px">2025-06-25 ~ 2025-07-24</span>`)}${F("피해자", `<span class="inp w100"></span>`)}${F("구분", `<span class="radio"><span class="on">전체</span><span>신발</span><span>타이어</span></span>`)}
+          ${F("사건장소", `<span class="inp w100"></span>`)}${F("검거여부", sel("전체"))}${F("작성자", `<span class="inp w100"></span>`)}
+          ${F("처리관서", find("경찰청"))}${F("의뢰관서", find(""))}${F("발생관서", find(""))}
+          ${F("사건결과", `<span style="display:flex;gap:8px;align-items:center">${sel("전체")}<span style="white-space:nowrap;color:var(--mute);font-size:12px">☐ 결과 확인 전</span></span>`)}${F("타기관여부", sel("전체"))}<div class="l"></div><div class="v"></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 14px;border-top:1px solid var(--line2)">
+          <span style="color:var(--dim);font-size:11.5px;margin-right:2px">빠른 보기(덧붙임)</span>
+          <span class="chip blue"><span class="dot"></span>결과 확인 전 14</span>
+          <span class="chip" data-role="analyst admin">이미지 미검색 장 있음 9</span>
+          <span class="chip amber" data-role="analyst admin">교차 검증 요청 받음 1</span>
+          <span class="chip" data-role="verifier admin">결재 대기 3</span>
+          <span class="chip" data-role="investigator">우리 청 의뢰 22</span>
         </div>
       </div>
 
-      <div class="panel" style="margin-bottom:12px">
-        <div class="panel-b pinbox" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:10px 14px;align-items:end">
-          ${apin(1, "keep", true)}
-          <div><div class="crumb" style="margin-bottom:4px">감정번호·문서번호</div><span class="inp w100">00001-25-</span></div>
-          <div><div class="crumb" style="margin-bottom:4px">등록일자</div><span class="inp w100 mono">2025-06-25 ~ 2025-07-24</span></div>
-          <div><div class="crumb" style="margin-bottom:4px">사건명</div><span class="inp w100">전체<span class="caret">▾</span></span></div>
-          <div><div class="crumb" style="margin-bottom:4px">의뢰관서</div><span class="inp w100">전체<span class="caret">▾</span></span></div>
-          <div style="display:flex;gap:6px"><button class="btn">초기화</button><button class="btn pri">조회</button></div>
-          <div style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center" class="pinbox">
-            <span style="color:var(--dim);font-size:12px;margin-right:4px">빠른 필터 ${pin(2, "better")}</span>
-            <span class="chip blue"><span class="dot"></span>결과 확인 전 14</span>
-            <span class="chip" data-role="analyst admin">내 담당 9</span>
-            <span class="chip amber" data-role="verifier admin">검증 대기 3</span>
-            <span class="chip">용의자 있음 5</span>
-            <span class="chip" data-role="investigator">우리 청 의뢰 22</span>
-            <span style="margin-left:auto;color:var(--dim);font-size:12px">상세 조건(문서번호·피해자·사건장소·처리관서·발생관서·타기관여부·작성자) ▾</span>
-          </div>
+      <div class="panel tc">
+        <div class="panel-h">
+          <span class="t">사건관리 목록</span><span style="color:var(--dim);font-size:12px">전체 116건</span>
+          <span class="r pinbox" style="padding-left:14px">${apin(2, "keep", true)}
+            <span class="radio" style="font-size:12px;margin-right:6px"><span class="on">목록보기</span><span>문양보기</span></span>
+            <button class="btn sm">초기화</button><button class="btn sm">엑셀</button><button class="btn sm">조회</button>
+            <button class="btn sm pri pinbox" data-role="investigator analyst admin">등록${apin(3, "voice")}</button>
+            <span style="width:1px;height:20px;background:var(--line)"></span>
+            <span class="seg pinbox">${apin(5, "better")}<button aria-pressed="true">기본 보기 15열</button><button aria-pressed="false">SCAS 열 전체 보기 25열</button></span>
+          </span>
         </div>
+        <div>
+          <table class="grid" style="font-size:12px">
+            <thead><tr>
+              ${TH("순번")}${TH("이미지")}${TH(`감정번호 ${pin(4, "voice")}`)}${TH("문서번호")}${TH("사건명")}${TH("의뢰관서<br>(SCAS번호)")}${TH("발생관서")}${TH("처리<br>구분")}
+              ${TH(`개수 ${pin(7, "voice")}<br><span style="font-weight:400;color:var(--dim)">(신발, 타이어)</span>`)}${TH("용의자")}${TH("등록일자")}
+              ${TH(`결과 · 장<div class="num" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;font-weight:400;color:var(--dim);text-align:center;margin-top:2px"><span>발견</span><span>불발</span><span>불능</span></div>`, "width:96px")}
+              ${TH(`진행상태 · 장 ${pin(6, "voice")}<div class="num" style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;font-weight:400;color:var(--dim);text-align:center;margin-top:2px"><span>등록</span><span>검색</span><span>확인</span></div>`, "width:110px")}
+              ${TH("검색 · 확인 · 검증")}
+              ${TH(`<span style="color:var(--teal)">＋사건 진행</span> ${pin(8, "better")}<br><span style="font-weight:400;color:var(--dim)">검증요청→교차 검증→감정서→결재</span>`, "width:118px;white-space:normal")}
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:10px 14px;color:var(--mute);font-size:12px"><span class="num">« ‹ 페이지 1 / 9 › » ⟳</span><span class="num">전체 116 중 1 – 14</span></div>
       </div>
-
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:12px">
-        <div class="panel tc">
-          <div class="panel-h"><span class="lbl">CASE LIST</span><span class="t">전체 116건</span>
-            <span class="r"><span class="seg"><button aria-pressed="true">목록보기</button><button aria-pressed="false">문양보기</button></span></span></div>
-          <div class="pinbox" style="overflow-x:auto">${apin(3, "better")}
-            <table class="grid"><thead><tr><th></th><th>감정번호 / 문서번호</th><th>사건명</th><th>의뢰관서 / 발생관서</th><th class="r">이미지</th><th>등록일자</th><th>진행상태 ${pin(4, "better")}</th><th>결과</th><th>다음 할 일</th></tr></thead>
-            <tbody>${rows}</tbody></table>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:10px 14px;color:var(--mute);font-size:12px"><span class="num">전체 116 중 1 – 7</span><span class="num">‹ 1 / 17 ›</span></div>
-        </div>
-
-        <div class="panel pinbox">${apin(5, "better")}
-          <div class="panel-h"><span class="lbl">SUMMARY</span><span class="t mono">00001-25-0646</span><span class="r"><span class="chip green">발견</span></span></div>
-          <div class="panel-b" style="display:grid;gap:12px">
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
-              ${[["dots", "grid", "herring"], ["tri", "wave", "blocks"], ["grid", "grid", "lines"]].map((z, i) => `<span class="imgbox" style="height:110px">${sole({ kind: "scene", zones: z, cut: i === 1 })}<span class="cap">_${i + 1}</span></span>`).join("")}
-            </div>
-            <div class="form" style="grid-template-columns:84px minmax(0,1fr)">
-              <div class="l">사건명</div><div class="v">주거침입</div>
-              <div class="l">의뢰관서</div><div class="v">대구청 2025-03321</div>
-              <div class="l">사건일시</div><div class="v num">2025-07-19 02:10 ~ 04:30</div>
-              <div class="l">채취방법</div><div class="v">전사판채취법</div>
-            </div>
-            <div>
-              <div class="crumb" style="margin-bottom:6px">진행 기록</div>
-              <div style="display:grid;gap:6px;font-size:12px;color:var(--mute)">
-                <div><span class="mono" style="color:var(--dim)">07-23 09:42</span> 검색 572355 · 후보 2,355건</div>
-                <div><span class="mono" style="color:var(--dim)">07-23 10:05</span> 확인대상 1건 선정</div>
-                <div><span class="mono" style="color:var(--dim)">07-24 17:29</span> 재검색 572414 · 후보 869건</div>
-                <div style="color:var(--fg2)"><span class="mono" style="color:var(--dim)">07-24 17:35</span> 결과확인완료 · <b style="color:#4ade80">발견</b></div>
-              </div>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <button class="btn sm" data-role="analyst admin">사건 열기</button>
-              <button class="btn sm" data-role="analyst admin">검증요청</button>
-              <button class="btn sm" data-role="investigator">의뢰 내용 보기</button>
-            </div>
-          </div>
-        </div>
-      </div>`
+      <div class="pinbox" style="display:inline-block;margin-top:10px;padding-right:14px;color:var(--dim);font-size:11.5px">${apin(9, "voice")}처리 구분 「현장」 = DB 검색, 「대조」 = 용의자 신발과 1:1 비교. 숨긴 열(처리관서·결과확인 완료일자·사건 결과·접수자·작성자)은 「SCAS 열 전체 보기」에서 원래 자리로 돌아옵니다.</div>
+      <div class="pinbox" style="display:inline-block;margin:6px 0 0 18px;padding-right:14px;color:var(--dim);font-size:11.5px">${apin(11, "better")}보는 사람: 감정관은 검색·확인·검증요청, 기술책임자는 「결재 대기」, 수사관은 우리 청 의뢰를 봅니다.</div>`
     );
   }
 
   function scas() {
     const cols = ["순번", "이미지", "감정번호", "문서번호", "사건명", "의뢰관서 (SCAS번호)", "처리관서", "발생관서", "처리 구분", "개수", "용의자", "등록일자", "결과확인 완료일자", "사건 결과", "접수자", "작성자", "발/견", "불/발", "불/능", "등/록", "검/색", "확/인", "검색", "확인", "검증"];
+    const v = (x) => (x ? x : "");
     const row = (c, i) =>
-      `<tr><td>${i + 1}</td><td><span class="ph" style="display:block;width:18px;height:24px"></span></td><td>${c.no}</td><td>${c.doc}</td><td>${c.nm}</td><td>${c.req} 2025-03321</td><td>경찰청 범죄분석과</td><td>${c.occ}</td><td>현장</td><td>${c.imgs} (${c.imgs}, 0)</td><td>${c.sus}</td><td>${c.reg}</td><td></td><td></td><td></td><td>${c.who} ▾</td><td>${c.res === "발견" ? 1 : ""}</td><td></td><td></td><td>${c.step === 1 ? 1 : ""}</td><td>${c.step === 2 ? 1 : ""}</td><td>${c.step >= 3 ? 1 : ""}</td><td><span class="sbtn g">검색</span></td><td>${c.step >= 2 ? '<span class="sbtn g">확인</span>' : ""}</td><td>${c.step >= 3 ? '<span class="sbtn n">검증요청</span>' : ""}</td></tr>`;
+      `<tr><td>${i + 1}</td><td><span class="ph" style="display:block;width:18px;height:24px"></span></td><td>${c.no}</td><td>${c.doc}</td><td>${c.nm}</td><td>${c.req} ${c.sc}</td><td>경찰청 범죄분석과</td><td>${c.occ}</td><td>${c.kind}</td><td>${c.sh + c.ti} (${c.sh}, ${c.ti})</td><td>${c.sus}</td><td>${c.reg}</td><td></td><td></td><td></td><td>박○○ ▾</td><td>${v(c.rs[0])}</td><td>${v(c.rs[1])}</td><td>${v(c.rs[2])}</td><td>${v(c.st[0])}</td><td>${v(c.st[1])}</td><td>${v(c.st[2])}</td><td>${c.st[0] ? '<span class="sbtn g">검색</span>' : ""}</td><td>${c.st[1] || c.st[2] ? '<span class="sbtn g">확인</span>' : ""}</td><td>${c.cs === 0 || (c.st[2] && c.cs < 0) ? '<span class="sbtn n">검증요청</span>' : ""}</td></tr>`;
     return M.scasShell(
       { treeOn: "사건관리", h: 700 },
       `<div class="box" style="padding:8px;margin-bottom:8px">
@@ -125,8 +156,8 @@
       <div class="box" style="overflow:hidden"><table><thead><tr>${cols.map((c) => `<th>${c}</th>`).join("")}</tr></thead><tbody>${CASES.map(row).join("")}</tbody></table></div>
       <div style="padding:6px;color:#666;font-size:11px">« ‹ 페이지 [1] / 9 › » ⟳ <span style="float:right">전체 116 중 1 - 14</span></div>
       ${M.pain(760, 250, "<b>열 25개</b> — 한 화면에 다 안 들어와 인터뷰 내내 좌우로 스크롤 (5613 16:37–17:07)")}
-      ${M.pain(1010, 120, "<b>진행상태가 세로쓰기 숫자</b> — 「발/견」「등/록」 두 글자 헤더 아래 숫자 1로만 표시")}
-      ${M.pain(300, 300, "<b>다음 할 일이 버튼 색으로만</b> — 초록 검색·확인, 남색 검증요청이 단계마다 나타났다 사라짐")}`
+      ${M.pain(1000, 120, "<b>진행상태·결과가 세로쓰기 2글자 헤더</b> — 「등/록」「검/색」 아래 숫자가 이미지 장수인데 화면에 설명이 없음 (5613 10:00)", 220)}
+      ${M.pain(300, 330, "<b>사건 뒤 단계가 안 보임</b> — 검증요청 뒤 교차 검증·감정서·결재가 어디까지 갔는지 목록에서 알 수 없음 (5613 17:34–19:36)", 260)}`
     );
   }
 
@@ -135,17 +166,31 @@
     code: "S01",
     group: "사건관리",
     title: "사건관리 목록",
-    refs: [{ t: "SCAS 사건관리 탭", v: "5613 02:00 · 10:04 · 16:37" }],
-    lead: "SCAS 목록의 검색 조건과 열 이름은 그대로 두고, 진행상태를 막대 하나로 모으고, 다음 할 일 버튼을 행 끝 한 자리에 고정했습니다. 오른쪽 요약 칸으로 팝업 없이 사건을 훑어봅니다.",
+    refs: [
+      { t: "SCAS 사건관리 탭", v: "5613 02:00 · 10:04 · 16:37" },
+      { t: "인터뷰: 진행상태·개수의 뜻", v: "5613 10:00–11:38", voice: true },
+    ],
+    lead: "SCAS의 검색 폼(3열×5행)·툴바·열 순서를 그대로 둡니다. 결과·진행상태는 SCAS처럼 「이미지 장수」를 세는 칸으로 두되 숫자 아래 장마다 한 칸짜리 막대를 그려 읽기 쉽게 하고, 사건 단위 단계(검증요청 → 교차 검증 → 감정서 → 결재)는 맨 끝 열에 따로 덧붙였습니다.",
     scas,
     ours,
+    fit: {
+      area: ["same", "검색 폼 위 · 목록 아래, SCAS와 같은 자리"],
+      buttons: ["same", "목록보기·문양보기·초기화·엑셀·조회·등록 순서 그대로, 열 보기 전환은 구분선 뒤"],
+      popup: ["na", "목록 화면이라 팝업 없음(행 펼침은 덧붙임)"],
+      columns: ["near", "SCAS 순서 유지. 기본 보기는 5열 숨김, 세로쓰기 숫자 6열 → 결과·진행상태 2칸, 검색·확인·검증 3열 → 1칸. 「SCAS 열 전체 보기」로 25열"],
+    },
     notes: [
-      { n: 1, kind: "keep", title: "검색 조건 그대로", text: "감정번호·등록일자·사건명·의뢰관서를 앞에 두고, 문서번호·피해자·사건장소·처리관서·발생관서·타기관여부·작성자는 「상세 조건」으로 접었습니다.", src: "SCAS 검색 폼 3열×5행" },
-      { n: 2, kind: "better", title: "빠른 필터", text: "SCAS의 「☐결과 확인 전」 체크를 칩으로 꺼내고, 역할별로 자주 보는 묶음(내 담당·검증 대기·우리 청 의뢰)을 더했습니다." },
-      { n: 3, kind: "better", title: "열 25개 → 9개", text: "개수·결과·진행상태 숫자 열 9개를 진행 막대와 결과 칩 2개로 합치고, 문서번호는 감정번호 아래, 용의자는 사건명 옆 표시로 옮겼습니다. 접수자·처리 구분·작성자는 오른쪽 요약 칸에서 봅니다. 가로 스크롤이 없어집니다.", src: "5613 16:37–17:07 좌우 스크롤" },
-      { n: 4, kind: "better", title: "진행상태 한눈에", text: "등록 → 검색 → 확인대상선정 → 결과확인완료 → 검증요청 → 결재완료 6단계를 막대로 보여 줍니다. SCAS의 단계 이름을 그대로 씁니다." },
-      { n: 5, kind: "better", title: "오른쪽 요약 칸", text: "행을 누르면 팝업 대신 오른쪽에 이미지·사건정보·진행 기록이 열립니다. 검색 이력 번호(572355 등)도 여기서 봅니다." },
-      { n: 6, kind: "keep", title: "등록 버튼은 수사관·관리자에게", text: "SCAS의 「등록」 버튼 그대로입니다. 보는 사람을 바꾸면 감정관에게는 숨겨지고, 행 끝 작업 버튼도 역할마다 달라집니다." },
+      { n: 1, kind: "keep", title: "검색 폼 3열×5행 그대로", text: "감정번호·등록일자·사건장소·처리관서·사건결과(☐결과 확인 전) / 문서번호·피해자·검거여부·의뢰관서·타기관여부 / 사건명·구분·작성자·발생관서를 SCAS와 같은 자리에 둡니다. 역할별 빠른 보기 칩은 폼 아래에 덧붙였습니다.", src: "5613 S3 검색 폼" },
+      { n: 2, kind: "keep", title: "툴바 버튼 순서 그대로", text: "목록보기/문양보기 · 초기화 · 엑셀 · 조회 · 등록을 같은 순서로 오른쪽 위에 둡니다." },
+      { n: 3, kind: "voice", title: "감정관도 「등록」", text: "공문 없이 감정관이 직접 사건을 만드는 경우가 있습니다. 「보면 등록이라는 게 있어요. 임의로 등록하는 거.」 그래서 등록 버튼을 수사관·감정관·관리자 모두에게 보입니다.", src: "5613 19:55" },
+      { n: 4, kind: "voice", title: "공문 자동 접수 표시", text: "「자동으로 문서를 접수하면 여기에 자동으로 뜨는 거죠.」 감정번호 아래에 「공문 자동」/「임의 등록」을 작게 표시해, 어떤 길로 들어온 사건인지 구분합니다.", src: "5613 11:31" },
+      { n: 5, kind: "better", title: "기본 보기 + SCAS 열 전체 보기", text: "열 순서는 SCAS 그대로이고, 기본 보기는 처리관서·결과확인 완료일자·사건 결과·접수자·작성자를 숨겨 가로 스크롤을 없앱니다. 「SCAS 열 전체 보기」를 누르면 25열 원래 모양으로 돌아옵니다.", src: "5613 16:37–17:07 좌우 스크롤" },
+      { n: 6, kind: "voice", title: "진행상태 = 이미지 장수", text: "「진행상태가 검색하나를 한거야. 그래서 여기 확인을 눌러주는거야.」 등록·검색·확인 칸은 사건 단계가 아니라 이미지가 몇 장씩 그 상태인지 세는 숫자입니다(예 12장 중 등록 9·검색 2·확인 1). 숫자 아래 장마다 한 칸짜리 막대(회색 등록·주황 검색·파랑 확인)를 덧붙였습니다. 결과(발견·불발·불능)도 장수입니다.", src: "5613 10:00 · 인벤토리 S3/S11" },
+      { n: 7, kind: "voice", title: "개수 = (신발, 타이어)", text: "「왼쪽에 있는 것은 신발 파일을 얘기하는 거고, 오른쪽에 있는 것은 타이어를 얘기하는 거에요.」 SCAS 표기 「12 (12, 0)」을 그대로 두고 헤더에 (신발, 타이어)를 적었습니다.", src: "5613 10:43–11:04" },
+      { n: 8, kind: "better", title: "사건 진행 열(덧붙임)", text: "이미지가 모두 확인되면 사건 단위로 검증요청 → 교차 검증(다른 감정관) → 감정서 → 결재가 이어집니다. SCAS 목록에는 없던 이 단계를 맨 끝 열에 따로 보여 주고, 이미지 장수 칸과 섞지 않습니다.", src: "5613 17:34–19:36" },
+      { n: 9, kind: "voice", title: "처리 구분 현장 / 대조", text: "「현장, 대조, 뭐 이런게 다 있어요. 현장이면 검색이란 말이에요.」 SCAS 값을 그대로 두고, 「대조」 사건만 보라색으로 구분합니다.", src: "5613 10:43" },
+      { n: 10, kind: "better", title: "행 펼침 요약(덧붙임)", text: "행을 누르면 바로 아래에 이미지별 상태(확인·발견, 검색번호, 확인대상 수 / 전체)와 교차 검증자가 펼쳐집니다. 열과 팝업은 그대로 두고 덧붙이기만 합니다." },
+      { n: 11, kind: "better", title: "보는 사람마다 다른 버튼", text: "감정관·관리자는 행 끝 검색·확인·검증요청 버튼과 「교차 검증 요청 받음」을 봅니다. 기술책임자는 「결재 대기」, 수사관은 「우리 청 의뢰」와 등록만 봅니다." },
     ],
   });
 })();

@@ -1,12 +1,19 @@
 /* S09 감정서 작성 — SCAS 「감정서작성」 탭(S13) → 「결재문서정보」 팝업 + 문서 뷰어(S14) → 한글 편집기 별도 창(S15)
-   (IMG_5613 14:37–16:07, 18:07, 19:07–19:37) */
+   (IMG_5613 14:37–16:07, 18:07–19:37)
+   r2: 흐름 S07 → S08 교차 검증 → S09 감정서 → 결재. 목록 배치·결재회수 그대로, 결재문서정보는 팝업처럼.
+       서명란 감정관(작성) · 감정관(교차 검증) · 기술책임자. AI는 「판독 문장 초안」만 */
 (function () {
   const { pin, apin, sole } = M;
 
-  /* AI가 채운 칸(청록) + 근거 링크 */
-  const ai = (html, src) =>
-    `<span style="background:var(--teal-bg);box-shadow:inset 0 -1px 0 var(--teal);padding:0 4px;border-radius:3px;color:var(--fg)">${html}</span>${src ? `<sup style="margin-left:3px;color:var(--teal);font:600 10px var(--font-mono)">↗${src}</sup>` : ""}`;
-  /* 핵심 결과 자동 강조 */
+  const layer = ({ l, t, w, title, head = "" }, body) => `
+    <div style="position:absolute;inset:0;z-index:5;background:rgba(5,8,13,.74)"></div>
+    <div class="panel pinbox" style="position:absolute;left:${l}px;top:${t}px;width:${w}px;z-index:6;box-shadow:0 24px 70px rgba(0,0,0,.65)">
+      <div class="panel-h" style="background:var(--blue-bg)"><span class="t">${title}</span>${head}<span class="r"><span style="color:var(--mute)">✕</span></span></div>
+      ${body}
+    </div>`;
+
+  /* AI 판독 문장(청록 밑줄) + 근거 링크 */
+  const ai = (html, src) => `<span class="ai-fill">${html}</span>${src ? `<sup style="margin-left:3px;color:var(--teal);font:600 10px var(--font-mono)">↗${src}</sup>` : ""}`;
   const key = (t) => `<b style="color:var(--amber)">${t}</b>`;
 
   const sideShoe = () =>
@@ -15,93 +22,96 @@
       <path d="M18 70L184 70L182 76L22 78Z" style="fill:var(--dim)"/><path d="M98 24L120 40M92 30L114 44" style="stroke:var(--line3);stroke-width:2"/></svg>`;
 
   const WAIT = [
-    { no: "00001-25-0646", doc: "SCAS수사부-2944", nm: "주거침입", req: "대구청", occ: "2025-07-19", reg: "2025-07-23", prog: "작성 중", cur: true },
-    { no: "00001-25-0640", doc: "SCAS수사부-2911", nm: "절도", req: "부산청", occ: "2025-07-15", reg: "2025-07-22", prog: "결재 중" },
-    { no: "00001-25-0612", doc: "SCAS수사부-2755", nm: "절도", req: "인천청", occ: "2025-07-10", reg: "2025-07-16", prog: "결재완료", out: true },
+    { no: "00001-25-0646", doc: "SCAS수사부-2944", nm: "주거침입", req: "대구청", occ: "2025-07-19", reg: "2025-07-23", prog: "작성 중", cross: "의견 일치 · 김○○", cur: true },
+    { no: "00001-25-0640", doc: "SCAS수사부-2911", nm: "절도", req: "부산청", occ: "2025-07-15", reg: "2025-07-22", prog: "결재 중", cross: "의견 일치 · 박○○" },
+    { no: "00001-25-0633", doc: "SCAS수사부-2870", nm: "강도", req: "서울청", occ: "2025-07-12", reg: "2025-07-21", prog: "교차 검증 중", cross: "이○○ 접수함" },
+    { no: "00001-25-0612", doc: "SCAS수사부-2755", nm: "절도", req: "인천청", occ: "2025-07-10", reg: "2025-07-16", prog: "결재완료", cross: "의견 일치 · 김○○", out: true },
   ];
-  const progChip = (p) => (p === "작성 중" ? `<span class="chip teal">작성 중 · AI 초안</span>` : p === "결재 중" ? `<span class="chip amber">결재 중</span>` : `<span class="chip green">결재완료</span>`);
+  const progChip = (p) =>
+    p === "작성 중" ? `<span class="chip blue">작성 중</span>` : p === "결재 중" ? `<span class="chip amber">결재 중</span>` : p === "교차 검증 중" ? `<span class="chip">교차 검증 중</span>` : `<span class="chip green">결재완료</span>`;
 
   const RULES = [
     { ok: true, t: "족적 기본정보", d: "1·2항, 감정물 3점 + 해시값" },
-    { ok: true, t: "분석결과", d: "7항 표 3행 = 이미지 3장" },
-    { ok: true, t: "유사도/검색결과", d: "검색 572355·572420, 87%" },
+    { ok: true, t: "분석결과", d: "7항 3행 = 이미지 3장 판정" },
+    { ok: true, t: "유사도/검색결과", d: "검색 572355 · 572420" },
     { ok: false, t: "판독소견", d: "AI 초안 그대로 — 감정관 확인 필요" },
-    { ok: true, t: "종합의견", d: "판정 3건과 문장 일치" },
+    { ok: true, t: "종합의견", d: "이미지 판정 3건과 문장 일치" },
   ];
   const HIST = [
-    { at: "07-24 17:52", who: "보고서 Agent", t: "초안 v1 생성 (S06·S07 근거 12건 인용)" },
-    { at: "07-24 17:55", who: "보고서 Agent", t: "이미지 페이지 자동 구성 (후보 1건 + 근거 그림 1장)" },
-    { at: "07-24 17:58", who: "박○○ 경위", t: "판독소견 수정 v2 — 「일치함」→「일치하는 것으로 판단됨」" },
+    { at: "07-24 17:40", who: "SCAS 자동", t: "감정서 1~7항·이미지 페이지 생성" },
+    { at: "07-24 17:41", who: "보고서 Agent", t: "판독 문장 초안 v1 (근거 4건 인용)" },
+    { at: "07-24 17:48", who: "박○○ 경위", t: "판독소견 수정 v2 — 「일치함」→「일치하는 것으로 판단됨」" },
   ];
 
   function ours() {
     const wrows = WAIT.map(
       (w) => `<tr class="${w.cur ? "sel" : ""}"><td class="mono" style="color:var(--fg)">${w.no}</td><td class="mono">${w.doc}</td><td>${w.nm}</td><td>${w.req}</td>
         <td class="num">${w.occ}</td><td class="num">${w.reg}</td><td>${progChip(w.prog)}</td>
-        <td><button class="btn sm ${w.cur ? "pri" : ""}">감정서</button></td><td>${w.out ? "✓" : `<span style="color:var(--faint)">—</span>`}</td>
-        <td>${w.prog === "결재 중" ? `<button class="btn sm danger" data-role="analyst admin">결재회수</button>` : `<span style="color:var(--faint)">—</span>`}</td></tr>`
+        <td>${w.prog === "교차 검증 중" ? `<span style="color:var(--faint)">—</span>` : `<button class="btn sm" style="background:var(--blue-bg);border-color:#2b4a78;color:var(--blue)">감정서</button>`}</td><td>${w.out ? "✓" : `<span style="color:var(--faint)">—</span>`}</td>
+        <td>${w.prog === "결재 중" ? `<button class="btn sm danger" data-role="analyst admin">결재회수</button>` : `<span style="color:var(--faint)">—</span>`}</td>
+        <td style="color:var(--mute);font-size:11.5px">${w.cross}</td></tr>`
     ).join("");
 
     const rules = RULES.map(
-      (r) => `<div style="display:grid;grid-template-columns:18px minmax(0,1fr);gap:6px;padding:5px 0;border-top:1px solid var(--line2);font-size:12px">
+      (r) => `<div style="display:grid;grid-template-columns:16px minmax(0,1fr);gap:6px;padding:4px 0;border-top:1px solid var(--line2);font-size:11.5px">
         <b style="color:${r.ok ? "#4ade80" : "var(--amber)"}">${r.ok ? "✓" : "!"}</b><span><span style="color:var(--fg2)">${r.t}</span> <span style="color:var(--dim)">— ${r.d}</span></span></div>`
     ).join("");
     const hist = HIST.map(
-      (h) => `<div style="display:grid;grid-template-columns:76px minmax(0,1fr);gap:6px;font-size:11.5px;padding:4px 0;border-top:1px solid var(--line2)">
+      (h) => `<div style="display:grid;grid-template-columns:70px minmax(0,1fr);gap:6px;font-size:11px;padding:4px 0;border-top:1px solid var(--line2)">
         <span class="mono" style="color:var(--dim)">${h.at}</span><span style="color:var(--mute)"><span style="color:${h.who === "보고서 Agent" ? "var(--teal)" : "var(--fg2)"}">${h.who}</span> · ${h.t}</span></div>`
     ).join("");
 
-    const sec = (n, t, body) => `<div style="display:grid;grid-template-columns:118px minmax(0,1fr);gap:10px;padding:6px 0;border-bottom:1px solid var(--line2);font-size:12.5px"><b style="color:var(--fg2)">${n}. ${t}</b><div style="color:var(--fg2);min-width:0">${body}</div></div>`;
-    const td = `style="white-space:normal;height:auto;padding:6px 8px;line-height:1.4"`;
-    const tdn = `style="height:auto;padding:6px 8px;line-height:1.4"`; /* 줄바꿈 없는 짧은 칸 */
+    const sec = (n, t, body) => `<div style="display:grid;grid-template-columns:112px minmax(0,1fr);gap:10px;padding:5px 0;border-bottom:1px solid var(--line2);font-size:12px"><b style="color:var(--fg2)">${n}. ${t}</b><div style="color:var(--fg2);min-width:0">${body}</div></div>`;
 
-    const paper = `<div style="padding:22px 30px;border:1px solid var(--line3);border-radius:10px;background:var(--panel2)">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:10px;border-bottom:2px solid var(--line3)">
-          <div><div class="mono" style="color:var(--dim);font-size:10.5px">KPSI-KQP-16-F05 (REV.03)</div><b style="font-size:20px;letter-spacing:.3em">감 정 서</b><div style="color:var(--mute);font-size:11.5px">경찰청 · [주소 가림]</div></div>
+    const page1 = `<div class="pinbox" style="padding:18px 26px;border:1px solid var(--line3);border-radius:10px;background:var(--panel2)">${apin(3, "keep", true)}
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:8px;border-bottom:2px solid var(--line3)">
+          <div><div class="mono" style="color:var(--dim);font-size:10.5px">KPSI-KQP-16-F05 (REV.03)</div><b style="font-size:19px;letter-spacing:.3em">감 정 서</b><div style="color:var(--mute);font-size:11.5px">경찰청 · [주소 가림]</div></div>
           <div style="text-align:right;font-size:11.5px;color:var(--mute)"><div>감정서번호 : <span class="mono" style="color:var(--fg2)">00001-25-0646</span></div><div class="mono">1/2</div><div style="margin-top:4px"><span class="chip" style="height:18px;font-size:10px">ILAC-MRA</span> <span class="chip" style="height:18px;font-size:10px">KOLAS</span></div></div>
         </div>
-        ${sec(1, "의뢰 관서", `대구청 수성서 (SCAS번호 2025-03321)`)}
+        ${sec(1, "의뢰 관서", `대구청 (SCAS번호 2025-03321)`)}
         ${sec(2, "감정물", `현장 족적 사진 3점 <span style="color:var(--dim)">· SCAS사건번호 2025-11710 · 문서번호 SCAS수사부-2944</span>
-          <div class="mono" style="font-size:11px;color:var(--mute);line-height:1.6">00001-25-0646_1.jpg (690dda…e41c)<br>00001-25-0646_2.jpg (1b7f03…9a02)<br>00001-25-0646_3.jpg (c45e88…07bd)</div>`)}
+          <div class="mono" style="font-size:10.5px;color:var(--mute);line-height:1.6">00001-25-0646_1.jpg (690dda…e41c) · 00001-25-0646_2.jpg (1b7f03…9a02) · 00001-25-0646_3.jpg (c45e88…07bd)</div>`)}
         ${sec(3, "감정 방법", `윤적감정방법 지침서(KPSI-KQI-305 : 2022)`)}
         ${sec(4, "감정 장소", `경찰청 범죄분석과`)}
         ${sec(5, "감정 기간", `<span class="num">2025-07-23 ~ 2025-07-25</span>`)}
         ${sec(6, "시험 환경", `온도 (24 ± 5) ℃ 습도 70 % R.H. 이하`)}
-        <div class="pinbox" style="padding:8px 0;border-bottom:1px solid var(--line2)">${apin(6, "plus")}
-          <b style="color:var(--fg2);font-size:12.5px">7. 감정 결과</b>
-          <table class="grid" style="margin-top:6px;font-size:12px"><thead><tr><th>연번</th><th>검색구분</th><th>감정물</th><th>채취장소</th><th>감정결과</th><th>발견상표</th><th>비고</th></tr></thead><tbody>
-            <tr><td ${tdn}>1</td><td ${tdn}>현장문양검색</td><td ${tdn}>전사판채취법 1 건</td><td ${tdn}>주방 바닥</td><td ${td}>${ai(key("발견"), "S07")}</td><td ${td}>${ai("○○스포츠 운동화", "S07")}</td><td ${td}>${ai("용의자신발과 상·중 문양 일치", "S06")}</td></tr>
-            <tr><td ${tdn}>2</td><td ${tdn}>현장문양검색</td><td ${tdn}>전사판채취법 1 건</td><td ${tdn}>주방 바닥</td><td ${td}>${ai("불발견", "S07")}</td><td ${td}>—</td><td ${td}></td></tr>
-            <tr><td ${tdn}>3</td><td ${tdn}>—</td><td ${tdn}>전사판채취법 1 건</td><td ${tdn}>현관</td><td ${td}>${ai("감정불능", "S07")}</td><td ${td}>—</td><td ${td}>${ai("족적 약 30%만 남음", "S07")}</td></tr>
+        <div style="padding:6px 0;border-bottom:1px solid var(--line2)">
+          <b style="color:var(--fg2);font-size:12px">7. 감정 결과</b>
+          <table class="grid" style="margin-top:5px;font-size:11.5px"><thead><tr><th>연번</th><th>검색구분</th><th>감정물</th><th>채취장소</th><th>감정결과</th><th>발견상표</th><th>비고</th></tr></thead><tbody>
+            <tr><td style="height:32px">1</td><td>현장문양검색</td><td>전사판채취법 1 건</td><td>주방 바닥</td><td>${key("발견")}</td><td>○○스포츠 운동화</td><td>용의자신발</td></tr>
+            <tr><td style="height:32px">2</td><td>현장문양검색</td><td>전사판채취법 1 건</td><td>주방 바닥</td><td>불발견</td><td>—</td><td></td></tr>
+            <tr><td style="height:32px">3</td><td>—</td><td>전사판채취법 1 건</td><td>현관</td><td>감정불능</td><td>—</td><td></td></tr>
           </tbody></table>
         </div>
-        <div class="pinbox" style="padding:8px 0;border-bottom:1px solid var(--line2);font-size:12.5px;line-height:1.65">${apin(4, "plus")}
+        <div class="pinbox" style="padding:6px 0;border-bottom:1px solid var(--line2);font-size:12px;line-height:1.65">${apin(6, "plus")}
           <b style="color:var(--fg2)">8. 비고</b>
-          <div style="margin-top:4px;color:var(--fg2)"><span style="color:var(--mute)">판독소견</span> — ${ai(`감정물 _1의 상·중 부위 헤링본·격자 문양은 신발 305659와 기울기(32° ↔ 31°)·간격(4.1 ↔ 4.0 mm)·방향이 ${key("일치하는 것으로 판단됨")}. 정밀 대조 ${key("종합 신뢰도 87%")}. 하 부위는 현장 족적 일부 소실로 판단에서 제외함.`, "S06")}</div>
-          <div style="margin-top:4px;color:var(--fg2)"><span style="color:var(--mute)">종합의견</span> — ${ai(`감정물 3점 중 1점 ${key("발견")}(○○스포츠 운동화), 1점 불발견, 1점 감정불능.`, "S07")}</div>
+          <div style="margin-top:3px;color:var(--fg2)"><span style="color:var(--mute)">판독소견</span> — ${ai(`감정물 _1의 상·중 부위 헤링본 줄 수(9 ↔ 9)와 격자 칸 수(가로 7 ↔ 7)가 신발 305659와 같아 ${key("일치하는 것으로 판단됨")}. 하 부위는 현장 족적 일부 소실로 판단에서 제외함.`, "S06·S07")}</div>
+          <div style="margin-top:3px;color:var(--fg2)"><span style="color:var(--mute)">종합의견</span> — ${ai(`감정물 3점 중 1점 ${key("발견")}(○○스포츠 운동화), 1점 불발견, 1점 감정불능. 교차 검증 결과 의견 일치.`, "S07·S08")}</div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px;text-align:center;font-size:12px">
-          ${[["감정관", "박○○ 경위"], ["감정관", "김○○ 경사"], ["기술책임자", "정○○ 경정"]].map(([r, n]) => `<div style="padding:8px;border:1px solid var(--line3);border-radius:8px"><div style="color:var(--dim)">${r}</div><div style="color:var(--fg2)">${n}</div><div style="color:var(--faint);font-size:11px">(서명 · 결재 후)</div></div>`).join("")}
+        <div class="pinbox" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px;text-align:center;font-size:12px">${apin(5, "better", true)}
+          ${[["감정관 (작성)", "박○○ 경위", "S07 결과확인완료"], ["감정관 (교차 검증)", "김○○ 경사", "S08 의견 일치"], ["기술책임자", "최○○ 경감", "결재 후 서명"]]
+            .map(([r, n, s]) => `<div style="padding:7px;border:1px solid var(--line3);border-radius:8px"><div style="color:var(--dim)">${r}</div><div style="color:var(--fg2)">${n}</div><div style="color:var(--faint);font-size:10.5px">${s}</div></div>`)
+            .join("")}
         </div>
-        <div style="margin-top:10px;text-align:center;color:var(--mute);font-size:11.5px;line-height:1.6">KOLAS 인정 문구 · 한국인정기구 인정 &nbsp; <b style="color:var(--fg2)">경찰청장</b> [직인]<br><span style="color:var(--dim)">Commissioner General of Korean National Police Agency · 경찰청 범죄분석과</span></div>
+        <div style="margin-top:8px;text-align:center;color:var(--mute);font-size:11px;line-height:1.6">KOLAS 인정 문구 · 한국인정기구 인정 &nbsp; <b style="color:var(--fg2)">경찰청장</b> [직인]<br><span style="color:var(--dim)">Commissioner General of Korean National Police Agency · 경찰청 범죄분석과</span></div>
       </div>`;
 
-    const imgPage = `<div class="pinbox" style="margin-top:14px;padding:18px 30px;border:1px solid var(--line3);border-radius:10px;background:var(--panel2)">${apin(7, "better", true)}
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><b style="font-size:13px">감정서 이미지 페이지 <span class="mono" style="color:var(--dim);font-weight:400">2/2</span></b>
-          <span class="ai-mark">● 자동 구성 · 같은 창에서 편집</span></div>
+    const page2 = `<div class="pinbox" style="margin-top:12px;padding:14px 26px;border:1px solid var(--line3);border-radius:10px;background:var(--panel2)">${apin(8, "voice", true)}
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px"><b style="font-size:12.5px">이미지 페이지 <span class="mono" style="color:var(--dim);font-weight:400">2/2</span> · 이미지 _1 (발견)</b>
+          <span style="font-size:11px;color:var(--mute)">한글 편집기 창 없이 이 팝업에서 바로 고침</span></div>
         <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--line3);border-radius:8px;overflow:hidden">
-          <div style="padding:8px;border-right:1px solid var(--line3);border-bottom:1px solid var(--line3)"><div class="crumb" style="margin-bottom:4px">유류이미지</div>
-            <span class="imgbox" style="display:block;height:200px">${sole({ kind: "scene", zones: ["herring", "grid", "blocks"], ruler: true, cut: true })}</span>
-            <div class="mono" style="margin-top:4px;font-size:10.5px;color:var(--dim)">00001-25-0646_1.jpg (690dda…e41c)</div></div>
-          <div style="padding:8px;border-bottom:1px solid var(--line3)"><div class="crumb" style="margin-bottom:4px">발견이미지</div>
-            <span class="imgbox" style="display:block;height:200px">${sole({ kind: "shoe", zones: ["herring", "grid", "tri"] })}</span>
-            <div class="mono" style="margin-top:4px;font-size:10.5px;color:var(--dim)">305659</div></div>
-          <div style="padding:8px;border-right:1px solid var(--line3)"><div class="crumb" style="margin-bottom:4px">측면이미지</div>
-            <span class="imgbox" style="display:block;height:110px">${sideShoe()}</span>
-            <div style="margin-top:8px;display:flex;gap:6px;align-items:center"><span class="imgbox" style="display:block;width:70px;height:60px">${sole({ kind: "scene", zones: ["herring", "grid", "blocks"], heat: true })}</span>
-              <span style="font-size:11.5px;color:var(--mute)">${ai("근거 그림 · 대응점 5쌍 + 히트맵", "S06")}</span></div></div>
-          <div style="padding:8px"><div class="crumb" style="margin-bottom:4px">이미지정보</div>
-            <div class="form" style="grid-template-columns:76px minmax(0,1fr)">
+          <div style="padding:7px;border-right:1px solid var(--line3);border-bottom:1px solid var(--line3)"><div class="crumb" style="margin-bottom:4px">유류이미지</div>
+            <span class="imgbox" style="display:block;height:170px">${sole({ kind: "scene", zones: ["herring", "grid", "tri"], ruler: true, cut: true })}</span>
+            <div class="mono" style="margin-top:3px;font-size:10px;color:var(--dim)">00001-25-0646_1.jpg (690dda…e41c)</div></div>
+          <div style="padding:7px;border-bottom:1px solid var(--line3)"><div class="crumb" style="margin-bottom:4px">발견이미지</div>
+            <span class="imgbox" style="display:block;height:170px">${sole({ kind: "shoe", zones: ["herring", "grid", "tri"] })}</span>
+            <div class="mono" style="margin-top:3px;font-size:10px;color:var(--dim)">305659</div></div>
+          <div style="padding:7px;border-right:1px solid var(--line3)"><div class="crumb" style="margin-bottom:4px">측면이미지</div>
+            <span class="imgbox" style="display:block;height:96px">${sideShoe()}</span>
+            <div style="display:flex;gap:4px;align-items:center;margin-top:6px">${[["herring", "grid", "tri"], ["herring", "grid", "blocks"], ["herring", "dots", "tri"]].map((z) => `<span class="imgbox" style="display:block;width:34px;height:48px">${sole({ kind: "shoe", zones: z })}</span>`).join("")}
+              <span style="font-size:11px;color:var(--mute)">그룹 신발 이미지 +9 (최대 15)</span></div></div>
+          <div style="padding:7px"><div class="crumb" style="margin-bottom:4px">이미지정보</div>
+            <div class="form" style="grid-template-columns:72px minmax(0,1fr)">
               <div class="l">화류번호</div><div class="v mono">305659</div>
               <div class="l">화종</div><div class="v">운동화</div>
               <div class="l">상표</div><div class="v">○○스포츠</div>
@@ -111,69 +121,87 @@
               <div class="l">비고</div><div class="v">용의자신발</div>
             </div></div>
         </div>
-        <div style="margin-top:6px;color:var(--dim);font-size:11px">확인대상이 여러 개면 2×2 표가 후보마다 자동으로 이어집니다. 이미지를 두 번 누르면 이 자리에서 편집 창이 열립니다.</div>
+        <div style="margin-top:6px;color:var(--dim);font-size:11px">발견된 이미지 순서(_1 → _n)대로 이 2×2 블록이 이어 붙습니다. 불발견·감정불능 이미지는 블록을 만들지 않습니다.</div>
       </div>`;
 
+    const flow = [
+      ["결과확인완료", "done"],
+      ["교차 검증 · 의견 일치", "done"],
+      ["감정서작성", "now"],
+      ["결재(기술책임자)", ""],
+    ].map(
+      ([t, st], i) => `${i ? `<span style="color:var(--dim)">→</span>` : ""}<span class="chip ${st === "now" ? "amber" : st === "done" ? "blue" : ""}" style="height:20px;font-size:10.5px">${st === "done" ? "✓ " : ""}${t}</span>`
+    ).join("");
+
+    const body = `<div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;padding:10px 14px 14px">
+      <div style="min-width:0">
+        <div class="pinbox" style="display:flex;gap:5px;align-items:center;margin-bottom:10px">${apin(2, "keep", true)}
+          <button class="btn sm">저장</button><button class="btn sm">인쇄</button>
+          <span style="width:1px;height:18px;background:var(--line3);margin:0 3px"></span>
+          <button class="btn sm ghost">⏫</button><button class="btn sm ghost">⏶</button><span class="mono" style="font-size:12px">1 / 2</span><button class="btn sm ghost">⏷</button><button class="btn sm ghost">⏬</button>
+          <span style="width:1px;height:18px;background:var(--line3);margin:0 3px"></span>
+          <button class="btn sm ghost">−</button><span class="mono" style="font-size:12px">100% ▾</span><button class="btn sm ghost">＋</button>
+          <span style="margin-left:auto;display:flex;gap:5px;align-items:center">
+            <button class="btn sm">배포용 다운로드 ▾</button>
+            <span style="width:1px;height:18px;background:var(--line3)" data-role="analyst admin"></span>
+            <button class="btn sm pri" data-role="analyst admin">결재 올리기</button>${pin(10, "voice")}
+            <button class="btn sm ok" data-role="verifier">결재</button><button class="btn sm danger" data-role="verifier">반려</button>
+          </span>
+        </div>
+        <div style="display:flex;gap:14px;margin-bottom:8px;font-size:11px;color:var(--mute)"><span>흰 글자 = SCAS처럼 자동 생성</span><span>${ai("청록 밑줄", "")} = AI 판독 문장 초안(새 기능)</span><span>${key("주황 굵게")} = 핵심 결과 강조</span></div>
+        ${page1}
+        ${page2}
+        <div class="pinbox" style="margin-top:12px;border:1px solid var(--line);border-radius:10px">${apin(9, "voice", true)}
+          <div style="padding:6px 12px;background:var(--strip);font-size:12px;color:var(--fg2);font-weight:600;border-radius:10px 10px 0 0">첨부파일 목록 ▾</div>
+          <table class="grid"><thead><tr><th>순번</th><th>첨부 문서</th><th>파일 명칭</th><th>파일 크기</th></tr></thead><tbody>
+            <tr><td style="height:34px">1</td><td>감정서</td><td>족윤적 감정서 출지</td><td class="num">412 KB</td></tr>
+            <tr><td style="height:34px">2</td><td>발견 이미지 <span class="chip" style="height:17px;font-size:10px">자동 첨부</span></td><td class="mono">00001-25-0646_1_305659.png</td><td class="num">1.2 MB</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div style="display:grid;gap:10px;align-content:start;padding-left:14px;border-left:1px dashed #1d4a44">
+        <div style="display:flex;justify-content:space-between;align-items:center"><span class="ai-mark">● +α 보고서 Agent</span><span class="inp" style="width:140px;font-size:11px">경찰청 F05 (REV.03)<span class="caret">▾</span></span></div>
+        <div style="padding:7px 9px;border-radius:8px;background:var(--panel2);font-size:11.5px;color:var(--mute);line-height:1.5">감정서 1~7항과 이미지 페이지는 SCAS에도 있는 <b style="color:var(--fg2)">자동 생성</b>입니다. 새로 더하는 것은 8항의 <b style="color:var(--teal)">판독 문장 초안</b>과 아래 점검뿐입니다.</div>
+        <div style="display:flex;gap:6px"><button class="btn sm ai" data-role="analyst admin">판독 문장 초안 생성</button><button class="btn sm ghost" data-role="analyst admin">이 문장만 다시</button></div>
+        <div style="font-size:11px;color:var(--mute)">근거로 쓴 자료
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px"><span class="chip teal" style="height:19px;font-size:10px">S07 판정 메모</span><span class="chip teal" style="height:19px;font-size:10px">S06 칸 수·도형 근거</span><span class="chip" style="height:19px;font-size:10px">S08 교차 검증 의견</span><span class="chip" style="height:19px;font-size:10px">KPSI-KQI-305 : 2022</span></div></div>
+        <div class="pinbox" style="padding-top:6px;border-top:1px solid var(--line2)">${apin(7, "plus")}
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="crumb">규칙 기반 검증 · 필수 항목</span><span style="font-size:11px;color:var(--amber)">4 / 5</span></div>
+          <div style="margin-top:4px">${rules}</div>
+          <div style="margin-top:5px;font-size:10.5px;color:var(--dim)">「!」 항목을 확인해야 결재 올리기가 켜집니다.</div>
+        </div>
+        <div style="padding-top:6px;border-top:1px solid var(--line2)">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="crumb">핵심 결과 강조</span><span class="seg"><button aria-pressed="true">켜기</button><button aria-pressed="false">끄기</button></span></div>
+        </div>
+        <div style="padding-top:6px;border-top:1px solid var(--line2)"><div class="crumb" style="margin-bottom:2px">수정 이력</div>${hist}</div>
+        <div class="pinbox" style="display:grid;gap:4px;padding-top:6px;border-top:1px solid var(--line2);font-size:11px;color:var(--mute)">${pin(11, "better")}
+          <span data-role="analyst admin">감정관: 편집 · 초안 생성 · 결재 올리기 · 결재회수</span>
+          <span data-role="verifier">기술책임자: 읽기 + 결재 · 반려</span>
+          <span data-role="investigator">수사관: 결재완료 감정서만 내려받기</span>
+        </div>
+      </div>
+    </div>`;
+
     return M.shell(
-      { active: "감정서작성", tabs: ["사건관리", "검색결과 확인", "감정서작성", "결재 대기함"], title: "감정서 작성", h: 1960 },
-      `<div class="page-head">
-        <div><div class="crumb">족윤적 · 감정서관리 · 감정서작성</div><h3>감정서 작성</h3>
-          <p>위 목록에서 사건을 고르면 아래에서 바로 감정서를 편집합니다. 결재문서정보 팝업과 한글 편집기 창이 없습니다.</p></div>
-        <div style="display:flex;gap:6px"><button class="btn">엑셀</button></div>
-      </div>
-
-      <div class="panel pinbox" style="margin-bottom:12px">${apin(1, "keep", true)}
-        <div class="panel-h"><span class="lbl">WAITING</span><span class="t">감정 작성 대기 목록</span>
-          <span class="r" style="display:flex;gap:6px;align-items:center">
-            <span class="inp" style="width:140px;color:var(--dim);white-space:nowrap">감정번호·문서번호</span><span class="inp mono" style="width:212px;white-space:nowrap">2025-03-01 ~ 2025-07-24</span>
-            <span class="inp" style="width:100px;white-space:nowrap">의뢰관서<span class="caret">▾</span></span><span class="inp" style="width:130px;white-space:nowrap">처리관서 경찰청<span class="caret">▾</span></span><span class="inp" style="width:86px;white-space:nowrap">사건명<span class="caret">▾</span></span>
-            <button class="btn sm">초기화</button><button class="btn sm pri">조회</button></span></div>
-        <table class="grid"><thead><tr><th>감정번호</th><th>문서번호</th><th>사건명</th><th>의뢰관서</th><th>발생일</th><th>등록일</th><th>감정의뢰 진행</th><th>감정서</th><th>출지</th><th>결재</th></tr></thead><tbody>${wrows}</tbody></table>
-      </div>
-
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:12px;align-items:start">
-        <div class="panel tc pinbox">${apin(2, "better")}
-          <div class="panel-h"><span class="lbl">DOCUMENT</span><span class="t">감정서 <span class="mono">00001-25-0646</span></span>
-            <span class="r"><span class="seg"><button aria-pressed="true">1쪽 본문</button><button aria-pressed="false">2쪽 이미지</button></span>
-              <span class="mono" style="color:var(--mute);font-size:12px">100% ▾</span><span class="chip teal" style="height:20px;font-size:10.5px">AI 초안 v2</span></span></div>
-          <div class="panel-b pinbox">${apin(3, "keep", true)}
-            <div style="display:flex;gap:12px;margin-bottom:10px;font-size:11.5px;color:var(--mute)"><span>${ai("청록", "")} = AI가 채운 칸 · ↗ = 근거 화면</span><span>${key("주황 굵게")} = 핵심 결과 자동 강조</span><span style="margin-left:auto">나머지는 SCAS 양식 그대로</span></div>
-            ${paper}
-            ${imgPage}
+      { active: "감정서작성", tabs: ["사건관리", "감정서작성", "족윤적 검증", "결재 대기함"], title: "감정서작성", h: 1820 },
+      `<div style="min-height:1690px">
+        <div class="panel pinbox" style="margin-bottom:10px">${apin(1, "keep", true)}
+          <div class="panel-b" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 14px">
+            <div style="display:flex;gap:8px;align-items:center"><span class="crumb" style="width:60px">감정번호</span><span class="inp w100" style="color:var(--dim)">00001-25-</span></div>
+            <div style="display:flex;gap:8px;align-items:center"><span class="crumb" style="width:60px">등록일자</span><span class="inp w100 mono">2025-03-01 ~ 2025-07-24</span></div>
+            <div style="display:flex;gap:8px;align-items:center"><span class="crumb" style="width:60px">의뢰관서</span><span class="inp w100"></span><button class="btn sm">검색</button></div>
+            <div style="display:flex;gap:8px;align-items:center"><span class="crumb" style="width:60px">처리관서</span><span class="inp w100">경찰청</span><button class="btn sm">검색</button></div>
+            <div style="display:flex;gap:8px;align-items:center"><span class="crumb" style="width:60px">문서번호</span><span class="inp w100"></span></div>
+            <div style="display:flex;gap:8px;align-items:center"><span class="crumb" style="width:60px">사건명</span><span class="inp w100">전체<span class="caret">▾</span></span></div>
           </div>
         </div>
-
-        <div class="panel" style="border-color:#1d4a44">
-          <div class="panel-h"><span class="ai-mark">● AI</span><span class="t">보고서 Agent</span>
-            <span class="r"><span class="inp" style="width:150px;font-size:11.5px">경찰청 F05 (REV.03)<span class="caret">▾</span></span></span></div>
-          <div class="panel-b" style="display:grid;gap:8px;border-bottom:1px solid var(--line2)">
-            <div style="display:flex;gap:6px"><button class="btn ai" data-role="analyst admin">초안 생성</button><button class="btn sm ghost" data-role="analyst admin">이 칸만 다시 쓰기</button></div>
-            <div style="font-size:11.5px;color:var(--mute);line-height:1.5">참고한 자료(RAG — 관련 문서를 찾아 근거로 붙이는 방식):
-              <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px"><span class="chip teal" style="height:19px;font-size:10.5px">S07 판정 사유 3</span><span class="chip teal" style="height:19px;font-size:10.5px">S06 지표·부위 근거</span><span class="chip" style="height:19px;font-size:10.5px">사건정보</span><span class="chip" style="height:19px;font-size:10.5px">KPSI-KQI-305 : 2022</span></div></div>
-          </div>
-          <div class="panel-b pinbox" style="border-bottom:1px solid var(--line2)">${apin(5, "plus")}
-            <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="crumb">규칙 기반 검증 · 필수 항목</span><span style="font-size:11.5px;color:var(--amber)">4 / 5</span></div>
-            <div style="margin-top:4px">${rules}</div>
-            <div style="margin-top:6px;font-size:11px;color:var(--dim)">「!」 항목을 확인하기 전에는 결재 올리기가 잠깁니다.</div>
-          </div>
-          <div class="panel-b" style="border-bottom:1px solid var(--line2)">
-            <div style="display:flex;justify-content:space-between;align-items:center"><span class="crumb">핵심 결과 자동 강조</span><span class="seg"><button aria-pressed="true">켜기</button><button aria-pressed="false">끄기</button></span></div>
-            <div style="margin-top:6px;font-size:12px;color:var(--mute)">감정결과(발견) · 종합 신뢰도 87% · 일치 판단 문장 → ${key("주황 굵게")}</div>
-          </div>
-          <div class="panel-b pinbox" style="border-bottom:1px solid var(--line2)">${apin(8, "better")}
-            <div class="crumb" style="margin-bottom:2px">수정 이력</div>${hist}
-          </div>
-          <div class="panel-b" style="display:grid;gap:8px">
-            <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn">PDF 내보내기</button><button class="btn">HWP 내보내기</button><button class="btn ghost">인쇄</button></div>
-            <div style="font-size:11px;color:var(--dim)">내보내기·인쇄는 사용 기록에 남습니다(배포용 다운로드 포함).</div>
-            <button class="btn pri locked" data-role="analyst admin" style="justify-content:center">결재 올리기 → 검증·결재(S08)</button>
-            <div class="pinbox" style="display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:var(--mute)">${pin(9, "better")}
-              <span data-role="analyst admin">감정관: 작성·초안 생성·결재 올리기·결재회수</span>
-              <span data-role="verifier">검증자: 읽기 전용 · 문장에 메모만 남김</span>
-              <span data-role="investigator">수사관: 결재완료된 감정서 PDF만 내려받음</span></div>
-          </div>
+        <div class="panel tc">
+          <div class="panel-h"><span class="t">감정 작성 대기 목록</span><span class="r"><button class="btn sm">엑셀</button><button class="btn sm">조회</button><button class="btn sm">초기화</button></span></div>
+          <table class="grid"><thead><tr><th>감정번호</th><th>문서번호</th><th>사건명</th><th>의뢰관서</th><th>발생일</th><th>등록일</th><th>감정의뢰 진행</th><th>감정서</th><th>출지</th><th>결재</th><th>교차 검증</th></tr></thead><tbody>${wrows}</tbody></table>
         </div>
-      </div>`
+      </div>
+      ${layer({ l: 10, t: 40, w: 1160, title: "결재문서정보", head: `<span class="pinbox" style="display:inline-flex;gap:5px;align-items:center;margin-left:10px">${pin(4, "voice")}${flow}</span>` }, body)}`
     );
   }
 
@@ -186,14 +214,12 @@
     const line = (w) => `<div style="height:6px;width:${w}%;margin:5px 0;background:#e3e6ec"></div>`;
     return M.scasShell(
       { treeOn: "감정서관리 ▸", tabOn: "감정서작성", h: 820 },
-      `<div style="min-height:750px">
-      <div class="box" style="padding:8px;margin-bottom:8px"><table><tbody>
+      `<div class="box" style="padding:8px;margin-bottom:8px"><table><tbody>
         <tr><td class="lbl">감정번호</td><td></td><td class="lbl">등록일자</td><td>📅 2025-03-01 ~ 📅 2025-07-24</td><td class="lbl">의뢰관서</td><td><span class="sbtn b">검색</span></td></tr>
         <tr><td class="lbl">처리관서</td><td>경찰청 <span class="sbtn b">검색</span></td><td class="lbl">문서번호</td><td></td><td class="lbl">사건명</td><td>전체 ▾</td></tr>
       </tbody></table></div>
       <div class="bar">감정 작성 대기 목록 <span><span class="sbtn">엑셀</span> <span class="sbtn">조회</span> <span class="sbtn">초기화</span></span></div>
       <div class="box"><table><thead><tr><th>감정번호</th><th>문서번호</th><th>사건명</th><th>의뢰관서</th><th>발생일</th><th>등록일</th><th>감정의뢰 진행</th><th>감정서</th><th>출지</th><th>결재</th></tr></thead><tbody>${rows}</tbody></table></div>
-      </div>
       <div class="dim"></div>
       <div class="modal" style="left:40px;top:60px;width:620px;height:680px">
         <div class="bar">결재문서정보 <span>×</span></div>
@@ -236,8 +262,8 @@
         </div>
       </div>
       ${M.pain(680, 10, "<b>창 3종이 겹침</b> — 감정서작성 탭 → 결재문서정보 팝업(문서 뷰어) → 한글 편집기 별도 창 (5613 14:37–16:07)", 330)}
-      ${M.pain(880, 660, "<b>이미지 페이지를 HWP에서 손으로 확인</b> — 후보마다 2×2 표가 반복되고 창을 따로 열어 고침 (5613 14:52–16:07)", 320)}
-      ${M.pain(60, 600, "<b>본문은 보기만</b> — 뷰어 상태바 「속성편집=불가능」, 근거가 어디서 왔는지 문서에 안 보임 (5613 15:25–15:40)", 300)}`
+      ${M.pain(880, 660, "<b>이미지 페이지를 HWP에서 손으로 확인</b> — 「이미지가 15개까지 나오거든요」, 후보마다 2×2 표 반복 (5613 14:43–16:07)", 320)}
+      ${M.pain(60, 600, "<b>본문은 보기만</b> — 뷰어 상태바 「속성편집=불가능」, 서명란 두 감정관이 누구인지 문서에서 안 보임 (5613 15:25–15:40)", 300)}`
     );
   }
 
@@ -251,22 +277,31 @@
       { t: "SCAS 감정서작성 탭", v: "5613 14:37 · 18:07 · 19:37" },
       { t: "SCAS 결재문서정보", v: "5613 15:25 · 19:07" },
       { t: "SCAS 한글 편집기", v: "5613 14:52–16:07" },
+      { t: "인터뷰", v: "5613 14:43 · 18:48 · 19:18 · 19:32", voice: true },
       { t: "사업계획서", v: "p13 · p42" },
       { t: "발표", v: "s15" },
     ],
-    lead: "「감정 작성 대기 목록」과 경찰청 감정서 양식(KPSI-KQP-16-F05)은 그대로 둡니다. 결재문서정보 팝업·문서 뷰어·한글 편집기 창 3개를 한 화면 편집기로 합치고, 오른쪽 「보고서 Agent」가 S06·S07 근거로 초안을 쓰고 필수 항목을 점검합니다.",
+    lead: "순서는 검색결과 확인(S07) → 교차 검증(S08) → 감정서 작성(여기) → 결재입니다. SCAS 「감정서작성」 탭의 검색 폼·「감정 작성 대기 목록」·결재회수를 그대로 두고, 「감정서」를 누르면 결재문서정보가 같은 자리에 팝업으로 뜹니다(위 문서, 아래 첨부파일 목록). 한글 편집기 창 대신 같은 팝업 2쪽에서 이미지 페이지를 고치고, AI는 판독 문장 초안만 더합니다.",
+    fit: {
+      area: ["same", "위 검색 폼·아래 대기 목록, 팝업은 위 문서·아래 첨부파일 목록, Agent는 오른쪽 덧붙임"],
+      buttons: ["same", "엑셀·조회·초기화, 행 감정서·결재회수, 뷰어 저장·인쇄·쪽 이동·확대·배포용 다운로드 순서 그대로 + 끝에 결재 올리기"],
+      popup: ["near", "결재문서정보 레이어 팝업 1겹 그대로, 한글 편집기 별도 창은 팝업 안 2쪽으로"],
+      columns: ["same", "목록 열·감정서 1~8항·첨부파일 열 순서 그대로, 목록 끝에 교차 검증 열 1개"],
+    },
     scas,
     ours,
     notes: [
-      { n: 1, kind: "keep", title: "감정 작성 대기 목록과 결재회수", text: "검색 조건(감정번호·등록일자·의뢰관서·처리관서·문서번호·사건명)과 열(감정번호·문서번호·사건명·의뢰관서·발생일·등록일·감정의뢰 진행·감정서·출지·결재)을 그대로 두고, 「결재 중」 행의 「결재회수」 버튼도 유지합니다.", src: "5613 18:07 · 19:37" },
-      { n: 2, kind: "better", title: "팝업·뷰어·HWP 창 → 한 화면 편집", text: "「감정서」를 누르면 결재문서정보 팝업 대신 아래에서 바로 문서가 열리고 편집됩니다. SCAS 뷰어의 쪽 이동·확대(100%)는 머리줄에 남깁니다.", src: "5613 14:37–16:07" },
-      { n: 3, kind: "keep", title: "KOLAS 감정서 양식 그대로", text: "KPSI-KQP-16-F05 (REV.03)의 1. 의뢰 관서 ~ 8. 비고, 감정물 파일명 + 해시값, 지침서 KPSI-KQI-305 : 2022, 시험 환경 문구, 서명란(감정관·감정관·기술책임자), KOLAS 인정 문구를 같은 순서로 둡니다.", src: "5613 15:25–15:40" },
-      { n: 4, kind: "plus", title: "AI 초안 칸은 청록 + 근거 링크", text: "보고서 Agent가 채운 문장은 청록 밑줄로 표시하고, 옆의 ↗S06·↗S07을 누르면 그 문장의 근거(정밀 대조 지표, 판정 사유)로 이동합니다. 감정관이 고치면 청록이 사라집니다.", src: "BP p13 · p42 · 발표 s15" },
-      { n: 5, kind: "plus", title: "규칙 기반 검증(필수 5항목)", text: "족적 기본정보·분석결과·유사도/검색결과·판독소견·종합의견이 채워졌고 서로 맞는지 확인합니다. 확인 안 된 「!」 항목이 있으면 결재 올리기가 잠깁니다.", src: "BP p42" },
-      { n: 6, kind: "plus", title: "핵심 결과 자동 강조", text: "감정결과(발견), 종합 신뢰도, 일치 판단 문장처럼 결재자가 먼저 봐야 할 말을 주황 굵게 표시합니다. 끄기 버튼으로 원래 서식으로 돌릴 수 있습니다.", src: "BP p13 · 설문 문항(글씨체·색상 변경)" },
-      { n: 7, kind: "better", title: "이미지 페이지 자동 구성(같은 창)", text: "SCAS가 HWP로 만들던 2×2 표(유류이미지·발견이미지·측면이미지·이미지정보)를 같은 화면 2쪽에 자동으로 만들고, S06에서 첨부한 대응점·히트맵 근거 그림을 함께 넣습니다. 한글 편집기 창이 없습니다.", src: "5613 14:52–16:07" },
-      { n: 8, kind: "better", title: "수정 이력 + PDF / HWP 내보내기", text: "AI 초안과 사람의 고침을 시간순으로 남깁니다. SCAS의 저장·인쇄·배포용 다운로드는 PDF·HWP 내보내기와 인쇄로 남기되, 모두 사용 기록에 남깁니다.", src: "5613 14:37 · BP p16–19" },
-      { n: 9, kind: "better", title: "보는 사람에 따라", text: "감정관·관리자는 초안 생성·편집·결재 올리기·결재회수를, 검증자는 읽기 전용과 메모만, 수사관은 결재완료된 감정서 PDF 내려받기만 봅니다." },
+      { n: 1, kind: "keep", title: "감정 작성 대기 목록 그대로", text: "검색 조건(감정번호·등록일자·의뢰관서·처리관서·문서번호·사건명)과 엑셀·조회·초기화, 열(감정번호 … 감정서·출지·결재)과 「결재 중」 행의 「결재회수」를 같은 자리에 둡니다. 새 「교차 검증」 열은 맨 끝에만 붙였습니다.", src: "5613 18:07 · 19:37" },
+      { n: 2, kind: "keep", title: "결재문서정보 = 같은 자리 팝업", text: "「감정서」를 누르면 목록 위에 결재문서정보가 팝업으로 뜹니다. 위는 문서, 아래는 첨부파일 목록(순번·첨부 문서·파일 명칭·파일 크기)이고, 뷰어 줄은 저장·인쇄·쪽 이동·확대·배포용 다운로드 순서 그대로입니다. 문서는 보기만이 아니라 그 자리에서 고칩니다.", src: "5613 15:25 · 19:07" },
+      { n: 3, kind: "keep", title: "KOLAS 감정서 양식 그대로", text: "KPSI-KQP-16-F05 (REV.03)의 1. 의뢰 관서 ~ 8. 비고, 감정물 파일명 + 해시값, 지침서 KPSI-KQI-305 : 2022, 시험 환경 문구, KOLAS 인정 문구를 같은 순서로 둡니다.", src: "5613 15:25–15:40" },
+      { n: 4, kind: "voice", title: "교차 검증이 끝나야 감정서로", text: "「결과 값을 교차 검증 결과 의견이 일치한다고 해서 끝내. 끝내면 어디로 가냐. 감정서 작성으로 가는 거지」 — 팝업 머리에 결과확인완료 ✓ → 교차 검증 ✓ → 감정서작성 → 결재 순서를 보이고, 교차 검증 중인 사건은 「감정서」 버튼이 없습니다.", src: "5613 18:42–18:53" },
+      { n: 5, kind: "better", title: "서명란에 누가 들어가는지 표시", text: "서명란 「감정관 · 감정관 · 기술책임자」를 감정관(작성) · 감정관(교차 검증) · 기술책임자로 풀어, S07 결과확인완료자와 S08 교차 검증자 이름을 자동으로 채웁니다(이름 가림). 두 감정관의 역할은 열린 질문으로 확인 예정입니다.", src: "인벤토리 S14 서명란" },
+      { n: 6, kind: "plus", title: "AI는 판독 문장 초안만", text: "1~7항과 이미지 페이지 자동 생성은 SCAS에 이미 있는 기능이라 흰 글자로 둡니다. 새로 더하는 것은 8. 비고의 판독소견·종합의견 문장 초안뿐이며 청록 밑줄과 ↗근거(S06 칸 수·도형, S07 판정 메모, S08 의견)로 표시합니다.", src: "5613 19:00 · BP p13 · p42 · 발표 s15" },
+      { n: 7, kind: "plus", title: "규칙 기반 검증(필수 5항목)", text: "족적 기본정보·분석결과·유사도/검색결과·판독소견·종합의견이 채워졌고 서로 맞는지 확인합니다. 「!」 항목을 감정관이 확인해야 「결재 올리기」가 켜집니다.", src: "BP p42" },
+      { n: 8, kind: "voice", title: "이미지 페이지는 같은 팝업 2쪽에서", text: "「쫘라라락 이미지가 15개까지 나오거든요… 두번째 거가 밑에 붙어서」 — 발견 이미지 순서대로 2×2 블록(유류이미지·발견이미지·측면이미지·이미지정보)을 이어 붙이고, 그룹 신발이면 이미지를 최대 15개까지 넣습니다. 한글 편집기 창은 뜨지 않습니다.", src: "5613 14:43–15:12" },
+      { n: 9, kind: "voice", title: "발견 이미지는 첨부파일로 자동", text: "「발견한 것에 대한 것을 첨부 파일로 들어가는 거고」 — 첨부파일 목록에 발견 이미지가 「자동 첨부」로 들어가고, S06에서 첨부한 근거 그림도 같은 목록에 붙습니다.", src: "5613 19:05–19:23" },
+      { n: 10, kind: "voice", title: "결재를 올리면 끝", text: "「이렇게 해서 결제를 올린 게 끝. 전체 과정이 끝」 — 뷰어 줄 끝에 「결재 올리기」를 두고, 올린 문서는 기술책임자의 결재 대기함(S08)으로 갑니다. 잘못 올리면 목록의 「결재회수」로 되돌립니다.", src: "5613 19:32–19:36" },
+      { n: 11, kind: "better", title: "보는 사람에 따라", text: "감정관·관리자는 편집·초안 생성·결재 올리기·결재회수를, 기술책임자는 같은 팝업에서 읽기와 결재·반려를, 수사관은 결재완료 감정서 내려받기만 봅니다." },
     ],
   });
 })();

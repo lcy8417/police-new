@@ -1,196 +1,142 @@
-/* S10 신발문양 관리 — SCAS 「족윤적 > 문양관리 > 신발문양 관리」 목록 + 신발정보관리 모달(기본정보/문양정보)
-   근거: inventory_5614_5616 S5·S1·S3·P1·P2·P3 (IMG_5614 0:00–2:30, IMG_5616 0:00–6:00) */
+/* S10 신발문양 관리 (r2) — SCAS 「족윤적 > 문양관리 > 신발문양 관리」 목록 + 신발정보관리 레이어 모달(문양정보 탭)
+   근거: inventory_5614_5616 S5·S1·S3·P1·P2·P3 (IMG_5614 0:00–2:30, IMG_5616 0:00–6:00), 녹취 5616 00:01–06:12, 12:00–12:26
+   r2: 배치를 SCAS로 되돌림(검색폼 3열×4행 → 목록 헤더+툴바 → 카드 9열 → 페이지, 카드 클릭 = 같은 자리 레이어 모달). */
 (function () {
   const { pin, apin, sole, picon } = M;
-
-  /* 옆모습 신발 실루엣(가짜, 장식용) */
-  const SIDE = `<svg viewBox="0 0 60 30" width="100%" height="100%" aria-label="측면(가짜 예시)"><path d="M4 22C4 15 9 13 17 12L27 6C33 4 39 7 43 11C49 13 56 15 56 21V25H4Z" style="fill:var(--mute)"/><path d="M4 25H56" style="stroke:var(--fg2);stroke-width:2"/></svg>`;
 
   const Z = [
     ["herring", "herring", "herring"], ["grid", "dots", "grid"], ["wave", "blocks", "lines"], ["tri", "grid", "dots"],
     ["dots", "dots", "blocks"], ["lines", "herring", "wave"], ["blocks", "grid", "blocks"], ["herring", "wave", "herring"],
   ];
-  /* 미코딩 필터 적용 결과(가짜) — ai: AI 추천 준비됨 / run: 분석 중 */
+  /* 2025-03 등록분 536건(전부 미승인, 5616 05:09) 중 1쪽 — st: 문양 대기 / 승인 대기 / 측면 없음 / AI 확인 필요 */
   const CARDS = [
-    { no: "305661", br: "나이키", d: "07-10", st: "ai" }, { no: "305660", br: "나이키", d: "07-10", st: "ai" },
-    { no: "305659", br: "아디다스", d: "07-10", st: "ai" }, { no: "305658", br: "휠라", d: "07-10", st: "run" },
-    { no: "305657", br: "나이키", d: "07-10", st: "ai", sel: true }, { no: "305656", br: "나이키", d: "07-10", st: "ai" },
-    { no: "305655", br: "나이키", d: "07-10", st: "ai" }, { no: "305640", br: "프로스펙스", d: "07-08", st: "ai" },
-    { no: "305633", br: "트렉스타", d: "07-08", st: "run" }, { no: "305612", br: "크록스", d: "07-03", st: "ai" },
-    { no: "305601", br: "휠라", d: "07-02", st: "ai" }, { no: "305588", br: "코오롱", d: "06-30", st: "ai" },
-    { no: "305570", br: "나이키", d: "06-27", st: "ai" }, { no: "305544", br: "케이투", d: "06-25", st: "run" },
-    { no: "303337", br: "아디다스", d: "03-14", st: "ai" }, { no: "303301", br: "나이키", d: "03-11", st: "ai" },
+    ["303352", "승인 대기"], ["303351", "승인 대기"], ["303349", "AI 확인 필요"], ["303348", "문양 대기"], ["303347", "승인 대기"], ["303346", "측면 없음"],
+    ["303344", "문양 대기"], ["303342", "승인 대기"], ["303341", "승인 대기"], ["303340", "문양 대기"], ["303339", "AI 확인 필요"], ["303338", "승인 대기"],
+    ["303337", "문양 대기"], ["303336", "승인 대기"], ["303335", "문양 대기"], ["303334", "승인 대기"],
   ];
-
-  const lab = (t) => `<div class="crumb" style="margin-bottom:4px">${t}</div>`;
+  const ST = { "승인 대기": "blue", "문양 대기": "", "측면 없음": "red", "AI 확인 필요": "amber" };
 
   function ours() {
+    const sb = (t, cls = "") => `<button class="btn sm ${cls}">${t}</button>`;
     const cards = CARDS.map(
-      (c, i) => `<div style="display:grid;gap:5px;padding:6px;border:1px solid ${c.sel ? "var(--blue)" : "var(--line)"};border-radius:10px;background:${c.sel ? "var(--blue-bg)" : "var(--panel2)"};${c.sel ? "box-shadow:0 0 0 1px var(--blue),0 0 16px rgba(74,158,255,.25)" : ""}">
-        <span class="imgbox" style="height:92px">${sole({ kind: "shoe", zones: Z[i % Z.length] })}</span>
-        <div style="display:flex;align-items:center;gap:5px">
-          <span style="width:12px;height:12px;border-radius:3px;border:1px solid var(--line3);${i < 3 ? "background:var(--blue2);border-color:var(--blue2)" : ""}"></span>
-          <span class="mono" style="color:var(--fg);font-size:12px">${c.no}</span>
-          ${c.st === "ai" ? `<span class="chip teal" style="margin-left:auto;height:18px;padding:0 6px;font-size:10.5px">AI 추천</span>` : `<span class="chip" style="margin-left:auto;height:18px;padding:0 6px;font-size:10.5px">분석 중</span>`}
-        </div>
-        <div style="color:var(--dim);font-size:11px;line-height:1.2">${c.br} · <span class="num">${c.d}</span></div>
+      ([no, st], i) => `<div style="display:grid;gap:4px;padding:4px;border:1px solid ${no === "303349" ? "var(--blue)" : "var(--line)"};border-radius:8px;background:${no === "303349" ? "var(--blue-bg)" : "var(--panel2)"}">
+        <span class="imgbox" style="height:92px;border-radius:6px">${sole({ kind: "shoe", zones: Z[i % Z.length] })}</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="width:11px;height:11px;border-radius:3px;border:1px solid var(--line3)"></span><span class="mono" style="color:var(--fg);font-size:11.5px">${no}</span></span>
+        <span class="chip ${ST[st]}" style="height:18px;padding:0 6px;font-size:10px;justify-self:start">${st}</span>
       </div>`
     ).join("");
 
-    /* 문양정보: AI가 미리 채운 상·중·하·윤곽·문자열 */
-    const zone = (lbl, icons, conf, on) => `<div style="display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:8px;align-items:center;min-height:44px;padding:5px 8px;border:1px solid ${on ? "var(--blue)" : "var(--line2)"};border-radius:8px;background:${on ? "var(--blue-bg)" : "var(--bg2)"}">
+    const stage = (n, t, c, on, extra = "") => `<span style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid ${on ? "var(--blue)" : "var(--line2)"};border-radius:8px;background:${on ? "var(--blue-bg)" : "var(--bg2)"}">
+        <span style="display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--panel3);color:var(--fg2);font:700 10px var(--font-mono)">${n}</span>
+        <span style="display:grid;line-height:1.25"><span style="color:${on ? "var(--fg)" : "var(--fg2)"};font-size:12px">${t}</span><span style="color:var(--dim);font-size:10.5px">${extra}</span></span>
+        <b class="num" style="color:${on ? "var(--blue)" : "var(--fg)"};font-size:14px">${c}</b></span>`;
+    const arrow = `<span style="color:var(--faint)">→</span>`;
+
+    /* 모달 안: 신발 문양 행 */
+    const zrow = (lbl, icons, right, on) => `<div style="display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:8px;align-items:center;min-height:42px;padding:4px 8px;border:1px solid ${on ? "var(--blue)" : "var(--line2)"};border-radius:7px;background:${on ? "var(--blue-bg)" : "var(--bg2)"}">
         <span style="color:${on ? "var(--fg)" : "var(--mute)"};font-size:12.5px;font-weight:600">${lbl}</span>
-        <span style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">${icons || `<span style="color:var(--faint);font-size:11.5px">비어 있음 — 아래에서 고르세요</span>`}</span>
-        <span style="display:flex;gap:6px;align-items:center">${conf ? `<span class="ai-mark">AI ${conf}%</span>` : ""}<span style="color:var(--faint);font-size:11px">✕</span></span>
-      </div>`;
+        <span style="display:flex;flex-wrap:wrap;gap:5px;align-items:center">${icons}</span><span style="display:flex;gap:6px;align-items:center">${right}</span></div>`;
+    const palette = M.P["내부선"].map((n) => picon(n, "sm" + (n === "n32_04" ? " sel" : ""), n)).join("");
 
-    const palette = M.P["내부선"].map((n, i) => picon(n, "sm" + (n === "n32_04" ? " sel" : ""), n)).join("");
-
-    const form = `<div class="form">
-        <div class="l">화류번호</div><div class="v mono">305657</div><div class="l">등록관서</div><div class="v">경찰청</div>
-        <div class="l">제조사</div><div class="v">(유)나이키코리아 <span style="color:var(--dim)">⌕</span></div><div class="l req">상표명</div><div class="v"><span title="SCAS와 같은 체크칸(용도 확인 필요)" style="color:var(--dim)">☐</span> 나이키 <span style="color:var(--dim)">⌕</span></div>
-        <div class="l">모델번호</div><div class="v">S.T 플레어 EP</div><div class="l req">신발종류</div><div class="v">운동화 / 운동화</div>
-        <div class="l">크기</div><div class="v" style="color:var(--faint)">—</div><div class="l">몰드번호</div><div class="v" style="color:var(--faint)">—</div>
-        <div class="l">제조지역</div><div class="v span3"><span class="radio"><span>해당없음</span><span>국내산</span><span class="on">수입산</span></span></div>
-        <div class="l">성별</div><div class="v span3"><span class="radio"><span>해당없음</span><span>남</span><span>여</span><span class="on">혼용</span></span></div>
-        <div class="l">좌우구분</div><div class="v span3"><span class="radio"><span>해당없음</span><span class="on">좌</span><span>우</span></span></div>
-        <div class="l">굽유무</div><div class="v span3"><span class="radio"><span>해당없음</span><span>유</span><span class="on">무</span><span>불상</span></span></div>
-        <div class="l">수집년도</div><div class="v num">2025년 7월</div><div class="l">전화번호</div><div class="v"><span style="color:var(--dim)">☐</span></div>
-        <div class="l">수집장소(주소)</div><div class="v span3" style="color:var(--mute)"><span style="color:var(--dim)">☐</span> 우편번호 · 주소 <span class="btn sm ghost">찾기</span></div>
-        <div class="l req">수집장소(상호)</div><div class="v"><span style="color:var(--dim)">☐</span> <span class="chip">인터넷수집</span></div><div class="l">비고</div><div class="v" style="color:var(--faint)">—</div>
-        <div class="l">신발그룹명</div><div class="v">나이키(NIKE)-112</div><div class="l">등록일자</div><div class="v num">2025-07-10</div>
+    const modal = `<div style="position:absolute;inset:0;z-index:5;background:rgba(3,6,12,.55)"></div>
+      <div class="panel pinbox" style="position:absolute;z-index:6;left:150px;top:500px;width:880px;background:var(--panel);box-shadow:0 30px 80px rgba(0,0,0,.6);border-color:var(--line3)">
+        ${apin(6, "better", true)}
+        <div class="panel-h"><span class="t">신발정보관리</span><span class="mono" style="color:var(--blue)">303349</span><span class="chip amber">AI 확인 필요</span>
+          <span class="r"><span style="color:var(--dim);font-size:11px">뒤 목록은 그대로 깔려 있음 · Esc 닫기</span><span style="color:var(--mute)">✕</span></span></div>
+        <div class="pinbox" style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-bottom:1px solid var(--line2)">
+          <span class="seg"><button aria-pressed="false">기본정보</button><button aria-pressed="true">문양정보</button></span>
+          <span style="margin-left:auto;display:flex;gap:5px;align-items:center">
+            ${pin(7, "plus")}<button class="btn sm ai" data-role="analyst admin">인공지능문양관리</button>${sb("이전")}${sb("다음")}
+            <button class="btn sm ok" data-lock="admin" title="신발 승인 권한(SHOE_APPROVE)이 있는 승인 담당만">승인</button>${sb("그룹등록")}${sb("닫기")}
+          </span>
+        </div>
+        <div style="padding:4px 14px;color:var(--dim);font-size:11px;border-bottom:1px solid var(--line2)">기본정보 탭: NEW등록 · 이전 다음 그룹등록 인공지능그룹등록 프린트 수정 삭제 닫기 — 버튼·19칸(화류번호 … 등록일자) 모두 SCAS 순서 그대로</div>
+        <div style="display:grid;grid-template-columns:250px minmax(0,1fr);gap:14px;padding:12px 14px">
+          <div style="display:grid;gap:8px;align-content:start">
+            <span class="crumb">바닥 이미지</span>
+            <span class="imgbox pinbox" style="height:270px">${sole({ kind: "shoe", zones: ["herring", "grid", "herring"] })}
+              <span style="position:absolute;left:44%;top:43%;width:62px;height:30px;border-radius:4px;background:var(--amber);opacity:.85;display:grid;place-items:center;color:var(--bg);font:700 10px var(--font-ui);transform:rotate(-8deg)">가격표</span>${apin(8, "voice")}</span>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center;font-size:10.5px;color:var(--dim)">
+              <span><span class="imgbox" style="display:grid;place-items:center;height:38px;color:var(--green);font-size:11px;background:var(--panel2)">측면 ✓</span></span>
+              <span><span class="imgbox" style="display:grid;place-items:center;height:38px;color:var(--faint);font-size:11px;background:var(--panel2)">전/후면 ＋</span></span>
+              <span><span class="imgbox" style="display:grid;place-items:center;height:38px;color:var(--faint);font-size:11px;background:var(--panel2)">로고 ＋</span></span>
+            </div>
+            <div style="padding:8px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--strip);font-size:11.5px;line-height:1.5;color:var(--fg2)">
+              <span class="crumb" style="display:block;margin-bottom:3px">코드 설명</span>${picon("n32_04", "sm")} <b class="mono" style="color:var(--blue)">n32_04</b> ${M.PDESC.n32_04}</div>
+          </div>
+          <div style="display:grid;gap:6px;align-content:start">
+            <span class="crumb">신발 문양</span>
+            ${zrow("상", picon("n32_04", "sm ai"), `<span class="ai-mark">AI 제안</span>`)}
+            ${zrow("중", picon("n21_05", "sm ai") + picon("s81b", "sm ai", "마크"), `<span class="chip amber" style="height:20px;font-size:10.5px">확인 필요 · 가격표가 가림</span>`)}
+            ${zrow("하", picon("n32_04", "sm ai"), `<span class="ai-mark">AI 제안</span>`, true)}
+            ${zrow("윤곽", picon("s10c", "sm sel"), `<span style="color:var(--dim);font-size:11px">AI 미지원 · 사람이 입력</span>`)}
+            ${zrow("문자열", `<span style="color:var(--faint);font-size:11.5px">—</span>`, `<button class="btn sm pri">저장</button>`)}
+            <div class="pinbox" style="display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px dashed var(--line3);border-radius:7px">
+              ${apin(9, "better")}${picon("n32_04", "sm sel")}<span style="color:var(--fg2);font-size:12px">고른 문양을</span><button class="btn sm" data-role="analyst admin">상·중·하 모두에 넣기</button>
+            </div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap">${M.PCATS.map((c) => `<span class="chip ${c === "내부선" ? "blue" : ""}" style="height:20px;font-size:11px">${c}</span>`).join("")}
+              <span class="inp" style="flex:1;min-width:150px;height:22px;color:var(--dim);font-size:11.5px">⌕ 문양 이름·설명 검색</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">${palette}</div>
+            <div style="display:flex;gap:4px"><span class="chip blue" style="height:20px;font-size:11px">단선</span><span class="chip" style="height:20px;font-size:11px">다선1</span><span class="chip" style="height:20px;font-size:11px">다선2</span></div>
+          </div>
+        </div>
+        <div class="pinbox" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 14px;border-top:1px solid var(--line2);background:var(--strip);border-radius:0 0 14px 14px;font-size:11.5px">
+          ${apin(10, "better", true)}
+          <span style="color:var(--mute)">진행</span><span class="chip">등록 · 서○○ 03-14</span>${arrow}<span class="chip">문양 입력 · 박○○ 07-24</span>${arrow}<span class="chip blue">승인 대기</span>
+          <span style="margin-left:auto;color:var(--mute)">승인 조건</span><span style="color:var(--green)">측면 ✓</span><span style="color:var(--green)">바닥 ✓</span><span style="color:var(--green)">상·중·하 ✓</span><span style="color:var(--amber)">AI 확인 필요 1건 ✗</span>
+        </div>
       </div>`;
 
     return M.shell(
-      { active: "신발문양 관리", tabs: ["사건관리", "신발문양 관리", "수집 검수"], title: "신발문양 관리", h: 1240 },
+      { active: "신발문양 관리", tabs: ["사건관리", "신발문양 관리"], title: "신발문양 관리", h: 1270 },
       `<div class="page-head">
-        <div><div class="crumb">족윤적 · 문양관리 · 신발문양 관리</div><h3>신발문양 관리</h3><p>등록 신발의 밑창과 문양 코드를 관리합니다. 카드를 고르면 오른쪽 칸에서 기본정보·문양정보를 바로 고칩니다.</p></div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span class="chip" data-role="investigator verifier">수사관·검증자: 보기 전용</span>
-          <button class="btn">엑셀</button>
-          <button class="btn pri" data-role="analyst admin">＋ 등록</button>
+        <div><div class="crumb">족윤적 · 문양관리 · 신발문양 관리</div><h3>신발문양 관리</h3><p>SCAS와 같은 순서: 위 검색 → 가운데 카드 목록 → 카드를 누르면 같은 자리에 신발정보관리 창.</p></div>
+      </div>
+
+      <div class="panel pinbox" style="margin-bottom:10px">
+        ${apin(1, "keep", true)}
+        <div class="form" style="grid-template-columns:96px minmax(0,1fr) 84px minmax(0,1fr) 84px minmax(0,1fr)">
+          <div class="l">화류번호</div><div class="v"><span class="inp w100 mono" style="color:var(--dim)">(신발 번호)</span></div>
+          <div class="l">제조사</div><div class="v"><span class="inp w100">전체<span class="caret">⌕ 조회</span></span></div>
+          <div class="l">성별</div><div class="v"><span class="radio"><span class="on">전체</span><span>남</span><span>여</span><span>혼용</span></span></div>
+          <div class="l">등록일자</div><div class="v"><span class="inp w100 mono" style="font-size:12px">2025-03-01 ~ 2025-03-31<span class="caret">월 ▾</span></span></div>
+          <div class="l">상표</div><div class="v"><span class="inp w100">전체<span class="caret">⌕ 조회</span></span></div>
+          <div class="l">승인</div><div class="v"><span class="radio"><span>전체</span><span>승인</span><span class="on">미승인</span></span></div>
+          <div class="l">등록관서</div><div class="v"><span class="inp w100">전체<span class="caret">▾</span></span></div>
+          <div class="l">그룹명</div><div class="v"><span class="inp w100">전체<span class="caret">⌕ 조회</span></span></div>
+          <div class="l pinbox" style="color:var(--teal)">문양 입력 ${pin(2, "better")}</div><div class="v"><span class="radio"><span>전체</span><span>입력</span><span class="on">미입력</span></span></div>
+          <div class="l">화종</div><div class="v"><span class="inp w100" style="color:var(--dim)">—</span></div>
+          <div class="l">비고</div><div class="v"><span class="inp w100" style="color:var(--dim)">—</span></div>
+          <div class="l" style="color:var(--teal)">AI 추천</div><div class="v"><span class="radio"><span class="on">전체</span><span>확인 필요</span></span></div>
         </div>
       </div>
 
-      <div class="panel" style="margin-bottom:12px">
-        <div class="panel-b pinbox" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:10px 14px;align-items:end">
-          ${apin(1, "keep", true)}
-          <div>${lab("화류번호 (신발 번호)")}<span class="inp w100 mono" style="color:var(--dim)">305…</span></div>
-          <div>${lab("제조사")}<span class="inp w100">전체<span class="caret">⌕</span></span></div>
-          <div>${lab("상표")}<span class="inp w100">전체<span class="caret">⌕</span></span></div>
-          <div>${lab("그룹명")}<span class="inp w100">전체<span class="caret">⌕</span></span></div>
-          <div>${lab("등록일자")}<span class="inp w100 mono" style="font-size:12px">전체 기간<span class="caret">▾</span></span></div>
-          <div style="display:flex;gap:6px"><button class="btn">초기화</button><button class="btn pri">조회</button></div>
-          <div>${lab("성별")}<span class="radio" style="font-size:12.5px"><span class="on">전체</span><span>남</span><span>여</span><span>혼용</span></span></div>
-          <div>${lab("승인")}<span class="radio" style="font-size:12.5px"><span class="on">전체</span><span>승인</span><span>미승인</span></span></div>
-          <div>${lab("등록관서")}<span class="inp w100">전체<span class="caret">▾</span></span></div>
-          <div>${lab("화종")}<span class="inp w100" style="color:var(--dim)">—</span></div>
-          <div>${lab("비고")}<span class="inp w100" style="color:var(--dim)">—</span></div>
-          <div></div>
-          <div style="grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-            <span style="color:var(--dim);font-size:12px;margin-right:4px">빠른 필터 ${pin(2, "better")}</span>
-            <span class="chip amber" style="box-shadow:0 0 0 1px var(--amber)"><span class="dot"></span>미코딩 1,284</span>
-            <span class="chip">미승인 312</span>
-            <span class="chip teal">AI 추천 대기 96</span>
-            <span class="chip">이번 달 등록 536</span>
-            <span class="chip">인터넷수집</span>
-            <span style="margin-left:auto;color:var(--dim);font-size:12px">등록일자: 이번 달 · 지난달 · 올해 · 직접 입력(1983-01-01부터 다시 고를 필요 없음)</span>
-          </div>
+      <div class="panel tc">
+        <div class="panel-h pinbox">
+          <span class="t">신발문양 관리 목록</span>
+          <span class="r">
+            <span class="seg"><button aria-pressed="false">목록보기</button><button aria-pressed="true">문양보기</button></span>
+            ${sb("조회", "pri")}${sb("엑셀")}<button class="btn sm danger" data-lock="admin">삭제</button><button class="btn sm ok" data-lock="admin" title="승인 담당만">승인</button><button class="btn sm" data-role="analyst admin">등록</button>${sb("초기화")}
+            <span style="width:1px;height:20px;background:var(--line3)"></span>
+            <button class="btn sm pinbox" data-role="analyst admin">엑셀 일괄 등록 ${apin(3, "keep")}</button>
+          </span>
         </div>
+        <div class="pinbox" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line2)">
+          ${apin(4, "voice", true)}
+          <span style="color:var(--dim);font-size:11.5px;margin-right:2px">작업 단계<br>(분업)</span>
+          ${stage(1, "등록됨 · 문양 대기", "214", false, "등록 담당 → 문양 입력 담당")}${arrow}
+          ${stage(2, "문양 입력됨 · 그룹 대기", "98", false, "그룹 담당")}${arrow}
+          ${stage(3, "승인 대기", "224", true, "승인 담당")}${arrow}
+          ${stage(4, "승인", "0", false, "신발 DB 확정")}
+          <span class="pinbox" style="margin-left:auto;display:grid;gap:3px;min-width:170px;font-size:11.5px">${apin(5, "voice")}
+            <span style="display:flex;justify-content:space-between;color:var(--mute)"><span>오늘 승인</span><b class="num" style="color:var(--fg)">37 / 50매</b></span>
+            <span style="height:5px;border-radius:3px;background:var(--line3)"><span style="display:block;width:74%;height:100%;border-radius:3px;background:var(--blue2)"></span></span>
+            <span style="color:var(--dim)">3월 등록 536 · 전부 미승인</span></span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:8px;padding:10px 14px">${cards}</div>
+        <div style="display:flex;justify-content:space-between;padding:6px 14px 12px;color:var(--mute);font-size:12px"><span class="num">« ‹ 페이지 [1] / 34 › » ⟳</span><span class="num">전체 536 중 1 - 16</span></div>
       </div>
-
-      <div style="display:grid;grid-template-columns:560px minmax(0,1fr);gap:12px;align-items:start">
-        <div class="panel tc">
-          <div class="panel-h"><span class="lbl">SHOE LIST</span><span class="t">미코딩 <span class="num">1,284</span>건 <span style="color:var(--dim);font-weight:400">/ 전체 104,933</span></span>
-            <span class="r pinbox">${apin(3, "keep")}<span class="seg"><button aria-pressed="false">목록보기</button><button aria-pressed="true">문양보기</button></span></span></div>
-          <div style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-bottom:1px solid var(--line2)">
-            <span style="color:var(--fg2);font-size:12px"><b class="num">3</b>건 선택</span>
-            <span style="margin-left:auto;display:flex;gap:6px">
-              <button class="btn sm ok" data-role="analyst admin">승인</button>
-              <button class="btn sm" data-role="analyst admin">그룹등록</button>
-              <button class="btn sm danger" data-role="analyst admin" data-lock="admin" title="삭제는 관리자만">삭제</button>
-            </span>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:12px 14px">${cards}</div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 14px 12px;color:var(--mute);font-size:12px">
-            <span class="num">1,284 중 1 – 16 · 16개씩 ▾</span><span class="num">« ‹ 1 / 81 › »</span>
-          </div>
-        </div>
-
-        <div class="panel pinbox">
-          ${apin(4, "better")}
-          <div class="panel-h"><span class="lbl">SHOE</span><span class="t mono">305657</span>
-            <span class="chip amber">미코딩</span><span class="chip teal">AI 추천 있음</span>
-            <span class="r"><button class="btn sm">‹ 이전</button><button class="btn sm">다음 ›</button><span style="color:var(--faint);font:600 10.5px var(--font-mono)">← →</span><button class="btn sm ghost" title="닫기">✕</button></span></div>
-          <div style="display:flex;align-items:center;gap:6px;padding:8px 14px;border-bottom:1px solid var(--line2)">
-            <span class="seg"><button aria-pressed="false">기본정보</button><button aria-pressed="true">문양정보</button></span>
-            <span style="margin-left:auto;display:flex;gap:6px">
-              <button class="btn sm">프린트</button>
-              <button class="btn sm" data-role="analyst admin">그룹등록</button>
-              <button class="btn sm ai" data-role="analyst admin">AI 그룹 추천</button>
-              <button class="btn sm danger" data-role="analyst admin" data-lock="admin">삭제</button>
-            </span>
-          </div>
-
-          <div class="panel-b" style="display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px">
-            <div style="display:grid;gap:8px;align-content:start">
-              <span class="imgbox" style="height:280px">${sole({ kind: "shoe", zones: ["herring", "herring", "herring"] })}<span class="cap">바닥 이미지</span></span>
-              <button class="btn sm" style="justify-content:center" data-role="analyst admin">이미지 편집</button>
-              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
-                <span style="display:grid;gap:2px;text-align:center"><span class="imgbox" style="height:40px;padding:4px;background:var(--panel2)">${SIDE}</span><span style="color:var(--dim);font-size:10px">측면</span></span>
-                <span style="display:grid;gap:2px;text-align:center"><span class="imgbox" style="height:40px;display:grid;place-items:center;color:var(--faint);font-size:16px;background:var(--panel2)">＋</span><span style="color:var(--dim);font-size:10px">전/후면</span></span>
-                <span style="display:grid;gap:2px;text-align:center"><span class="imgbox" style="height:40px;display:grid;place-items:center;color:var(--faint);font-size:16px;background:var(--panel2)">＋</span><span style="color:var(--dim);font-size:10px">로고</span></span>
-              </div>
-            </div>
-
-            <div style="display:grid;gap:8px;align-content:start">
-              <div class="pinbox" style="display:flex;align-items:center;gap:8px">
-                ${apin(5, "plus")}
-                <b style="font-size:13px">신발 문양</b><span class="ai-mark">● AI 추천 · 승인 전</span>
-                <span style="margin-left:auto;display:flex;gap:6px"><button class="btn sm ai" data-role="analyst admin">AI 다시 추천</button><button class="btn sm ai" data-role="analyst admin">추천 모두 받기</button></span>
-              </div>
-              ${zone("상", picon("n32_04", "sm ai"), 94)}
-              ${zone("중", picon("n32_04", "sm ai") + picon("s81b", "sm ai", "마크"), 88)}
-              ${zone("하", picon("n32_04", "sm ai"), 91, true)}
-              ${zone("윤곽", picon("s10c", "sm ai"), 76)}
-              ${zone("문자열", "", 0)}
-              <div class="pinbox" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px dashed var(--line3);border-radius:8px">
-                ${apin(6, "better")}
-                ${picon("n32_04", "sm sel")}
-                <span style="color:var(--fg2);font-size:12px">고른 문양을</span>
-                <button class="btn sm" data-role="analyst admin">상·중·하 모두에 넣기</button>
-                <span style="color:var(--dim);font-size:11px">같은 문양 3번 찍지 않기</span>
-              </div>
-              <div class="pinbox" style="padding:8px 10px;border-radius:8px;background:var(--strip);border:1px solid var(--line2)">
-                ${apin(7, "better")}
-                <div style="display:flex;gap:8px;align-items:flex-start">${picon("n32_04", "sm")}<span style="font-size:12px;color:var(--fg2);line-height:1.45"><b class="mono" style="color:var(--blue)">n32_04</b> 코드 설명 — ${M.PDESC.n32_04}</span></div>
-              </div>
-              <div style="display:grid;gap:6px">
-                <div style="display:flex;gap:4px;flex-wrap:wrap">${M.PCATS.map((c) => `<span class="chip ${c === "내부선" ? "blue" : ""}" style="height:20px;font-size:11px">${c}</span>`).join("")}</div>
-                <div style="display:flex;gap:6px;align-items:center"><span class="seg" style="padding:2px"><button aria-pressed="true" style="padding:2px 8px">단선</button><button aria-pressed="false" style="padding:2px 8px">다선1</button><button aria-pressed="false" style="padding:2px 8px">다선2</button></span>
-                  <span class="inp" style="flex:1;color:var(--dim)">⌕ 문양 이름·설명 검색 (예: 산 모양)</span></div>
-                <div style="display:flex;flex-wrap:wrap;gap:4px">${palette}</div>
-              </div>
-              <div style="display:flex;gap:6px;align-items:center;padding-top:4px" data-role="analyst admin">
-                <span style="color:var(--dim);font-size:11px">Enter 승인 · ← → 다음 신발</span>
-                <button class="btn" style="margin-left:auto">저장</button>
-                <button class="btn ok">✓ 승인</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="pinbox" style="border-top:1px solid var(--line2)">
-            ${apin(8, "keep", true)}
-            <div style="display:flex;align-items:center;gap:8px;padding:10px 14px"><b style="font-size:13px;white-space:nowrap">기본정보</b><span style="color:var(--dim);font-size:11.5px">SCAS 기본정보 칸 그대로 · 탭을 누르면 이 칸으로 이동(새 창 없음)</span>
-              <button class="btn sm" style="margin-left:auto" data-role="analyst admin">수정</button></div>
-            <div style="padding:0 14px 14px">${form}</div>
-          </div>
-        </div>
-      </div>
-      <div class="pinbox" style="display:inline-flex;gap:8px;align-items:center;margin-top:12px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--mute);font-size:12px">
-        ${apin(9, "better")}
-        <span class="chip blue">감정관·관리자</span> 승인·저장·등록 &nbsp;|&nbsp; <span class="chip">수사관·검증자</span> 보기 전용 &nbsp;|&nbsp; <span class="chip red">삭제</span> 관리자만
-      </div>`
+      ${modal}`
     );
   }
 
@@ -200,64 +146,58 @@
       ["문양검색 ▸", 0], ["문양대조 ▸", 0], ["감정서관리 ▸", 0], ["족윤적관리 ▸", 0], ["족윤적감정 역량평가", 0],
     ];
     const tabs = ["사건관리", "시험품질경영절차서", "시험품질경영지침서", "감정서작성", "족윤적 검증", "결재 대기함", "수신 문서함", "문서접수대장", "신발문양 관리"];
-    const nums = ["305661", "305660", "305659", "305658", "305657", "305656", "305655", "305654", "305653", "305652", "305651", "305650", "305649", "305648", "305647", "305646"];
-    const card = (n, i) => `<div style="${n === "305657" ? "outline:2px solid var(--green);" : ""}background:var(--s-white);border:1px solid var(--s-line);padding:3px">
+    const card = ([n], i) => `<div style="${n === "303349" ? "outline:2px solid var(--green);" : ""}background:var(--s-white);border:1px solid var(--s-line);padding:3px">
         <div style="height:86px">${sole({ kind: "shoe", zones: Z[i % Z.length], bg: "#ffffff" })}</div>
         <div style="font-size:9.5px;color:var(--s-mute)">☐ ${n}</div></div>`;
     const sb = (t, c = "") => `<span class="sbtn ${c}">${t}</span>`;
-    const row = (l, v, req) => `<tr><td class="lbl" style="width:92px;${req ? "background:var(--s-pink)" : ""}">${l}${req ? "*" : ""}</td><td style="${req ? "background:var(--s-pink)" : ""}">${v}</td></tr>`;
+    const zr = (l, icons, red) => `<tr><td class="lbl" style="width:52px;text-align:center">${l}</td><td style="height:34px;${red ? "outline:2px solid var(--red);outline-offset:-2px" : ""}">${icons}</td></tr>`;
     return M.scasShell(
-      { treeOn: "신발문양 관리", tree, tabOn: "신발문양 관리", tabs, h: 960 },
+      { treeOn: "신발문양 관리", tree, tabOn: "신발문양 관리", tabs, h: 880 },
       `<div class="box" style="padding:8px;margin-bottom:8px">
-        <table style="color:var(--s-text)"><tbody>
+        <table><tbody>
           <tr><td class="lbl">화류번호</td><td style="width:220px"></td><td class="lbl">제조사</td><td style="width:220px">${sb("조회", "b")}</td><td class="lbl">성별</td><td>◉전체 ○남 ○여 ○혼용</td></tr>
-          <tr><td class="lbl">등록일자</td><td>1983-01-01 📅 ~ 2025-07-24 📅</td><td class="lbl">상표</td><td>${sb("조회", "b")}</td><td class="lbl">승인</td><td>◉전체 ○승인 ○미승인</td></tr>
+          <tr><td class="lbl">등록일자</td><td>2025-03-01 📅 ~ 2025-03-31 📅</td><td class="lbl">상표</td><td>${sb("조회", "b")}</td><td class="lbl">승인</td><td>◉전체 ○승인 ○미승인</td></tr>
           <tr><td class="lbl">등록관서</td><td></td><td class="lbl">그룹명</td><td>${sb("조회", "b")}</td><td></td><td></td></tr>
           <tr><td class="lbl">화종</td><td></td><td class="lbl">비고</td><td></td><td></td><td></td></tr>
         </tbody></table>
       </div>
       <div class="bar">신발문양 관리 목록 <span style="font-weight:400">○목록보기 ◉문양보기 ${["조회", "엑셀", "삭제", "승인", "등록", "초기화"].map((t) => sb(t)).join(" ")}</span></div>
-      <div class="box" style="padding:6px;display:grid;grid-template-columns:repeat(9,1fr);gap:5px">${nums.map(card).join("")}</div>
-      <div style="padding:6px;color:var(--s-mute);font-size:11px">« ‹ 페이지 [1] / 6559 › » ⟳ <span style="float:right">전체 104933 중 1 - 16</span></div>
+      <div class="box" style="padding:6px;display:grid;grid-template-columns:repeat(9,1fr);gap:5px">${CARDS.map(card).join("")}</div>
+      <div style="padding:6px;color:var(--s-mute);font-size:11px">« ‹ 페이지 [1] / 34 › » ⟳ <span style="float:right">전체 536 중 1 - 16</span></div>
 
       <div class="dim"></div>
-      <div class="modal" style="left:20px;top:300px;width:890px">
+      <div class="modal" style="left:150px;top:250px;width:900px">
         <div class="bar">신발정보관리 <span>×</span></div>
         <div style="padding:8px">
           <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:6px;border-bottom:1px solid var(--s-line)">
-            <span>${sb("기본정보", "b")} ${sb("문양정보")} <span style="margin-left:8px;color:var(--s-mute);text-decoration:underline">NEW등록</span></span>
-            <span>${["이전", "다음", "그룹등록", "인공지능그룹등록", "프린트", "수정", "삭제", "닫기"].map((t) => sb(t)).join(" ")}</span>
+            <span>${sb("기본정보")} ${sb("문양정보", "b")}</span>
+            <span><span class="sbtn" style="border-color:var(--s-head);color:var(--s-head)">인공지능문양관리</span> ${["이전", "다음", "승인", "그룹등록", "닫기"].map((t) => sb(t)).join(" ")}</span>
           </div>
-          <div style="padding:3px 0;text-align:right;color:var(--s-mute);font-size:10.5px">(문양정보 탭 버튼줄) [인공지능문양관리] 이전 다음 승인 그룹등록 닫기 · 행: 상 중 하 윤곽 문자열 · 팔레트: 윤곽 면 내부선 삼각 사각 다각 원 항목</div>
-          <div style="display:grid;grid-template-columns:200px 150px minmax(0,1fr);gap:8px">
-            <div><div class="bar" style="height:22px">바닥 이미지 ${sb("삭제")}</div><div style="height:390px;border:1px solid var(--s-line)">${sole({ kind: "shoe", zones: ["herring", "herring", "herring"], bg: "#ffffff" })}</div></div>
+          <div style="padding:3px 0;text-align:right;color:var(--s-mute);font-size:10.5px">(기본정보 탭 버튼줄) NEW등록 · 이전 다음 그룹등록 인공지능그룹등록 프린트 수정 삭제 닫기</div>
+          <div style="display:grid;grid-template-columns:30% minmax(0,1fr);gap:8px">
             <div style="display:grid;gap:6px;align-content:start">
-              <div class="bar" style="height:22px">측면 이미지 ${sb("삭제")}</div><div class="ph" style="height:80px">측면 사진</div>
-              <div class="bar" style="height:22px">전/후면 이미지 ${sb("추가")}</div><div class="ph" style="height:70px">NO IMAGE</div>
-              <div class="bar" style="height:22px">로고 이미지 ${sb("추가")}</div><div class="ph" style="height:70px">NO IMAGE</div>
+              <div class="bar" style="height:22px">바닥 이미지</div>
+              <div style="height:270px;border:1px solid var(--s-line)">${sole({ kind: "shoe", zones: ["herring", "grid", "herring"], bg: "#ffffff" })}</div>
+              <div class="bar" style="height:22px">코드 설명</div>
+              <div class="box" style="padding:6px;font-size:11px;line-height:1.45">${M.PDESC.n32_04}</div>
             </div>
-            <div><div class="bar" style="height:22px">신발 정보</div>
-              <table style="color:var(--s-text)"><tbody>
-                ${row("화류번호", "305655")}${row("등록관서", "경찰청")}${row("제조사", `(유)나이키코리아 ${sb("조회")}`)}${row("상표명", `☐ 나이키 ${sb("조회")}`, 1)}
-                ${row("모델번호", "LD-1000 IH7330-020")}${row("신발종류", "운동화 ▾ 운동화 ▾", 1)}${row("크기", "[ &nbsp; ▴▾]")}
-                ${row("제조지역", "○해당없음 ○국내산 ◉수입산")}${row("성별", "○해당없음 ○남 ○여 ◉혼용")}${row("좌우구분", "○해당없음 ◉좌 ○우")}${row("굽유무", "○해당없음 ○유 ◉무 ○불상")}
-                ${row("수집년도", "2025 ▾ 년 7 ▾ 월")}${row("몰드번호", "")}${row("전화번호", "☐")}${row("수집장소(주소)", `☐ [&nbsp;&nbsp;&nbsp;&nbsp;] [&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;] ${sb("찾기")}`)}
-                ${row("수집장소(상호)", "☐ 인터넷수집", 1)}${row("비고", "")}${row("신발그룹명", "")}${row("등록일자", "2025-07-10")}
-              </tbody></table></div>
+            <div style="display:grid;gap:6px;align-content:start">
+              <div class="bar" style="height:22px">신발 문양</div>
+              <table><tbody>
+                ${zr("상", picon("n32_04", "sm"))}${zr("중", picon("n21_05", "sm") + " " + picon("s81b", "sm", "마크"))}${zr("하", picon("n32_04", "sm"), true)}${zr("윤곽", "")}
+                <tr><td class="lbl" style="text-align:center">문자열</td><td style="height:34px;text-align:right">${sb("저장", "b")}</td></tr>
+              </tbody></table>
+              <div style="display:flex;gap:2px;background:var(--s-head);padding:3px">${M.PCATS.map((c) => `<span style="padding:1px 8px;font-size:11px;${c === "내부선" ? "background:var(--s-white);color:var(--s-text)" : "color:#fff"}">${c}${c === "항목" ? "(?)" : ""}</span>`).join("")}</div>
+              <div class="box" style="padding:5px;display:flex;flex-wrap:wrap;gap:3px">${M.P["내부선"].concat(M.P["내부선"].slice(0, 10)).map((n) => picon(n, "sm")).join("")}</div>
+              <div style="display:flex;gap:2px;font-size:11px">${sb("단선", "b")}${sb("다선1")}${sb("다선2")}</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="oswin" style="left:230px;top:430px;width:340px">
-        <div class="tt">👤 이미지 커팅</div>
-        <div style="padding:5px 6px;display:flex;flex-wrap:wrap;gap:3px">${["-", "170", "+", "좌", "0", "우", "잘라내기", "확인", "저장"].map((t) => sb(t)).join("")}</div>
-        <div class="ph" style="height:110px;margin:0 6px">밑창 이미지 (확대·회전)</div>
-        <div style="padding:5px 6px;display:flex;flex-wrap:wrap;gap:3px">${["처음상태", "평준화(?)", "색상반전", "좌우반전", "밝게", "어둡게", "상하반전"].map((t) => sb(t)).join("")}</div>
-      </div>
-
-      <div class="darkwin" style="left:925px;top:300px;width:290px">
+      <div class="darkwin" style="left:800px;top:300px;width:330px">
         <div class="tt">인공지능 문양 상세 보기 - Chrome</div>
-        <div style="padding:8px;display:grid;grid-template-columns:92px minmax(0,1fr);gap:8px;font-size:11px">
+        <div style="padding:8px;display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;font-size:11px">
           <div>바닥 이미지
             <div style="position:relative;height:130px;margin-top:3px;background:var(--s-side)">
               <span style="position:absolute;left:8px;top:10px;width:40px;height:26px;border:2px solid var(--amber)"></span>
@@ -277,9 +217,16 @@
         </div>
       </div>
 
-      ${M.pain(920, 52, "<b>미코딩만 보는 필터가 없음</b> — 등록일자를 1983년부터 월 단위로 좁혀 34페이지까지 줄이는 우회 (5616 3:30–4:15)", 280)}
-      ${M.pain(925, 690, "<b>팝업 3종이 겹침</b> — 웹 모달 + 크롬 새 창(AI, 다크) + Windows 창(이미지 커팅). 생김새도 제각각 (5614 0:00–0:45)", 290)}
-      ${M.pain(250, 236, "<b>같은 문양을 3번</b> — 문양정보 탭에서 상·중·하 행을 하나씩 눌러 같은 헤링본을 따로 찍음 (5616 0:30–2:45)", 300)}`
+      <div class="oswin" style="left:20px;top:560px;width:330px">
+        <div class="tt">👤 이미지 커팅</div>
+        <div style="padding:5px 6px;display:flex;flex-wrap:wrap;gap:3px">${["-", "170", "+", "좌", "0", "우", "잘라내기", "확인", "저장"].map((t) => sb(t)).join("")}</div>
+        <div class="ph" style="height:90px;margin:0 6px">밑창 이미지 (확대·회전)</div>
+        <div style="padding:5px 6px;display:flex;flex-wrap:wrap;gap:3px">${["처음상태", "평준화(?)", "색상반전", "좌우반전", "밝게", "어둡게", "상하반전"].map((t) => sb(t)).join("")}</div>
+      </div>
+
+      ${M.pain(930, 64, "<b>미코딩·미승인 단계가 안 보임</b> — 등록일자를 1983년부터 월 단위로 좁혀 536건(34쪽)까지 줄인 뒤 한 장씩 열어 확인 (5616 3:30–4:40)", 280)}
+      ${M.pain(840, 660, "<b>창 3종이 겹침</b> — 웹 모달 + 크롬 새 창(AI, 다크) + Windows 창(이미지 커팅). 생김새도 제각각 (5614 0:00–0:45)", 300)}
+      ${M.pain(470, 200, "<b>같은 문양을 3번</b> — 상·중·하 행을 하나씩 눌러 같은 헤링본을 따로 찍음 (5616 0:30–2:45)", 300)}`
     );
   }
 
@@ -288,20 +235,27 @@
     code: "S10",
     group: "문양관리",
     title: "신발문양 관리",
-    refs: [{ t: "SCAS 신발문양 관리", v: "5616 00:00 · 02:50–06:00" }, { t: "신발정보관리 모달", v: "5614 00:00–02:30" }, { t: "사업계획서", v: "p5" }],
-    lead: "SCAS의 검색 조건·카드 목록·기본정보 칸은 그대로 두고, 모달 위에 AI 창·이미지 커팅 창이 또 뜨던 3겹 팝업을 오른쪽 칸 하나로 합쳤습니다. AI가 문양을 미리 채워 두면 감정관은 확인하고 승인만 합니다.",
+    refs: [{ t: "SCAS 신발문양 관리", v: "5616 00:00 · 02:50–06:00" }, { t: "신발정보관리 모달", v: "5614 00:00–02:30" }, { t: "인터뷰 분업·승인", v: "5616 04:30–06:12", voice: true }],
+    lead: "SCAS 배치를 그대로 씁니다. 위에 검색폼 3열×4행, 그 아래 「신발문양 관리 목록」 머리와 툴바, 카드 9열, 페이지 순서입니다. 카드를 누르면 같은 자리에 신발정보관리 창이 뜹니다. 바뀐 것은 세 가지입니다. 분업 단계별로 일감이 보이고, AI 추천이 새 창 대신 이 창 안에서 동작하며, 승인은 승인 담당만 합니다.",
+    fit: {
+      area: ["same", "검색폼 위 · 목록 머리+툴바 · 카드 9열 · 페이지 순서 그대로. 「작업 단계」 줄 하나만 목록 머리 아래 덧붙임"],
+      buttons: ["same", "툴바(목록보기/문양보기 조회 엑셀 삭제 승인 등록 초기화)와 창 버튼(인공지능문양관리 이전 다음 승인 그룹등록 닫기) 원문 순서. 「엑셀 일괄 등록」만 구분선 뒤 끝에"],
+      popup: ["near", "신발정보관리는 같은 자리 레이어 그대로. AI 크롬 창·이미지 커팅 Windows 창은 따로 뜨지 않고 이 창 안에서 동작(창 1겹)"],
+      columns: ["same", "검색 라벨 10개·카드 16장·기본정보 19칸·문양 행(상 중 하 윤곽 문자열)·팔레트 탭 순서 그대로. 빈 칸 2곳에만 필터 추가"],
+    },
     scas,
     ours,
     notes: [
-      { n: 1, kind: "keep", title: "검색 조건 10개 그대로", text: "화류번호(靴類番號, 신발 번호)·제조사·상표·그룹명·등록일자·성별·승인·등록관서·화종(靴種, 신발 종류)·비고를 SCAS 라벨·순서 그대로 둡니다. 낯선 한자어 라벨은 첫 칸에만 괄호 풀이를 붙였습니다. 등록일자는 기본값을 「전체 기간」으로 바꾸고 이번 달·지난달 버튼을 둬, 10년씩 넘기던 날짜 선택기를 안 써도 됩니다.", src: "5616 S5 검색 폼 · P3 3:28–4:10" },
-      { n: 2, kind: "better", title: "빠른 필터: 미코딩 · 미승인 · AI 추천 대기", text: "문양이 비어 있는 신발만 한 번에 모읍니다. SCAS에서는 이 필터가 없어 등록일자를 월 단위로 좁혀 34페이지까지 줄인 뒤 한 장씩 열어 확인했습니다.", src: "5616 3:30–4:40" },
-      { n: 3, kind: "keep", title: "목록보기/문양보기 · 16장 카드 · 툴바", text: "SCAS 카드 16장 한 페이지와 체크박스를 그대로 둡니다. 툴바 6개는 자리만 옮겼습니다: 조회·초기화 → 검색 칸 끝, 엑셀·등록 → 오른쪽 위, 승인·삭제 → 체크한 카드 위 막대.", src: "5616 S5 툴바" },
-      { n: 4, kind: "better", title: "팝업 3겹 → 오른쪽 칸 하나", text: "카드를 누르면 모달 대신 오른쪽 칸이 바뀝니다. 「인공지능문양관리」 크롬 새 창은 이 칸 안의 AI 추천으로, Windows 「이미지 커팅」 창은 「이미지 편집」 버튼(S03 편집 화면 하나)으로 들어왔습니다. 「이전」「다음」은 ‹ › 버튼과 키보드 ← →로 옆 신발로 넘어갑니다.", src: "5614 00:00–00:45" },
-      { n: 5, kind: "plus", title: "AI 문양 추천을 미리 채움(청록)", text: "등록되면 AI가 상·중·하·윤곽 문양을 먼저 찍어 두고 부위별 신뢰도(예: AI 94%)를 보여 줍니다. SCAS 팝업의 설명 없는 숫자(13 → 44 → 75%) 대신 무엇의 %인지 적습니다. 감정관이 고치면 그 기록이 재학습에 쓰입니다(S15).", src: "사업계획서 p5 문양 자동 추출 F1 79.52 · 5614 00:22–00:45" },
-      { n: 6, kind: "better", title: "상·중·하 같은 문양 한 번에", text: "고른 문양을 세 부위에 한 번에 넣습니다. 헤링본처럼 밑창 전체가 같은 무늬일 때 행을 3번 눌러 같은 아이콘을 3번 찍던 일을 줄입니다.", src: "5616 0:30–2:45" },
-      { n: 7, kind: "better", title: "코드 설명을 아이콘 바로 옆에 · 문양 검색", text: "고른 아이콘 옆에 코드 설명 원문이 붙어 나옵니다(SCAS는 왼쪽 아래 멀리). 분류 탭 8개와 하위 탭(단선·다선1·다선2)은 그대로 두고, 「산 모양」처럼 설명 글자로도 찾게 했습니다.", src: "5614 01:15 · 설문: 정해진 문양 코딩 방식 부담" },
-      { n: 8, kind: "keep", title: "기본정보 19칸 · 모달 버튼 전부 유지", text: "제조사·상표명·모델번호·신발종류·크기·제조지역·성별·좌우구분·굽유무·수집년도·몰드번호·전화번호·수집장소(주소)·수집장소(상호)·비고·신발그룹명·등록일자 라벨 그대로이고, 수집장소(상호) 「인터넷수집」 값도 그대로 씁니다. 버튼: NEW등록 → ＋ 등록, 그룹등록 그대로, 인공지능그룹등록 → AI 그룹 추천, 프린트 그대로, 수정 → 수정·저장, 승인 그대로, 닫기 → ✕.", src: "5614 S1·S3 버튼줄" },
-      { n: 9, kind: "better", title: "보는 사람에 따라", text: "감정관·관리자만 승인·저장·등록 버튼이 보입니다. 수사관·검증자는 「보기 전용」으로 카드와 문양만 봅니다. 삭제는 관리자만 누를 수 있게 잠가, 감정관이 실수로 10만 건 DB에서 신발을 지우는 일을 막습니다." },
+      { n: 1, kind: "keep", title: "검색폼 3열×4행 그대로", text: "화류번호(신발 번호)·제조사·성별 / 등록일자·상표·승인 / 등록관서·그룹명 / 화종·비고를 SCAS와 같은 칸에 둡니다. 등록일자는 월 단위로 바로 고르게 해 10년씩 넘기던 날짜 선택기를 안 써도 됩니다.", src: "5616 S5 검색 폼 · P3 3:28–4:10" },
+      { n: 2, kind: "better", title: "빈 칸 2곳에 「문양 입력」「AI 추천」 필터", text: "SCAS 검색폼의 비어 있던 오른쪽 아래 두 칸에만 필터를 넣었습니다. 문양이 비어 있는 신발만 바로 모읍니다. SCAS에서는 이 필터가 없어 날짜를 월 단위로 좁힌 뒤 한 장씩 열어 확인했습니다.", src: "5616 3:30–4:40" },
+      { n: 3, kind: "keep", title: "툴바 원문 순서 + 엑셀 일괄 등록", text: "목록보기/문양보기 · 조회 엑셀 삭제 승인 등록 초기화를 같은 자리, 같은 순서로 둡니다. 구분선 뒤 「엑셀 일괄 등록」은 SCAS 「신발정보일괄등록」 메뉴를 이 화면에서도 부르는 지름길입니다. 「엑셀에다가 다 저장을 해요… 한 번에 등록을 하는거예요」.", src: "5616 12:00–12:10" },
+      { n: 4, kind: "voice", title: "분업 단계별 일감", text: "등록 → 문양 입력 → 그룹 → 승인 담당이 따로 있어, 각자 자기 단계 카드만 모아 봅니다. 「신발 등록하는 사람은 따로 있고 그다음에 문양 넣는 사람이 따로 있고… 승인하는 사람이 따로 있고」.", src: "5616 04:30–04:42" },
+      { n: 5, kind: "voice", title: "승인은 하루 약 50매 · 3월분 536건 미승인", text: "승인 담당의 하루 처리량과 남은 미승인 수를 목록 머리에 보여 줍니다. 「536건은 무조건 승인이 안 된 상태야」, 「승인하시는 분이 하루에 거의 한 50매 정도 하거든?」(등록은 한 달 약 500건).", src: "5616 05:09 · 05:51 · 03:04" },
+      { n: 6, kind: "better", title: "같은 자리 레이어 창, 1겹만", text: "카드를 누르면 SCAS처럼 목록 위에 신발정보관리 창이 뜨고 뒤 목록은 어둡게 깔립니다. 크롬 새 창(인공지능 문양 상세 보기)과 Windows 「이미지 커팅」 창은 따로 뜨지 않습니다. 겹치는 창은 이 창 하나뿐입니다.", src: "5614 00:00–00:45" },
+      { n: 7, kind: "plus", title: "「인공지능문양관리」는 같은 자리, 같은 창 안에서", text: "버튼 이름·자리는 그대로이고, 누르면 새 창 대신 문양 행에 AI 제안(청록)이 채워집니다. 윤곽은 AI가 못 잡으므로 「AI 미지원 · 사람이 입력」으로 비워 둡니다.", src: "사업계획서 p5 · 5613 04:10 「얘는 윤곽을 못 잡아요」" },
+      { n: 8, kind: "voice", title: "가격표가 가린 사진은 「확인 필요」", text: "가격표·스티커가 문양을 가리면 그 행의 AI 제안을 노란 「확인 필요」로 표시하고, 확인 전에는 승인되지 않게 합니다. 「가격표 그런 것들 때문에 인공지능은 못잡을 수 있겠지」.", src: "5616 00:31–00:35" },
+      { n: 9, kind: "better", title: "상·중·하 같은 문양 한 번에", text: "고른 문양을 세 행에 한 번에 넣습니다. 헤링본처럼 밑창 전체가 같은 무늬일 때 행을 3번 눌러 같은 아이콘을 3번 찍던 일을 줄입니다. 코드 설명은 SCAS처럼 왼쪽 아래 그대로 둡니다.", src: "5616 0:30–2:45" },
+      { n: 10, kind: "better", title: "승인 조건과 승인 권한(보는 사람에 따라)", text: "측면·바닥 사진, 상·중·하 문양, AI 확인 필요 0건이 모두 갖춰져야 승인됩니다(「측면도 없고, 바닥만 있어. 그럼 못 넣어요」 5616 12:26). 「승인」 버튼은 신발 승인 권한(사용자 관리 S13)이 있는 승인 담당에게만 눌립니다. 시안에서는 관리자만 눌리고, 감정관으로 보면 승인·삭제가 흐리게 잠깁니다." },
     ],
   });
 })();

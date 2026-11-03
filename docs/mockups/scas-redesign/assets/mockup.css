@@ -143,6 +143,12 @@ button { font: inherit; color: inherit; }
 .chip-ref { padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line3); color: var(--fg2); font-size: 11.5px; }
 .chip-ref.v { border-color: #3b3266; color: var(--violet); }
 .sec-lead { max-width: 80ch; margin: 0 0 14px; color: var(--fg2); }
+/* r2: SCAS 배치 일치도 */
+.fit { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; margin: -4px 0 12px; padding: 8px 12px; border: 1px dashed var(--line3); border-radius: 8px; font-size: 12px; color: var(--fg2); }
+.fit-t { color: var(--dim); font: 600 10px var(--font-mono); letter-spacing: .14em; }
+.fit-i span { color: var(--mute); }
+.side a.oos { opacity: .45; }
+.side a.oos::after { content: "SCAS"; margin-left: auto; color: var(--faint); font: 600 9px var(--font-mono); }
 
 .viewport { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--bg2); }
 .frame { position: relative; width: 1440px; min-height: 300px; }
@@ -323,7 +329,7 @@ table.doc-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .imgbox > .pin.abs.tl { left: 6px; right: auto; }
 .radio .on { color: var(--fg); }
 .radio .on::before { content: "◉ "; color: var(--blue); }
-.radio span:not(.on)::before { content: "○ "; color: var(--faint); }
+.radio span:not(.on):not(.pin)::before { content: "○ "; color: var(--faint); }
 
 /* 그리드 표(앱 내부) */
 table.grid { width: 100%; border-collapse: collapse; font-size: 12.5px; }
