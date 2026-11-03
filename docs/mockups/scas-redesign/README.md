@@ -19,6 +19,7 @@
 | `scas.html` | SCAS 원래 화면 재현 페이지(영상 기반). 「SCAS만 / 나란히 비교」 보기, 버튼을 누르면 SCAS 흐름대로 이동 |
 | `assets/scas-core.js`·`assets/scas-replica.css`·`scas-screens/*.js` | SCAS 재현 페이지 틀·스타일·화면(`R.add`) |
 | `changes-r2.md` | r2 변경 기록(SCAS 배치 충실화 + 인터뷰 반영) |
+| `changes-r3.md` | r3 변경 기록(로그인 화면 AI 감정 시연) |
 
 ## 근거 자료(저장소 밖, 민감자료라 커밋하지 않음)
 - SCAS 사용 영상 3개 분석: `족적데이터_1802/analysis/scas-video/inventory_5613.md`, `inventory_5614_5616.md`
