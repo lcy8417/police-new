@@ -159,7 +159,7 @@
         <span class="agency"><b>경찰청 과학수사</b><small>FOOTWEAR FORENSICS · 족윤적 감정</small></span>
         <span class="divider"></span><span class="page-title">${title || [].concat(active)[0]}</span>
         <span class="spacer"></span>
-        <span class="inp" style="width:260px;color:var(--dim)">⌕ 감정번호·문서번호·신발번호 바로 찾기</span>
+        <span class="inp" style="width:260px;color:var(--dim)">⌕ 감정번호·문서번호·화류번호 바로 찾기</span>
         ${whos}
       </div>
       <div class="mdi">${tabHtml}</div>

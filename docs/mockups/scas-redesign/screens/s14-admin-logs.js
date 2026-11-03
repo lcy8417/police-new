@@ -15,7 +15,7 @@
     ["09:02", "로그인", "로그인", "park0412 · 10.14.43.***", "ok"],
     ["09:05", "조회", "사건 조회", "00001-25-0646", "ok"],
     ["09:12", "검색", "문양 검색", "검색번호 572414 · 후보 869건", "ok"],
-    ["09:20", "수정", "신발 문양 수정", "신발번호 305657 · 하 n32_04", "ok"],
+    ["09:20", "수정", "신발 문양 수정", "화류번호 305657 · 하 n32_04", "ok"],
     ["09:24", "등록", "확인대상 등록", "00001-25-0646_1 ↔ 305657", "ok"],
     ["09:31", "보고서 생성", "감정서 생성", "SCAS수사부-2944", "ok"],
     ["09:33", "다운로드", "감정서 PDF 다운로드", "SCAS수사부-2944 · 워터마크 포함", "ok"],
@@ -92,7 +92,7 @@
           <div>${lab("기간")}<span class="inp w100 mono">2025-07-24 ~ 2025-07-24</span></div>
           <div>${lab("결과")}<span class="inp w100">전체<span class="caret">▾</span></span></div>
           <div>${lab("기능")}<span class="inp w100">전체 기능<span class="caret">▾</span></span></div>
-          <div>${lab("대상 번호")}<span class="inp w100" style="color:var(--dim)">감정번호·신발번호 등</span></div>
+          <div>${lab("대상 번호")}<span class="inp w100" style="color:var(--dim)">감정번호·화류번호 등</span></div>
           <div><button class="btn ghost">필터 초기화</button></div>
         </div>
       </div>
