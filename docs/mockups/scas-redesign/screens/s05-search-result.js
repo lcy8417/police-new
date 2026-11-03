@@ -15,7 +15,8 @@
   const RES = SIMS.map((s, i) => ({ r: 129 + i, s, z: Z[i % 8], seen: 129 + i <= 136, focus: 129 + i === 137, star: 129 + i === 140, mv: { 1: 4, 9: 11, 13: 2 }[i] || 0 }));
 
   const card = (c) => `<div class="pinbox" style="display:grid;gap:3px;padding:4px;border:1px solid ${c.focus ? "var(--blue)" : "var(--line)"};border-radius:9px;background:var(--panel2);${c.seen ? "opacity:.5" : ""}${c.focus ? ";box-shadow:0 0 0 2px var(--blue),0 0 14px rgba(74,158,255,.4)" : ""}">${c.star ? apin(8, "better") : ""}
-      <span class="imgbox" style="height:104px;border-radius:6px">${sole({ kind: "shoe", zones: c.z })}${c.mv ? `<span class="chip teal num" style="position:absolute;left:4px;top:4px;height:17px;padding:0 5px;font-size:10px">▲${c.mv}</span>` : ""}</span>
+      <span class="imgbox" style="height:104px;border-radius:6px;background:#e9ecf0">${sole({ kind: "shoe", zones: c.z, heat: c.focus })}${c.mv ? `<span class="chip teal num" style="position:absolute;left:4px;top:4px;height:17px;padding:0 5px;font-size:10px">▲${c.mv}</span>` : ""}${c.focus ? `<span class="fx-scan" style="animation-duration:2.8s"></span><span class="ai-tag" style="position:absolute;right:4px;bottom:4px;height:15px;font-size:9px">일치 부위</span>` : ""}</span>
+      <span class="fx-bar" style="height:3px"><i style="width:${(c.s - 50) * 8}%;${c.seen ? "background:var(--dim)" : ""}"></i></span>
       <div style="display:flex;align-items:center;gap:3px;font-size:10.5px;line-height:1.2;white-space:nowrap">
         <b class="num">${c.r}위</b><span class="num" style="color:var(--mute)">${c.s.toFixed(1)}%</span>
         <span style="margin-left:auto;font-size:13px;color:${c.star ? "var(--amber)" : "var(--faint)"}" data-lock="analyst admin">${c.star ? "★" : "☆"}</span>
@@ -27,17 +28,36 @@
         <div class="panel" style="position:absolute;left:0;right:0;top:6px;height:900px"><div style="height:42px;border-bottom:1px solid var(--line)"></div>
           <div style="display:grid;grid-template-columns:240px 1fr 270px;gap:12px;padding:12px"><div class="panel" style="height:800px"></div><div class="panel" style="height:800px"></div><div class="panel" style="height:800px"></div></div></div></div>`;
 
+    /* 유사도 분포(가짜): 순위 1–857을 43칸으로 묶은 막대. 앞쪽은 높고 뒤로 갈수록 낮다. 본 위치(136위)까지는 흐리게 */
+    const NB = 43;
+    const bars = Array.from({ length: NB }, (_, i) => {
+      const v = 72 - 22 * Math.pow(i / (NB - 1), 0.55) - (i < 2 ? 0 : 3 * Math.sin(i * 1.7) * (i / NB));
+      const h = Math.max(3, (v - 44) * 1.6);
+      const seen = (i + 1) * (857 / NB) <= 136;
+      return `<rect x="${i * 5}" y="${48 - h}" width="4" height="${h}" rx="1" fill="${seen ? "#2b4a78" : "#4a9eff"}" opacity="${seen ? 0.55 : 0.9 - (i / NB) * 0.5}"/>`;
+    }).join("");
+    const xr = (r) => ((r / 857) * NB * 5).toFixed(1);
+    const dist = `<svg viewBox="0 0 215 58" width="100%" height="64" aria-label="유사도 분포">${bars}
+        <line x1="${xr(136)}" y1="0" x2="${xr(136)}" y2="50" stroke="var(--blue)" stroke-width="1.2"/>
+        ${[3, 140].map((r) => `<path d="M${xr(r) - 3} 0L${+xr(r) + 3} 0L${xr(r)} 5Z" fill="var(--amber)"/>`).join("")}
+        <text x="0" y="57" font-size="6" fill="#5b6b85" font-family="monospace">1위 72%</text><text x="215" y="57" font-size="6" fill="#5b6b85" font-family="monospace" text-anchor="end">857위 41%</text></svg>`;
+
     const row1 = RES.slice(0, 8).map(card).join("");
     const rest = RES.slice(8).map(card).join("");
 
     const left = `<div style="display:grid;gap:8px;align-content:start">
         ${band("현장 족적", `<span class="seg" style="padding:2px"><button aria-pressed="true" style="padding:2px 8px">원본</button><button aria-pressed="false" style="padding:2px 8px">이진화</button></span>`)}
-        <span class="imgbox" style="height:330px">${sole({ kind: "scene", zones: ["herring", "herring", "herring"] })}<span class="cap">고정 · 두 번 누르면 뷰어</span></span>
+        <span class="imgbox" style="height:330px">${M.photo({ zones: ["herring", "herring", "herring"], rot: 0, flip: true, tag: "" })}<span class="cap">고정 · 두 번 누르면 뷰어</span></span>
         <div style="font-size:11.5px;color:var(--mute);line-height:1.6">검색번호 <b class="mono" style="color:var(--fg2)">572433</b> · 이미지 검색<br>필수 문양 상·중 헤링본 · 07-24 17:41</div>
         <div class="pinbox" style="display:grid;gap:6px;padding:8px 10px;border:1px solid var(--line3);border-radius:8px;background:var(--panel2)">${apin(4, "voice")}
           <div style="display:flex;justify-content:space-between;font-size:12px"><b>본 위치</b><span class="num" style="color:var(--fg2)">136위 / 857건</span></div>
           <div style="height:6px;border-radius:3px;background:var(--line3)"><div style="width:16%;height:100%;border-radius:3px;background:var(--blue2)"></div></div>
           <div style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--dim)">지난번 07-24 17:52까지<button class="btn sm" style="margin-left:auto">137위부터 이어 보기</button></div>
+        </div>
+        <div class="pinbox" style="display:grid;gap:5px;padding:8px 10px;border:1px solid var(--line3);border-radius:8px;background:var(--panel2)">${apin(12, "plus")}
+          <div style="display:flex;justify-content:space-between;font-size:12px"><b>유사도 분포</b><span class="mono" style="color:var(--dim);font-size:10.5px">857건 · 순위 →</span></div>
+          ${dist}
+          <div style="display:flex;gap:10px;font-size:10px;color:var(--dim)"><span><span style="color:var(--amber)">▼</span> 확인대상</span><span><span style="color:var(--blue)">│</span> 본 위치</span><span style="margin-left:auto">300위 뒤는 꼬리</span></div>
         </div>
         <div class="pinbox" style="display:grid;gap:4px;padding:8px 10px;border:1px solid #4d3a12;border-radius:8px;background:var(--amber-bg)">${apin(9, "voice")}
           <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--amber)"><b>확인대상</b><span class="num">2건</span></div>
@@ -61,9 +81,11 @@
           <button class="btn sm">이전</button><button class="btn sm">다음</button><button class="btn sm" data-lock="analyst admin">그룹등록</button><button class="btn sm ok" data-lock="analyst admin" style="box-shadow:inset 0 0 0 1px #4ade80">확인대상</button><button class="btn sm">프린트</button><button class="btn sm">닫기</button></span>
           <span style="width:1px;height:18px;background:var(--line3)"></span><button class="btn sm">크게 보기(뷰어)</button>`)}
         <div style="display:grid;grid-template-columns:150px 150px 190px minmax(0,1fr);gap:10px;padding:10px 0 0">
-          <div style="display:grid;gap:3px;font-size:11px;color:var(--mute)">유류 이미지<span class="imgbox" style="height:150px">${sole({ kind: "scene", zones: ["herring", "herring", "herring"] })}</span></div>
-          <div style="display:grid;gap:3px;font-size:11px;color:var(--mute)">발견 이미지<span class="imgbox" style="height:150px">${sole({ kind: "shoe", zones: Z[0] })}</span></div>
-          <div style="display:grid;gap:3px;font-size:11px;color:var(--mute)">측면 이미지<span class="imgbox" style="height:150px;display:grid;place-items:center;color:var(--faint)">측면 사진</span></div>
+          <div style="display:grid;gap:3px;font-size:11px;color:var(--mute)">유류 이미지<span class="imgbox" style="height:150px">${M.photo({ zones: ["herring", "herring", "herring"], rot: 0, flip: true, tag: "" })}</span></div>
+          <div style="display:grid;gap:3px;font-size:11px;color:var(--mute)"><span style="display:flex;align-items:center">발견 이미지<span class="ai-tag" style="margin-left:auto;height:15px;font-size:9px">일치 부위 켬</span></span><span class="imgbox" style="height:150px;background:#e9ecf0">${sole({ kind: "shoe", zones: Z[0], heat: true })}</span></div>
+          <div style="display:grid;gap:3px;font-size:11px;color:var(--mute)">측면 이미지<span class="imgbox" style="height:150px;display:grid;place-items:center"><svg viewBox="0 0 200 90" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" aria-label="측면 이미지(가짜 예시)"><rect width="200" height="90" style="fill:var(--panel)"/>
+            <path d="M14 60C16 46 30 40 52 38L78 26C90 18 104 18 112 26L122 34C142 36 168 42 182 52L184 64L16 66Z" style="fill:#2a3546;stroke:#3b4a63"/>
+            <path d="M12 66L186 64L184 72L18 74Z" style="fill:#c7cedb"/><path d="M84 30L104 44M78 34L98 48M72 38L92 52" style="stroke:#4a5a75;stroke-width:2"/><path d="M20 70L180 69" style="stroke:#5b6b85;stroke-width:1;stroke-dasharray:3 2"/></svg></span></div>
           <div style="display:grid;gap:8px;align-content:start">
             <div class="form" style="grid-template-columns:72px minmax(0,1fr) 72px minmax(0,1fr)">${info.map(([l, v]) => `<div class="l" style="padding:5px 8px;min-height:30px">${l}</div><div class="v" style="padding:5px 8px;min-height:30px">${v}</div>`).join("")}<div class="l" style="padding:5px 8px;min-height:30px"></div><div class="v" style="padding:5px 8px;min-height:30px"></div></div>
             <div class="pinbox" style="display:flex;gap:8px;align-items:center;padding:7px 10px;border:1px solid #2b4a78;border-radius:8px;background:var(--blue-bg);font-size:12px">${apin(7, "better", true)}
@@ -89,8 +111,8 @@
       </div>`;
 
     return M.shell(
-      { active: "사건관리", tabs: ["사건관리", "감정서작성", "족윤적 검증", "결재 대기함", "문서접수대장"], title: "사건관리 · 문양검색결과", h: 1130 },
-      `<div style="position:relative;min-height:1030px">
+      { active: "사건관리", tabs: ["사건관리", "감정서작성", "족윤적 검증", "결재 대기함", "문서접수대장"], title: "사건관리 · 문양검색결과", h: 1280 },
+      `<div style="position:relative;min-height:1180px">
         ${ghost}
         <div style="position:absolute;inset:0;background:rgba(5,8,13,.72);border-radius:12px"></div>
         ${modal({
@@ -169,6 +191,7 @@
       { n: 8, kind: "better", title: "카드 ☆ 지름길(덧붙임)", text: "확실한 후보는 카드의 ☆을 눌러 바로 확인대상에 넣고, 잘못 누르면 「되돌리기」로 취소합니다. 상세조회의 「확인대상」 버튼은 원래 자리에 그대로 있습니다." },
       { n: 9, kind: "voice", title: "확인대상 보고 제외", text: "「비교를 했는데 아니야. 그러면 여기서 확인대상 제외를 다시 누르면 되고.」 왼쪽 확인대상 칸에 고른 후보를 모아 두고, 다시 비교해 아니면 「확인대상 제외」를 누릅니다.", src: "5613 09:10–09:22" },
       { n: 10, kind: "better", title: "숫자 표기 통일 · 원본/이진화", text: "「1 | 49」「1 /857」「1/108」처럼 화면마다 달랐던 표기를 「1위 / 857건」, 카드는 「137위 · 58.4%」로 맞췄습니다. AI 창에만 있던 「이진화 이미지」 전환은 현장 족적 위 원본/이진화로 남겼습니다.", src: "5613 05:07 · 07:22" },
+      { n: 12, kind: "plus", title: "유사도 분포 · 일치 부위(r3)", text: "857건이 순위별로 얼마나 비슷한지 막대로 보여 주고, 본 위치(136위)와 확인대상(3위·140위)을 표시합니다. 「어떤 거는 엄청 밑에 있을 수도 있고」 — 남은 후보가 앞쪽과 얼마나 차이 나는지 보고 어디까지 볼지 정할 수 있습니다(끝까지 보는 것은 그대로 가능). 카드마다 유사도 막대를 달고, 지금 보는 카드와 상세조회 발견 이미지에는 AI가 비슷하다고 본 부위를 색으로 겹칩니다. 측면 이미지 칸도 채웠습니다.", src: "5613 21:50–22:48 · 사업계획서 p13" },
       { n: 11, kind: "better", title: "보는 사람마다 다른 권한", text: "감정관·관리자만 확인대상 등록·제외·그룹등록을 합니다. 기술책임자는 결재 때 결과를 보기만 하고(☆ 잠김), 수사관에게는 이 화면이 열리지 않습니다." },
     ],
   });

@@ -109,6 +109,42 @@
       </g>${heatLayer}${rulerSvg}</svg>`;
   };
 
+  /* ── 현장 족적 "사진"(SVG, r3) ──
+     M.sole("scene")보다 실제 촬영본에 가깝게: 바닥 질감 + 먼지 족적(일부 소실) + L자 법과학 자(1cm 눈금) + 노란 증거 번호표.
+     rot: 사진 속 족적 기울기(도) · flip: 좌우반전 · look: "raw" 원본 | "bin" 이진화 | "inv" 색상반전 | "eq" 평준화 · tag: 번호표 글자(""면 없음) */
+  M.photo = function ({ zones = ["dots", "herring", "grid"], rot = -4, flip = false, look = "raw", tag = "2", ruler = true } = {}) {
+    const id = "p" + ++uid;
+    const bin = look === "bin";
+    const ink = bin ? "#111" : "#e6dcc6";
+    const defs = zones.map((z, i) => (TEX[z] || TEX.grid)(ink).replace("%", `${id}t${i}`)).join("");
+    const bands = [[0, 92], [92, 176], [176, 264]].map(([y0, y1], i) => `<rect x="0" y="${y0}" width="100" height="${y1 - y0}" fill="url(#${id}t${i})"/>`).join("");
+    const tickV = Array.from({ length: 27 }, (_, i) => `<line x1="-12" y1="${i * 10}" x2="${i % 5 ? -15 : -19}" y2="${i * 10}" stroke="#111" stroke-width="${i % 5 ? 0.6 : 1}"/>`).join("");
+    const numV = bin ? "" : Array.from({ length: 6 }, (_, i) => `<text x="-21" y="${i * 50 + 3}" font-size="5" font-family="monospace" fill="#111" text-anchor="end">${i * 5}</text>`).join("");
+    const tickH = Array.from({ length: 14 }, (_, i) => `<line x1="${-12 + i * 10}" y1="270" x2="${-12 + i * 10}" y2="${i % 5 ? 273 : 277}" stroke="#111" stroke-width="${i % 5 ? 0.6 : 1}"/>`).join("");
+    const rulerSvg = ruler
+      ? `<g><rect x="-24" y="-4" width="12" height="282" fill="${bin ? "#fff" : "#f2efe6"}" stroke="#111" stroke-width=".4"/><rect x="-24" y="268" width="140" height="12" fill="${bin ? "#fff" : "#f2efe6"}" stroke="#111" stroke-width=".4"/>${tickV}${numV}${tickH}${bin ? "" : `<text x="100" y="279" font-size="4.6" font-family="monospace" fill="#111" text-anchor="end">cm</text>`}</g>`
+      : "";
+    const ground = bin
+      ? `<rect x="-60" y="-60" width="320" height="420" fill="#fff"/>`
+      : `<rect x="-60" y="-60" width="320" height="420" fill="#4b463f"/><rect x="-60" y="-60" width="320" height="420" filter="url(#${id}g)"/><rect x="-60" y="-60" width="320" height="420" fill="url(#${id}v)"/>`;
+    const fx = look === "inv" ? "filter:invert(1)" : look === "eq" ? "filter:grayscale(1) contrast(1.55) brightness(1.08)" : "";
+    return `<svg viewBox="0 0 200 300" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" role="img" aria-label="현장 족적 사진(가짜 예시)" style="display:block;${fx}">
+      <defs>${defs}
+        <filter id="${id}g" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" seed="${uid}"/><feColorMatrix values="0 0 0 0 .62  0 0 0 0 .57  0 0 0 0 .5  0 0 0 .55 -.08"/></filter>
+        <radialGradient id="${id}v" cx="50%" cy="48%" r="70%"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></radialGradient>
+        <filter id="${id}q"><feTurbulence type="fractalNoise" baseFrequency="1.15" numOctaves="2" seed="${uid + 7}"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 2.4 -.75"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+        <clipPath id="${id}c"><path d="${SOLE}"/></clipPath>
+        <mask id="${id}m"><rect x="-30" y="-10" width="160" height="290" fill="#fff"/><ellipse cx="96" cy="170" rx="22" ry="40" fill="#000"/><ellipse cx="10" cy="40" rx="14" ry="18" fill="#000" opacity=".6"/></mask>
+      </defs>
+      ${ground}
+      <g transform="translate(100 150) rotate(${rot}) ${flip ? "scale(-1 1)" : ""} translate(-50 -134)">
+        ${rulerSvg}
+        <g mask="url(#${id}m)"><g clip-path="url(#${id}c)" ${bin ? "" : `filter="url(#${id}q)"`} opacity="${bin ? 1 : 0.92}">${bands}</g></g>
+      </g>
+      ${tag && !bin ? `<g transform="translate(160 22) rotate(6)"><path d="M-12 10L0 -10L12 10Z" fill="#f5c518" stroke="#111" stroke-width=".8"/><text y="7" font-size="10" font-weight="700" font-family="sans-serif" text-anchor="middle" fill="#111">${tag}</text></g>` : ""}
+    </svg>`;
+  };
+
   /* ── 우리 개선안 앱 셸 ──
      M.shell({ active:"사건관리", tabs:["사건관리", ...], tabOn:"사건관리", title:"사건관리", menuCount:{}, h:880 }, innerHtml) */
   const SVG_SHIELD = `<svg viewBox="0 0 24 24" fill="none" stroke="#7fb6ff" stroke-width="1.8"><path d="M12 2l8 3v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5l8-3z"/><path d="M8.5 12.5l2.4 2.3 4.6-5" stroke="#4a9eff"/></svg>`;

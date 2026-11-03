@@ -13,9 +13,9 @@
 
   /* 문양 행. st: ai(감정관이 확인한 AI 문양) | sug(AI 제안 — 확인 전엔 검색에 안 들어감) | man(수동) */
   const ROWS = [
-    { z: "상", on: true, items: [{ p: "n32_04", st: "ai", c: "9", req: 1 }, { p: "n21_05", st: "sug", c: "1" }] },
-    { z: "중", items: [{ p: "n32_04", st: "ai", c: "9", req: 1 }, { p: "s81b", st: "sug", c: "1", odd: 1 }] },
-    { z: "하", items: [{ p: "n32_04", st: "sug", c: "8" }] },
+    { z: "상", on: true, items: [{ p: "n32_04", st: "ai", c: "9", req: 1, cf: 0.93 }, { p: "n21_05", st: "sug", c: "1", cf: 0.61 }] },
+    { z: "중", items: [{ p: "n32_04", st: "ai", c: "9", req: 1, cf: 0.88 }, { p: "s81b", st: "sug", c: "1", odd: 1, cf: 0.42 }] },
+    { z: "하", items: [{ p: "n32_04", st: "sug", c: "8", cf: 0.71 }] },
     { z: "윤곽", items: [{ p: "s10c", st: "man", c: "1" }], noai: true },
   ];
   const card = (it, pinHtml = "") => {
@@ -32,6 +32,7 @@
         : `<span class="chip ${it.req ? "red" : ""}" style="height:19px;padding:0 7px;font-size:10.5px;${it.req ? "" : "color:var(--dim)"}">${it.req ? "● 필수" : "필수"}</span>`;
     return `<div class="pinbox" style="display:grid;justify-items:center;gap:4px;width:92px;padding:7px 4px 6px;border:${b};border-radius:9px;background:${it.st === "sug" ? "rgba(15,38,36,.35)" : "var(--panel2)"};${it.st === "sug" ? "opacity:.92" : ""}">${pinHtml}
       ${picon(it.p, it.st === "man" ? "sel" : "ai", M.PDESC[it.p] || it.p)}${lab}
+      ${it.cf ? `<span title="AI 확신도" style="display:flex;align-items:center;gap:4px;width:80px"><span class="fx-bar" style="flex:1;height:3px"><i style="width:${it.cf * 100}%;${it.cf < 0.5 ? "background:var(--amber)" : ""}"></i></span><span class="mono" style="font-size:9.5px;color:${it.cf < 0.5 ? "var(--amber)" : "var(--mute)"}">${it.cf.toFixed(2)}</span></span>` : ""}
       <span class="inp" style="height:20px;padding:0 6px;font-size:11px;gap:10px"><span class="num">${it.c}</span><span style="color:var(--dim)">▾</span></span>${foot}</div>`;
   };
 
@@ -44,14 +45,13 @@
     const left = `<div style="display:grid;gap:8px;align-content:start">
         <div class="pinbox">${apin(9, "better")}${band("현장 이미지", `<span class="seg" style="padding:2px"><button aria-pressed="false" style="padding:2px 8px">원본</button><button aria-pressed="true" style="padding:2px 8px">편집본</button></span>`)}</div>
         <div class="imgbox" style="height:330px">
-          ${sole({ kind: "bin", zones: ["herring", "herring", "herring"], bg: "#0b0f16" })}
-          <svg viewBox="0 0 100 264" preserveAspectRatio="xMidYMid meet" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible">
-            <path d="${SOLE_D}" fill="none" stroke="#2dd4bf" stroke-width="1.2" stroke-dasharray="3 2"/>
-            <line x1="-20" y1="92" x2="120" y2="92" stroke="#4a9eff" stroke-width="1"/><line x1="-20" y1="176" x2="120" y2="176" stroke="#4a9eff" stroke-width="1"/>
-            <text x="-16" y="50" fill="#c7cedb" font-size="10" font-weight="700">상</text><text x="-16" y="136" fill="#c7cedb" font-size="10" font-weight="700">중</text><text x="-16" y="222" fill="#c7cedb" font-size="10" font-weight="700">하</text>
-            <rect x="52" y="120" width="30" height="20" fill="rgba(245,158,11,.25)" stroke="#f59e0b" stroke-width="1"/>
-          </svg>
-          <span class="chip teal" style="position:absolute;left:8px;top:8px;height:20px">편집본 · 이진화</span>
+          ${M.photo({ zones: ["herring", "herring", "herring"], rot: 0, flip: true, look: "bin", tag: "" })}
+          <!-- 상·중·하 영역(색 띠) + AI 확신도. 사진 좌표: 족적 x 25–75%, y 1–99% -->
+          ${[["상", 1, 35, "74,158,255", "0.93"], ["중", 35, 67, "45,212,191", "0.88"], ["하", 67, 99, "167,139,250", "0.71"]].map(([z, t, b, rgb, cf]) => `<span style="position:absolute;left:22%;right:22%;top:${t}%;height:${b - t}%;background:rgba(${rgb},.14);border-top:${z === "상" ? "0" : `1.5px solid rgb(${rgb})`}"></span>
+          <span class="mono" style="position:absolute;left:4px;top:calc(${(t + b) / 2}% - 9px);padding:1px 5px;border-radius:4px;background:rgba(11,18,29,.9);border:1px solid rgba(${rgb},.6);color:rgb(${rgb});font-size:10px"><b>${z}</b> ${cf}</span>`).join("")}
+          <span style="position:absolute;left:52%;top:43%;width:14%;height:7%;background:rgba(245,158,11,.25);border:1.5px solid var(--amber)"></span>
+          <span class="fx-scan" style="animation-duration:3.6s"></span>
+          <span class="chip teal" style="position:absolute;right:6px;top:6px;height:20px">편집본 · 이진화</span>
           <span class="cap">ROI · 경계선 끌어서 조정</span>
         </div>
         <div class="pinbox" style="display:flex;gap:6px;align-items:center;padding:6px 8px;border:1px solid #4d3a12;border-radius:8px;background:var(--amber-bg);color:var(--amber);font-size:11px;line-height:1.4">${apin(8, "voice")}
@@ -111,6 +111,13 @@
           <div style="display:grid;gap:2px;padding:8px 10px;border:1px solid var(--teal);border-radius:8px;background:var(--teal-bg)"><span><span style="color:var(--teal)">◉</span> <b>이미지 검색</b> <span class="chip teal" style="height:18px;padding:0 6px;font-size:10.5px">추천</span></span><span style="color:var(--mute);font-size:11px">사진만으로 비슷한 신발을 찾음(문양 몰라도 됨)</span></div>
           <div style="padding:6px 10px;border:1px solid var(--line);border-radius:8px;color:var(--fg2)"><span style="color:var(--faint)">○</span> 문양 검색 <span style="color:var(--dim);font-size:11px">SCAS 방식 그대로</span></div>
           <div style="padding:6px 10px;border:1px solid var(--line);border-radius:8px;color:var(--fg2)"><span style="color:var(--faint)">○</span> 하이브리드 <span style="color:var(--dim);font-size:11px">이미지 + 필수 문양으로 좁힘</span></div>
+        </div>
+        <div class="pinbox" style="display:grid;gap:6px;padding:10px;border:1px solid #1d4a44;border-radius:10px;background:linear-gradient(160deg,#0d1f21,var(--panel2))">${apin(12, "plus")}
+          <span style="display:flex;align-items:center;gap:6px;font-size:11.5px"><span class="fx-live"></span><b style="color:var(--teal)">검색 전 미리보기</b><span style="margin-left:auto;color:var(--dim);font-size:10px">문양 바꾸면 바로 다시 셈</span></span>
+          ${[["신발 DB", "128,406", 100, "var(--line3)"], ["매칭 조건 통과", "121,930", 95, "var(--blue3)"], ["필수 문양 상·중 헤링본", "857", 34, "var(--blue2)"], ["먼저 볼 후보(AI 순위)", "Top 10", 12, "var(--teal)"]].map(([k, v, w, c], i) => `<div style="display:grid;gap:3px">
+            <span style="display:flex;justify-content:space-between;font-size:11px"><span style="color:${i === 3 ? "var(--teal)" : "var(--mute)"}">${k}</span><b class="mono" style="color:var(--fg)">${v}</b></span>
+            <span style="display:block;height:6px;margin:0 ${(100 - w) / 2}%;border-radius:3px;background:${c};${i === 3 ? "box-shadow:0 0 10px rgba(45,212,191,.6)" : ""}"></span></div>`).join("")}
+          <span style="color:var(--dim);font-size:10.5px;line-height:1.45">필수를 하나 더 걸면 857 → 312건. 너무 좁히면 정답이 빠질 수 있어 개수를 먼저 보여 줍니다.</span>
         </div>
         ${band("검색이력")}
         <table class="grid" style="font-size:11px"><thead><tr>${["검색번호", "결과건수", "검색방법", "검색결과", "검색일"].map((h) => `<th style="padding:0 4px;height:26px;font-size:10.5px">${h}</th>`).join("")}</tr></thead><tbody>
@@ -236,6 +243,7 @@
       { n: 7, kind: "voice", title: "이미지 검색을 첫 후보로", text: "「그냥 이렇게 딱 대면 인공지능이 알아서… 문양이 아니어도 상관없이… 어떤 신발이다라는 도출을 원하는 거잖아요.」 매칭 조건 아래에 검색 방식을 덧붙이고 「이미지 검색」을 추천으로 강조했습니다. 문양 검색(SCAS 방식)과 하이브리드는 그대로 고를 수 있습니다.", src: "5613 23:00–23:32" },
       { n: 8, kind: "voice", title: "가격표 경고", text: "「가격표 그런 것들 때문에 인공지능은 못잡을 수 있겠지.」 가격표처럼 보이는 네모를 주황으로 표시하고, 그 자리 문양은 감정관이 직접 확인하라고 알립니다.", src: "5616 00:31–00:35" },
       { n: 9, kind: "better", title: "AI 다크 창 2개 → 왼쪽 그림 안으로", text: "SCAS는 「ShoePrintROI」 창에서 영역을 잡고 「인공지능 문양 상세 보기」 창에서 결과를 봤습니다. 이제 왼쪽 현장 이미지 위에서 ROI(분석 영역)와 상·중·하 경계선을 끌어 맞추고, 결과는 가운데 문양 행에 바로 채워집니다.", src: "5613 03:52–04:52" },
+      { n: 12, kind: "plus", title: "검색 전 미리보기 · AI 확신도(r3)", text: "검색을 누르기 전에 「신발 DB 128,406 → 매칭 조건 통과 121,930 → 필수 문양 857 → 먼저 볼 Top 10」을 깔때기로 보여 줍니다. 필수값을 걸면 정답이 위로 오지만(「필수값을 적용하면 대체적으로 위로 올라오거든」) 너무 걸면 빠질 수 있어 개수를 먼저 봅니다. AI가 넣은 문양 카드마다 확신도 막대(0.42처럼 낮으면 주황)를 달고, 현장 이미지에는 상·중·하 영역을 색 띠로 나눠 영역별 확신도를 적었습니다.", src: "5613 22:07 · 사업계획서 p13" },
       { n: 10, kind: "keep", title: "개수·팔레트·매칭 조건·검색이력 그대로", text: "개수 드롭다운(0–9, 10이상), 팔레트 8탭(윤곽·면·내부선·삼각·사각·다각·원·항목)과 아래쪽 하위 탭, 매칭 조건 순서, 검색이력 열(검색번호·결과건수·검색방법·검색결과·검색일)을 그대로 둡니다. 이름·설명 찾기와 최근 사용 줄만 덧붙였습니다.", src: "5613 05:52 · 5616 S3'" },
       { n: 11, kind: "better", title: "보는 사람마다 다른 권한", text: "감정관·관리자만 인공지능문양관리·검색·다시 추출을 누를 수 있습니다. 기술책임자는 결재 때 코딩 근거를 보기만 하고, 수사관에게는 이 화면이 열리지 않습니다." },
     ],
