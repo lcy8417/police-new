@@ -38,6 +38,12 @@
         ${band("족윤적 이미지", `<span style="color:var(--dim);font-size:11px">누르면 이미지 커팅</span>`)}
         <div class="imgbox pinbox" style="height:300px;cursor:zoom-in">
           ${sole({ kind: "scene", zones: ["herring", "grid", "blocks"], ruler: true })}
+          <span aria-hidden="true" style="position:absolute;left:31%;right:31%;top:4%;bottom:4%;border:1.5px dashed var(--teal);border-radius:40% 40% 34% 34%;opacity:.85"></span>
+          <span aria-hidden="true" style="position:absolute;right:15.5%;top:3%;bottom:3%;width:7%;border:1.5px solid var(--amber);border-radius:3px"></span>
+          <span class="mono" style="position:absolute;right:6px;top:8px;padding:1px 5px;border-radius:4px;background:rgba(36,27,12,.9);color:var(--amber);font-size:9.5px">자 인식 · 1px=0.12mm</span>
+          <span class="mono" style="position:absolute;left:6px;top:8px;padding:1px 5px;border-radius:4px;background:rgba(15,38,36,.9);color:var(--teal);font-size:9.5px">족적 영역 94%</span>
+          <span class="fx-scan"></span>
+          <span style="position:absolute;left:8px;bottom:26px;display:flex;gap:4px"><span class="seg" style="padding:2px"><button aria-pressed="true" style="padding:1px 7px;font-size:10.5px">원본</button><button aria-pressed="false" style="padding:1px 7px;font-size:10.5px">이진화</button><button aria-pressed="false" style="padding:1px 7px;font-size:10.5px">AI 표시</button></span></span>
           <span class="cap">00001-25-0649_2 · 전사판</span>
         </div>
         <div class="pinbox" style="display:flex;gap:6px;align-items:center;padding-right:14px">${apin(8, "better")}<span class="chip amber" style="height:22px">전사판 → 좌우반전 필요</span><button class="btn sm">이미지 커팅 열기</button></div>
@@ -45,9 +51,21 @@
         <div class="pinbox">${apin(3, "better")}
           <table class="grid"><thead><tr><th style="padding:0 6px;height:28px"></th><th style="padding:0 6px;height:28px">파일명칭</th><th class="r" style="padding:0 6px;height:28px">파일크기</th></tr></thead><tbody>${list}</tbody></table>
           <div style="padding:6px 8px;color:var(--dim);font-size:11px">… <span class="mono">_9 _10 _11 _12</span></div>
-          <div style="display:grid;place-items:center;height:40px;border:1px dashed #2b4a78;border-radius:8px;color:var(--fg2);font-size:11.5px">⤓ 여기에 사진을 끌어 놓으면 여러 장 추가</div>
+          <div style="display:grid;gap:5px;padding:8px 10px;border:1px dashed #2b4a78;border-radius:8px;background:rgba(21,34,56,.35)">
+            <span style="display:flex;justify-content:space-between;color:var(--fg2);font-size:11.5px"><span>⤓ 사진을 끌어 놓으면 여러 장 추가</span><span class="mono" style="color:var(--dim);font-size:10.5px">_13 업로드 중</span></span>
+            <span class="fx-bar run"><i style="width:68%"></i></span>
+            <span style="color:var(--dim);font-size:10.5px">올리자마자 AI가 중복·전사판·화질·자를 점검합니다</span>
+          </div>
         </div>
-        <div style="padding:7px 10px;border:1px solid #4d3a12;border-radius:8px;background:var(--amber-bg);color:var(--amber);font-size:11.5px;line-height:1.5" data-role="analyst admin">1차 작업 점검 · 같은 사진 의심 1 · 확인 필요 칸 1</div>
+        <div class="pinbox" data-role="analyst admin" style="padding:10px 12px;border:1px solid #1d4a44;border-radius:10px;background:linear-gradient(160deg,#0d1f21,var(--panel))">${apin(11, "plus")}
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><span class="fx-live"></span><b style="font-size:12px;color:var(--teal)">AI 1차 작업 점검</b><span class="mono" style="margin-left:auto;color:var(--dim);font-size:10px">12장 · 4초</span></div>
+          <div class="fx-bar" style="margin-bottom:6px"><i style="width:100%"></i></div>
+          <div class="check"><span class="ic warn">!</span><span>같은 사진 의심 <b class="mono">_4 ↔ _5</b><br><span style="color:var(--dim)">크기·그림 98% 같음</span></span><button class="btn sm">_5 삭제</button></div>
+          <div class="check"><span class="ic warn">!</span><span>전사판 사진 <b class="mono">_2 _7</b><br><span style="color:var(--dim)">좌우반전 필요</span></span><button class="btn sm">반전 적용</button></div>
+          <div class="check"><span class="ic warn">!</span><span>채취 방법 「기타」 <b class="mono">_2</b><br><span style="color:var(--dim)">전사지 보임 → 전사판채취법?</span></span><span class="chip amber" style="height:19px;font-size:10px">오른쪽 ↗</span></div>
+          <div class="check"><span class="ic bad">×</span><span>흐린 사진 <b class="mono">_9</b><br><span style="color:var(--dim)">윤곽 판독 어려움 · 재촬영 요청?</span></span><span class="chip" style="height:19px;font-size:10px">보류</span></div>
+          <div class="check"><span class="ic ok">✓</span><span>자 인식 11/12장 · 기울기 보정값 준비</span><span></span></div>
+        </div>
       </div>
 
       <!-- 오른쪽: 사건정보 + 현장 이미지 정보 (SCAS 라벨 순서 그대로) -->
@@ -56,6 +74,10 @@
           <span class="chip blue" style="height:20px">공문 자동 접수 · 07-24 09:10</span><span>문서접수대장 연동</span>
           <span style="color:var(--dim)">·</span><span>담당 감정관 박○○ 경위</span>
           <span style="color:var(--dim)">·</span><span class="chip" style="height:20px;color:var(--amber);border-color:#4d3a12">배당 절차: 확인 필요</span>
+          <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 36 36" width="30" height="30" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="var(--line3)" stroke-width="4"/><circle cx="18" cy="18" r="15" fill="none" stroke="var(--teal)" stroke-width="4" stroke-linecap="round" pathLength="100" stroke-dasharray="93 100" transform="rotate(-90 18 18)"/></svg>
+            <span style="display:grid;line-height:1.25"><b class="mono" style="color:var(--fg);font-size:12px">필수 14 / 15</b><span style="color:var(--dim);font-size:10.5px">남은 칸: 채취 방법 확인</span></span>
+          </span>
         </div>
         ${band("사건정보", `<span style="color:var(--dim);font-size:11px">대부분 공문 그대로 · 수정은 「수정」으로</span>`)}
         <div class="form" style="grid-template-columns:108px minmax(0,1fr) 108px minmax(0,1fr)">
@@ -74,13 +96,21 @@
           ${F("구분", radio(["신발", "타이어"], "신발"), { req: 1 })}${F("이미지 이름", sel("00001-25-0649_2.jpg", "font-family:var(--font-mono);font-size:11.5px"))}
           ${F("채취 일시", `<span class="inp w100 mono" style="font-size:11.5px">2025-07-23 08:40</span>`, { req: 1 })}${F("채취자 계급", sel("경사"), { req: 1 })}
           ${F("채취 장소", sel("거실 바닥"), { req: 1 })}${F("채취자 이름", txt("이○○"), { req: 1 })}
-          ${F("채취 방법", `<div class="pinbox" style="display:grid;gap:4px;padding-right:12px">${apin(5, "voice")}${sel(`기타 <span class="chip amber" style="height:18px;padding:0 6px;font-size:10.5px;margin-left:6px">확인 필요</span>`, "border-color:#4d3a12")}<span style="font-size:11px;color:var(--amber)">사진에 전사지가 보임 → 「전사판채취법」?</span></div>`, { req: 1 })}${F("감정물 종류", sel("사진"), { req: 1 })}
+          ${F("채취 방법", `<div class="pinbox" style="display:grid;gap:4px;padding-right:12px">${apin(5, "voice")}${sel(`기타 <span class="chip amber" style="height:18px;padding:0 6px;font-size:10.5px;margin-left:6px">확인 필요</span>`, "border-color:#4d3a12")}<span style="display:grid;gap:3px;padding:5px 7px;border:1px solid #1d4a44;border-radius:7px;background:var(--teal-bg);font-size:11px"><span style="display:flex;align-items:center;gap:6px"><span class="ai-tag">AI 제안</span><b style="color:var(--fg);white-space:nowrap">전사판채취법</b><button class="btn sm" style="margin-left:auto;height:22px;padding:0 8px">적용</button></span><span style="color:var(--dim);font-size:10.5px">근거: 전사지 경계 · 뒤집힌 글자 · 신뢰 0.91</span></span></div>`, { req: 1 })}${F("감정물 종류", sel("사진"), { req: 1 })}
           ${F("제조사", sel("미상"))}${F("족적 구분", radio(["좌", "우", "불상"], "우"))}
           ${F("상표", sel("—"))}${F("굽 유무", radio(["유", "무", "불상"], "유"))}
           ${F("화종", sel("운동화"))}<div class="l"></div><div class="v"></div>
         </div>
       </div>
     </div>`;
+
+    /* 제목 줄 단계 표시(r3): 사건이 지금 어디까지 왔는지 — 접수 → 1차 작업 → 이미지별 검색·판정 → 교차 검증 → 감정서 → 결재 */
+    const STEPS = ["접수", "1차 작업", "검색·판정", "교차 검증", "감정서", "결재"];
+    const stepper = `<span style="display:inline-flex;align-items:center;gap:4px;margin-left:14px;font-weight:400;font-size:10.5px">${STEPS.map((t, i) => {
+      const st = i < 1 ? "done" : i === 1 ? "now" : "";
+      const col = st === "done" ? "var(--blue)" : st === "now" ? "var(--teal)" : "var(--faint)";
+      return `${i ? `<i style="width:14px;height:1px;background:${i <= 1 ? "var(--blue2)" : "var(--line3)"}"></i>` : ""}<span style="display:inline-flex;align-items:center;gap:4px;color:${col}"><span class="${st === "now" ? "fx-live" : ""}" style="width:7px;height:7px;border-radius:50%;background:${st ? col : "transparent"};border:1px solid ${col}"></span>${t}</span>`;
+    }).join("")}</span>`;
 
     const btns = `<span class="pinbox" style="display:inline-flex;gap:6px">${apin(2, "keep", true)}
         <button class="btn sm">이전</button><button class="btn sm">다음</button><button class="btn sm">사건복사</button><button class="btn sm" data-lock="investigator analyst admin">수정</button><button class="btn sm">닫기</button></span>
@@ -91,11 +121,11 @@
         <span class="chip" data-role="investigator" style="height:22px">수사관 · 의뢰한 사건만</span></span>`;
 
     return M.shell(
-      { active: "사건관리", tabs: ["사건관리", "감정서작성", "족윤적 검증", "결재 대기함", "문서접수대장"], title: "사건관리", h: 1020 },
-      `<div style="position:relative;min-height:920px">
+      { active: "사건관리", tabs: ["사건관리", "감정서작성", "족윤적 검증", "결재 대기함", "문서접수대장"], title: "사건관리", h: 1230 },
+      `<div style="position:relative;min-height:1130px">
         ${ghost}
         <div style="position:absolute;inset:0;background:rgba(5,8,13,.7);border-radius:12px"></div>
-        ${modal({ x: 0, y: 6, w: 1180, title: "사건관리 <span class='mono' style='font-weight:400;color:var(--mute);margin-left:6px'>00001-25-0649</span>", btns, body })}
+        ${modal({ x: 0, y: 6, w: 1180, title: `사건관리 <span class='mono' style='font-weight:400;color:var(--mute);margin-left:6px'>00001-25-0649</span>${stepper}`, btns, body })}
       </div>`
     );
   }
@@ -164,7 +194,7 @@
       { t: "SCAS 사건관리 팝업", v: "5613 00:00–03:30 · 16:22 · 20:52" },
       { t: "인터뷰: 1차 작업·현장 이미지 정보 수정", v: "5613 02:56–03:24 · 20:46–21:21", voice: true },
     ],
-    lead: "SCAS 「사건관리」 레이어 팝업의 자리와 크기를 그대로 둡니다(왼쪽 족윤적 이미지·이미지 목록, 오른쪽 사건정보·현장 이미지 정보, 오른쪽 위 버튼 줄). 감정관이 실제로 하는 「1차 작업」 — 같은 사진 지우기, 채취 방법 「기타」 바로잡기, 전사판 좌우반전 — 을 그 자리에서 바로 보이게 했습니다.",
+    lead: "SCAS 「사건관리」 레이어 팝업의 자리와 크기를 그대로 둡니다(왼쪽 족윤적 이미지·이미지 목록, 오른쪽 사건정보·현장 이미지 정보, 오른쪽 위 버튼 줄). 감정관이 실제로 하는 「1차 작업」 — 같은 사진 지우기, 채취 방법 「기타」 바로잡기, 전사판 좌우반전 — 을 그 자리에서 바로 보이게 했습니다. r3: 사진이 올라오자마자 AI가 이 1차 작업을 먼저 점검해 왼쪽 아래 카드에 모아 두고, 채취 방법 칸에는 AI 제안(전사판채취법)과 「적용」 버튼을 붙였습니다(자리·라벨은 그대로).",
     scas,
     ours,
     fit: {
@@ -183,6 +213,7 @@
       { n: 7, kind: "better", title: "관서 드롭다운 2단 → 검색 한 칸", text: "지방청 → 경찰서 드롭다운 2번 대신 「동부」만 쳐도 「대구청 › 동부서」가 나옵니다. ☐타기관은 그대로 둡니다.", src: "SCAS 의뢰관서·발생관서 드롭다운 2개" },
       { n: 8, kind: "better", title: "이미지 커팅은 그 위 한 겹", text: "족윤적 이미지를 누르면 SCAS처럼 이미지 커팅이 열리되, 별도 OS 창이 아니라 이 팝업 위 2번째 겹(S03)으로 뜹니다. 채취 방법이 전사판이면 「좌우반전 필요」를 미리 알려 줍니다.", src: "5613 00:00–01:25 · 02:18–02:42" },
       { n: 9, kind: "plus", title: "접수 경로 표시 · 배당은 확인 필요", text: "공문이 오면 사건이 자동으로 들어오므로 「공문 자동 접수」와 시각을 보여 줍니다. 「배당」 절차는 인터뷰에서 나오지 않아 「확인 필요」로 두었습니다(다음 인터뷰 질문).", src: "5613 11:31 · interview-needs 6절 질문 3" },
+      { n: 11, kind: "plus", title: "AI 1차 작업 점검(r3)", text: "감정관이 손으로 하던 1차 작업을 사진이 들어오자마자 AI가 먼저 훑습니다 — 같은 사진(_4 ↔ _5), 좌우반전이 필요한 전사판 사진, 「기타」로 온 채취 방법, 흐린 사진, 자 인식. 각 줄 끝 버튼(삭제·반전 적용)은 감정관이 눌러야 반영됩니다. 족윤적 이미지 위에는 AI가 잡은 족적 영역(청록 점선)과 자(주황)를 겹쳐 보여 주고, 「원본 · 이진화 · AI 표시」로 바꿔 봅니다. 제목 줄에는 사건이 어느 단계인지(접수 → 1차 작업 → 검색·판정 → 교차 검증 → 감정서 → 결재), 사건정보 위에는 필수 칸 채움 정도(14/15)를 보여 줍니다.", src: "5613 20:46–21:21 · 02:18–03:24 · 24:51–26:05" },
       { n: 10, kind: "better", title: "보는 사람마다 다른 버튼", text: "감정관·관리자는 「검색 (문양 상세보기) →」로 바로 넘어갑니다. 수사관은 의뢰한 사건의 이미지 추가·수정만, 기술책임자는 읽기 전용이라 「수정」이 잠깁니다." },
     ],
   });

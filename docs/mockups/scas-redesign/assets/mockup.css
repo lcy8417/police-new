@@ -409,6 +409,34 @@ body[data-viewer="verifier"] [data-lock]:not([data-lock~="verifier"]) { opacity:
 .scas-pain { position: absolute; z-index: 5; max-width: 230px; padding: 6px 9px; border-radius: 8px; background: #241b0c; border: 1px solid #4d3a12; color: #fcd58a; font: 12px/1.45 var(--font-ui); box-shadow: 0 6px 20px rgba(0,0,0,.4); }
 .scas-pain b { color: #ffb020; }
 
+/* ───────── r3 움직임·광택(우리 개선안 화면 공용) ─────────
+   움직임 줄이기 설정이면 맨 아래 규칙이 모두 끈다 → 각 요소는 "멈춘 완성 상태"로 보이게 기본값을 잡는다. */
+@keyframes fx-scan { 0% { top: 0; opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+@keyframes fx-shimmer { 0% { background-position: -120% 0; } 100% { background-position: 220% 0; } }
+@keyframes fx-pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(45,212,191,.55); } 50% { opacity: .55; box-shadow: 0 0 0 5px rgba(45,212,191,0); } }
+@keyframes fx-fill { from { width: 0; } }
+@keyframes fx-glow { 0%, 100% { box-shadow: inset 3px 0 0 var(--teal), 0 0 0 rgba(45,212,191,0); } 50% { box-shadow: inset 3px 0 0 var(--teal), 0 0 22px rgba(45,212,191,.12); } }
+.fx-scan { position: absolute; left: 0; right: 0; top: 100%; height: 2px; opacity: 0; pointer-events: none; background: var(--teal); box-shadow: 0 0 12px 3px rgba(45,212,191,.6); animation: fx-scan 3.2s ease-in-out infinite; }
+.fx-live { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--teal); animation: fx-pulse 1.8s ease-in-out infinite; }
+.fx-bar { position: relative; height: 4px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.fx-bar > i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: linear-gradient(90deg, var(--blue2), var(--teal)); animation: fx-fill 1.4s ease-out; }
+.fx-bar.run > i { background: linear-gradient(90deg, var(--blue2), var(--teal) 40%, #b9fff4 50%, var(--teal) 60%, var(--blue2)); background-size: 200% 100%; animation: fx-fill 1.4s ease-out, fx-shimmer 1.6s linear infinite; }
+.grid tr.fx-new td { background: linear-gradient(90deg, rgba(15,38,36,.55), transparent 60%); }
+.grid tr.fx-new td:first-child { animation: fx-glow 2.4s ease-in-out infinite; box-shadow: inset 3px 0 0 var(--teal); }
+.grid tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--blue); }
+.stat { position: relative; display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(160deg, var(--panel2), var(--panel)); overflow: hidden; }
+.stat .v { font: 700 22px/1 var(--font-mono); color: var(--fg); font-variant-numeric: tabular-nums; }
+.stat .k { color: var(--mute); font-size: 11.5px; }
+.stat .s { color: var(--dim); font-size: 10.5px; }
+.stat::after { content: ""; position: absolute; right: -30px; top: -30px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(var(--glow, rgba(74,158,255,.14)), transparent 70%); pointer-events: none; }
+.ai-tag { display: inline-flex; align-items: center; gap: 4px; height: 17px; padding: 0 6px; border-radius: 999px; border: 1px solid #1d4a44; background: var(--teal-bg); color: var(--teal); font: 600 9.5px var(--font-mono); letter-spacing: .04em; white-space: nowrap; }
+.check { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line2); font-size: 11.5px; line-height: 1.4; }
+.check:first-child { border-top: 0; }
+.check .ic { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font: 700 10px var(--font-mono); }
+.check .ic.ok { background: var(--green-bg); color: #4ade80; border: 1px solid #1f4a2f; }
+.check .ic.warn { background: var(--amber-bg); color: var(--amber); border: 1px solid #4d3a12; }
+.check .ic.bad { background: var(--red-bg); color: #f87171; border: 1px solid #4a1f24; }
+
 /* 좁은 화면 */
 @media (max-width: 900px) {
   .doc { grid-template-columns: minmax(0, 1fr); }

@@ -49,9 +49,12 @@
 
   function ours() {
     const rows = CASES.map(
-      (c, i) => `<tr class="${i === 2 ? "sel" : ""}">
+      (c, i) => `<tr class="${i === 2 ? "sel" : i === 0 ? "fx-new" : ""}">
         ${TD(`<span class="num" style="color:var(--dim)">${i + 1}</span>`)}
-        ${TD(`<span class="imgbox" style="display:block;width:26px;height:38px;border-radius:5px">${sole({ kind: "scene", zones: ["dots", "grid", "herring"] })}</span>`)}
+        ${TD(`<span style="position:relative;display:inline-block;width:40px;height:40px;vertical-align:middle"><span style="position:relative;display:block;width:${c.sh + c.ti > 1 ? 34 : 26}px;height:40px">
+            ${c.sh + c.ti > 1 ? `<span class="imgbox" style="position:absolute;left:8px;top:0;width:26px;height:38px;border-radius:5px;opacity:.55">${sole({ kind: "bin", zones: ["grid", "dots", "lines"] })}</span>` : ""}
+            <span class="imgbox" style="position:absolute;left:0;top:2px;width:26px;height:38px;border-radius:5px;box-shadow:2px 0 6px rgba(0,0,0,.6)">${sole({ kind: "scene", zones: ["dots", "grid", "herring"] })}${i === 0 ? `<span class="fx-scan"></span>` : ""}</span></span>
+          ${i === 0 ? `<span class="ai-tag" data-role="analyst admin" style="position:absolute;left:4px;bottom:-5px;height:15px;padding:0 4px;font-size:9px;background:#0b2a26;box-shadow:0 2px 6px rgba(0,0,0,.6)"><span class="fx-live" style="width:5px;height:5px"></span>7/12</span>` : `<span class="ai-tag" data-role="analyst admin" style="position:absolute;left:12px;bottom:-5px;height:15px;padding:0 4px;font-size:9px;background:#0b2a26">AI✓</span>`}</span>`)}
         ${TD(`<div class="mono" style="color:var(--fg);line-height:1.3;font-size:12px">${c.no}</div><div style="line-height:1.3;font-size:10.5px;color:var(--dim)">${c.src === "auto" ? `<span style="color:var(--blue)">● 공문 자동</span>` : `<span style="color:var(--violet)">● 임의 등록</span>`}</div>`)}
         ${TD(`<span class="mono" style="font-size:11.5px">${c.doc}</span>`)}
         ${TD(c.nm)}
@@ -68,10 +71,22 @@
       </tr>
       ${i === 2 ? `<tr><td colspan="15" style="height:auto;padding:0;background:var(--panel2)">
         <div class="pinbox" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 260px;gap:10px;padding:10px 12px 12px 48px;white-space:normal">${apin(10, "better", true)}
-          ${[["_1", "확인", "발견", "572414 · 확인대상 1 / 869"], ["_2", "확인", "발견", "572420 · 확인대상 1 / 512"], ["_3", "확인", "불발견", "572431 · 확인대상 0 / 1,204"]].map(
-            ([n, s, r, h], k) => `<div style="display:flex;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel)">
-              <span class="imgbox" style="width:28px;height:40px;border-radius:5px;flex:none">${sole({ kind: "scene", zones: [["dots", "grid", "herring"], ["tri", "wave", "blocks"], ["grid", "grid", "lines"]][k] })}</span>
-              <span style="display:grid;line-height:1.35;font-size:11.5px"><b class="mono">${n}</b><span style="color:var(--mute)">${s} · <span style="color:${r === "발견" ? "#4ade80" : "var(--fg2)"}">${r}</span></span><span class="mono" style="color:var(--dim);font-size:10.5px">${h}</span></span></div>`
+          ${[["_1", "발견", "572414", "1 / 869", "305657", "61.2"], ["_2", "발견", "572420", "1 / 512", "305657", "60.4"], ["_3", "불발견", "572431", "0 / 1,204", "", ""]].map(
+            ([n, r, sn, cnt, top, sim], k) => {
+              const z = [["dots", "grid", "herring"], ["tri", "wave", "blocks"], ["grid", "grid", "lines"]][k];
+              const found = r === "발견";
+              return `<div style="display:grid;gap:7px;padding:8px 9px;border:1px solid ${found ? "#1f4a2f" : "var(--line)"};border-radius:10px;background:linear-gradient(160deg,var(--panel),var(--panel2))">
+              <div style="display:flex;align-items:center;gap:6px;font-size:11.5px"><b class="mono">${n}</b><span class="chip ${found ? "green" : ""}" style="height:18px;padding:0 6px;font-size:10px">${r}</span><span class="mono" style="margin-left:auto;color:var(--dim);font-size:10px">검색 ${sn}</span></div>
+              <div style="display:flex;align-items:center;gap:5px">
+                <span class="imgbox" style="width:30px;height:44px;border-radius:5px;flex:none">${sole({ kind: "scene", zones: z })}</span>
+                <span style="color:var(--dim);font:600 10px var(--font-mono)">›</span>
+                <span class="imgbox" style="width:30px;height:44px;border-radius:5px;flex:none;background:#fff">${sole({ kind: "bin", zones: z })}</span>
+                <span style="color:var(--dim);font:600 10px var(--font-mono)">›</span>
+                ${found ? `<span class="imgbox" style="width:30px;height:44px;border-radius:5px;flex:none;border-color:#1d4a44">${sole({ kind: "shoe", zones: z, heat: true })}</span>
+                <span style="display:grid;line-height:1.3;font-size:10.5px;min-width:0"><b class="mono" style="color:var(--teal)">${top}</b><span class="mono" style="color:var(--mute)">${sim}</span><span style="color:var(--dim)">확인대상 ${cnt}</span></span>`
+                : `<span style="display:grid;place-items:center;width:30px;height:44px;border:1px dashed var(--line3);border-radius:5px;color:var(--faint);font-size:10px">—</span><span style="display:grid;line-height:1.3;font-size:10.5px"><span style="color:var(--mute)">끝까지 봄</span><span style="color:var(--dim)">확인대상 ${cnt}</span></span>`}
+              </div></div>`;
+            }
           ).join("")}
           <div style="display:grid;gap:4px;font-size:11.5px;color:var(--mute);line-height:1.4">
             <span>07-24 17:35 결과확인완료 → <b style="color:var(--fg2)">검증요청</b></span>
@@ -95,19 +110,24 @@
           ${F("처리관서", find("경찰청"))}${F("의뢰관서", find(""))}${F("발생관서", find(""))}
           ${F("사건결과", `<span style="display:flex;gap:8px;align-items:center">${sel("전체")}<span style="white-space:nowrap;color:var(--mute);font-size:12px">☐ 결과 확인 전</span></span>`)}${F("타기관여부", sel("전체"))}<div class="l"></div><div class="v"></div>
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 14px;border-top:1px solid var(--line2)">
-          <span style="color:var(--dim);font-size:11.5px;margin-right:2px">빠른 보기(덧붙임)</span>
-          <span class="chip blue"><span class="dot"></span>결과 확인 전 14</span>
-          <span class="chip" data-role="analyst admin">이미지 미검색 장 있음 9</span>
-          <span class="chip amber" data-role="analyst admin">교차 검증 요청 받음 1</span>
-          <span class="chip" data-role="verifier admin">결재 대기 3</span>
-          <span class="chip" data-role="investigator">우리 청 의뢰 22</span>
+        <div class="pinbox" style="display:flex;gap:10px;padding:12px 14px;border-top:1px solid var(--line2)">${apin(12, "plus", true)}
+          <div class="stat" data-role="analyst admin" style="flex:1.8;min-width:0;--glow:rgba(45,212,191,.2);border-color:#1d4a44">
+            <span style="display:flex;align-items:center;gap:7px"><span class="fx-live"></span><b style="font-size:12px;color:var(--teal)">AI 사전 처리</b><span class="mono" style="margin-left:auto;color:var(--dim);font-size:10.5px">09:12 공문 접수</span></span>
+            <span style="display:flex;align-items:baseline;gap:8px"><span class="v">00001-25-0649</span><span class="k">12장</span></span>
+            <span class="fx-bar run"><i style="width:62%"></i></span>
+            <span class="s">이진화 12/12 · 문양 제안 9/12 · 검색 Top-10 준비 7/12 — 감정관이 열기 전에 미리</span>
+          </div>
+          <div class="stat" style="flex:1;min-width:0"><span class="k">결과 확인 전</span><span class="v">14<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="fx-bar"><i style="width:58%"></i></span><span class="s">이미지 98장 중 확인 57장</span></div>
+          <div class="stat" data-role="analyst admin" style="flex:1;min-width:0;--glow:rgba(74,158,255,.18)"><span class="k">이미지 미검색</span><span class="v">9<small style="font:500 11px var(--font-ui);color:var(--dim)"> 장</small></span><span class="fx-bar"><i style="width:78%"></i></span><span class="s">AI Top-10 준비 7 · 대기 2</span></div>
+          <div class="stat" data-role="analyst admin" style="flex:1;min-width:0;--glow:rgba(245,158,11,.2);border-color:#4d3a12"><span class="k" style="color:var(--amber)">교차 검증 요청 받음</span><span class="v">1<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="s">00001-25-0646 · 김○○ → 나</span></div>
+          <div class="stat" data-role="verifier admin" style="flex:1;min-width:0"><span class="k">결재 대기</span><span class="v">3<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="s">가장 오래된 것 2일</span></div>
+          <div class="stat" data-role="investigator" style="flex:1;min-width:0"><span class="k">우리 청 의뢰</span><span class="v">22<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="s">진행 중 6 · 결재완료 16</span></div>
         </div>
       </div>
 
       <div class="panel tc">
         <div class="panel-h">
-          <span class="t">사건관리 목록</span><span style="color:var(--dim);font-size:12px">전체 116건</span>
+          <span class="t">사건관리 목록</span><span style="color:var(--dim);font-size:12px">전체 116건</span><span style="display:inline-flex;align-items:center;gap:5px;color:var(--dim);font-size:11px"><span class="fx-live" style="width:6px;height:6px"></span>실시간 · <span class="mono">09:12</span> 갱신</span>
           <span class="r pinbox" style="padding-left:14px">${apin(2, "keep", true)}
             <span class="radio" style="font-size:12px;margin-right:6px"><span class="on">목록보기</span><span>문양보기</span></span>
             <button class="btn sm">초기화</button><button class="btn sm">엑셀</button><button class="btn sm">조회</button>
@@ -170,7 +190,7 @@
       { t: "SCAS 사건관리 탭", v: "5613 02:00 · 10:04 · 16:37" },
       { t: "인터뷰: 진행상태·개수의 뜻", v: "5613 10:00–11:38", voice: true },
     ],
-    lead: "SCAS의 검색 폼(3열×5행)·툴바·열 순서를 그대로 둡니다. 결과·진행상태는 SCAS처럼 「이미지 장수」를 세는 칸으로 두되 숫자 아래 장마다 한 칸짜리 막대를 그려 읽기 쉽게 하고, 사건 단위 단계(검증요청 → 교차 검증 → 감정서 → 결재)는 맨 끝 열에 따로 덧붙였습니다.",
+    lead: "SCAS의 검색 폼(3열×5행)·툴바·열 순서를 그대로 둡니다. 결과·진행상태는 SCAS처럼 「이미지 장수」를 세는 칸으로 두되 숫자 아래 장마다 한 칸짜리 막대를 그려 읽기 쉽게 하고, 사건 단위 단계(검증요청 → 교차 검증 → 감정서 → 결재)는 맨 끝 열에 따로 덧붙였습니다. r3: 검색 폼 아래에 「AI 사전 처리」와 할 일 타일, 이미지 칸에 AI 준비 표시, 펼친 행에 이미지별 현장 → 이진화 → 1위 후보를 더했습니다(자리·열 순서는 그대로).",
     scas,
     ours,
     fit: {
@@ -190,6 +210,7 @@
       { n: 8, kind: "better", title: "사건 진행 열(덧붙임)", text: "이미지가 모두 확인되면 사건 단위로 검증요청 → 교차 검증(다른 감정관) → 감정서 → 결재가 이어집니다. SCAS 목록에는 없던 이 단계를 맨 끝 열에 따로 보여 주고, 이미지 장수 칸과 섞지 않습니다.", src: "5613 17:34–19:36" },
       { n: 9, kind: "voice", title: "처리 구분 현장 / 대조", text: "「현장, 대조, 뭐 이런게 다 있어요. 현장이면 검색이란 말이에요.」 SCAS 값을 그대로 두고, 「대조」 사건만 보라색으로 구분합니다.", src: "5613 10:43" },
       { n: 10, kind: "better", title: "행 펼침 요약(덧붙임)", text: "행을 누르면 바로 아래에 이미지별 상태(확인·발견, 검색번호, 확인대상 수 / 전체)와 교차 검증자가 펼쳐집니다. 열과 팝업은 그대로 두고 덧붙이기만 합니다." },
+      { n: 12, kind: "plus", title: "AI 사전 처리 · 현황 타일(r3)", text: "공문이 접수되면 감정관이 사건을 열기 전에 AI가 이미지마다 이진화 → 문양 제안 → 검색 Top-10을 미리 돌려 둡니다. 검색 폼 아래(r2의 빠른 보기 자리)에 진행 중인 사건과 역할별 할 일 숫자를 타일로 보여 주고, 목록의 이미지 칸에는 「AI 7/12」(준비된 장 / 전체)를 붙였습니다. 방금 들어온 행은 왼쪽에 청록 줄이 빛납니다. 열 순서·버튼은 그대로이고, 판정은 여전히 감정관이 합니다.", src: "사업계획서 p13 · 5613 16:07–16:36 「일일이 검색」" },
       { n: 11, kind: "better", title: "보는 사람마다 다른 버튼", text: "감정관·관리자는 행 끝 검색·확인·검증요청 버튼과 「교차 검증 요청 받음」을 봅니다. 기술책임자는 「결재 대기」, 수사관은 「우리 청 의뢰」와 등록만 봅니다." },
     ],
   });
