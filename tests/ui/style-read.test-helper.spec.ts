@@ -180,6 +180,14 @@ test("글꼴이 없으면 한 줄로 실패", async ({ page }) => {
   );
 });
 
+test("JetBrains Mono 만 못 받아도 한 줄로 실패(mono 픽스처 기준 글꼴)", async ({ page }) => {
+  // Google Fonts 는 글꼴마다 파일 경로가 다르다(fonts.gstatic.com/s/jetbrainsmono/…) — 그것만 막는다.
+  await page.route(/fonts\.gstatic\.com\/s\/jetbrainsmono\//, (r) => r.abort());
+  await expect(openMockup(page, "S01", { fonts: "real" })).rejects.toThrow(
+    new Error("글꼴 미로딩: JetBrains Mono")
+  );
+});
+
 test("글꼴이 실제로 오면 assertFonts 통과", async ({ page }) => {
   await openMockup(page, "S01", { fonts: "real" });
   await expect(assertFonts(page)).resolves.toBeUndefined();

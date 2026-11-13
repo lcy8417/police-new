@@ -17,9 +17,13 @@ const MOCKUP_INDEX = pathToFileURL(
 
 /** 대조에 쓰는 기준 글꼴(시안 `--font-ui` 첫 글꼴). */
 export const REQUIRED_FONT = "IBM Plex Sans KR";
+/** mono 픽스처(Field mono · Chip blue-mono-h20 · AiTag …)의 기준 글꼴(시안 `--font-mono` = 앱 `--font-code` 첫 글꼴). */
+export const REQUIRED_MONO_FONT = "JetBrains Mono";
+/** assertFonts 가 확인하는 글꼴(앞에서부터 — 처음 못 받은 글꼴 이름으로 실패한다). */
+export const REQUIRED_FONTS = [REQUIRED_FONT, REQUIRED_MONO_FONT] as const;
 
 /**
- * 기준 글꼴이 실제로 로딩됐는지 확인한다. 안 됐으면 한 줄 오류로 실패한다.
+ * 기준 글꼴 두 개(ui · mono)가 실제로 로딩됐는지 확인한다. 안 됐으면 처음 못 받은 글꼴 이름으로 한 줄 오류.
  * 시안 쪽(openMockup `fonts: "real"`)과 진열 화면(`/dev/parts`) 쪽이 같은 함수를 쓴다.
  *
  * 확인해 둔 함정 두 가지:
@@ -29,16 +33,19 @@ export const REQUIRED_FONT = "IBM Plex Sans KR";
  *   `check()` 가 보는 공백(U+20) 조각이 아직 안 와서 거짓이 된다 → 먼저 `load()` 로 그 조각을 받아 둔다.
  */
 export async function assertFonts(page: Page): Promise<void> {
-  const ok = await page.evaluate(async (family) => {
+  const missing = await page.evaluate(async (families) => {
     await document.fonts.ready;
-    await document.fonts.load(`12px "${family}"`).catch(() => undefined);
-    const checked = document.fonts.check(`12px "${family}"`);
-    const loaded = Array.from(document.fonts).some(
-      (face) => face.family.replace(/^["']|["']$/g, "") === family && face.status === "loaded"
-    );
-    return checked && loaded;
-  }, REQUIRED_FONT);
-  if (!ok) throw new Error(`글꼴 미로딩: ${REQUIRED_FONT}`);
+    for (const family of families) {
+      await document.fonts.load(`12px "${family}"`).catch(() => undefined);
+      const checked = document.fonts.check(`12px "${family}"`);
+      const loaded = Array.from(document.fonts).some(
+        (face) => face.family.replace(/^["']|["']$/g, "") === family && face.status === "loaded"
+      );
+      if (!(checked && loaded)) return family;
+    }
+    return null;
+  }, [...REQUIRED_FONTS]);
+  if (missing) throw new Error(`글꼴 미로딩: ${missing}`);
 }
 
 export interface OpenMockupOptions {

@@ -17,7 +17,11 @@
 ## 검사
 
 ```bash
-npm run check:ui   # hex 검사 + 부품 목록 · 부품표 검사 + Playwright UI 검사(토큰 · 시안 스냅샷 · 부품 대조)
+npm run check:ui:static   # hex 검사 + 부품 목록 · 부품표 검사 — 어디서나(네트워크 불필요). Codex는 이것을 돌린다
+npm run check:ui:visual   # Playwright UI 검사(토큰 · 시안 스냅샷 · 부품 대조 · 반응형) — macOS + Chromium + 네트워크 글꼴 필요
+npm run check:ui          # 위 두 개를 차례로
 ```
 
-생김새를 바꿨으면 `npm run check:ui`와 이 저장소의 완료 검증(`npx tsc --noEmit` · `npx vitest run` · `npm run build` · 변경 파일 `npx eslint`)이 모두 통과해야 완료다.
+`check:ui:visual`은 기준 스크린샷이 macOS에서 찍은 것이고 부품 대조가 Google Fonts(IBM Plex Sans KR · JetBrains Mono)를 받아야 해서 macOS가 아닌 곳 · 오프라인에서는 돌릴 수 없다. 그런 환경이면 `check:ui:static`까지 돌리고, visual은 못 돌렸다고 보고에 적는다.
+
+생김새를 바꿨으면 `npm run check:ui:static`(가능하면 `npm run check:ui`)과 이 저장소의 완료 검증(`npx tsc --noEmit` · `npx vitest run` · `npm run build` · 변경 파일 `npx eslint`)이 모두 통과해야 완료다.

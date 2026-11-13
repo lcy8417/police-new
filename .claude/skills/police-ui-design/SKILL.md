@@ -86,7 +86,7 @@ description: 족적 감정 플랫폼 화면 디자인 정본 — 토큰 · 부�
 - 표 형식: `| 자리 | 부품 | 판정 | 메모 |`, 판정은 **그대로**(목록의 부품을 그대로 씀) · **확장**(기존 부품에 변형 추가) · **새로**(목록에 없는 부품) 중 하나. 「그대로」 부품 이름은 `components.md`의 「부품」 열에 있고 상태가 **구현됨 · 검증됨**이어야 한다. **후보 부품(목록에는 있으나 코드 없음)은 「새로」**(이미 있는 부품에 변형을 더하면 「확장」)로 적고 승인 줄을 단다.
 - 확장 · 새로가 있으면 부품 설계를 사용자에게 먼저 보여 주고 `승인: MM/DD 소유자 — 부품(변형), …` 줄을 적는다. 승인 줄에 **부품 이름**을 적어야 옛 승인을 새 변경에 다시 쓰지 못한다.
 - 부품과 상관없는 수정은 표 대신 `부품 불필요 — 사유` 한 줄.
-- 검사: Claude는 `.claude/hooks/parts_gate.py`(쓰기 직전 훅), Codex는 훅이 없으므로 `npm run check:ui`가 같은 검사를 한 번 더 한다(`python3 .claude/hooks/parts_gate.py --check-all`). 관문은 **부품표가 형식에 맞는지**(판정 · 이름 · 상태 · 승인 줄)만 본다 — 고친 자리가 표에 빠짐없이 올랐는지는 보지 않으므로 그건 쓰는 사람이 맞춘다.
+- 검사: Claude는 `.claude/hooks/parts_gate.py`(쓰기 직전 훅), Codex는 훅이 없으므로 `npm run check:ui:static`이 같은 검사를 한 번 더 한다(`python3 .claude/hooks/parts_gate.py --check-all`). 관문은 **부품표가 형식에 맞는지**(판정 · 이름 · 상태 · 승인 줄)만 본다 — 고친 자리가 표에 빠짐없이 올랐는지는 보지 않으므로 그건 쓰는 사람이 맞춘다.
 
 **1. 목록(`references/components.md`)과 다른 화면 코드에서 가까운 부품을 찾는다.** 같으면 가져다 쓰고, 승인된 차이만 변형으로 연다.
 
@@ -148,13 +148,15 @@ description: 족적 감정 플랫폼 화면 디자인 정본 — 토큰 · 부�
 
 ## 다 고친 뒤 확인
 
-| 명령 | 무엇을 보나 |
-|---|---|
-| `npm run check:ui` | ① hex 검사(`scripts/ui/count-hex.mjs`) ② 부품 목록 검사(`scripts/ui/check-parts-catalog.mjs` — 구현됨 · 검증됨 파일 있음, 출입구 export가 모두 목록에 있음, 부품표 관문) ③ Playwright UI 검사 전체(토큰 회귀 · 시안 스냅샷 · 부품 대조) |
-| `node scripts/ui/count-part-usage.mjs` | 목록 행마다 시안에서 쓰는 화면 |
-| `npx tsc --noEmit` · `npx vitest run` · `npm run build` · 변경 파일 `npx eslint` | 이 저장소의 완료 규약(`CLAUDE.md`) |
+| 명령 | 무엇을 보나 | 돌릴 수 있는 곳 |
+|---|---|---|
+| `npm run check:ui` | 아래 두 줄을 차례로(static → visual) | macOS |
+| `npm run check:ui:static` | ① hex 검사(`scripts/ui/count-hex.mjs`) ② 부품 목록 검사(`scripts/ui/check-parts-catalog.mjs` — 구현됨 · 검증됨 파일 있음, 출입구 export가 모두 목록에 있음, 부품표 관문) | 어디서나(Node + python3, 네트워크 불필요) — **Codex는 이것** |
+| `npm run check:ui:visual` | Playwright UI 검사 전체(토큰 회귀 · 시안 스냅샷 · 부품 대조 · 반응형). 검사 전용 개발 서버를 5180 포트로 띄운다(개발용 5173과 같이 띄워도 됨) | **macOS + Chromium + 네트워크**(기준 스크린샷이 macOS 글자 그림이고, 부품 대조는 Google Fonts에서 IBM Plex Sans KR · JetBrains Mono를 받아야 한다 — 못 받으면 「글꼴 미로딩: …」 한 줄로 실패) |
+| `node scripts/ui/count-part-usage.mjs` | 목록 행마다 시안에서 쓰는 화면 | 어디서나 |
+| `npx tsc --noEmit` · `npx vitest run` · `npm run build` · 변경 파일 `npx eslint` | 이 저장소의 완료 규약(`CLAUDE.md`) | 어디서나 |
 
-읽는 법: 생김새를 바꿨으면 첫 줄과 마지막 줄 모두 통과해야 완료다.
+읽는 법: 생김새를 바꿨으면 `check:ui`(macOS가 아니면 `check:ui:static`)와 마지막 줄 모두 통과해야 완료다. `check:ui:visual`을 못 돌린 환경이면 그 사실을 보고에 적고 macOS에서 돌려 달라고 남긴다.
 
 ## 이 스킬을 고칠 때
 
