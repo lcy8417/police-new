@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { AiTag } from "@/shared/ui/ai";
 import { Button, Chip, Field } from "@/shared/ui/kit";
 import { ButtonBar, Panel } from "@/shared/ui/panel";
 
@@ -30,14 +31,14 @@ export function PartsGalleryPage() {
   const id = params.get("id");
   const fixtures = id ? PART_FIXTURES.filter((f) => f.id === id) : PART_FIXTURES;
 
-  // `?view=example` 이면 S01 조립 예시만 그린다(반응형 확인용 — 시안 고정 폭 상자 제외, R32).
+  // `?view=example` 이면 S01 · S02 조립 예시만 그린다(반응형 확인용 — 시안 고정 폭 상자 제외, R32).
   if (!id && params.get("view") === "example") {
     return (
       <main
         data-parts-gallery=""
         className="h-full overflow-auto bg-canvas p-6 font-ui text-[14px] leading-[1.6] text-foreground antialiased"
       >
-        <S01Assembly />
+        <Assemblies />
       </main>
     );
   }
@@ -58,8 +59,21 @@ export function PartsGalleryPage() {
         </div>
       )}
       {/* 조립 예시는 대조 대상이 아니라 전체 진열에서만 보인다(?id= 로 하나만 열 때는 숨김). */}
-      {!id && <S01Assembly />}
+      {!id && <Assemblies />}
     </main>
+  );
+}
+
+/** 조립 예시 묶음: 시안을 베낀 것이 아니라 시안 S01 · S02 의 한 부분을 부품으로 다시 짠 것(R37). */
+function Assemblies() {
+  return (
+    <>
+      <p className="mt-10 text-[12px] text-dim">
+        조립 예시 — 시안 복사본이 아니라 S01 · S02 의 한 부분을 부품으로 다시 짠 것(자동 대조 대상 아님, 폭별 배치 확인용)
+      </p>
+      <S01Assembly />
+      <S02Assembly />
+    </>
   );
 }
 
@@ -84,7 +98,7 @@ function FormRow({ label, children }: { label: string; children: ReactNode }) {
  */
 function S01Assembly() {
   return (
-    <section aria-labelledby="s01-assembly-title" className="mt-10 flex flex-col gap-2">
+    <section aria-labelledby="s01-assembly-title" className="mt-4 flex flex-col gap-2">
       <h2 id="s01-assembly-title" className="text-[13px] font-semibold text-muted-foreground">
         S01 조립 예시
       </h2>
@@ -136,6 +150,50 @@ function S01Assembly() {
           </FormRow>
         </div>
       </Panel>
+    </section>
+  );
+}
+
+/**
+ * S02 조립 예시(R37): 시안 S02 등록 모달의 머리 띠(제목 + 오른쪽 ButtonBar `modal-head`)와
+ * 채취 방법 한 줄(Field `select-warn` + 「확인 필요」 Chip + AiTag 「AI 제안」)을 부품으로 다시 그린 것.
+ */
+function S02Assembly() {
+  return (
+    <section aria-labelledby="s02-assembly-title" className="mt-6 flex flex-col gap-2">
+      <h2 id="s02-assembly-title" className="text-[13px] font-semibold text-muted-foreground">
+        S02 조립 예시
+      </h2>
+      <div className="min-w-0 rounded-[14px] border border-solid border-border bg-panel">
+        <div className="flex min-w-0 items-center gap-[10px] border-b-line-2 bg-panel-2 px-[14px] py-[10px] [border-style:none_none_solid] [border-width:0_0_1px]">
+          <h3 className="border-none text-[13px] font-semibold">사건 등록</h3>
+          <ButtonBar variant="modal-head">
+            <Button size="sm">이전</Button>
+            <Button size="sm">다음</Button>
+            <Button size="sm">사건복사</Button>
+            <Button size="sm" roleLock>
+              수정
+            </Button>
+            <Button size="sm">닫기</Button>
+            <Button size="sm" variant="pri">
+              검색 (문양 상세보기) →
+            </Button>
+          </ButtonBar>
+        </div>
+        <div className="grid grid-cols-[84px_minmax(0,1fr)]">
+          <FormRow label="채취 방법">
+            <span className="flex w-full min-w-0 items-center gap-[6px]">
+              <Field
+                variant="select-warn"
+                defaultValue="기타"
+                after={<Chip variant="amber-h18">확인 필요</Chip>}
+                aria-label="채취 방법"
+              />
+              <AiTag>AI 제안</AiTag>
+            </span>
+          </FormRow>
+        </div>
+      </div>
     </section>
   );
 }

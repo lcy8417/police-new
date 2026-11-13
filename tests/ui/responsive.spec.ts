@@ -1,20 +1,25 @@
 import { test, expect } from "@playwright/test";
 
-// 진열 화면 「S01 조립 예시」(?view=example) 의 반응형 확인(R32: 시안 고정 폭 상자는 대상 아님).
+// 진열 화면 조립 예시(?view=example)의 반응형 확인(설계서 §12-7, R32: 시안 고정 폭 상자는 대상 아님).
+// 조립 예시 = S01 검색 조건 패널 + S02 모달 머리 띠를 부품으로 다시 짠 것(시안 복사본이 아님, R37).
 const WIDTHS = [1024, 1280, 1440, 1920] as const;
 
+// 조립 예시에 반드시 들어 있어야 하는 대표 부품 6개.
+const REQUIRED_PARTS = ["Button", "Chip", "Field", "Panel", "ButtonBar", "AiTag"];
+
 for (const width of WIDTHS) {
-  test(`조립 예시 ${width}px: 넘침 · 겹침 · 부모 밖 삐져나감 없음`, async ({ page }) => {
+  test(`조립 예시 ${width}px: 넘침 · 겹침 · 부모 밖 삐져나감 없음`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/dev/parts?view=example");
-    const section = page.locator('section[aria-labelledby="s01-assembly-title"]');
-    await expect(section).toBeVisible();
+    await expect(page.locator('section[aria-labelledby="s01-assembly-title"]')).toBeVisible();
+    await expect(page.locator('section[aria-labelledby="s02-assembly-title"]')).toBeVisible();
     await expect(page.locator("[data-fixture-id]")).toHaveCount(0);
 
     const result = await page.evaluate(() => {
-      const root = document.querySelector('section[aria-labelledby="s01-assembly-title"]') as HTMLElement;
-      const parts = Array.from(root.querySelectorAll<HTMLElement>("[data-part]"));
+      const main = document.querySelector("main[data-parts-gallery]") as HTMLElement;
+      const sections = Array.from(main.querySelectorAll<HTMLElement>("section[aria-labelledby]"));
+      const parts = Array.from(main.querySelectorAll<HTMLElement>("[data-part]"));
       const overlaps: string[] = [];
       const overflows: string[] = [];
       const name = (el: Element) => el.getAttribute("data-part") ?? el.tagName;
@@ -25,6 +30,7 @@ for (const width of WIDTHS) {
         const parent = p.parentElement!;
         byParent.set(parent, [...(byParent.get(parent) ?? []), p]);
       }
+      const siblingGroups = [...byParent.values()].filter((g) => g.length >= 2).length;
       for (const siblings of byParent.values()) {
         for (let i = 0; i < siblings.length; i++) {
           for (let j = i + 1; j < siblings.length; j++) {
@@ -44,16 +50,27 @@ for (const width of WIDTHS) {
         if (p.getBoundingClientRect().right > parent.getBoundingClientRect().right + 0.5) overflows.push(name(p));
       }
       return {
-        partCount: parts.length,
+        partNames: [...new Set(parts.map((p) => name(p)))].sort(),
+        siblingGroups,
         overlaps,
         overflows,
-        sectionScroll: root.scrollWidth <= root.clientWidth,
+        sectionScroll: sections.every((s) => s.scrollWidth <= s.clientWidth),
+        // main 은 overflow-auto 라 문서는 넘치지 않는다 — 실제 가로 스크롤은 main 안에서 생긴다.
+        mainScroll: main.scrollWidth <= main.clientWidth,
         docScroll: document.documentElement.scrollWidth <= window.innerWidth,
       };
     });
 
-    expect(result.partCount).toBeGreaterThan(0);
+    // 폭마다 한 장 — 기준 이미지가 아니라 사람이 볼 수 있게 남기는 결과물.
+    await testInfo.attach(`조립 예시 ${width}px`, {
+      body: await page.locator("main[data-parts-gallery]").screenshot(),
+      contentType: "image/png",
+    });
+
+    for (const part of REQUIRED_PARTS) expect(result.partNames, part).toContain(part);
+    expect(result.siblingGroups).toBeGreaterThanOrEqual(1); // ② 를 실제로 검사했다는 증거(형제 부품 묶음 1개 이상)
     expect(result.sectionScroll).toBe(true); // ① 조립 예시 자체
+    expect(result.mainScroll).toBe(true); // ① 진열 화면 틀(main)
     expect(result.docScroll).toBe(true); // ① 문서
     expect(result.overlaps).toEqual([]); // ②
     expect(result.overflows).toEqual([]); // ③
