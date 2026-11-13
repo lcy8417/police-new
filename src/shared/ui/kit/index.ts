@@ -1,6 +1,7 @@
 // kit 출입구: 어디서나 쓰는 기본 부품(버튼류·입력·칩·장식·다이얼로그 등). 설계서 §6-1.
 // 루트 `@/shared/ui` 는 기존 사용처 때문에 유지하고, RetrievalResultsGrid 는 kit 에 넣지 않는다(§6-2).
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from './Button'
+export { Field, type FieldProps, type FieldVariant } from './Field'
 export { Chip, type ChipProps, type ChipVariant } from './Chip'
 export { StatusChip, type StatusChipTone } from '../status-chip'
 export { TechCorners } from '../tech-corners'

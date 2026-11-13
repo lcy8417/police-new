@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { Button, Chip } from "@/shared/ui/kit";
+import { Button, Chip, Field } from "@/shared/ui/kit";
 
 // 진열 예시를 그리는 쪽(id → 그리기). 진열 화면만 읽는다 — 데이터는 fixtures-meta.ts.
 // 시안과 같은 글자로 그리고, 부품에는 props 만 넘긴다(className · 손으로 쓴 data-part-* 금지).
@@ -98,5 +98,31 @@ export const FIXTURE_RENDERS: Record<string, () => ReactNode> = {
     <Chip variant="blue-mono-h20" partId="S02-10">
       _2
     </Chip>
+  ),
+  // Field
+  "S01-10": () => <Field variant="select" defaultValue="전체" partId="S01-10" aria-label="사건명" />,
+  "S01-11": () => <Field partId="S01-11" aria-label="문서번호" />,
+  "S01-12": () => <Field variant="mono" defaultValue="00001-25-" partId="S01-12" aria-label="감정번호" />,
+  "S01-13": () => (
+    <Field variant="mono-sm" defaultValue="2025-06-25 ~ 2025-07-24" partId="S01-13" aria-label="등록일자" />
+  ),
+  "S01-19": () => (
+    <Field icon="search" placeholder="감정번호·문서번호·화류번호 바로 찾기" partId="S01-19" aria-label="바로 찾기" />
+  ),
+  "S02-14": () => <Field variant="pick" defaultValue="대구청 › 동부서" partId="S02-14" aria-label="의뢰관서" />,
+  "S02-15": () => (
+    <Field variant="mono-sm-flex" defaultValue="2025-07-22 23:00" partId="S02-15" aria-label="사건일시 시작" />
+  ),
+  "S02-16": () => (
+    <Field variant="select-mono" defaultValue="00001-25-0649_2.jpg" partId="S02-16" aria-label="이미지 이름" />
+  ),
+  "S02-20": () => (
+    <Field
+      variant="select-warn"
+      defaultValue="기타 "
+      after={<Chip variant="amber-h18">확인 필요</Chip>}
+      partId="S02-20"
+      aria-label="채취 방법"
+    />
   ),
 };

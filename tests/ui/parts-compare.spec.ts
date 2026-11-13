@@ -207,7 +207,20 @@ for (const fixture of PART_FIXTURES) {
     await loadFontsFor(devEl);
     const devStyle = await readStyle(devEl);
 
-    expect(diffStyle(mockupStyle, devStyle)).toEqual([]);
+    if (fixture.compare === "root") {
+      // 루트 계산값만 비교(태그 · 자식 트리 · 가상 요소 제외) — 이유는 PartFixture.compare 주석.
+      const rootOnly = (s: typeof devStyle): typeof devStyle => ({
+        tag: "root",
+        props: s.props,
+        pseudo: { before: {}, after: {} },
+        children: [],
+      });
+      expect(diffStyle(rootOnly(mockupStyle), rootOnly(devStyle))).toEqual([]);
+    } else {
+      expect(diffStyle(mockupStyle, devStyle)).toEqual([]);
+    }
+    // noShot: 구조상 같은 픽셀이 될 수 없는 자리(이유는 PartFixture.noShot) — 계산값 비교는 위에서 이미 했다.
+    if (fixture.noShot) return;
     await alignSubpixel(devEl, mockupRect);
     await expect(devEl).toHaveScreenshot(shotName);
   });
