@@ -159,6 +159,19 @@ export function normalizeControl(snap: StyleSnapshot, side: "mockup" | "app"): S
   return { ...snap, tag: "control", children: flatten(snap.children) };
 }
 
+/** 배치(placement) 속성: 화면이 부품 바깥에서 정하는 위치 값. */
+export const PLACEMENT_PROPS = ["position", "top", "right", "bottom", "left"] as const;
+
+/**
+ * 루트 요소의 배치 속성(position · top/right/bottom/left)만 뺀 복사본(R25). 가상요소 · 자식은 그대로 둔다.
+ * 시안이 부품에 인라인으로 준 절대 위치는 화면 소유의 배치(R22)라 부품 값이 아니다.
+ */
+export function omitPlacement(snap: StyleSnapshot): StyleSnapshot {
+  const props = { ...snap.props };
+  for (const key of PLACEMENT_PROPS) delete props[key];
+  return { ...snap, props };
+}
+
 /** 컨테이너 대조에서 제외할 크기 속성(내용 크기로 정해지는 자리). */
 export type ShellIgnore = "width" | "height";
 

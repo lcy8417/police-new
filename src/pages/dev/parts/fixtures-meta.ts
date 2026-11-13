@@ -32,6 +32,11 @@ export interface PartFixture {
    * 부품이 아니라 대조에서 뺀다. 이 값은 내용 크기로 정해져 재현할 수 없는 루트 width/height 를 뺄 때만 쓴다(이유를 주석으로).
    */
   ignoreSize?: ("width" | "height")[];
+  /**
+   * 시안이 부품 루트에 인라인으로 준 위치(position · top/right/bottom/left)는 화면 소유의 배치(R22 · R25)라 대조에서 뺀다.
+   * 루트 요소의 이 다섯 값만 제외하며 가상요소 · 자식 · 나머지 값(filter · 크기 · 색)은 그대로 비교한다. 측정값을 주석으로 남길 것.
+   */
+  ignorePlacement?: true;
   /** 픽셀 비교를 건너뛰는 이유(있으면 계산값 비교만 한다). 측정으로 확인된 구체 이유가 있을 때만 쓴다. */
   noShot?: string;
   /** 픽셀 비교 허용 픽셀 수(기본 0). 쓰면 숫자와 이유를 주석으로 남긴다. */
@@ -82,7 +87,8 @@ export const PART_FIXTURES: PartFixture[] = [
   // AiTag
   // S01-17 · S01-18 은 표 셀 아래로 5px 튀어나온 표식(bottom:-5px)이라 시안 촬영이 자기 것이 아닌 픽셀을 담는다. 측정(S01-18): 둥근 모서리 뒤로 셀 안
   // 그림(imgbox)이 비치고(예 모서리 21,23,26 ↔ 진열 5,8,13), 아래쪽 안쪽 픽셀이 표식 배경 11,42,38 이 아니라 10,38,34(다음 행이 덮음). 계산값 · 자식(점)은 전체 대조.
-  { id: "S01-17", part: "AiTag", variant: "progress", parentWidth: 40, surface: "panel", noShot: "표 셀 밖으로 튀어나온 표식: 모서리 뒤로 그림이 비치고 아래쪽을 다음 행이 덮음(측정은 위 주석)" },
-  { id: "S01-18", part: "AiTag", variant: "done", parentWidth: 40, surface: "panel", noShot: "S01-17 과 같다(측정: 모서리 21,23,26 ↔ 5,8,13 · 안쪽 아래 10,38,34 ↔ 11,42,38)" },
+  // 배치(R25): 시안 인라인 위치 — S01-17 position absolute, top 30px, right -6.05px, bottom -5px, left 4px / S01-18 absolute, top 30px, right 1.61px, bottom -5px, left 12px (구현은 static / auto).
+  { id: "S01-17", part: "AiTag", variant: "progress", parentWidth: 40, surface: "panel", ignorePlacement: true, noShot: "표 셀 밖으로 튀어나온 표식: 모서리 뒤로 그림이 비치고 아래쪽을 다음 행이 덮음(측정은 위 주석)" },
+  { id: "S01-18", part: "AiTag", variant: "done", parentWidth: 40, surface: "panel", ignorePlacement: true, noShot: "S01-17 과 같다(측정: 모서리 21,23,26 ↔ 5,8,13 · 안쪽 아래 10,38,34 ↔ 11,42,38)" },
   { id: "S02-21", part: "AiTag", variant: "default", parentWidth: 265, surface: "ai", boxClass: "flex items-center" },
 ];

@@ -3,7 +3,7 @@ import path from "node:path";
 import { test, expect, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { PART_FIXTURES } from "../../src/pages/dev/parts/fixtures-meta";
 import { assertFonts, openMockup, type MockupScreen } from "./mockup-open";
-import { diffStyle, normalizeControl, normalizeShell, readStyle } from "./style-read";
+import { diffStyle, normalizeControl, normalizeShell, omitPlacement, readStyle } from "./style-read";
 
 // 시안 요소 ↔ 진열 화면(/dev/parts) 요소 자동 대조(설계서 §9).
 // 픽스처 id 마다: computed style 차이 0 + 요소 스크린샷 차이 0(maxDiffPixels 0, 기본 픽셀 임계값 — R5).
@@ -183,8 +183,9 @@ for (const fixture of PART_FIXTURES) {
       expect(count, `시안에 data-part-id=${fixture.id} 가 1개가 아님`).toBe(1);
       // 시안 전용 주석 핀(.pin)은 부품이 아니다(절대 위치 덧씌움) → 읽기 · 촬영 전에 뗀다.
       await mockupEl.evaluate((el) => el.querySelectorAll(".pin").forEach((p) => p.remove()));
-      // 핀을 얹으려고 붙인 `.pinbox`(position: relative, 위치 값 0)도 주석 장치라 뗀다 — 핀이 없으면 의미 없고, 떼지 않으면
-      // 위치 값(R24)이 부품 값처럼 어긋나 보인다(S01-02 · S02-04 · S01-16 에서 측정: relative / 0·0·0·0). 인라인 절대 위치(S01-17/18)는 배치라 건드리지 않는다.
+      // 핀을 얹으려고 붙인 `.pinbox`(position: relative, 위치 값 0)는 주석 앵커이며 부품이 아니다(설계서 §7-5) — `.pin` 제거와 같은 근거.
+      // 요소나 자식을 지우는 것이 아니라 클래스(= position: relative 효과)만 뗀다. 떼지 않으면 위치 값(R24)이 부품 값처럼 어긋나 보인다
+      // (S01-02 · S02-04 · S01-16 에서 측정: relative / 0·0·0·0). 인라인 절대 위치(S01-17/18)는 배치라 여기서 건드리지 않는다(ignorePlacement).
       await mockupEl.evaluate((el) => [el, ...Array.from(el.querySelectorAll(".pinbox"))].forEach((b) => b.classList.remove("pinbox")));
       await mockupEl.scrollIntoViewIfNeeded();
       await loadFontsFor(mockupEl);
@@ -217,6 +218,9 @@ for (const fixture of PART_FIXTURES) {
       // 컨테이너(Panel · ButtonBar): 안쪽 내용은 부품이 아니라 빼고 루트(+ 머리) 자기 값만 비교(normalizeShell).
       const opts = { head: fixture.compare === "shell-head", ignoreSize: fixture.ignoreSize };
       expect(diffStyle(normalizeShell(mockupStyle, opts), normalizeShell(devStyle, opts))).toEqual([]);
+    } else if (fixture.ignorePlacement) {
+      // 시안 인라인 위치는 화면 소유의 배치(R25): 루트의 position · 위치 값만 뺀다.
+      expect(diffStyle(omitPlacement(mockupStyle), omitPlacement(devStyle))).toEqual([]);
     } else {
       expect(diffStyle(mockupStyle, devStyle)).toEqual([]);
     }

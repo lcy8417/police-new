@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { assertFonts, openMockup } from "./mockup-open";
-import { diffStyle, normalizeControl, normalizeShell, readStyle } from "./style-read";
+import { diffStyle, normalizeControl, normalizeShell, omitPlacement, readStyle } from "./style-read";
 
 // 대조 도구(readStyle · diffStyle · assertFonts) 자체가 맞게 재고 맞게 실패하는지 확인한다.
 
@@ -144,6 +144,33 @@ test("컨테이너 정규화(shell): 안쪽 내용은 무시하고 루트 · 머
   expect(diffStyle(strictM, strict).some((l) => l.includes("height"))).toBe(true);
   // 머리가 없으면 자식 수로 잡는다
   expect(diffStyle(m, nohead)).toContain("div 자식 수: 시안=1 구현=0");
+});
+
+test("배치 제외(omitPlacement): 위치 값 차이만 빼고 색 차이는 여전히 잡는다", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setContent(`
+    <style>
+      body { margin: 0; font: 14px/1.6 sans-serif; }
+      .t { display: inline-flex; height: 15px; padding: 0 4px; color: rgb(45, 212, 191); }
+    </style>
+    <div style="position: relative; width: 100px; height: 40px">
+      <span id="m" class="t" style="position: absolute; left: 4px; bottom: -5px">AI</span>
+      <span id="same" class="t">AI</span>
+      <span id="color" class="t" style="color: rgb(74, 158, 255)">AI</span>
+    </div>
+  `);
+  const m = await readStyle(page.locator("#m"));
+  const same = await readStyle(page.locator("#same"));
+  const color = await readStyle(page.locator("#color"));
+  // 배치 제외 없이: 위치 차이가 잡힌다
+  expect(diffStyle(m, same).some((l) => l.startsWith("span position:"))).toBe(true);
+  expect(diffStyle(m, same).some((l) => l.startsWith("span left:") || l.startsWith("span bottom:"))).toBe(true);
+  // 배치 제외하면 위치 차이만 있던 쪽은 통과
+  expect(diffStyle(omitPlacement(m), omitPlacement(same))).toEqual([]);
+  // 배치를 빼도 색 차이는 잡는다
+  const lines = diffStyle(omitPlacement(m), omitPlacement(color));
+  expect(lines).toContain("span color: 시안=rgb(45, 212, 191) 구현=rgb(74, 158, 255)");
+  expect(lines.some((l) => /^span (position|top|right|bottom|left):/.test(l))).toBe(false);
 });
 
 test("글꼴이 없으면 한 줄로 실패", async ({ page }) => {
