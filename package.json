@@ -12,7 +12,9 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "coverage": "vitest run --coverage",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:ui": "node scripts/ui/count-hex.mjs && node scripts/ui/check-parts-catalog.mjs && playwright test -c playwright.ui.config.ts",
+    "check:ui:baseline": "node scripts/ui/count-hex.mjs --write"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.2",
