@@ -41,9 +41,9 @@
   };
   /* SCAS 행 버튼 자리(검색 · 확인 · 검증) 그대로 */
   const actCell = (c) => {
-    const s = c.st[0] > 0 ? `<button class="btn sm ok" style="padding:0 6px" data-role="analyst admin">검색</button>` : `<span style="display:inline-block;width:36px"></span>`;
-    const k = c.st[1] > 0 || (c.st[2] > 0 && c.cs < 0) ? `<button class="btn sm ok" style="padding:0 6px" data-role="analyst admin">확인</button>` : `<span style="display:inline-block;width:36px"></span>`;
-    const v = c.cs === 0 || (c.st[0] === 0 && c.st[1] === 0 && c.cs < 0) ? `<button class="btn sm" style="padding:0 6px;color:#a5b4fc;border-color:#3b3f7a" data-role="analyst admin">검증요청</button>` : c.cs === 1 ? `<button class="btn sm warn" style="padding:0 6px" data-role="analyst admin" title="다른 감정관(교차 검증자)에게만 보임">검증</button>` : "";
+    const s = c.st[0] > 0 ? `<button class="btn sm ok" style="padding:0 6px" data-role="analyst admin" data-part="Button" data-part-variant="sm-ok-row"${c === CASES[0] ? ' data-part-id="S01-04"' : ""}>검색</button>` : `<span style="display:inline-block;width:36px"></span>`;
+    const k = c.st[1] > 0 || (c.st[2] > 0 && c.cs < 0) ? `<button class="btn sm ok" style="padding:0 6px" data-role="analyst admin" data-part="Button" data-part-variant="sm-ok-row">확인</button>` : `<span style="display:inline-block;width:36px"></span>`;
+    const v = c.cs === 0 || (c.st[0] === 0 && c.st[1] === 0 && c.cs < 0) ? `<button class="btn sm" style="padding:0 6px;color:#a5b4fc;border-color:#3b3f7a" data-role="analyst admin" data-part="Button" data-part-variant="sm-indigo-row">검증요청</button>` : c.cs === 1 ? `<button class="btn sm warn" style="padding:0 6px" data-role="analyst admin" data-part="Button" data-part-variant="sm-warn-row"${c === CASES[2] ? ' data-part-id="S01-06"' : ""} title="다른 감정관(교차 검증자)에게만 보임">검증</button>` : "";
     return `<span style="display:inline-flex;gap:4px;align-items:center">${s}${k}${v}</span>`;
   };
 
@@ -54,13 +54,13 @@
         ${TD(`<span style="position:relative;display:inline-block;width:40px;height:40px;vertical-align:middle"><span style="position:relative;display:block;width:${c.sh + c.ti > 1 ? 34 : 26}px;height:40px">
             ${c.sh + c.ti > 1 ? `<span class="imgbox" style="position:absolute;left:8px;top:0;width:26px;height:38px;border-radius:5px;opacity:.55">${sole({ kind: "bin", zones: ["grid", "dots", "lines"] })}</span>` : ""}
             <span class="imgbox" style="position:absolute;left:0;top:2px;width:26px;height:38px;border-radius:5px;box-shadow:2px 0 6px rgba(0,0,0,.6)">${sole({ kind: "scene", zones: ["dots", "grid", "herring"] })}${i === 0 ? `<span class="fx-scan"></span>` : ""}</span></span>
-          ${i === 0 ? `<span class="ai-tag" data-role="analyst admin" style="position:absolute;left:4px;bottom:-5px;height:15px;padding:0 4px;font-size:9px;background:#0b2a26;box-shadow:0 2px 6px rgba(0,0,0,.6)"><span class="fx-live" style="width:5px;height:5px"></span>7/12</span>` : `<span class="ai-tag" data-role="analyst admin" style="position:absolute;left:12px;bottom:-5px;height:15px;padding:0 4px;font-size:9px;background:#0b2a26">AI✓</span>`}</span>`)}
+          ${i === 0 ? `<span class="ai-tag" data-role="analyst admin" data-part="AiTag" data-part-variant="progress" data-part-id="S01-17" style="position:absolute;left:4px;bottom:-5px;height:15px;padding:0 4px;font-size:9px;background:#0b2a26;box-shadow:0 2px 6px rgba(0,0,0,.6)"><span class="fx-live" style="width:5px;height:5px"></span>7/12</span>` : `<span class="ai-tag" data-role="analyst admin" data-part="AiTag" data-part-variant="done"${i === 1 ? ' data-part-id="S01-18"' : ""} style="position:absolute;left:12px;bottom:-5px;height:15px;padding:0 4px;font-size:9px;background:#0b2a26">AI✓</span>`}</span>`)}
         ${TD(`<div class="mono" style="color:var(--fg);line-height:1.3;font-size:12px">${c.no}</div><div style="line-height:1.3;font-size:10.5px;color:var(--dim)">${c.src === "auto" ? `<span style="color:var(--blue)">● 공문 자동</span>` : `<span style="color:var(--violet)">● 임의 등록</span>`}</div>`)}
         ${TD(`<span class="mono" style="font-size:11.5px">${c.doc}</span>`)}
         ${TD(c.nm)}
         ${TD(`<div style="line-height:1.3">${c.req}</div><div class="mono" style="font-size:10.5px;color:var(--dim);line-height:1.3">${c.sc}</div>`)}
         ${TD(c.occ)}
-        ${TD(c.kind === "대조" ? `<span class="chip violet" style="height:20px;padding:0 6px">대조</span>` : "현장")}
+        ${TD(c.kind === "대조" ? `<span class="chip violet" data-part="Chip" data-part-variant="violet-h20"${c === CASES[3] ? ' data-part-id="S01-07"' : ""} style="height:20px;padding:0 6px">대조</span>` : "현장")}
         ${TD(`<span class="num"><b style="color:var(--fg)">${c.sh + c.ti}</b> <span style="color:var(--dim)">(${c.sh}, ${c.ti})</span></span>`)}
         ${TD(c.sus === "유" ? `<span style="color:#f87171">유</span>` : "무")}
         ${TD(`<span class="num" style="font-size:12px">${c.reg}</span>`)}
@@ -76,7 +76,7 @@
               const z = [["dots", "grid", "herring"], ["tri", "wave", "blocks"], ["grid", "grid", "lines"]][k];
               const found = r === "발견";
               return `<div style="display:grid;gap:7px;padding:8px 9px;border:1px solid ${found ? "#1f4a2f" : "var(--line)"};border-radius:10px;background:linear-gradient(160deg,var(--panel),var(--panel2))">
-              <div style="display:flex;align-items:center;gap:6px;font-size:11.5px"><b class="mono">${n}</b><span class="chip ${found ? "green" : ""}" style="height:18px;padding:0 6px;font-size:10px">${r}</span><span class="mono" style="margin-left:auto;color:var(--dim);font-size:10px">검색 ${sn}</span></div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:11.5px"><b class="mono">${n}</b><span class="chip ${found ? "green" : ""}" data-part="Chip" data-part-variant="${found ? "green-h18" : "h18"}"${k < 2 ? ` data-part-id="${found ? "S01-08" : "S01-09"}"` : ""} style="height:18px;padding:0 6px;font-size:10px">${r}</span><span class="mono" style="margin-left:auto;color:var(--dim);font-size:10px">검색 ${sn}</span></div>
               <div style="display:flex;align-items:center;gap:5px">
                 <span class="imgbox" style="width:30px;height:44px;border-radius:5px;flex:none">${sole({ kind: "scene", zones: z })}</span>
                 <span style="color:var(--dim);font:600 10px var(--font-mono)">›</span>
@@ -91,23 +91,23 @@
           <div style="display:grid;gap:4px;font-size:11.5px;color:var(--mute);line-height:1.4">
             <span>07-24 17:35 결과확인완료 → <b style="color:var(--fg2)">검증요청</b></span>
             <span>교차 검증: <b style="color:var(--amber)">김○○ 경위</b> (다른 감정관, 대기)</span>
-            <span style="display:flex;gap:6px;margin-top:2px"><button class="btn sm">사건 열기 (S02)</button><button class="btn sm" data-role="analyst admin">검색결과 확인</button></span>
+            <span style="display:flex;gap:6px;margin-top:2px"><button class="btn sm" data-part="Button" data-part-variant="sm">사건 열기 (S02)</button><button class="btn sm" data-role="analyst admin" data-part="Button" data-part-variant="sm">검색결과 확인</button></span>
           </div>
         </div></td></tr>` : ""}`
     ).join("");
 
     const F = (l, v) => `<div class="l">${l}</div><div class="v">${v}</div>`;
-    const sel = (t) => `<span class="inp w100">${t}<span class="caret">▾</span></span>`;
-    const find = (t) => `<span style="display:flex;gap:4px"><span class="inp w100">${t}</span><button class="btn sm" style="height:26px">검색</button></span>`;
+    const sel = (t, id = "") => `<span class="inp w100" data-part="Field" data-part-variant="select"${id ? ` data-part-id="${id}"` : ""}>${t}<span class="caret">▾</span></span>`;
+    const find = (t, id = "") => `<span style="display:flex;gap:4px"><span class="inp w100" data-part="Field" data-part-variant="text">${t}</span><button class="btn sm" data-part="Button" data-part-variant="sm-h26"${id ? ` data-part-id="${id}"` : ""} style="height:26px">검색</button></span>`;
 
     return M.shell(
-      { active: "사건관리", tabs: ["사건관리", "시험품질경영절차서", "감정서작성", "족윤적 검증", "결재 대기함", "문서접수대장"], title: "사건관리", h: 1000 },
-      `<div class="panel pinbox" style="margin-bottom:12px">${apin(1, "keep", true)}
+      { active: "사건관리", tabs: ["사건관리", "시험품질경영절차서", "감정서작성", "족윤적 검증", "결재 대기함", "문서접수대장"], title: "사건관리", h: 1000, partIds: { inp: "S01-19", chip: "S01-20" } },
+      `<div class="panel pinbox" data-part="Panel" data-part-variant="default" data-part-id="S01-14" style="margin-bottom:12px">${apin(1, "keep", true)}
         <div class="form" style="grid-template-columns:84px minmax(0,1fr) 84px minmax(0,1fr) 84px minmax(0,1fr);border-top:0">
-          ${F("감정번호", `<span class="inp w100 mono">00001-25-</span>`)}${F("문서번호", `<span class="inp w100"></span>`)}${F("사건명", sel("전체"))}
-          ${F("등록일자", `<span class="inp w100 mono" style="font-size:11.5px">2025-06-25 ~ 2025-07-24</span>`)}${F("피해자", `<span class="inp w100"></span>`)}${F("구분", `<span class="radio"><span class="on">전체</span><span>신발</span><span>타이어</span></span>`)}
-          ${F("사건장소", `<span class="inp w100"></span>`)}${F("검거여부", sel("전체"))}${F("작성자", `<span class="inp w100"></span>`)}
-          ${F("처리관서", find("경찰청"))}${F("의뢰관서", find(""))}${F("발생관서", find(""))}
+          ${F("감정번호", `<span class="inp w100 mono" data-part="Field" data-part-variant="mono" data-part-id="S01-12">00001-25-</span>`)}${F("문서번호", `<span class="inp w100" data-part="Field" data-part-variant="text" data-part-id="S01-11"></span>`)}${F("사건명", sel("전체", "S01-10"))}
+          ${F("등록일자", `<span class="inp w100 mono" data-part="Field" data-part-variant="mono-sm" data-part-id="S01-13" style="font-size:11.5px">2025-06-25 ~ 2025-07-24</span>`)}${F("피해자", `<span class="inp w100" data-part="Field" data-part-variant="text"></span>`)}${F("구분", `<span class="radio"><span class="on">전체</span><span>신발</span><span>타이어</span></span>`)}
+          ${F("사건장소", `<span class="inp w100" data-part="Field" data-part-variant="text"></span>`)}${F("검거여부", sel("전체"))}${F("작성자", `<span class="inp w100" data-part="Field" data-part-variant="text"></span>`)}
+          ${F("처리관서", find("경찰청", "S01-03"))}${F("의뢰관서", find(""))}${F("발생관서", find(""))}
           ${F("사건결과", `<span style="display:flex;gap:8px;align-items:center">${sel("전체")}<span style="white-space:nowrap;color:var(--mute);font-size:12px">☐ 결과 확인 전</span></span>`)}${F("타기관여부", sel("전체"))}<div class="l"></div><div class="v"></div>
         </div>
         <div class="pinbox" style="display:flex;gap:10px;padding:12px 14px;border-top:1px solid var(--line2)">${apin(12, "plus", true)}
@@ -125,13 +125,13 @@
         </div>
       </div>
 
-      <div class="panel tc">
+      <div class="panel tc" data-part="Panel" data-part-variant="tc" data-part-id="S01-15">
         <div class="panel-h">
           <span class="t">사건관리 목록</span><span style="color:var(--dim);font-size:12px">전체 116건</span><span style="display:inline-flex;align-items:center;gap:5px;color:var(--dim);font-size:11px"><span class="fx-live" style="width:6px;height:6px"></span>실시간 · <span class="mono">09:12</span> 갱신</span>
-          <span class="r pinbox" style="padding-left:14px">${apin(2, "keep", true)}
+          <span class="r pinbox" data-part="ButtonBar" data-part-variant="panel-head" data-part-id="S01-16" style="padding-left:14px">${apin(2, "keep", true)}
             <span class="radio" style="font-size:12px;margin-right:6px"><span class="on">목록보기</span><span>문양보기</span></span>
-            <button class="btn sm">초기화</button><button class="btn sm">엑셀</button><button class="btn sm">조회</button>
-            <button class="btn sm pri pinbox" data-role="investigator analyst admin">등록${apin(3, "voice")}</button>
+            <button class="btn sm" data-part="Button" data-part-variant="sm" data-part-id="S01-01">초기화</button><button class="btn sm" data-part="Button" data-part-variant="sm">엑셀</button><button class="btn sm" data-part="Button" data-part-variant="sm">조회</button>
+            <button class="btn sm pri pinbox" data-role="investigator analyst admin" data-part="Button" data-part-variant="sm-pri" data-part-id="S01-02">등록${apin(3, "voice")}</button>
             <span style="width:1px;height:20px;background:var(--line)"></span>
             <span class="seg pinbox">${apin(5, "better")}<button aria-pressed="true">기본 보기 15열</button><button aria-pressed="false">SCAS 열 전체 보기 25열</button></span>
           </span>

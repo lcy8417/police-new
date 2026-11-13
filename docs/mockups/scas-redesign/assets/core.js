@@ -112,8 +112,10 @@
   /* ── 현장 족적 "사진"(SVG, r3) ──
      M.sole("scene")보다 실제 촬영본에 가깝게: 바닥 질감 + 먼지 족적(일부 소실) + L자 법과학 자(1cm 눈금) + 노란 증거 번호표.
      rot: 사진 속 족적 기울기(도) · flip: 좌우반전 · look: "raw" 원본 | "bin" 이진화 | "inv" 색상반전 | "eq" 평준화 · tag: 번호표 글자(""면 없음) */
-  M.photo = function ({ zones = ["dots", "herring", "grid"], rot = -4, flip = false, look = "raw", tag = "2", ruler = true } = {}) {
+  M.photo = function ({ zones = ["dots", "herring", "grid"], rot = -4, flip = false, look = "raw", tag = "2", ruler = true, seed } = {}) {
     const id = "p" + ++uid;
+    /* 잡음 시드: seed 가 숫자면 그 값(화면 단독 실행에서도 같은 질감), 없으면 지금처럼 전역 호출 순번 uid */
+    const noiseSeed = typeof seed === "number" ? seed : uid;
     const bin = look === "bin";
     const ink = bin ? "#111" : "#e6dcc6";
     const defs = zones.map((z, i) => (TEX[z] || TEX.grid)(ink).replace("%", `${id}t${i}`)).join("");
@@ -130,9 +132,9 @@
     const fx = look === "inv" ? "filter:invert(1)" : look === "eq" ? "filter:grayscale(1) contrast(1.55) brightness(1.08)" : "";
     return `<svg viewBox="0 0 200 300" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" role="img" aria-label="현장 족적 사진(가짜 예시)" style="display:block;${fx}">
       <defs>${defs}
-        <filter id="${id}g" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" seed="${uid}"/><feColorMatrix values="0 0 0 0 .62  0 0 0 0 .57  0 0 0 0 .5  0 0 0 .55 -.08"/></filter>
+        <filter id="${id}g" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" seed="${noiseSeed}"/><feColorMatrix values="0 0 0 0 .62  0 0 0 0 .57  0 0 0 0 .5  0 0 0 .55 -.08"/></filter>
         <radialGradient id="${id}v" cx="50%" cy="48%" r="70%"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".6"/></radialGradient>
-        <filter id="${id}q"><feTurbulence type="fractalNoise" baseFrequency="1.15" numOctaves="2" seed="${uid + 7}"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 2.4 -.75"/><feComposite in2="SourceGraphic" operator="in"/></filter>
+        <filter id="${id}q"><feTurbulence type="fractalNoise" baseFrequency="1.15" numOctaves="2" seed="${noiseSeed + 7}"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 2.4 -.75"/><feComposite in2="SourceGraphic" operator="in"/></filter>
         <clipPath id="${id}c"><path d="${SOLE}"/></clipPath>
         <mask id="${id}m"><rect x="-30" y="-10" width="160" height="290" fill="#fff"/><ellipse cx="96" cy="170" rx="22" ry="40" fill="#000"/><ellipse cx="10" cy="40" rx="14" ry="18" fill="#000" opacity=".6"/></mask>
       </defs>
@@ -181,7 +183,8 @@
       { t: "모델 관리", role: "admin", plus: true },
     ] },
   ];
-  M.shell = function ({ active = "사건관리", tabs = ["사건관리"], tabOn, title = "", h = 880 } = {}, inner = "") {
+  /* partIds: 부품 표식 대표 자리의 data-part-id ({ inp, chip }) — 화면 파일이 「S01-19」 같은 번호를 넘긴다(없으면 붙이지 않음) */
+  M.shell = function ({ active = "사건관리", tabs = ["사건관리"], tabOn, title = "", h = 880, partIds = {} } = {}, inner = "") {
     const side = MENU.map(
       (g) =>
         `<div class="grp" data-role="${[...new Set(g.items.flatMap((it) => it.role.split(" ")))].join(" ")}">${g.g}</div>` +
@@ -195,7 +198,7 @@
     const whos = Object.entries(M.ROLES)
       .map(
         ([k, r]) =>
-          `<span class="who" data-role="${k}"><span style="text-align:right"><b style="display:block;color:var(--fg2);font-size:12px">${r.who}</b>${r.org}</span><span class="chip blue">${r.label}</span><span class="avatar">${r.who[0]}</span></span>`
+          `<span class="who" data-role="${k}"><span style="text-align:right"><b style="display:block;color:var(--fg2);font-size:12px">${r.who}</b>${r.org}</span><span class="chip blue" data-part="Chip" data-part-variant="blue"${k === "analyst" && partIds.chip ? ` data-part-id="${partIds.chip}"` : ""}>${r.label}</span><span class="avatar">${r.who[0]}</span></span>`
       )
       .join("");
     const tabHtml = tabs.map((t) => `<span class="tab ${t === (tabOn || [].concat(active)[0]) ? "on" : ""}">${t}<span class="x">✕</span></span>`).join("");
@@ -205,7 +208,7 @@
         <span class="agency"><b>경찰청 과학수사</b><small>FOOTWEAR FORENSICS · 족윤적 감정</small></span>
         <span class="divider"></span><span class="page-title">${title || [].concat(active)[0]}</span>
         <span class="spacer"></span>
-        <span class="inp" style="width:260px;color:var(--dim)">⌕ 감정번호·문서번호·화류번호 바로 찾기</span>
+        <span class="inp" data-part="Field" data-part-variant="search-shell"${partIds.inp ? ` data-part-id="${partIds.inp}"` : ""} style="width:260px;color:var(--dim)">⌕ 감정번호·문서번호·화류번호 바로 찾기</span>
         ${whos}
       </div>
       <div class="mdi">${tabHtml}</div>
@@ -241,7 +244,7 @@
         `<a href="#${s.id}" class="${s.plus ? "plus" : ""}"><span class="mono">${s.code}</span>${M.esc(s.title)}</a>`
       );
       const refs = (s.refs || [])
-        .map((r) => `<span class="chip-ref ${r.voice ? "v" : ""}">${M.esc(r.t)}${r.v ? ` · <span class="mono">${M.esc(r.v)}</span>` : ""}</span>`)
+        .map((r) => `<span class="chip-ref ${r.voice ? "v" : ""}" data-part="Chip" data-part-variant="${r.voice ? "ref-voice" : "ref"}">${M.esc(r.t)}${r.v ? ` · <span class="mono">${M.esc(r.v)}</span>` : ""}</span>`)
         .join("");
       const notes = (s.notes || [])
         .map(

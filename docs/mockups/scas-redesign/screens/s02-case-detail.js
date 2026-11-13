@@ -5,7 +5,7 @@
 
   /* ── 우리 앱의 레이어(모달) 한 겹 ── */
   const modal = ({ x, y, w, title, btns, body }) => `<div style="position:absolute;left:${x}px;top:${y}px;width:${w}px;border:1px solid #2b4a78;border-radius:12px;background:var(--panel);box-shadow:0 24px 70px rgba(0,0,0,.7)">
-      <div style="display:flex;align-items:center;gap:8px;height:42px;padding:0 10px 0 14px;border-bottom:1px solid #2b4a78;border-radius:12px 12px 0 0;background:linear-gradient(90deg,#132445,#0e1a30)"><b style="font-size:13.5px">${title}</b><span style="margin-left:auto;display:flex;gap:6px;align-items:center">${btns}</span></div>${body}</div>`;
+      <div style="display:flex;align-items:center;gap:8px;height:42px;padding:0 10px 0 14px;border-bottom:1px solid #2b4a78;border-radius:12px 12px 0 0;background:linear-gradient(90deg,#132445,#0e1a30)"><b style="font-size:13.5px">${title}</b><span data-part="ButtonBar" data-part-variant="modal-head" data-part-id="S02-23" style="margin-left:auto;display:flex;gap:6px;align-items:center">${btns}</span></div>${body}</div>`;
   const band = (t, r = "") => `<div style="display:flex;align-items:center;gap:8px;min-height:30px;padding:0 10px;border-left:3px solid var(--blue2);background:rgba(21,34,56,.7);font-size:12.5px;font-weight:600">${t}<span style="margin-left:auto;display:flex;gap:6px;align-items:center;font-weight:400">${r}</span></div>`;
 
   /* 이미지 목록(자연 정렬). dup = 같은 사진으로 의심되는 다른 장 */
@@ -14,21 +14,22 @@
     { n: 5, kb: "4,763", dup: 4 }, { n: 6, kb: "5,871" }, { n: 7, kb: "5,402" }, { n: 8, kb: "4,926" },
   ];
   const chk = (on) => `<span style="color:${on ? "var(--blue)" : "var(--faint)"}">${on ? "☑" : "☐"}</span>`;
-  const sel = (t, x = "") => `<span class="inp w100" style="${x}">${t}<span class="caret">▾</span></span>`;
-  const txt = (t, x = "") => `<span class="inp w100" style="${x}">${t}</span>`;
+  /* v = 변형 이름, id = 대표 자리의 data-part-id(없으면 붙이지 않음) */
+  const sel = (t, x = "", v = "select", id = "") => `<span class="inp w100" data-part="Field" data-part-variant="${v}"${id ? ` data-part-id="${id}"` : ""} style="${x}">${t}<span class="caret">▾</span></span>`;
+  const txt = (t, x = "", id = "") => `<span class="inp w100" data-part="Field" data-part-variant="text"${id ? ` data-part-id="${id}"` : ""} style="${x}">${t}</span>`;
   const ro = (t) => `<span class="mono" style="color:var(--fg)">${t}</span>`;
   const F = (l, v, o = {}) => `<div class="l ${o.req ? "req" : ""}">${l}</div><div class="v ${o.span ? "span3" : ""}" ${o.x ? `style="${o.x}"` : ""}>${v}</div>`;
-  const pick = (t) => `<span class="inp w100">${t}<span class="caret" style="color:var(--blue)">⌕</span></span>`;
+  const pick = (t, id = "") => `<span class="inp w100" data-part="Field" data-part-variant="pick"${id ? ` data-part-id="${id}"` : ""}>${t}<span class="caret" style="color:var(--blue)">⌕</span></span>`;
   const radio = (opts, on) => `<span class="radio" style="gap:8px">${opts.map((o) => `<span class="${o === on ? "on" : ""}">${o}</span>`).join("")}</span>`;
 
   function ours() {
     const ghost = `<div style="opacity:.3;pointer-events:none">
-        <div class="panel" style="height:150px;margin-bottom:12px"></div>
-        <div class="panel" style="height:760px;padding:50px 14px 0">${Array.from({ length: 12 }, () => `<div style="height:44px;border-bottom:1px solid var(--line2)"></div>`).join("")}</div></div>`;
+        <div class="panel" data-part="Panel" data-part-variant="default" data-part-id="S02-17" style="height:150px;margin-bottom:12px"></div>
+        <div class="panel" data-part="Panel" data-part-variant="default-pad" data-part-id="S02-18" style="height:760px;padding:50px 14px 0">${Array.from({ length: 12 }, () => `<div style="height:44px;border-bottom:1px solid var(--line2)"></div>`).join("")}</div></div>`;
 
     const list = FILES.map(
       (f) => `<tr class="${f.on ? "sel" : ""}"><td style="padding:0 6px;height:30px">${chk(f.on)}</td>
-        <td style="padding:0 6px;height:30px"><span class="mono" style="font-size:11.5px">00001-25-0649_${f.n}.jpg</span>${f.dup ? ` <span class="chip amber pinbox" style="height:18px;padding:0 6px;font-size:10.5px">중복? _${f.dup}${apin(4, "voice")}</span>` : ""}</td>
+        <td style="padding:0 6px;height:30px"><span class="mono" style="font-size:11.5px">00001-25-0649_${f.n}.jpg</span>${f.dup ? ` <span class="chip amber pinbox" data-part="Chip" data-part-variant="amber-h18" data-part-id="S02-04" style="height:18px;padding:0 6px;font-size:10.5px">중복? _${f.dup}${apin(4, "voice")}</span>` : ""}</td>
         <td class="r num" style="padding:0 6px;height:30px;color:var(--mute)">${f.kb} KB</td></tr>`
     ).join("");
 
@@ -46,8 +47,8 @@
           <span style="position:absolute;left:8px;bottom:26px;display:flex;gap:4px"><span class="seg" style="padding:2px"><button aria-pressed="true" style="padding:1px 7px;font-size:10.5px">원본</button><button aria-pressed="false" style="padding:1px 7px;font-size:10.5px">이진화</button><button aria-pressed="false" style="padding:1px 7px;font-size:10.5px">AI 표시</button></span></span>
           <span class="cap">00001-25-0649_2 · 전사판</span>
         </div>
-        <div class="pinbox" style="display:flex;gap:6px;align-items:center;padding-right:14px">${apin(8, "better")}<span class="chip amber" style="height:22px">전사판 → 좌우반전 필요</span><button class="btn sm">이미지 커팅 열기</button></div>
-        ${band("이미지 목록", `<span class="num" style="color:var(--dim);font-size:11px">12장 · 1→12순</span><button class="btn sm" data-role="investigator analyst admin">추가</button><button class="btn sm" data-role="investigator analyst admin">삭제</button>`)}
+        <div class="pinbox" style="display:flex;gap:6px;align-items:center;padding-right:14px">${apin(8, "better")}<span class="chip amber" data-part="Chip" data-part-variant="amber" data-part-id="S02-05" style="height:22px">전사판 → 좌우반전 필요</span><button class="btn sm" data-part="Button" data-part-variant="sm" data-part-id="S02-01">이미지 커팅 열기</button></div>
+        ${band("이미지 목록", `<span class="num" style="color:var(--dim);font-size:11px">12장 · 1→12순</span><button class="btn sm" data-role="investigator analyst admin" data-part="Button" data-part-variant="sm">추가</button><button class="btn sm" data-role="investigator analyst admin" data-part="Button" data-part-variant="sm">삭제</button>`)}
         <div class="pinbox">${apin(3, "better")}
           <table class="grid"><thead><tr><th style="padding:0 6px;height:28px"></th><th style="padding:0 6px;height:28px">파일명칭</th><th class="r" style="padding:0 6px;height:28px">파일크기</th></tr></thead><tbody>${list}</tbody></table>
           <div style="padding:6px 8px;color:var(--dim);font-size:11px">… <span class="mono">_9 _10 _11 _12</span></div>
@@ -60,10 +61,10 @@
         <div class="pinbox" data-role="analyst admin" style="padding:10px 12px;border:1px solid #1d4a44;border-radius:10px;background:linear-gradient(160deg,#0d1f21,var(--panel))">${apin(11, "plus")}
           <div style="display:flex;align-items:center;gap:7px;margin-bottom:6px"><span class="fx-live"></span><b style="font-size:12px;color:var(--teal)">AI 1차 작업 점검</b><span class="mono" style="margin-left:auto;color:var(--dim);font-size:10px">12장 · 4초</span></div>
           <div class="fx-bar" style="margin-bottom:6px"><i style="width:100%"></i></div>
-          <div class="check"><span class="ic warn">!</span><span>같은 사진 의심 <b class="mono">_4 ↔ _5</b><br><span style="color:var(--dim)">크기·그림 98% 같음</span></span><button class="btn sm">_5 삭제</button></div>
-          <div class="check"><span class="ic warn">!</span><span>전사판 사진 <b class="mono">_2 _7</b><br><span style="color:var(--dim)">좌우반전 필요</span></span><button class="btn sm">반전 적용</button></div>
-          <div class="check"><span class="ic warn">!</span><span>채취 방법 「기타」 <b class="mono">_2</b><br><span style="color:var(--dim)">전사지 보임 → 전사판채취법?</span></span><span class="chip amber" style="height:19px;font-size:10px">오른쪽 ↗</span></div>
-          <div class="check"><span class="ic bad">×</span><span>흐린 사진 <b class="mono">_9</b><br><span style="color:var(--dim)">윤곽 판독 어려움 · 재촬영 요청?</span></span><span class="chip" style="height:19px;font-size:10px">보류</span></div>
+          <div class="check"><span class="ic warn">!</span><span>같은 사진 의심 <b class="mono">_4 ↔ _5</b><br><span style="color:var(--dim)">크기·그림 98% 같음</span></span><button class="btn sm" data-part="Button" data-part-variant="sm">_5 삭제</button></div>
+          <div class="check"><span class="ic warn">!</span><span>전사판 사진 <b class="mono">_2 _7</b><br><span style="color:var(--dim)">좌우반전 필요</span></span><button class="btn sm" data-part="Button" data-part-variant="sm">반전 적용</button></div>
+          <div class="check"><span class="ic warn">!</span><span>채취 방법 「기타」 <b class="mono">_2</b><br><span style="color:var(--dim)">전사지 보임 → 전사판채취법?</span></span><span class="chip amber" data-part="Chip" data-part-variant="amber-h19" data-part-id="S02-06" style="height:19px;font-size:10px">오른쪽 ↗</span></div>
+          <div class="check"><span class="ic bad">×</span><span>흐린 사진 <b class="mono">_9</b><br><span style="color:var(--dim)">윤곽 판독 어려움 · 재촬영 요청?</span></span><span class="chip" data-part="Chip" data-part-variant="h19" data-part-id="S02-07" style="height:19px;font-size:10px">보류</span></div>
           <div class="check"><span class="ic ok">✓</span><span>자 인식 11/12장 · 기울기 보정값 준비</span><span></span></div>
         </div>
       </div>
@@ -71,9 +72,9 @@
       <!-- 오른쪽: 사건정보 + 현장 이미지 정보 (SCAS 라벨 순서 그대로) -->
       <div style="display:grid;gap:8px;align-content:start">
         <div class="pinbox" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:11.5px;color:var(--mute);padding-right:16px">${apin(9, "plus")}
-          <span class="chip blue" style="height:20px">공문 자동 접수 · 07-24 09:10</span><span>문서접수대장 연동</span>
+          <span class="chip blue" data-part="Chip" data-part-variant="blue-h20" data-part-id="S02-08" style="height:20px">공문 자동 접수 · 07-24 09:10</span><span>문서접수대장 연동</span>
           <span style="color:var(--dim)">·</span><span>담당 감정관 박○○ 경위</span>
-          <span style="color:var(--dim)">·</span><span class="chip" style="height:20px;color:var(--amber);border-color:#4d3a12">배당 절차: 확인 필요</span>
+          <span style="color:var(--dim)">·</span><span class="chip" data-part="Chip" data-part-variant="h20-warn" data-part-id="S02-09" style="height:20px;color:var(--amber);border-color:#4d3a12">배당 절차: 확인 필요</span>
           <span style="margin-left:auto;display:inline-flex;align-items:center;gap:8px">
             <svg viewBox="0 0 36 36" width="30" height="30" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="var(--line3)" stroke-width="4"/><circle cx="18" cy="18" r="15" fill="none" stroke="var(--teal)" stroke-width="4" stroke-linecap="round" pathLength="100" stroke-dasharray="93 100" transform="rotate(-90 18 18)"/></svg>
             <span style="display:grid;line-height:1.25"><b class="mono" style="color:var(--fg);font-size:12px">필수 14 / 15</b><span style="color:var(--dim);font-size:10.5px">남은 칸: 채취 방법 확인</span></span>
@@ -82,21 +83,21 @@
         ${band("사건정보", `<span style="color:var(--dim);font-size:11px">대부분 공문 그대로 · 수정은 「수정」으로</span>`)}
         <div class="form" style="grid-template-columns:108px minmax(0,1fr) 108px minmax(0,1fr)">
           ${F("감정번호", ro("00001-25-0649"))}${F("문서번호", ro("SCAS수사부-871"))}
-          ${F("SCAS사건번호", ro("2025-03321"))}${F("피해자 성명", txt("김○○"))}
-          ${F("의뢰관서", `<div class="pinbox" style="display:flex;gap:8px;align-items:center;padding-right:12px">${apin(7, "better")}<span style="white-space:nowrap;color:var(--mute)">${chk(false)} 타기관</span>${pick("대구청 › 동부서")}</div>`, { req: 1 })}${F("출생년도", txt("1968"))}
-          ${F("사건명", sel("주거침입"), { req: 1 })}${F("용의자 유무", radio(["유", "무"], "무"), { req: 1 })}
-          ${F("사건일시", `<div style="display:grid;gap:4px;font-size:11.5px"><span style="display:flex;gap:6px;align-items:center"><span style="color:var(--dim);width:44px;white-space:nowrap">시작</span><span class="inp mono" style="flex:1;font-size:11.5px">2025-07-22 23:00</span></span><span style="display:flex;gap:6px;align-items:center"><span style="color:var(--dim);width:44px;white-space:nowrap">${chk(true)} 종료</span><span class="inp mono" style="flex:1;font-size:11.5px">2025-07-23 06:30</span></span></div>`, { req: 1 })}${F("사건장소", sel("주택 › 단독주택"), { req: 1 })}
+          ${F("SCAS사건번호", ro("2025-03321"))}${F("피해자 성명", txt("김○○", "", "S02-13"))}
+          ${F("의뢰관서", `<div class="pinbox" style="display:flex;gap:8px;align-items:center;padding-right:12px">${apin(7, "better")}<span style="white-space:nowrap;color:var(--mute)">${chk(false)} 타기관</span>${pick("대구청 › 동부서", "S02-14")}</div>`, { req: 1 })}${F("출생년도", txt("1968"))}
+          ${F("사건명", sel("주거침입", "", "select", "S02-12"), { req: 1 })}${F("용의자 유무", radio(["유", "무"], "무"), { req: 1 })}
+          ${F("사건일시", `<div style="display:grid;gap:4px;font-size:11.5px"><span style="display:flex;gap:6px;align-items:center"><span style="color:var(--dim);width:44px;white-space:nowrap">시작</span><span class="inp mono" data-part="Field" data-part-variant="mono-sm-flex" data-part-id="S02-15" style="flex:1;font-size:11.5px">2025-07-22 23:00</span></span><span style="display:flex;gap:6px;align-items:center"><span style="color:var(--dim);width:44px;white-space:nowrap">${chk(true)} 종료</span><span class="inp mono" data-part="Field" data-part-variant="mono-sm-flex" style="flex:1;font-size:11.5px">2025-07-23 06:30</span></span></div>`, { req: 1 })}${F("사건장소", sel("주택 › 단독주택"), { req: 1 })}
           ${F("발생관서", pick("대구청 › 동부서"), { req: 1 })}${F("검거여부", sel("수사중"))}
           ${F("사건주소", txt("대구광역시 동구 ○○로 ○○"), { req: 1 })}${F("감정의뢰 담당자", txt("경사 이○○"))}
           ${F("사건개요", `<div style="color:var(--fg2);line-height:1.5">피의자는 2025. 7. 22. 23:00경부터 다음 날 06:30경 사이 피해자 주거지 뒷문으로 침입하여 거실 서랍장의 현금을 절취한 것임.</div>`, { req: 1, span: 1 })}
           ${F("비고", `<span style="color:var(--faint)">—</span>`, { span: 1 })}
         </div>
-        <div class="pinbox">${apin(6, "voice")}${band(`현장 이미지 정보 <span class="chip blue mono" style="height:20px">_2</span>`, `<span class="seg"><button aria-pressed="true">이 이미지만</button><button aria-pressed="false">선택한 이미지 모두 적용</button></span><button class="btn sm" data-lock="investigator analyst admin">수정</button>`)}</div>
+        <div class="pinbox">${apin(6, "voice")}${band(`현장 이미지 정보 <span class="chip blue mono" data-part="Chip" data-part-variant="blue-mono-h20" data-part-id="S02-10" style="height:20px">_2</span>`, `<span class="seg"><button aria-pressed="true">이 이미지만</button><button aria-pressed="false">선택한 이미지 모두 적용</button></span><button class="btn sm" data-lock="investigator analyst admin" data-part="Button" data-part-variant="sm" data-part-state="role-lock" data-part-id="S02-03">수정</button>`)}</div>
         <div class="form" style="grid-template-columns:108px minmax(0,1fr) 108px minmax(0,1fr)">
-          ${F("구분", radio(["신발", "타이어"], "신발"), { req: 1 })}${F("이미지 이름", sel("00001-25-0649_2.jpg", "font-family:var(--font-mono);font-size:11.5px"))}
-          ${F("채취 일시", `<span class="inp w100 mono" style="font-size:11.5px">2025-07-23 08:40</span>`, { req: 1 })}${F("채취자 계급", sel("경사"), { req: 1 })}
+          ${F("구분", radio(["신발", "타이어"], "신발"), { req: 1 })}${F("이미지 이름", sel("00001-25-0649_2.jpg", "font-family:var(--font-mono);font-size:11.5px", "select-mono", "S02-16"))}
+          ${F("채취 일시", `<span class="inp w100 mono" data-part="Field" data-part-variant="mono-sm" data-part-id="S02-19" style="font-size:11.5px">2025-07-23 08:40</span>`, { req: 1 })}${F("채취자 계급", sel("경사"), { req: 1 })}
           ${F("채취 장소", sel("거실 바닥"), { req: 1 })}${F("채취자 이름", txt("이○○"), { req: 1 })}
-          ${F("채취 방법", `<div class="pinbox" style="display:grid;gap:4px;padding-right:12px">${apin(5, "voice")}${sel(`기타 <span class="chip amber" style="height:18px;padding:0 6px;font-size:10.5px;margin-left:6px">확인 필요</span>`, "border-color:#4d3a12")}<span style="display:grid;gap:3px;padding:5px 7px;border:1px solid #1d4a44;border-radius:7px;background:var(--teal-bg);font-size:11px"><span style="display:flex;align-items:center;gap:6px"><span class="ai-tag">AI 제안</span><b style="color:var(--fg);white-space:nowrap">전사판채취법</b><button class="btn sm" style="margin-left:auto;height:22px;padding:0 8px">적용</button></span><span style="color:var(--dim);font-size:10.5px">근거: 전사지 경계 · 뒤집힌 글자 · 신뢰 0.91</span></span></div>`, { req: 1 })}${F("감정물 종류", sel("사진"), { req: 1 })}
+          ${F("채취 방법", `<div class="pinbox" style="display:grid;gap:4px;padding-right:12px">${apin(5, "voice")}${sel(`기타 <span class="chip amber" data-part="Chip" data-part-variant="amber-h18" style="height:18px;padding:0 6px;font-size:10.5px;margin-left:6px">확인 필요</span>`, "border-color:#4d3a12", "select-warn", "S02-20")}<span style="display:grid;gap:3px;padding:5px 7px;border:1px solid #1d4a44;border-radius:7px;background:var(--teal-bg);font-size:11px"><span style="display:flex;align-items:center;gap:6px"><span class="ai-tag" data-part="AiTag" data-part-variant="default" data-part-id="S02-21">AI 제안</span><b style="color:var(--fg);white-space:nowrap">전사판채취법</b><button class="btn sm" data-part="Button" data-part-variant="sm-h22" data-part-id="S02-02" style="margin-left:auto;height:22px;padding:0 8px">적용</button></span><span style="color:var(--dim);font-size:10.5px">근거: 전사지 경계 · 뒤집힌 글자 · 신뢰 0.91</span></span></div>`, { req: 1 })}${F("감정물 종류", sel("사진"), { req: 1 })}
           ${F("제조사", sel("미상"))}${F("족적 구분", radio(["좌", "우", "불상"], "우"))}
           ${F("상표", sel("—"))}${F("굽 유무", radio(["유", "무", "불상"], "유"))}
           ${F("화종", sel("운동화"))}<div class="l"></div><div class="v"></div>
@@ -113,15 +114,15 @@
     }).join("")}</span>`;
 
     const btns = `<span class="pinbox" style="display:inline-flex;gap:6px">${apin(2, "keep", true)}
-        <button class="btn sm">이전</button><button class="btn sm">다음</button><button class="btn sm">사건복사</button><button class="btn sm" data-lock="investigator analyst admin">수정</button><button class="btn sm">닫기</button></span>
+        <button class="btn sm" data-part="Button" data-part-variant="sm">이전</button><button class="btn sm" data-part="Button" data-part-variant="sm">다음</button><button class="btn sm" data-part="Button" data-part-variant="sm">사건복사</button><button class="btn sm" data-lock="investigator analyst admin" data-part="Button" data-part-variant="sm" data-part-state="role-lock">수정</button><button class="btn sm" data-part="Button" data-part-variant="sm">닫기</button></span>
       <span style="width:1px;height:20px;background:var(--line3)"></span>
       <span class="pinbox" style="display:inline-flex;gap:6px">${apin(10, "better")}
-        <button class="btn sm pri" data-role="analyst admin">검색 (문양 상세보기) →</button>
-        <span class="chip" data-role="verifier" style="height:22px">기술책임자 · 읽기 전용</span>
-        <span class="chip" data-role="investigator" style="height:22px">수사관 · 의뢰한 사건만</span></span>`;
+        <button class="btn sm pri" data-role="analyst admin" data-part="Button" data-part-variant="sm-pri" data-part-id="S02-22">검색 (문양 상세보기) →</button>
+        <span class="chip" data-role="verifier" data-part="Chip" data-part-variant="h22" data-part-id="S02-11" style="height:22px">기술책임자 · 읽기 전용</span>
+        <span class="chip" data-role="investigator" data-part="Chip" data-part-variant="h22" style="height:22px">수사관 · 의뢰한 사건만</span></span>`;
 
     return M.shell(
-      { active: "사건관리", tabs: ["사건관리", "감정서작성", "족윤적 검증", "결재 대기함", "문서접수대장"], title: "사건관리", h: 1230 },
+      { active: "사건관리", tabs: ["사건관리", "감정서작성", "족윤적 검증", "결재 대기함", "문서접수대장"], title: "사건관리", h: 1230, partIds: { inp: "S02-24", chip: "S02-25" } },
       `<div style="position:relative;min-height:1130px">
         ${ghost}
         <div style="position:absolute;inset:0;background:rgba(5,8,13,.7);border-radius:12px"></div>
