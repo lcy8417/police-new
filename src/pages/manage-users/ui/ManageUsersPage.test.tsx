@@ -415,4 +415,55 @@ describe("ManageUsersPage — 관서·역할(실증 확장 설계서 §5-A)", ()
       expect(bodies).toEqual([{ userNm: "김수사", userSe: "USER", useAt: "Y", orgId: 4 }])
     )
   })
+
+  it("사용자 추가 대화 상자 — 새 사용자는 본청 소속이라는 안내, 사건 조회를 켜면 전국 사진 경고", async () => {
+    renderPage()
+    fireEvent.click(await screen.findByRole("button", { name: "사용자 추가" }))
+    const dialog = await screen.findByRole("dialog", { name: "사용자 추가" })
+
+    expect(within(dialog).getByText("새 사용자는 본청 소속 — 관서를 지정하세요")).toBeInTheDocument()
+    expect(within(dialog).queryByText("전국 사건 사진을 볼 수 있게 됩니다")).not.toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole("checkbox", { name: "사건 조회" }))
+    expect(within(dialog).getByText("전국 사건 사진을 볼 수 있게 됩니다")).toBeInTheDocument()
+  })
+
+  it("만든 뒤 상세 — 본청 소속 비직원에게는 관서를 지정하라는 안내(직원·경찰서 소속은 없음)", async () => {
+    mswServer.use(
+      http.get("*/admin/users", () =>
+        HttpResponse.json([
+          ...USERS,
+          userDto({ user_id: "new05", user_nm: "신수사", features: [], roles: [], org_id: 1, org_nm: "경찰청" }),
+          userDto({ user_id: "exam06", user_nm: "본감정", features: [], roles: ["EXAMINER"], org_id: 1, org_nm: "경찰청" }),
+        ])
+      )
+    )
+    renderPage()
+    const hint = "본청 소속이라 의뢰를 볼 수 없습니다 — 관서를 지정하세요"
+
+    await selectUser("new05")
+    expect(await within(detailPanel()).findByText(hint)).toBeInTheDocument()
+
+    await selectUser("exam06")
+    await waitFor(() => expect(within(detailPanel()).getByLabelText("소속 관서")).toHaveValue("1"))
+    expect(within(detailPanel()).queryByText(hint)).not.toBeInTheDocument()
+
+    await selectUser("kim01")
+    await waitFor(() => expect(within(detailPanel()).getByLabelText("소속 관서")).toHaveValue("3"))
+    expect(within(detailPanel()).queryByText(hint)).not.toBeInTheDocument()
+  })
+
+  it("비직원에게 개인 사건 조회를 주면 전국 사건 사진 경고 — 끄면 사라지고, 직원에게는 없다", async () => {
+    const warning = "전국 사건 사진을 볼 수 있게 됩니다"
+    renderPage()
+
+    await selectUser("kim01") // 수사관(비직원), 개인 CRIME_SEARCH 있음
+    expect(within(detailPanel()).getByText(warning)).toBeInTheDocument()
+    fireEvent.click(within(detailPanel()).getByRole("switch", { name: "사건 조회" }))
+    expect(within(detailPanel()).queryByText(warning)).not.toBeInTheDocument()
+
+    await selectUser("lee02") // 감정관·검증자(직원)
+    fireEvent.click(within(detailPanel()).getByRole("switch", { name: "사건 조회" }))
+    expect(within(detailPanel()).getByRole("switch", { name: "사건 조회" })).toBeChecked()
+    expect(within(detailPanel()).queryByText(warning)).not.toBeInTheDocument()
+  })
 })

@@ -1,11 +1,17 @@
 import { useId, useState } from "react"
 import { Loader2 } from "lucide-react"
 
-import { FEATURE_LABELS, FEATURE_ORDER, type FeatureCode } from "@/entities/session"
+import { FEATURES, FEATURE_LABELS, FEATURE_ORDER, type FeatureCode } from "@/entities/session"
 import { cn } from "@/shared/lib/utils"
 import { Button, Switch } from "@/shared/ui"
 
-import { isImpliedFeature, sameFeatures, toggleFeature } from "../model/user-rules"
+import {
+  USER_FORM_MESSAGES,
+  grantsNationwidePhotos,
+  isImpliedFeature,
+  sameFeatures,
+  toggleFeature,
+} from "../model/user-rules"
 
 /** 기능별 한 줄 설명 — 어떤 메뉴·화면이 열리는지(설계서 §2, 실증 확장 설계서 §5-A). */
 const FEATURE_HINTS: Record<FeatureCode, string> = {
@@ -28,6 +34,11 @@ export interface FeatureTogglesProps {
   value: FeatureCode[]
   saving: boolean
   onSave: (features: FeatureCode[]) => void
+  /**
+   * 직원(관리자·감정관·검증자)인가 — 아니면 사건 조회를 켰을 때 「전국 사건 사진」 경고를 보인다
+   * (`grantsNationwidePhotos`). 모르면 경고를 보이는 쪽(false)이 기본.
+   */
+  staff?: boolean
 }
 
 /**
@@ -36,10 +47,11 @@ export interface FeatureTogglesProps {
  * 끌 수 없다(신발 등록·수정에 포함). 바뀐 것이 없으면 저장 버튼이 꺼져 있다.
  * 다른 사용자를 고르면 상위에서 `key`를 바꿔 새로 시작한다.
  */
-export function FeatureToggles({ value, saving, onSave }: FeatureTogglesProps) {
+export function FeatureToggles({ value, saving, onSave, staff = false }: FeatureTogglesProps) {
   const [draft, setDraft] = useState<FeatureCode[]>(value)
   const baseId = useId()
   const dirty = !sameFeatures(draft, value)
+  const nationwide = grantsNationwidePhotos(staff, draft)
 
   return (
     <div className="flex flex-col gap-3">
@@ -57,6 +69,9 @@ export function FeatureToggles({ value, saving, onSave }: FeatureTogglesProps) {
                 <span className={cn("text-[11px]", implied ? "text-[#4A9EFF]" : "text-[#5B6B85]")}>
                   {implied ? "신발 등록·수정에 포함됩니다" : FEATURE_HINTS[code]}
                 </span>
+                {code === FEATURES.CRIME_SEARCH && nationwide && (
+                  <span className="text-[11px] text-warn">{USER_FORM_MESSAGES.nationwidePhotos}</span>
+                )}
               </div>
               <Switch
                 id={id}

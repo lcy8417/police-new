@@ -25,6 +25,7 @@ import { useCreateUser, type AdminUserMutationOptions } from "../model/use-admin
 import {
   USER_FORM_MESSAGES,
   USER_ID_PATTERN,
+  grantsNationwidePhotos,
   isImpliedFeature,
   toggleFeature,
 } from "../model/user-rules"
@@ -154,6 +155,8 @@ export function CreateUserDialog({ open, onOpenChange, onCreated, onUserChanged 
               hint="8자 이상, 72바이트 이하"
             />
           </div>
+          {/* 새 계정의 기본 소속은 본청 — 비직원은 의뢰를 볼 수 없으므로 만든 뒤 상세에서 관서를 바꾼다(서버 R7) */}
+          <p className="text-[12px] text-warn">{USER_FORM_MESSAGES.newUserHq}</p>
 
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-2 text-[12px] font-medium text-[#A9B3C4]">기능 권한</legend>
@@ -186,6 +189,10 @@ export function CreateUserDialog({ open, onOpenChange, onCreated, onUserChanged 
                   )
                 })}
               </div>
+            )}
+            {/* 새 사용자는 역할이 없어 비직원 — 개인 사건 조회는 전국 사건 사진 열람이 된다 */}
+            {form.userSe !== "ADMIN" && grantsNationwidePhotos(false, form.features) && (
+              <p className="text-[12px] text-warn">{USER_FORM_MESSAGES.nationwidePhotos}</p>
             )}
           </fieldset>
 

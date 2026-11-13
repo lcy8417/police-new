@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest"
 
-import { FEATURES } from "@/entities/session"
+import { FEATURES, type FeatureCode } from "@/entities/session"
 
 import {
   USER_ID_PATTERN,
+  grantsNationwidePhotos,
   isImpliedFeature,
+  isStaffUser,
+  needsOrgAssignment,
   roleNames,
   sameFeatures,
   toggleFeature,
@@ -46,6 +49,39 @@ describe("user-rules — 사용자·권한 관리 규칙", () => {
       FEATURES.CASE_STATUS_VIEW,
       FEATURES.REPORT_SEND,
     ])
+  })
+
+  it("목록(FEATURE_ORDER)에 없는 기존 기능 코드는 지우지 않고 뒤에 그대로 둔다(역할 토글과 같은 규칙)", () => {
+    const legacy = "LEGACY_FEATURE" as FeatureCode
+    expect(toggleFeature([legacy, FEATURES.CRIME_SEARCH], FEATURES.CRIME_REGISTER, true)).toEqual([
+      FEATURES.CRIME_REGISTER,
+      FEATURES.CRIME_SEARCH,
+      legacy,
+    ])
+    expect(toggleFeature([FEATURES.CRIME_SEARCH, legacy], FEATURES.CRIME_SEARCH, false)).toEqual([legacy])
+  })
+
+  it("직원 = 관리자이거나 감정관·검증자 역할(서버 STAFF_ROLES와 같은 규칙)", () => {
+    expect(isStaffUser({ userSe: "ADMIN", roles: [] })).toBe(true)
+    expect(isStaffUser({ userSe: "USER", roles: ["EXAMINER"] })).toBe(true)
+    expect(isStaffUser({ userSe: "USER", roles: ["INVESTIGATOR", "REVIEWER"] })).toBe(true)
+    expect(isStaffUser({ userSe: "USER", roles: ["INVESTIGATOR"] })).toBe(false)
+    expect(isStaffUser({ userSe: "USER", roles: [] })).toBe(false)
+  })
+
+  it("개인 사건 조회(CRIME_SEARCH)는 직원이 아니면 전국 사건 사진 열람이 된다", () => {
+    expect(grantsNationwidePhotos(false, [FEATURES.CRIME_SEARCH])).toBe(true)
+    expect(grantsNationwidePhotos(true, [FEATURES.CRIME_SEARCH])).toBe(false)
+    expect(grantsNationwidePhotos(false, [FEATURES.CRIME_REGISTER])).toBe(false)
+  })
+
+  it("본청 소속 비직원은 관서를 지정해야 한다(의뢰를 하나도 볼 수 없음)", () => {
+    const investigator = { userSe: "USER" as const, roles: ["INVESTIGATOR"] }
+    expect(needsOrgAssignment(investigator, "HQ")).toBe(true)
+    expect(needsOrgAssignment(investigator, "STATION")).toBe(false)
+    expect(needsOrgAssignment(investigator, undefined)).toBe(false) // 관서 목록을 모르면 말하지 않음
+    expect(needsOrgAssignment({ userSe: "USER", roles: ["EXAMINER"] }, "HQ")).toBe(false)
+    expect(needsOrgAssignment({ userSe: "ADMIN", roles: [] }, "HQ")).toBe(false)
   })
 
   it("역할 켜고 끄기 — 서버 역할 순서로, 목록에 없는 기존 역할은 뒤에 그대로", () => {

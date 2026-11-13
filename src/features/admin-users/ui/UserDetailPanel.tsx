@@ -27,7 +27,13 @@ import {
   useUpdateUser,
   type AdminUserMutationOptions,
 } from "../model/use-admin-users"
-import { USER_FORM_MESSAGES, sameRoles, toggleRole } from "../model/user-rules"
+import {
+  USER_FORM_MESSAGES,
+  isStaffUser,
+  needsOrgAssignment,
+  sameRoles,
+  toggleRole,
+} from "../model/user-rules"
 import { AdminField, AdminFormError, AdminTextField } from "./AdminFormField"
 import { FeatureToggles } from "./FeatureToggles"
 import { PasswordResetDialog } from "./PasswordResetDialog"
@@ -163,6 +169,13 @@ export function UserDetailPanel({ user, currentUserId, onUserChanged }: UserDeta
   const rolesQuery = useRolesQuery()
   const orgsQuery = useOrgsQuery()
   const orgOptions = useMemo(() => orgChoices(orgsQuery.data, user), [orgsQuery.data, user])
+  // 저장된 소속이 본청인 비직원 — 의뢰를 하나도 볼 수 없으므로 관서 지정 안내(새 사용자의 기본 소속)
+  const savedOrgSe = orgsQuery.data?.find((org) => org.orgId === user.orgId)?.orgSe
+  const orgHint = orgsQuery.isError
+    ? "관서 목록을 확인하지 못했습니다 — 지금 소속만 보입니다"
+    : needsOrgAssignment(user, savedOrgSe)
+      ? <span className="text-warn">{USER_FORM_MESSAGES.hqNonStaff}</span>
+      : undefined
 
   const isSelf = user.userId === currentUserId
   const isAdminUser = user.userSe === "ADMIN"
@@ -265,14 +278,12 @@ export function UserDetailPanel({ user, currentUserId, onUserChanged }: UserDeta
             <AdminField
               id={`${baseId}-org`}
               label="소속 관서"
-              hint={
-                orgsQuery.isError ? "관서 목록을 확인하지 못했습니다 — 지금 소속만 보입니다" : undefined
-              }
+              hint={orgHint}
             >
               <NativeSelect
                 id={`${baseId}-org`}
                 value={String(orgId)}
-                aria-describedby={orgsQuery.isError ? `${baseId}-org-hint` : undefined}
+                aria-describedby={orgHint ? `${baseId}-org-hint` : undefined}
                 onChange={(event) => setOrgId(Number(event.target.value))}
               >
                 {orgOptions.map((choice) => (
@@ -343,6 +354,7 @@ export function UserDetailPanel({ user, currentUserId, onUserChanged }: UserDeta
           ) : (
             <FeatureToggles
               value={user.features}
+              staff={isStaffUser(user)}
               saving={features.isPending}
               onSave={(next) => {
                 clearErrors()

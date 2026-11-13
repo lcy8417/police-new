@@ -1,7 +1,7 @@
 /**
  * 사용자·권한 관리 화면 규칙 — 계정 상태 판정, 기능 권한 포함 관계, 역할 선택, 아이디 규칙.
  */
-import type { AdminUser, RoleCode, RoleInfo } from "@/entities/admin"
+import type { AdminUser, OrgSe, RoleCode, RoleInfo } from "@/entities/admin"
 import { FEATURES, FEATURE_ORDER, type FeatureCode } from "@/entities/session"
 
 /**
@@ -60,7 +60,11 @@ export function isImpliedFeature(selected: readonly FeatureCode[], code: Feature
   return code === FEATURES.SHOE_VIEW && selected.includes(FEATURES.SHOE_EDIT)
 }
 
-/** 기능 하나를 켜고 끈 새 목록. `SHOE_EDIT`를 켜면 `SHOE_VIEW`도 함께 켠다. */
+/**
+ * 기능 하나를 켜고 끈 새 목록. `SHOE_EDIT`를 켜면 `SHOE_VIEW`도 함께 켠다.
+ * 화면 표시 순서(`FEATURE_ORDER`)로 정렬하고, 목록에 없는 기존 기능 코드(서버에 새로 생긴 기능 등)는
+ * 지우지 않고 뒤에 그대로 둔다 — 다른 기능을 켜고 끄다가 모르는 권한이 몰래 빠지지 않게(`toggleRole`과 같은 규칙).
+ */
 export function toggleFeature(
   selected: readonly FeatureCode[],
   code: FeatureCode,
@@ -74,7 +78,36 @@ export function toggleFeature(
     next.delete(code)
   }
   // 화면 표시 순서로 정렬(서버에 보내는 본문도 늘 같은 순서).
-  return FEATURE_ORDER.filter((item) => next.has(item))
+  const known = FEATURE_ORDER.filter((item) => next.has(item))
+  const unknown = [...next].filter((item) => !FEATURE_ORDER.includes(item))
+  return [...known, ...unknown]
+}
+
+/** 직원 역할 — 서버 `auth/entities.py` `STAFF_ROLES`와 같다(관서 범위 없이 전체를 봄). */
+export const STAFF_ROLES: readonly RoleCode[] = ["EXAMINER", "REVIEWER"]
+
+/** 직원인가 — 관리자이거나 감정관·검증자 역할(서버 `SessionUser.is_staff`와 같은 규칙, 저장된 역할 기준). */
+export function isStaffUser(user: Pick<AdminUser, "userSe" | "roles">): boolean {
+  return user.userSe === "ADMIN" || user.roles.some((code) => STAFF_ROLES.includes(code))
+}
+
+/**
+ * 개인 기능 사건 조회(`CRIME_SEARCH`)가 전국 사건 사진 열람이 되는가 — 사건 사진(static)은 관서 범위 없이
+ * 「직원 또는 CRIME_SEARCH」로 열린다(서버 `auth/middleware.can_view_crime_photos`). 직원은 원래 전체를 본다.
+ */
+export function grantsNationwidePhotos(staff: boolean, features: readonly FeatureCode[]): boolean {
+  return !staff && features.includes(FEATURES.CRIME_SEARCH)
+}
+
+/**
+ * 관서를 지정해야 하는가 — 본청 소속 비직원은 의뢰를 하나도 볼 수 없다(서버 `request_repo.scope_org_ids`,
+ * 새 사용자의 기본 소속이 본청). 관서 구분을 모르면(목록 못 읽음) 말하지 않는다.
+ */
+export function needsOrgAssignment(
+  user: Pick<AdminUser, "userSe" | "roles">,
+  orgSe: OrgSe | undefined
+): boolean {
+  return orgSe === "HQ" && !isStaffUser(user)
 }
 
 /** 두 기능 목록이 (순서와 무관하게) 같은가. */
@@ -91,4 +124,10 @@ export const USER_ID_PATTERN = /^[A-Za-z0-9_]{4,20}$/
 export const USER_FORM_MESSAGES = {
   userId: "아이디는 영문·숫자·_ 4~20자로 입력하세요",
   userNm: "이름을 입력하세요",
+  /** 사용자 추가 — 새 계정의 기본 소속은 본청(만든 뒤 상세에서 관서를 바꾼다). */
+  newUserHq: "새 사용자는 본청 소속 — 관서를 지정하세요",
+  /** 상세 — 본청 소속 비직원(needsOrgAssignment). */
+  hqNonStaff: "본청 소속이라 의뢰를 볼 수 없습니다 — 관서를 지정하세요",
+  /** 비직원에게 개인 사건 조회(grantsNationwidePhotos). */
+  nationwidePhotos: "전국 사건 사진을 볼 수 있게 됩니다",
 } as const
