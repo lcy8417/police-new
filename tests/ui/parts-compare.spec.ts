@@ -3,7 +3,7 @@ import path from "node:path";
 import { test, expect, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { PART_FIXTURES } from "../../src/pages/dev/parts/fixtures-meta";
 import { assertFonts, openMockup, type MockupScreen } from "./mockup-open";
-import { diffStyle, readStyle } from "./style-read";
+import { diffStyle, normalizeControl, readStyle } from "./style-read";
 
 // 시안 요소 ↔ 진열 화면(/dev/parts) 요소 자동 대조(설계서 §9).
 // 픽스처 id 마다: computed style 차이 0 + 요소 스크린샷 차이 0(maxDiffPixels 0, 기본 픽셀 임계값 — R5).
@@ -207,21 +207,18 @@ for (const fixture of PART_FIXTURES) {
     await loadFontsFor(devEl);
     const devStyle = await readStyle(devEl);
 
-    if (fixture.compare === "root") {
-      // 루트 계산값만 비교(태그 · 자식 트리 · 가상 요소 제외) — 이유는 PartFixture.compare 주석.
-      const rootOnly = (s: typeof devStyle): typeof devStyle => ({
-        tag: "root",
-        props: s.props,
-        pseudo: { before: {}, after: {} },
-        children: [],
-      });
-      expect(diffStyle(rootOnly(mockupStyle), rootOnly(devStyle))).toEqual([]);
+    if (fixture.compare === "control") {
+      // 폼 입력칸: 루트 태그와 앱 `<input>` 자식만 무시하고 나머지는 그대로 비교(normalizeControl, R18).
+      expect(diffStyle(normalizeControl(mockupStyle, "mockup"), normalizeControl(devStyle, "app"))).toEqual([]);
     } else {
       expect(diffStyle(mockupStyle, devStyle)).toEqual([]);
     }
     // noShot: 구조상 같은 픽셀이 될 수 없는 자리(이유는 PartFixture.noShot) — 계산값 비교는 위에서 이미 했다.
     if (fixture.noShot) return;
     await alignSubpixel(devEl, mockupRect);
-    await expect(devEl).toHaveScreenshot(shotName);
+    await expect(devEl).toHaveScreenshot(
+      shotName,
+      fixture.shotMaxDiffPixels === undefined ? {} : { maxDiffPixels: fixture.shotMaxDiffPixels }
+    );
   });
 }

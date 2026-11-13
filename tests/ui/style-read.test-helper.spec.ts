@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { assertFonts, openMockup } from "./mockup-open";
-import { diffStyle, readStyle } from "./style-read";
+import { diffStyle, normalizeControl, readStyle } from "./style-read";
 
 // 대조 도구(readStyle · diffStyle · assertFonts) 자체가 맞게 재고 맞게 실패하는지 확인한다.
 
@@ -73,6 +73,36 @@ test("자식 수가 다르면 한 줄로 알린다", async ({ page }) => {
   const one = await readStyle(page.locator("#one"));
   const two = await readStyle(page.locator("#two"));
   expect(diffStyle(one, two)).toContain("div 자식 수: 시안=1 구현=2");
+});
+
+test("입력칸 정규화(control): 태그·input 은 무시하고 캐럿 색·칩 차이는 잡는다", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setContent(`
+    <style>
+      body { margin: 0; font: 14px/1.6 sans-serif; }
+      .inp { display: inline-flex; gap: 6px; height: 26px; padding: 0 8px; border: 1px solid rgb(30, 42, 60); }
+      .caret { margin-left: auto; color: rgb(91, 107, 133); }
+      input { border: 0; padding: 0; background: transparent; color: inherit; font: inherit; field-sizing: content; }
+    </style>
+    <span id="m" class="inp">전체<span class="caret">▾</span></span>
+    <span id="ok" class="inp"><input value="전체"><span class="caret">▾</span></span>
+    <span id="bad" class="inp"><input value="전체"><span class="caret" style="color: rgb(74, 158, 255)">▾</span></span>
+    <span id="chip" class="inp">기타<span class="caret">▾</span></span>
+    <span id="wrapped" class="inp"><input value="기타"><span style="display: contents"><span class="caret">▾</span></span></span>
+  `);
+  const m = normalizeControl(await readStyle(page.locator("#m")), "mockup");
+  const ok = normalizeControl(await readStyle(page.locator("#ok")), "app");
+  const bad = normalizeControl(await readStyle(page.locator("#bad")), "app");
+  expect(diffStyle(m, ok)).toEqual([]);
+  expect(diffStyle(m, bad)).toContain("control > span[0] color: 시안=rgb(91, 107, 133) 구현=rgb(74, 158, 255)");
+  // 묶음 span 은 풀려서 자식(캐럿)이 시안 층에 놓인다
+  const chipM = normalizeControl(await readStyle(page.locator("#chip")), "mockup");
+  const wrapped = normalizeControl(await readStyle(page.locator("#wrapped")), "app");
+  expect(diffStyle(chipM, wrapped)).toEqual([]);
+  // 루트 색이 다르면 당연히 잡는다(무시하는 건 태그와 input 뿐)
+  await page.evaluate(() => ((document.querySelector("#ok") as HTMLElement).style.borderColor = "rgb(255, 0, 0)"));
+  const red = normalizeControl(await readStyle(page.locator("#ok")), "app");
+  expect(diffStyle(m, red).some((l) => l.startsWith("control border-top-color"))).toBe(true);
 });
 
 test("글꼴이 없으면 한 줄로 실패", async ({ page }) => {

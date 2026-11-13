@@ -69,12 +69,11 @@ export function Field({
   const wrapped = WRAPPED.has(resolved) || icon !== undefined
   const state = invalid ? "invalid" : readOnly ? "readonly" : undefined
   const attrs = partAttrs("Field", {
-    // 기본(text)은 표식에 변형을 넣지 않는다
-    variant: resolved === "text" ? undefined : resolved,
+    // 시안이 text 도 이름을 붙여 두었으므로 그대로 낸다(R17)
+    variant: resolved,
     state,
     id: partId,
   })
-  const stateClass = invalid ? "border-danger-line" : undefined
   const inputAria = {
     "aria-invalid": invalid ? (true as const) : undefined,
     "aria-required": required ? (true as const) : undefined,
@@ -86,7 +85,7 @@ export function Field({
         {...attrs}
         {...inputAria}
         readOnly={readOnly}
-        className={cn(BOX, VARIANT_CLASS[resolved], "outline-none focus-visible:border-brand", stateClass, className)}
+        className={cn(BOX, VARIANT_CLASS[resolved], className)}
         style={style}
         {...props}
       />
@@ -95,24 +94,20 @@ export function Field({
 
   const isSearch = resolved === "search-shell"
   return (
-    <span
-      {...attrs}
-      className={cn(BOX, VARIANT_CLASS[resolved], "focus-within:border-brand", stateClass, className)}
-      style={style}
-    >
+    <span {...attrs} className={cn(BOX, VARIANT_CLASS[resolved], className)} style={style}>
       {isSearch ? <Search aria-hidden="true" className="size-[13px] shrink-0" /> : null}
       <input
         {...inputAria}
         readOnly={readOnly}
         className={cn(
-          "min-w-0 border-0bg-transparent p-0 text-inherit outline-none [field-sizing:content]",
+          "min-w-0 border-0 bg-transparent p-0 text-inherit [field-sizing:content]",
           isSearch ? "flex-1 placeholder:text-dim" : "max-w-full"
         )}
         {...props}
       />
       {after ? <span className="ml-[6px] inline-flex">{after}</span> : null}
       {isSearch ? null : (
-        <span aria-hidden="true" className={cn("ml-auto", resolved === "pick" ? "text-brand" : "text-dim")}>
+        <span aria-hidden="true" className={cn("ml-auto border-none",resolved === "pick" ? "text-brand" : "text-dim")}>
           {resolved === "pick" ? "⌕" : "▾"}
         </span>
       )}

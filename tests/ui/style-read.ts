@@ -130,3 +130,24 @@ export function diffStyle(a: StyleSnapshot, b: StyleSnapshot, path?: string): st
   }
   return out;
 }
+
+/** 입력칸 대조용 정규화에서 앱 쪽 자식 중 빼는 태그: 진짜 입력(시안은 글자를 span 안에 직접 씀), 돋보기 아이콘(시안은 글자 ⌕). */
+const CONTROL_DROP_TAGS = new Set(["input", "svg"]);
+
+/**
+ * 폼 입력칸(Field) 대조용 정규화(R18). 시안 `.inp` 는 span 에 글자를 직접 쓴 모양이라 앱의 `<input>` 과 다음 두 점만 구조상 다르다:
+ * 루트 태그, 그리고 앱 쪽 `<input>`(· 돋보기 svg) 자식. 이 둘만 덮는다.
+ * - 루트 태그: 둘 다 "control" 로 통일.
+ * - 앱(`side: "app"`): `<input>` · `<svg>` 자식을 뺀다. 자식을 가진 span(`after` 묶음)은 풀어 그 자식(칩)을 시안 자식과 같은 층에 놓는다.
+ * 나머지(루트 계산값 · ::before/::after · 캐럿 · 칩 등 자식 계산값과 수)는 diffStyle 이 그대로 비교한다.
+ */
+export function normalizeControl(snap: StyleSnapshot, side: "mockup" | "app"): StyleSnapshot {
+  const flatten = (children: StyleSnapshot[]): StyleSnapshot[] =>
+    children.flatMap((child) => {
+      if (side !== "app") return [child];
+      if (CONTROL_DROP_TAGS.has(child.tag)) return [];
+      if (child.tag === "span" && child.children.length > 0) return flatten(child.children);
+      return [child];
+    });
+  return { ...snap, tag: "control", children: flatten(snap.children) };
+}

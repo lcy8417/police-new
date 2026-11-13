@@ -27,9 +27,9 @@ describe("Field", () => {
     expect(screen.queryByText("*")).toBeNull()
   })
 
-  it("기본 변형은 표식에 변형을 넣지 않고, 지정하면 시안 이름 그대로", () => {
+  it("기본 변형도 시안 이름 text 를 표식에 낸다, 지정하면 그 이름 그대로", () => {
     const { rerender } = render(<Field aria-label="a" />)
-    expect(screen.getByLabelText("a")).not.toHaveAttribute("data-part-variant")
+    expect(screen.getByLabelText("a")).toHaveAttribute("data-part-variant", "text")
     rerender(<Field aria-label="a" variant="mono-sm" partId="S01-13" />)
     const el = screen.getByLabelText("a")
     expect(el).toHaveAttribute("data-part-variant", "mono-sm")

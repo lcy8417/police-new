@@ -119,7 +119,7 @@ export const FIXTURE_RENDERS: Record<string, () => ReactNode> = {
   "S02-20": () => (
     <Field
       variant="select-warn"
-      defaultValue="기타 "
+      defaultValue="기타"
       after={<Chip variant="amber-h18">확인 필요</Chip>}
       partId="S02-20"
       aria-label="채취 방법"
