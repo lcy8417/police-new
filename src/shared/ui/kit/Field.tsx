@@ -24,12 +24,12 @@ const BOX =
 
 const VARIANT_CLASS: Record<FieldVariant, string> = {
   text: "w-full",
-  mono: "w-full font-mono tabular-nums",
-  "mono-sm": "w-full font-mono tabular-nums text-[11.5px]",
-  "mono-sm-flex": "flex-1 font-mono tabular-nums text-[11.5px]",
+  mono: "w-full font-code tabular-nums",
+  "mono-sm": "w-full font-code tabular-nums text-[11.5px]",
+  "mono-sm-flex": "flex-1 font-code tabular-nums text-[11.5px]",
   select: "w-full",
   pick: "w-full",
-  "select-mono": "w-full font-mono text-[11.5px]",
+  "select-mono": "w-full font-code text-[11.5px]",
   "select-warn": "w-full border-warn-line",
   "search-shell": "w-[260px] text-dim",
 }

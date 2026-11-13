@@ -72,7 +72,7 @@ export function Panel({
         >
           {title != null && <h2 className="border-none text-[13px] font-semibold">{title}</h2>}
           {label != null && (
-            <span className="font-mono text-[9.5px] font-semibold tracking-[0.2em] text-faint">{label}</span>
+            <span className="font-code text-[9.5px] font-semibold tracking-[0.2em] text-faint">{label}</span>
           )}
           {actions}
         </header>

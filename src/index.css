@@ -194,8 +194,10 @@
   --color-warn-bg: var(--t-warn-bg);
   --color-violet: var(--t-violet);
   --color-violet-bg: var(--t-violet-bg);
+  /* 부품 글꼴 역할(새 이름 — 시안 --font-ui · --font-mono 와 같은 목록). Tailwind 기본 이름
+     --font-mono · --font-sans 는 덮어쓰지 않는다(덮으면 기존 화면의 font-mono 글자가 모두 바뀜, 판정 R33). */
   --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "D2Coding", ui-monospace, Menlo, monospace;
+  --font-code: "JetBrains Mono", "D2Coding", ui-monospace, Menlo, monospace;
 }
 
 /* AI 표식 진행 점 맥박(시안 mockup.css 의 fx-pulse 와 같은 움직임) */

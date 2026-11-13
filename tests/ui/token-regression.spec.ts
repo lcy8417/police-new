@@ -38,6 +38,40 @@ test("shadcn 변수 계산값 불변", async ({ page }) => {
   expect(values).toEqual(JSON.parse(fs.readFileSync(BASELINE, "utf8")));
 });
 
+// 이 브랜치 이전(d6987ae)의 계산값 = Tailwind 4 기본 글꼴 목록(node_modules/tailwindcss/theme.css 의
+// --font-mono · --font-sans 를 브라우저가 정리한 모양). 부품 글꼴을 들이면서 기존 화면의 font-mono(44개 파일)
+// · 기본 글꼴이 바뀌지 않았음을 지킨다(최종 검토 C1 · 판정 R33). 부품은 font-code · font-ui 를 쓴다.
+const BASELINE_MONO =
+  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+const BASELINE_SANS =
+  'ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
+
+test("기존 글꼴 역할(font-mono · font-sans · 기본 글꼴) 계산값 불변", async ({ page }) => {
+  await openLogin(page);
+  const fonts = await page.evaluate(() => {
+    const probe = (className: string) => {
+      const el = document.createElement("span");
+      el.className = className;
+      el.textContent = "00001-25-";
+      document.body.appendChild(el);
+      const value = getComputedStyle(el).fontFamily;
+      el.remove();
+      return value;
+    };
+    const code = document.createElement("code");
+    document.body.appendChild(code);
+    const codeFont = getComputedStyle(code).fontFamily;
+    code.remove();
+    return {
+      mono: probe("font-mono"),
+      sans: probe("font-sans"),
+      body: getComputedStyle(document.body).fontFamily,
+      code: codeFont,
+    };
+  });
+  expect(fonts).toEqual({ mono: BASELINE_MONO, sans: BASELINE_SANS, body: BASELINE_SANS, code: BASELINE_MONO });
+});
+
 test("로그인 화면 스크린샷 불변", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await openLogin(page);

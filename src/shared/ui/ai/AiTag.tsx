@@ -12,7 +12,7 @@ export type AiTagVariant = "default" | "progress" | "done"
 
 const BASE =
   "inline-flex items-center gap-[4px] whitespace-nowrap rounded-[999px] border border-solid border-ai-line " +
-  "font-mono font-semibold text-ai"
+  "font-code font-semibold text-ai"
 
 const VARIANT_CLASS: Record<AiTagVariant, string> = {
   default: "h-[17px] px-[6px] text-[9.5px] tracking-[0.04em] bg-ai-bg",

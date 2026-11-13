@@ -1,6 +1,6 @@
 # 토큰 — 값과 역할 (확정 대응표)
 
-**결론: 색 값은 `src/index.css` `:root`의 값 토큰 `--t-*`에만 있다(시안 `assets/mockup.css :root`가 원본). 화면 코드는 값이 아니라 역할 이름(Tailwind `bg-panel`, `text-ai` …)을 쓴다. 기존 shadcn 이름(`--background` `--card` `--accent` …)은 이름도 뜻도 그대로 두고 값만 `--t-*`를 가리킨다 — 그래서 토큰을 들이면서 앱 화면 색은 하나도 바뀌지 않았다.**
+**결론: 색 값은 `src/index.css` `:root`의 값 토큰 `--t-*`에만 있다(시안 `assets/mockup.css :root`가 원본). 화면 코드는 값이 아니라 역할 이름(Tailwind `bg-panel`, `text-ai` …)을 쓴다. 기존 shadcn 이름(`--background` `--card` `--accent` …)은 이름도 뜻도 그대로 두고 값만 `--t-*`를 가리킨다 — 그래서 토큰을 들이면서 앱 화면 색은 하나도 바뀌지 않았다. 글꼴도 새 이름(`font-ui` · `font-code`)으로만 들여 기존 `font-mono` · 기본 글꼴은 그대로다(아래 「글꼴」).**
 
 ## 층 3개
 
@@ -82,10 +82,14 @@
 
 ## 글꼴
 
-| 토큰 | 값 | Tailwind | 쓰는 자리 |
-|---|---|---|---|
-| `--font-ui` | `"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif` | `font-ui` | 기본 글자 |
-| `--font-mono` | `"JetBrains Mono", "D2Coding", ui-monospace, Menlo, monospace` | `font-mono` | **감정번호 · 신발 번호 · 점수 · 날짜**, AI 표식. 숫자는 `tabular-nums`(자리 폭 고정)도 같이 |
+| 토큰(`@theme inline`) | 값 | Tailwind | 시안 이름 | 쓰는 자리 |
+|---|---|---|---|---|
+| `--font-ui` | `"IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif` | `font-ui` | `--font-ui` | 기본 글자 |
+| `--font-code` | `"JetBrains Mono", "D2Coding", ui-monospace, Menlo, monospace` | `font-code` | `--font-mono` | **감정번호 · 신발 번호 · 점수 · 날짜**, AI 표식. 숫자는 `tabular-nums`(자리 폭 고정)도 같이 |
+
+- **부품 · 새 코드는 `font-code` · `font-ui`를 쓴다. `font-mono` · `font-sans`는 쓰지 않는다.** 이 두 이름은 Tailwind 기본 글꼴(`ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, …` · `ui-sans-serif, system-ui, …`)이고 기존 화면(`src/`의 39개 파일, 2026-11-13 셈)이 그대로 쓰고 있다. `@theme`에서 `--font-mono` · `--font-sans` · `--font-serif`를 다시 정의하면 기존 화면 글꼴이 모두 바뀌므로 금지(최종 검토 C1 · 판정 R33).
+- 지키는 검사: `src/shared/ui/token-map.test.ts`(`@theme`에 세 이름이 없음, `--font-ui` · `--font-code`가 시안 목록과 글자까지 같음) · `tests/ui/token-regression.spec.ts`(로그인 화면에서 `font-mono` · `font-sans` · 기본 글꼴 계산값이 브랜치 이전 값과 같음).
+- 글꼴 파일은 `index.html`의 Google Fonts 링크로 받는다(오프라인이면 목록의 다음 글꼴). 직접 내려받아 두기(self-host)는 아직 안 함 — 사용자 결정 대기.
 
 ## 쓰는 규칙
 

@@ -70,3 +70,40 @@ describe("토큰 대응표", () => {
     expect(dark["--accent"]).toBe("var(--t-select)");
   });
 });
+
+// 이 브랜치 이전(d6987ae)부터 @theme 에 있던 shadcn 색 역할. 이 이름들은 shadcn 변수를 그대로 가리킨다.
+const SHADCN_COLOR_ROLES = [
+  "background", "foreground", "card", "card-foreground", "popover", "popover-foreground",
+  "primary", "primary-foreground", "secondary", "secondary-foreground", "muted", "muted-foreground",
+  "accent", "accent-foreground", "destructive", "border", "input", "ring",
+  "chart-1", "chart-2", "chart-3", "chart-4", "chart-5",
+  "sidebar", "sidebar-foreground", "sidebar-primary", "sidebar-primary-foreground",
+  "sidebar-accent", "sidebar-accent-foreground", "sidebar-border", "sidebar-ring",
+];
+
+describe("@theme 역할(기존 화면 변화 0 — 설계서 §12-2)", () => {
+  const theme = declsOf(appCss, /@theme inline\s*\{([\s\S]*?)\n\}/);
+
+  it("새로 더한 --color-* 역할은 모두 값 토큰 var(--t-*) 를 가리킨다", () => {
+    const added = Object.entries(theme).filter(
+      ([name]) => name.startsWith("--color-") && !SHADCN_COLOR_ROLES.includes(name.slice("--color-".length))
+    );
+    expect(added.length).toBeGreaterThan(0);
+    for (const [name, value] of added) expect(value, name).toMatch(/^var\(--t-[\w-]+\)$/);
+  });
+
+  it("기존 shadcn 색 역할은 같은 이름의 shadcn 변수를 그대로 가리킨다", () => {
+    for (const role of SHADCN_COLOR_ROLES) expect(theme[`--color-${role}`], role).toBe(`var(--${role})`);
+  });
+
+  it("Tailwind 기본 글꼴 이름(--font-mono · --font-sans · --font-serif)을 덮어쓰지 않는다", () => {
+    // 덮어쓰면 기존 화면의 font-mono · font-sans 글자가 모두 바뀐다(최종 검토 C1).
+    for (const name of ["--font-mono", "--font-sans", "--font-serif"]) expect(theme[name], name).toBeUndefined();
+  });
+
+  it("부품 글꼴 역할 font-ui · font-code 는 시안 --font-ui · --font-mono 와 같은 글꼴 목록", () => {
+    const mock = declsOf(mockupCss, /:root\s*\{([\s\S]*?)\n\}/);
+    expect(theme["--font-ui"]).toBe(mock["--font-ui"]);
+    expect(theme["--font-code"]).toBe(mock["--font-mono"]);
+  });
+});

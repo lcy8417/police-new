@@ -45,7 +45,7 @@ const VARIANT_CLASS: Record<ChipVariant, string> = {
   "blue-h20": cn(TONE.blue, "h-[20px]"),
   // 바탕은 기본 칩 그대로, 글자·테두리만 경고색(시안 인라인 덧씌움)
   "h20-warn": "bg-panel-2 border-warn-line text-warn h-[20px]",
-  "blue-mono-h20": cn(TONE.blue, "h-[20px] font-mono font-semibold"),
+  "blue-mono-h20": cn(TONE.blue, "h-[20px] font-code font-semibold"),
   h22: cn(TONE.plain, "h-[22px]"),
 }
 
