@@ -55,7 +55,7 @@ function FixtureBox({ fixture }: FixtureBoxProps) {
       <h2 className="font-mono text-[11px] text-muted-foreground">{label}</h2>
       {/* 부모 폭은 예시마다 다른 데이터 값이라 인라인 width 로 준다(위치값 예외). */}
       <div
-        className={SURFACE_CLASS[fixture.surface ?? "canvas"]}
+        className={[SURFACE_CLASS[fixture.surface ?? "canvas"], fixture.boxClass].filter(Boolean).join(" ")}
         style={{ width: fixture.parentWidth }}
       >
         {FIXTURE_RENDERS[fixture.id]?.()}

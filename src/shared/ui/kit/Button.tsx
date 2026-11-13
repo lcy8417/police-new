@@ -8,7 +8,8 @@ import { partAttrs } from "../part-attrs"
 // 변형은 시안 클래스 `pri · ai · ok · warn · danger · ghost`, 크기는 `.sm`, 잠김은 `.locked`.
 
 export type ButtonVariant = "default" | "pri" | "ai" | "ok" | "warn" | "danger" | "ghost"
-export type ButtonSize = "md" | "sm"
+// 크기: 시안 `.btn`(md) · `.btn.sm` 과 높이만 다른 `sm-h26` · `sm-h22`(설계서 §14-2: 작은 차이도 변형으로 보존)
+export type ButtonSize = "md" | "sm" | "sm-h26" | "sm-h22"
 
 const BASE =
   "inline-flex items-center gap-[6px] border border-solid whitespace-nowrap cursor-pointer"
@@ -16,6 +17,8 @@ const BASE =
 const SIZE_CLASS: Record<ButtonSize, string> = {
   md: "h-[30px] px-[12px] rounded-[8px] text-[12.5px]",
   sm: "h-[24px] px-[8px] rounded-[6px] text-[11.5px]",
+  "sm-h26": "h-[26px] px-[8px] rounded-[6px] text-[11.5px]",
+  "sm-h22": "h-[22px] px-[8px] rounded-[6px] text-[11.5px]",
 }
 
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
@@ -35,13 +38,21 @@ export interface ButtonProps extends React.ComponentProps<"button"> {
   locked?: boolean
   /** 자식 요소(예: `<a>`)에 버튼 모양과 표식을 입힌다 */
   asChild?: boolean
+  /** 표 행 안 버튼: 좌우 패딩 6px, 변형 이름 끝에 `-row` */
+  row?: boolean
+  /** 보는 사람 역할에 따라 잠기는 버튼(`data-part-state="role-lock"`). 이 시점에선 잠기지 않은 모양 그대로 */
+  roleLock?: boolean
   /** 시안 위치 식별자(`data-part-id`) */
   partId?: string
 }
 
-// 표식 변형 이름: 크기 sm 이면 앞에 `sm`, 기본 변형이 아니면 뒤에 변형 이름 → "sm" · "sm-pri" · "pri".
-function variantName(variant: ButtonVariant, size: ButtonSize): string | undefined {
-  const parts = [size === "sm" ? "sm" : "", variant === "default" ? "" : variant].filter(Boolean)
+// 표식 변형 이름: 크기(md 는 생략) + 기본이 아닌 변형 + 행이면 `row` → "sm" · "sm-h26" · "sm-pri" · "sm-ok-row" · "pri".
+function variantName(variant: ButtonVariant, size: ButtonSize, row: boolean): string | undefined {
+  const parts = [
+    size === "md" ? "" : size,
+    variant === "default" ? "" : variant,
+    row ? "row" : "",
+  ].filter(Boolean)
   return parts.length ? parts.join("-") : undefined
 }
 
@@ -50,6 +61,8 @@ export function Button({
   size = "md",
   locked = false,
   asChild = false,
+  row = false,
+  roleLock = false,
   partId,
   className,
   disabled,
@@ -59,14 +72,15 @@ export function Button({
   return (
     <Comp
       {...partAttrs("Button", {
-        variant: variantName(variant, size),
-        state: locked ? "locked" : undefined,
+        variant: variantName(variant, size, row),
+        state: locked ? "locked" : roleLock ? "role-lock" : undefined,
         id: partId,
       })}
       disabled={disabled || locked}
       className={cn(
         BASE,
         SIZE_CLASS[size],
+        row && "px-[6px]",
         VARIANT_CLASS[variant],
         (locked || disabled) && "opacity-35 cursor-not-allowed",
         className,

@@ -8,7 +8,7 @@ const mockupCss = fs.readFileSync(
 );
 const appCss = fs.readFileSync(path.resolve("src/index.css"), "utf8");
 
-// 시안 이름 -> 앱 값 토큰 이름(설계서 §5-2). 시안 --blue-bg 는 앱에 매핑하지 않는다.
+// 시안 이름 -> 앱 값 토큰 이름(설계서 §5-2). --blue-bg 는 칩 blue 배경이라 --t-brand-bg 로 매핑(R3b).
 const MAP: Record<string, string> = {
   "--bg": "--t-bg",
   "--bg2": "--t-bg-2",
@@ -27,6 +27,7 @@ const MAP: Record<string, string> = {
   "--blue": "--t-brand",
   "--blue2": "--t-brand-2",
   "--blue3": "--t-brand-3",
+  "--blue-bg": "--t-brand-bg",
   "--teal": "--t-ai",
   "--teal-bg": "--t-ai-bg",
   "--red": "--t-danger",

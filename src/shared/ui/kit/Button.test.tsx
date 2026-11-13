@@ -54,8 +54,38 @@ describe("Button", () => {
     expect(link).toHaveAttribute("href", "/x")
   })
 
-  it("data-part-variant 를 직접 넘기면 그 값이 우선", () => {
-    render(<Button size="sm" data-part-variant="sm-h26">검색</Button>)
-    expect(screen.getByRole("button")).toHaveAttribute("data-part-variant", "sm-h26")
+  it("sm-h26 · sm-h22 크기는 시안 변형 이름 그대로", () => {
+    render(
+      <>
+        <Button size="sm-h26">검색</Button>
+        <Button size="sm-h22">적용</Button>
+      </>,
+    )
+    const [a, b] = screen.getAllByRole("button")
+    expect(a).toHaveAttribute("data-part-variant", "sm-h26")
+    expect(b).toHaveAttribute("data-part-variant", "sm-h22")
+  })
+
+  it("row 는 변형 이름 끝에 -row 가 붙는다", () => {
+    render(
+      <>
+        <Button variant="ok" size="sm" row>
+          검색
+        </Button>
+        <Button variant="warn" size="sm" row>
+          검증
+        </Button>
+      </>,
+    )
+    const [ok, warn] = screen.getAllByRole("button")
+    expect(ok).toHaveAttribute("data-part-variant", "sm-ok-row")
+    expect(warn).toHaveAttribute("data-part-variant", "sm-warn-row")
+  })
+
+  it("roleLock 은 상태 role-lock 이고 비활성은 아니다", () => {
+    render(<Button roleLock>수정</Button>)
+    const el = screen.getByRole("button")
+    expect(el).toHaveAttribute("data-part-state", "role-lock")
+    expect(el).not.toBeDisabled()
   })
 })
