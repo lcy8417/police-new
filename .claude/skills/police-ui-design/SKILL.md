@@ -103,6 +103,19 @@ description: 족적 감정 플랫폼 화면 디자인 정본 — 토큰 · 부�
 
 **7. 목록에 한 줄.** `components.md`에 부품 · 파일 · 원본 · 쓰는 화면 · 변형 · 상태. 상태는 **후보 → 구현됨 → 검증됨** 순서로만 올린다(구현됨 = 파일이 있음, 검증됨 = 시안 짝과 대조 통과).
 
+### 7번째 부품 추가 체크리스트
+
+지금 검증된 6개 다음 부품(예: 후보 Segmented)을 들일 때 빠뜨리기 쉬운 순서다. 위 작업 순서를 한 줄씩 줄인 것.
+
+1. `references/components.md`에 그 부품 행이 있는지(없으면 후보 행부터) — 「부품」 칸은 PascalCase 이름 하나.
+2. 부품표(`parts-plan.md`)에 판정 — 후보 부품은 「새로」(기존 부품에 변형 추가는 「확장」) + 사용자 승인 줄 `승인: MM/DD 소유자 — 부품(변형)`.
+3. 시안 자리에 표식 4개(`data-part` · `-variant` · `-state` · `-id`) — 붙이기 전후 `mockup-snap` 차이 0.
+4. 부품 파일(`src/shared/ui/<출입구>/<이름>.tsx`) + 출입구 `index.ts`에 **이름 있는 export** 한 줄(출입구 export는 모두 목록 「부품」 열에 있어야 `check:ui:static` 통과).
+5. 진열 화면 픽스처 — `fixtures-meta.ts`(데이터)와 `fixtures.tsx`(그림)에 시안과 같은 `data-part-id`로 한 줄씩.
+6. 대조가 안 맞는 이유가 시안 쪽 장치(주석 핀 · 겹친 틀 등)면 예외(`noShot` · `compare` · `ignore*`)를 쓰고, **측정한 값과 이유**를 픽스처 주석과 `components.md` 「픽셀 대조를 뺀 자리」 · 「대조 방식이 기본과 다른 짝」에 적는다. 모르면 예외를 쓰지 말고 묻는다.
+7. `components.md` 상태를 구현됨 → (대조 통과 후) 검증됨으로, `references/visual-spec.md`에 계산값 표 한 절.
+8. `npm run check:ui`(macOS가 아니면 `check:ui:static`) + `npx tsc --noEmit` · `npx vitest run` · `npm run build` · 변경 파일 `npx eslint`.
+
 ### 시안에 표식 붙이기(새 화면을 부품으로 옮기기 전 0단계)
 
 - 부품 자리마다 표식 4개를 붙인다. 변형마다 대표 1곳에 `data-part-id`(화면-번호).

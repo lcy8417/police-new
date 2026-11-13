@@ -12,7 +12,8 @@ export type ButtonBarVariant = "panel-head" | "modal-head"
 const BASE = "ml-auto flex items-center gap-[6px] border-none"
 
 const VARIANT_CLASS: Record<ButtonBarVariant, string> = {
-  // 패널 머리 오른쪽(S01-16): 시안 인라인 padding-left 14
+  // 패널 머리 오른쪽(S01-16): 시안 인라인 padding-left 14 = 주석 핀(M.apin) 자리(판정 R40).
+  // 대조가 요구해 남겨 두지만 새 변형에 복사하지 말 것 — 시안을 고칠 때 핀을 옮기고 이 값 제거.
   "panel-head": "pl-[14px]",
   // 모달 머리 오른쪽(S02-23): 덧붙는 값 없음
   "modal-head": "",

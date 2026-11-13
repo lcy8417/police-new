@@ -104,6 +104,7 @@
 
 - 검사는 **파일 단위**(`scripts/ui/count-hex.mjs`, `npm run check:ui` 첫 단계). `src/index.css`(토큰 정의)는 뺀다.
   - 「전환 완료 목록」 `scripts/ui/ui-converted.txt`(한 줄에 glob 하나)에 오른 파일 → hex **0**이어야 한다. 지금은 `src/pages/dev/**`.
-  - 나머지 파일 → 파일마다 기준 수(`scripts/ui/hex-baseline.json`, 2026-11-13 87개 파일 · 1,675곳)보다 늘면 실패. 지우고 새로 넣는 바꿔치기도 잡힌다.
-- 화면을 옮겨 hex를 **줄였을 때만** 기준을 다시 쓴다: `npm run check:ui:baseline`.
+  - 기준 목록(`scripts/ui/hex-baseline.json`, 2026-11-13 87개 파일 · 1,675곳)에 있는 파일 → 파일마다 기준 수보다 늘면 실패. 지우고 새로 넣는 바꿔치기도 잡힌다.
+  - **기준 목록에 없는 파일(새 파일) → hex 0이어야 한다.** 새 파일을 기준 목록에 올려 hex를 허용받지 않는다.
+- 기준 다시 쓰기(`npm run check:ui:baseline`)는 화면을 옮겨 hex 수가 **줄었을 때만** 돌린다. 늘어난 수를 기준으로 굳히려고 돌리지 않는다(돌리면 늘어난 hex가 그대로 허용된다).
 - 테스트 파일처럼 hex 글자가 꼭 필요한 줄은 줄 끝에 `// hex-ok`를 붙이면 세지 않는다(화면 코드에는 쓰지 않는다).

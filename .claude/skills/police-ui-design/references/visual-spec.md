@@ -3,9 +3,10 @@
 **결론: 아래 값은 r3 시안을 브라우저로 띄워 읽은 계산값(computed style)이다. 구현된 부품은 표에 짝 번호가 있는 변형에 대해 계산값 대조(+ 예외로 빼지 않은 짝은 스크린샷 대조)를 통과했다. 부품을 고칠 때 이 표와 다르게 만들지 않는다. 표에 없는 상태(틀림 · 초점 · 저장 중 · 저장 실패)는 시안에 먼저 그린다.**
 
 대조의 한계(자세한 이유는 `components.md` 「픽셀 대조를 뺀 자리」 · 「대조 방식이 기본과 다른 짝」 · 「픽스처가 없어 대조하지 못한 것」):
-- **스크린샷을 뺀 짝 8개**(`noShot`): S01-19 · S02-15(Field), S02-17 · S02-18 · S01-15(Panel), S01-16 · S02-23(ButtonBar), S01-17 · S01-18(AiTag). **1픽셀 허용** 1개: S02-20(Field).
+- **스크린샷을 뺀 짝 9개**(`noShot`): S01-19 · S02-15(Field), S02-17 · S02-18 · S01-15(Panel), S01-16 · S02-23(ButtonBar), S01-17 · S01-18(AiTag). **1픽셀 허용** 1개: S02-20(Field).
 - **대조 범위를 줄인 짝**: Field 9개 전부 `compare: "control"`, Panel S01-15 `shell-head`(+ 높이 제외), ButtonBar S01-16 · S02-23 `shell`(S01-16은 폭 · 높이 제외), AiTag S01-17 · S01-18 위치 제외(`ignorePlacement`).
-- **대조하지 못한 변형 · 상태**: Button `md` · `ai` · `danger` · `ghost` · `locked`(진짜 잠김) · `role-lock`의 잠긴 모양 · `sm-indigo-row`, Chip `on` · `h22` · `ref` · `ref-voice`, Field `readonly` · `invalid`, Panel 머리 라벨(`label`), AiTag `.ai-mark`. 이 값들은 시안 CSS에서 옮겼거나(아래 표 밑 문단) 아직 모양이 없다.
+- **배치 속성은 어느 부품도 대조하지 않는다.** 계산값 대조가 읽는 속성(`tests/ui/style-read.ts` `STYLE_PROPS`)은 색 · 테두리 · 모서리 · 글꼴 · 안쪽 여백 · 폭 · 높이 · 그림자 · 불투명도 · 간격(`gap`) · `content` · `filter` · `position`과 위 · 오른쪽 · 아래 · 왼쪽 위치뿐이고, `display` · `align-items` · `justify-content` · `margin` · `flex`(늘고 줄기)는 없다. 그래서 아래 표의 배치 값(예: ButtonBar 「`display: flex` · 세로 가운데 · 왼쪽 바깥 `auto`(오른쪽 붙임)」, Field `mono-sm-flex`의 `flex: 1`)은 **시안에서 읽어 옮긴 값이고 대조로 확인되지 않았다.** 특히 **ButtonBar의 오른쪽 붙임 · 세로 가운데는 미검증**이다(이 클래스를 지워도 지금 대조는 통과한다). 배치를 정규화해 비교하는 도구는 다음 계획(판정 R34).
+- **대조하지 못한 변형 · 상태**(`components.md` 「픽스처가 없어 대조하지 못한 것」과 같은 목록): Button `md` · `ai` · `danger` · `ghost` · `locked`(진짜 잠김) · `role-lock`의 잠긴 모양 · `sm-indigo-row`, Chip `on` · `h22` · `ref` · `ref-voice`, Field `readonly` · `invalid`, Panel 머리 라벨(`label`) · `default` 대표 S01-14, AiTag `.ai-mark`. 이 값들은 시안 CSS에서 옮겼거나(아래 표 밑 문단) 아직 모양이 없다. 마우스 올림 · 누름 · 키보드 초점 상태도 대조하지 않는다.
 - 예외를 새로 쓰려면 측정한 이유를 픽스처 주석과 `components.md`에 적어야 한다(`SKILL.md` 작업 순서 6).
 
 읽는 조건(모든 표 공통): 시안 `docs/mockups/scas-redesign/index.html`, 「보는 사람」 = 감정관, 화면 틀 1440px, 실제 글꼴(IBM Plex Sans KR · JetBrains Mono) 로딩 뒤, 움직임 줄이기 켬. 색은 `rgb(…)` 계산값 옆에 토큰 이름을 적었다(`tokens.md`). 「짝」은 시안 · 진열 화면의 `data-part-id`.
@@ -78,8 +79,10 @@
 
 | 짝 | 변형 | 읽은 값 |
 |---|---|---|
-| S01-16 | `panel-head` | `display: flex` · 세로 가운데 · 간격 6 · 왼쪽 바깥 `auto`(오른쪽 붙임) · 왼쪽 안쪽 14 · 테두리 없음 · 글자 물려받음 |
+| S01-16 | `panel-head` | `display: flex` · 세로 가운데 · 간격 6 · 왼쪽 바깥 `auto`(오른쪽 붙임) · 왼쪽 안쪽 14(주석 핀 자리 — `components.md` 「값이 다른 자리」) · 테두리 없음 · 글자 물려받음 |
 | S02-23 | `modal-head` | 위와 같고 왼쪽 안쪽 0(폭 375.52 × 24 — 버튼 5개 + 구분선 + 검색 버튼) |
+
+읽는 법: 간격 · 안쪽 여백 · 테두리 · 폭 · 높이는 대조로 확인했다. **`display: flex` · 세로 가운데 · 오른쪽 붙임(왼쪽 바깥 `auto`)은 배치 속성이라 대조하지 않았다**(위 「대조의 한계」) — 상태 「검증됨」은 이 범위 밖을 보증하지 않는다.
 
 ## AiTag (`ai`, 시안 `.ai-tag`)
 

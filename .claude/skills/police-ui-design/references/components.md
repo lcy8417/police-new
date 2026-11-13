@@ -94,7 +94,7 @@
 | 부품 | 출입구 | 파일 | 원본(data-part) | 쓰는 화면 | 변형 | 상태 |
 |---|---|---|---|---|---|---|
 | Panel | panel | `src/shared/ui/panel/Panel.tsx` | `.panel` · `.panel-h` · `.panel-b` | S00–S15 | [새로] `default` · `tc`(모서리 장식, `corners`) · `default-pad` · 머리(제목 · 라벨 · 오른쪽 `actions`) | 검증됨 |
-| ButtonBar | panel | `src/shared/ui/panel/ButtonBar.tsx` | `.panel-h .r` | S00 · S01 · S06–S15 (+ S02 모달 머리 — 표식 `S02-23`) | [새로] `panel-head` · `modal-head` · SCAS 순서 고정(이전 · 다음 · … · 닫기) | 검증됨 |
+| ButtonBar | panel | `src/shared/ui/panel/ButtonBar.tsx` | `.panel-h .r` | S00 · S01 · S06–S15 (+ S02 모달 머리 — 표식 `S02-23`) | [새로] `panel-head` · `modal-head` · SCAS 순서 고정(이전 · 다음 · … · 닫기). 오른쪽 붙임 · 세로 가운데(배치)는 미검증 — 아래 「배치 속성은 대조하지 않음」 | 검증됨 |
 | ScasShell | panel | | `M.shell` | S01–S15 | [새로] 위 메뉴 · 탭 줄 · 현재 탭 · 왼쪽 메뉴(`M.scasShell`은 SCAS 비교용이라 원본 아님) — 전환은 검증 후 한 번에 | 후보 |
 | SearchForm | panel | | `.form` | S01 · S02 · S04 · S05 · S10 · S11 · S13 | [새로] 라벨-값 2열 · 3열 · 조회 · 초기화 · 필수 라벨(`.l.req`) | 후보 |
 | Stepper | panel | | `.stepper` | S01 (+ S07 · S08 흐름 띠는 표식 때 확인) | [새로] 지금 칸 강조 | 후보 |
@@ -116,7 +116,7 @@
 - **Field**: `.inp.w100`에 인라인 mono 글꼴(`select-mono`) · 주황 테두리(`select-warn`) · 글자 11.5(`mono-sm` · `select-mono`)가 덧씌워진 3종. 위 메뉴 검색 칸은 폭 260 고정(`search-shell`).
 - **AiTag**: S01 표 안 두 개(`progress` · `done`)는 높이 15 · 좌우 4 · 글자 9 · 배경 `#0b2a26`(토큰 `--t-ai-bg-deep`)로 기본(17 · 6 · 9.5 · `--t-ai-bg`)과 다르다. `done`은 `progress`와 위치만 다르다(left 12 vs 4 — 배치).
 - **Panel**: 높이 · 바깥 여백 인라인은 배치로 보고 변형으로 나누지 않았다. 안쪽 여백만 다른 자리(`padding: 50px 14px 0`)를 `default-pad`로.
-- **ButtonBar**: `panel-head`의 왼쪽 안쪽 여백 14(`pl-[14px]`)는 시안에서 주석 핀 자리를 비우려고 넣은 인라인 값일 수 있다 — 부품 값으로 옮겨 두었고 최종 검토에서 판단할 것.
+- **ButtonBar**: `panel-head`의 왼쪽 안쪽 여백 14(`pl-[14px]`)는 **주석 핀 자리**다 — 시안 S01-16이 `M.apin(…, true)` 핀을 비우려고 넣은 인라인 값(판정 R40, R16 · R26과 같은 근거). 대조가 이 값을 요구해서 변형 값으로 남겨 두지만 **새 변형에 복사하지 말 것**. 시안을 고칠 때 핀을 옮기고 이 값을 지운다(시안 · 부품 · 픽스처 함께).
 - **TechCorners**(기존): 네 모서리 L자. 시안 `.panel.tc`는 왼쪽 위 · 오른쪽 아래 두 모서리라 모양이 다르다 — 시안 모양은 Panel `tc`.
 
 ### 픽스처가 없어 대조하지 못한 것
@@ -128,6 +128,8 @@
 | Button `role-lock`(S02-03) | 감정관 시점에서는 잠기지 않아 값이 `sm`과 같음 — 잠긴 모양(보는 사람이 다를 때)은 미대조 |
 | Chip `ref` · `ref-voice`(`.chip-ref`) | 화면 틀(`.frame`) 밖 문서 머리, 번호 없음. 변형도 안 만듦 |
 | Chip `h22`(S02-11) | 기술책임자에게만 보임(감정관 시점에서 숨김). 값은 기본 22와 같음 |
+| Chip 상태 `on` | S01 · S02에 `data-part-state="on"` 짝이 없음. 부품은 속성(`data-part-state`)만 붙이고 모양 차이 없음 |
+| Field 상태 `readonly` · `invalid` | `readonly`는 시안에서 칸 없이 글자만(입력 칸 대조 대상 아님), `invalid`는 시안에 모양이 없음 — 둘 다 속성만(`visual-spec.md` 「입력 · 저장 · 오류」) |
 | AiTag `.ai-mark` | S01 · S02에 쓰인 자리 없음. 변형으로 안 넣음 |
 | Panel 머리 라벨(`label`, 시안 `.panel-h .lbl`) | S01 · S02에 쓰인 자리 없음. 시안 글꼴 줄임말이 줄 높이를 `normal`로 되돌리므로 `leading-[normal]`이 필요할 가능성 — 미확인 |
 | Panel `default` 대표 S01-14 | 안쪽(폼 + 통계)이 너무 커서 진열하지 않음. `default`는 S02-17이 대표 |
@@ -144,6 +146,11 @@
 | S01-16 | ButtonBar `panel-head` | 안쪽 라디오 · 분할 조각을 재현하지 않음 |
 | S02-23 | ButtonBar `modal-head` | 시안 바탕이 모달 머리 전체의 가로 그라데이션 |
 | S01-17 · S01-18 | AiTag `progress` · `done` | 표 칸 밖으로 튀어나온 표식이라 모서리 뒤 그림 · 다음 행 덮임이 비침 |
+
+### 모든 부품 공통 — 배치 속성은 대조하지 않음
+
+- 계산값 대조(`tests/ui/style-read.ts` `STYLE_PROPS`)에 `display` · `align-items` · `justify-content` · `margin` · `flex`가 없다. 그래서 **어느 부품도 배치(가로 · 세로 정렬, 바깥 여백, 늘고 줄기)는 대조로 확인되지 않았다**(판정 R34 — 배치를 정규화해 비교하는 도구는 다음 계획).
+- 특히 **ButtonBar의 오른쪽 붙임(`ml-auto`) · 세로 가운데(`items-center`)는 미검증**이다 — 이 클래스를 지워도 지금 대조는 통과한다. 상태 「검증됨」은 「적힌 범위(색 · 테두리 · 글꼴 · 안쪽 여백 · 크기 · 간격 …)에서 통과」라는 뜻이다.
 
 ### 대조 방식이 기본과 다른 짝
 
