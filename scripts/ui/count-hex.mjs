@@ -2,13 +2,14 @@
 //   node scripts/ui/count-hex.mjs          검사: 전환 완료 목록은 0, 기준 있는 파일은 기준 이하, 새 파일은 0
 //   node scripts/ui/count-hex.mjs --write  현재 수를 scripts/ui/hex-baseline.json 에 기록(기준 뜨기)
 // 대상: src/**/*.{ts,tsx,js,jsx,css} (src/index.css = 토큰 정의는 제외).
-// 정규식·`// hex-ok` 규칙은 src/shared/lib/hex-count.ts 와 같아야 한다(.mjs 는 .ts 를 직접 못 읽어 복제 — 바꾸면 둘 다).
+// 정규식·`// hex-ok` 규칙은 src/shared/lib/hex-count.ts 와 같아야 한다(.mjs 는 .ts 를 직접 못 읽어 복제).
+// 두 구현이 같은지는 src/shared/lib/hex-count.test.ts 가 지킨다 — 바꾸면 둘 다 고칠 것.
 //
 // 참고 — check:ui 는 Playwright 를 갱신 플래그 없이 돌린다(parts-compare 가 -u 에서 일부러 실패).
 // 시각 기준 갱신은 범위를 좁혀서: npx playwright test -c playwright.ui.config.ts mockup-snap -u
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SCRIPT_DIR = path.join(ROOT, "scripts/ui");
@@ -17,7 +18,7 @@ const CONVERTED_PATH = path.join(SCRIPT_DIR, "ui-converted.txt");
 const EXCLUDED = new Set(["src/index.css"]);
 const EXT = /\.(?:ts|tsx|js|jsx|css)$/;
 
-const HEX_PATTERN = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b/g;
+export const HEX_PATTERN = /#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b/g;
 const HEX_OK_SUFFIX = /\/\/\s*hex-ok\s*$/;
 
 export function countHex(source) {
@@ -121,4 +122,5 @@ function main() {
   console.log(`hex 검사 통과: 파일 ${Object.keys(counts).length}개, 합계 ${total}곳`);
 }
 
-main();
+// 직접 실행할 때만 돈다(vitest 가 import 해서 countHex·HEX_PATTERN 만 쓸 수 있게).
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
