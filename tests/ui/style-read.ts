@@ -151,3 +151,25 @@ export function normalizeControl(snap: StyleSnapshot, side: "mockup" | "app"): S
     });
   return { ...snap, tag: "control", children: flatten(snap.children) };
 }
+
+/** 컨테이너 대조에서 제외할 크기 속성(내용 크기로 정해지는 자리). */
+export type ShellIgnore = "width" | "height";
+
+/**
+ * 컨테이너 부품(Panel · ButtonBar) 대조용 정규화(Task 7). 컨테이너의 안쪽 내용(데이터 표 · 라디오 · 분할 버튼 같은 부품이 아닌
+ * 시안 조각)은 부품이 소유하지 않으므로 대조 대상이 아니다. 남기는 것:
+ * - 루트의 자기 계산값 + ::before/::after (단 `ignoreSize` 로 지정한 width/height 는 내용 크기라 뺀다)
+ * - `head: true` 이면 첫 자식(머리: 시안 `.panel-h` ↔ 앱 `<header>`)의 자기 계산값(태그는 header 로 통일, 그 안쪽은 뺀다)
+ * 나머지 자식은 모두 뺀다. 자식 수 · 계산값은 한쪽이라도 어긋나면 diffStyle 이 그대로 잡는다(루트 · 머리 · 가상요소).
+ */
+export function normalizeShell(
+  snap: StyleSnapshot,
+  opts: { head?: boolean; ignoreSize?: readonly ShellIgnore[] } = {}
+): StyleSnapshot {
+  const props = { ...snap.props };
+  for (const key of opts.ignoreSize ?? []) delete props[key];
+  const first = snap.children[0];
+  const children: StyleSnapshot[] =
+    opts.head && first ? [{ ...first, tag: "header", children: [] }] : [];
+  return { ...snap, props, children };
+}

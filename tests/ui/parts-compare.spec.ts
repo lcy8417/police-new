@@ -3,7 +3,7 @@ import path from "node:path";
 import { test, expect, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { PART_FIXTURES } from "../../src/pages/dev/parts/fixtures-meta";
 import { assertFonts, openMockup, type MockupScreen } from "./mockup-open";
-import { diffStyle, normalizeControl, readStyle } from "./style-read";
+import { diffStyle, normalizeControl, normalizeShell, readStyle } from "./style-read";
 
 // 시안 요소 ↔ 진열 화면(/dev/parts) 요소 자동 대조(설계서 §9).
 // 픽스처 id 마다: computed style 차이 0 + 요소 스크린샷 차이 0(maxDiffPixels 0, 기본 픽셀 임계값 — R5).
@@ -210,6 +210,10 @@ for (const fixture of PART_FIXTURES) {
     if (fixture.compare === "control") {
       // 폼 입력칸: 루트 태그와 앱 `<input>` 자식만 무시하고 나머지는 그대로 비교(normalizeControl, R18).
       expect(diffStyle(normalizeControl(mockupStyle, "mockup"), normalizeControl(devStyle, "app"))).toEqual([]);
+    } else if (fixture.compare === "shell" || fixture.compare === "shell-head") {
+      // 컨테이너(Panel · ButtonBar): 안쪽 내용은 부품이 아니라 빼고 루트(+ 머리) 자기 값만 비교(normalizeShell).
+      const opts = { head: fixture.compare === "shell-head", ignoreSize: fixture.ignoreSize };
+      expect(diffStyle(normalizeShell(mockupStyle, opts), normalizeShell(devStyle, opts))).toEqual([]);
     } else {
       expect(diffStyle(mockupStyle, devStyle)).toEqual([]);
     }

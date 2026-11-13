@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { assertFonts, openMockup } from "./mockup-open";
-import { diffStyle, normalizeControl, readStyle } from "./style-read";
+import { diffStyle, normalizeControl, normalizeShell, readStyle } from "./style-read";
 
 // 대조 도구(readStyle · diffStyle · assertFonts) 자체가 맞게 재고 맞게 실패하는지 확인한다.
 
@@ -103,6 +103,39 @@ test("입력칸 정규화(control): 태그·input 은 무시하고 캐럿 색·�
   await page.evaluate(() => ((document.querySelector("#ok") as HTMLElement).style.borderColor = "rgb(255, 0, 0)"));
   const red = normalizeControl(await readStyle(page.locator("#ok")), "app");
   expect(diffStyle(m, red).some((l) => l.startsWith("control border-top-color"))).toBe(true);
+});
+
+test("컨테이너 정규화(shell): 안쪽 내용은 무시하고 루트 · 머리 · 크기 지정은 지킨다", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setContent(`
+    <style>
+      body { margin: 0; font: 14px/1.6 sans-serif; }
+      .p { width: 300px; border: 1px solid rgb(30, 42, 60); border-radius: 14px; }
+      .h { display: flex; gap: 10px; min-height: 40px; padding: 0 14px; }
+      h2 { margin: 0; font-size: 13px; }
+    </style>
+    <div id="m" class="p"><div class="h"><b>제목</b><i>덧</i></div><table><tr><td>표</td></tr></table><p>끝</p></div>
+    <div id="ok" class="p"><header class="h"><h2>제목</h2></header></div>
+    <div id="head" class="p"><header class="h" style="gap: 4px"><h2>제목</h2></header></div>
+    <div id="tall" class="p" style="height: 120px"><header class="h"><h2>제목</h2></header></div>
+    <div id="nohead" class="p"></div>
+  `);
+  const m = normalizeShell(await readStyle(page.locator("#m")), { head: true, ignoreSize: ["height"] });
+  const ok = normalizeShell(await readStyle(page.locator("#ok")), { head: true, ignoreSize: ["height"] });
+  const gap = normalizeShell(await readStyle(page.locator("#head")), { head: true, ignoreSize: ["height"] });
+  const tall = normalizeShell(await readStyle(page.locator("#tall")), { head: true, ignoreSize: ["height"] });
+  const nohead = normalizeShell(await readStyle(page.locator("#nohead")), { head: true, ignoreSize: ["height"] });
+  // 안쪽 내용(표 · 문단 · 머리 안쪽)은 달라도 같다
+  expect(diffStyle(m, ok)).toEqual([]);
+  // 머리 자기 값(gap)이 다르면 잡는다
+  expect(diffStyle(m, gap)).toContain("div > header[0] gap: 시안=10px 구현=4px");
+  // 높이는 제외 지정했으므로 달라도 통과, 지정하지 않으면 잡는다
+  expect(diffStyle(m, tall)).toEqual([]);
+  const strict = normalizeShell(await readStyle(page.locator("#tall")), { head: true });
+  const strictM = normalizeShell(await readStyle(page.locator("#m")), { head: true });
+  expect(diffStyle(strictM, strict).some((l) => l.includes("height"))).toBe(true);
+  // 머리가 없으면 자식 수로 잡는다
+  expect(diffStyle(m, nohead)).toContain("div 자식 수: 시안=1 구현=0");
 });
 
 test("글꼴이 없으면 한 줄로 실패", async ({ page }) => {

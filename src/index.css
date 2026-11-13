@@ -45,6 +45,14 @@
   --t-danger-fg: #f87171;
   --t-violet-line: #3b3266;
   --t-brand-glow: rgba(37, 99, 235, 0.35); /* 주요 버튼 빛번짐 */
+  /* 패널·AI 표식 전용 값(시안 mockup.css 의 .panel · .panel-h · .panel.tc · .ai-tag 와 S01 AI 표식 인라인 값) */
+  --t-panel-edge: rgba(255, 255, 255, 0.03); /* 패널 안쪽 윗선 */
+  --t-panel-drop: rgba(0, 0, 0, 0.35); /* 패널 바깥 그림자 */
+  --t-panel-head: rgba(13, 20, 32, 0.6); /* 패널 머리 배경(.panel-h) */
+  --t-corner-glow: rgba(59, 130, 246, 0.6); /* 모서리 장식(.panel.tc) 빛번짐 */
+  --t-ai-bg-deep: #0b2a26; /* 표 안 작은 AI 표식 배경(S01 인라인 값) */
+  --t-ai-tag-drop: rgba(0, 0, 0, 0.6); /* 진행 중 AI 표식 그림자 */
+  --t-ai-pulse: rgba(45, 212, 191, 0.55); /* 진행 점 맥박 */
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -176,6 +184,8 @@
   --color-brand-3: var(--t-brand-3);
   --color-ai: var(--t-ai);
   --color-ai-bg: var(--t-ai-bg);
+  --color-ai-bg-deep: var(--t-ai-bg-deep);
+  --animate-ai-pulse: ai-pulse 1.8s ease-in-out infinite;
   --color-danger: var(--t-danger);
   --color-danger-bg: var(--t-danger-bg);
   --color-ok: var(--t-ok);
@@ -186,6 +196,19 @@
   --color-violet-bg: var(--t-violet-bg);
   --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "D2Coding", ui-monospace, Menlo, monospace;
+}
+
+/* AI 표식 진행 점 맥박(시안 mockup.css 의 fx-pulse 와 같은 움직임) */
+@keyframes ai-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 var(--t-ai-pulse);
+  }
+  50% {
+    opacity: 0.55;
+    box-shadow: 0 0 0 5px transparent;
+  }
 }
 
 html,

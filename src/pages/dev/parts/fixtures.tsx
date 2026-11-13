@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 
+import { AiTag } from "@/shared/ui/ai";
 import { Button, Chip, Field } from "@/shared/ui/kit";
+import { ButtonBar, Panel } from "@/shared/ui/panel";
 
 // 진열 예시를 그리는 쪽(id → 그리기). 진열 화면만 읽는다 — 데이터는 fixtures-meta.ts.
 // 시안과 같은 글자로 그리고, 부품에는 props 만 넘긴다(className · 손으로 쓴 data-part-* 금지).
@@ -124,5 +126,71 @@ export const FIXTURE_RENDERS: Record<string, () => ReactNode> = {
       partId="S02-20"
       aria-label="채취 방법"
     />
+  ),
+  // Panel (높이는 fixtures-meta 의 boxClass 가 정한다)
+  "S02-17": () => <Panel variant="default" partId="S02-17" />,
+  "S02-18": () => (
+    <Panel variant="default-pad" partId="S02-18">
+      {Array.from({ length: 12 }, (_, i) => (
+        // 시안 안쪽 12줄(높이 44 · 아래 줄 line-2). 부품이 아니라 내용이다.
+        <div key={i} className="h-[44px] border-b-line-2 [border-style:none_none_solid] [border-width:0_0_1px]" />
+      ))}
+    </Panel>
+  ),
+  "S01-15": () => (
+    <Panel
+      title="사건관리 목록"
+      corners
+      partId="S01-15"
+      actions={
+        <ButtonBar>
+          <Button size="sm">초기화</Button>
+          <Button size="sm">엑셀</Button>
+          <Button size="sm">조회</Button>
+        </ButtonBar>
+      }
+    />
+  ),
+  // ButtonBar
+  "S01-16": () => (
+    <ButtonBar variant="panel-head" partId="S01-16">
+      <Button size="sm">초기화</Button>
+      <Button size="sm">엑셀</Button>
+      <Button size="sm">조회</Button>
+      <Button size="sm" variant="pri">
+        등록
+      </Button>
+    </ButtonBar>
+  ),
+  "S02-23": () => (
+    <ButtonBar variant="modal-head" partId="S02-23">
+      <span className="inline-flex gap-[6px]">
+        <Button size="sm">이전</Button>
+        <Button size="sm">다음</Button>
+        <Button size="sm">사건복사</Button>
+        <Button size="sm" roleLock>
+          수정
+        </Button>
+        <Button size="sm">닫기</Button>
+      </span>
+      <span className="h-[20px] w-px bg-line-3" />
+      <span className="inline-flex gap-[6px]">
+        <Button size="sm" variant="pri">
+          검색 (문양 상세보기) →
+        </Button>
+      </span>
+    </ButtonBar>
+  ),
+  // AiTag
+  "S01-17": () => (
+    <AiTag variant="progress" partId="S01-17">
+      7/12
+    </AiTag>
+  ),
+  "S01-18": () => <AiTag variant="done" partId="S01-18" />,
+  "S02-21": () => (
+    <AiTag variant="default" partId="S02-21">
+      AI 제안
+    </AiTag>
   ),
 };

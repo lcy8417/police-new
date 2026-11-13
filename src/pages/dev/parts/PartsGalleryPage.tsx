@@ -1,4 +1,8 @@
+import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
+
+import { Button, Chip, Field } from "@/shared/ui/kit";
+import { ButtonBar, Panel } from "@/shared/ui/panel";
 
 import { FIXTURE_RENDERS } from "./fixtures";
 import { PART_FIXTURES, type FixtureSurface, type PartFixture } from "./fixtures-meta";
@@ -10,6 +14,7 @@ const SURFACE_CLASS: Record<FixtureSurface, string> = {
   "panel-2": "bg-panel-2",
   "panel-3": "bg-panel-3",
   strip: "bg-strip",
+  ai: "bg-ai-bg",
 };
 
 /**
@@ -40,7 +45,86 @@ export function PartsGalleryPage() {
           ))}
         </div>
       )}
+      {/* 조립 예시는 대조 대상이 아니라 전체 진열에서만 보인다(?id= 로 하나만 열 때는 숨김). */}
+      {!id && <S01Assembly />}
     </main>
+  );
+}
+
+/** 라벨 칸 + 값 칸 한 쌍(시안 S01 검색 조건 표의 `.l` · `.v`). */
+function FormRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <>
+      <div className="flex items-center border-b border-b-line-2 bg-strip px-[10px] py-[6px] text-[12px] text-fg-2 [border-style:none_none_solid] [border-width:0_0_1px]">
+        {label}
+      </div>
+      <div className="flex min-w-0 items-center border-b border-b-line-2 px-[10px] py-[6px] [border-style:none_none_solid] [border-width:0_0_1px]">
+        {children}
+      </div>
+    </>
+  );
+}
+
+/**
+ * S01 조립 예시(설계서 §9, Task 11 반응형 확인용): 시안 S01 의 검색 조건 패널 한 개를 Panel + ButtonBar + Button + Field + Chip 으로
+ * 다시 그린 것. `data-part-id` 가 없으므로 자동 대조(parts-compare)에는 들어가지 않는다.
+ * 좁은 화면에서는 라벨·값 한 쌍씩 2열로, 넓은 화면(lg)에서는 시안처럼 3쌍(6열)로 놓인다.
+ */
+function S01Assembly() {
+  return (
+    <section aria-labelledby="s01-assembly-title" className="mt-10 flex flex-col gap-2">
+      <h2 id="s01-assembly-title" className="text-[13px] font-semibold text-muted-foreground">
+        S01 조립 예시
+      </h2>
+      <Panel
+        title="검색 조건"
+        label="SEARCH"
+        actions={
+          <ButtonBar>
+            <Button size="sm">초기화</Button>
+            <Button size="sm" variant="pri">
+              조회
+            </Button>
+          </ButtonBar>
+        }
+      >
+        <div className="grid grid-cols-[84px_minmax(0,1fr)] lg:grid-cols-[84px_minmax(0,1fr)_84px_minmax(0,1fr)_84px_minmax(0,1fr)]">
+          <FormRow label="감정번호">
+            <Field variant="mono" defaultValue="00001-25-" aria-label="감정번호" />
+          </FormRow>
+          <FormRow label="문서번호">
+            <Field aria-label="문서번호" />
+          </FormRow>
+          <FormRow label="사건명">
+            <Field variant="select" defaultValue="전체" aria-label="사건명" />
+          </FormRow>
+          <FormRow label="등록일자">
+            <Field variant="mono-sm" defaultValue="2025-06-25 ~ 2025-07-24" aria-label="등록일자" />
+          </FormRow>
+          <FormRow label="피해자">
+            <Field aria-label="피해자" />
+          </FormRow>
+          <FormRow label="검거여부">
+            <Field variant="select" defaultValue="전체" aria-label="검거여부" />
+          </FormRow>
+          <FormRow label="처리관서">
+            <span className="flex w-full gap-[4px]">
+              <Field defaultValue="경찰청" aria-label="처리관서" />
+              <Button size="sm-h26">검색</Button>
+            </span>
+          </FormRow>
+          <FormRow label="의뢰관서">
+            <span className="flex w-full gap-[4px]">
+              <Field aria-label="의뢰관서" />
+              <Button size="sm-h26">검색</Button>
+            </span>
+          </FormRow>
+          <FormRow label="보는 사람">
+            <Chip variant="blue">감정관</Chip>
+          </FormRow>
+        </div>
+      </Panel>
+    </section>
   );
 }
 
