@@ -1,6 +1,7 @@
 // @MX:DEBT: [AUTO] 레거시 중앙집중형 라우터 - FSD app/ 레이어로 이행 대상이나(docs/architecture.md §4) 아직 이 파일이 Routes 정본. BrowserRouter·SessionProvider는 main.jsx로 이동
 // @MX:CEILING: 라우팅이 FSD app/ 레이어(src/app/)로 이전되기 전까지 유효 — 현재 신규 라우트도 계속 이 파일에 추가됨
 // @MX:UPGRADE: src/app/에 라우터 설정이 이전되고 이 파일의 Routes가 제거되면 완료
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
 import { AppShell } from "@/widgets/app-shell";
 import {
@@ -72,9 +73,27 @@ function EditRedirect() {
   return <Navigate to={`/search/${encodeURIComponent(aprthngNo)}`} replace />;
 }
 
+// 부품 진열 화면(`/dev/parts`)은 개발 실행에서만 있다. 프로덕션 빌드에서는 `import.meta.env.DEV`가
+// false로 바뀌어 아래 지연 import가 통째로 빠지므로 번들에 들어가지 않는다(설계서 §9).
+const PartsGalleryPage = import.meta.env.DEV
+  ? lazy(() => import("@/pages/dev/parts").then((m) => ({ default: m.PartsGalleryPage })))
+  : null;
+
 function App() {
   return (
     <Routes>
+      {/* 부품 진열(개발 전용) — 로그인·백엔드 없이 열리도록 권한 가드 밖. */}
+      {PartsGalleryPage && (
+        <Route
+          path="/dev/parts"
+          element={
+            <Suspense fallback={null}>
+              <PartsGalleryPage />
+            </Suspense>
+          }
+        />
+      )}
+
       {/* 로그인·비밀번호 변경은 셸(사이드바·상단바) 밖 전체 화면. */}
       <Route path="/login" element={<LoginPage />} />
       <Route

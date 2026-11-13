@@ -29,6 +29,8 @@ dist-ssr
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+# 부품 대조 기준 이미지는 매 실행 시안에서 새로 뜬다(커밋하지 않음)
+/tests/ui/__snapshots__/parts-compare.spec.ts/
 
 # 환경 변수 (PC마다 다름 — .env.example 복사해서 작성)
 .env
