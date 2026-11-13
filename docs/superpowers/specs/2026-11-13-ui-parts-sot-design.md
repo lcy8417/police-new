@@ -2,7 +2,7 @@
 
 > **한 줄 요약**: 화면 16개를 **같은 부품으로 조립**하기 위해 부품 정본을 **스킬**(`police-new/.claude/skills/police-ui-design/`)로 만든다. 생김새의 원본은 **r3 시안**, 부품은 4개 출입구(`kit` 기본 · `viewer` 족적 사진 표시 · `ai` AI 표시 · `panel` SCAS 틀)에서 꺼낸다. 새 부품은 「목록에서 찾기 → 시안에 먼저 그림 → 상태별 실제 스타일값 읽기 → 토큰으로 옮기기 → 자동 대조 → 목록에 한 줄」 순서로만 늘린다. romang(`~/Desktop/romang`)의 `romang-ui-design` 체계를 족적 플랫폼에 맞게 **골라서** 옮긴 것이다.
 
-- 작성일: 2026-11-13 / 상태: **r2 — Codex 교차 검증 반영, 사용자 확인 3건 대기(§14)**
+- 작성일: 2026-11-13 / 상태: **확정(r2) — Codex 교차 검증 반영, §14 결정 완료(1 · 2는 사용자 위임 「알아서해」에 따른 설계자 판단)**
 - 저장소: `police-new`(React 19 · TS · Vite · Tailwind 4 · shadcn new-york · lucide · FSD)
 - 생김새 원본: r3 시안 `docs/mockups/scas-redesign/`(커밋 `3a9d4b8`, 아티팩트 https://claude.ai/artifact/XjNmTGeHLPLjz5PrNJgra7 8판)
 - 참고 체계: `~/Desktop/romang/.claude/skills/romang-ui-design/`(SKILL.md · `references/components.md` · `input.md`), `~/Desktop/romang/romang/.claude/rules/{ui-design,board-components,layout,modal}.md`, 관문 훅 `~/Desktop/romang/.claude/hooks/romang/mockup-parts-gate.py`, 대조 `~/Desktop/romang/.moai/state/verify/client-screen-check-1028/compare2.mjs`
@@ -370,6 +370,6 @@ police-new/
 
 ## 14. 사용자에게 확인할 것
 
-1. **공용 앱 틀 전환 시점**: 지금 앱의 틀(TopNav 110px · Sidebar 250px)을 시안의 SCAS 틀(GNB · MDI 탭)로 바꾸는 일을 **검증 후 한 번에** 할지, **실증 대상 화면부터** 새 틀을 쓸지.
-2. **시안 안의 작은 차이**(예: 칩 높이 22 · 24px): 기본은 **변형으로 보존**(승인 원본을 바꾸지 않음). 하나로 맞추길 원하면 표식 작업 때 목록을 뽑아 한 번에 승인받는다.
+1. ~~공용 앱 틀 전환 시점~~ → **결정(설계자 판단, 2026-11-13 위임)**: **검증 후 한 번에.** `ScasShell` 껍데기를 진열 화면에서 시안과 대조 통과시킨 뒤, 앱 전체의 틀(TopNav · Sidebar → GNB · MDI 탭)을 **배포 1번에** 바꾼다. 틀 안 화면 내용은 화면을 옮길 때 바꾼다(§5-4 romang 전환 방식). 이유: 실증 중 화면마다 틀이 다르면 감정관이 같은 메뉴를 다른 자리에서 찾게 된다. 전환은 이번 범위 다음(§10-2).
+2. ~~시안 안의 작은 차이~~ → **결정(설계자 판단)**: **변형으로 보존**(승인 원본을 바꾸지 않음). 표식 작업 때 차이 목록을 `components.md`에 남기고, 사용자가 통일을 원하면 그 목록으로 한 번에 정한다.
 3. ~~실증 기준 화면~~ → **결정(2026-11-13)**: 해상도는 모르므로 반응형 — 1280px 이상 기준 지원, 1024~1279 축소 배치, 1024 미만 범위 밖(§5-3-1). 실제 해상도는 경찰청 확인 목록으로.
