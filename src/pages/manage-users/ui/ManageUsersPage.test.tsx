@@ -26,15 +26,34 @@ const userDto = (extra: Record<string, unknown>) => ({
   lock_at: "N",
   features: ["CRIME_SEARCH"],
   last_login_dt: "2026-11-03T09:15:00+09:00",
+  roles: ["INVESTIGATOR"],
+  org_id: 3,
+  org_nm: "종로경찰서",
   ...extra,
 })
 
 const USERS = [
-  userDto({ user_id: "root", user_nm: "총괄관리자", user_se: "ADMIN", features: [] }),
-  userDto({ user_id: "admin", user_nm: "부관리자", user_se: "ADMIN", features: [] }),
+  userDto({ user_id: "root", user_nm: "총괄관리자", user_se: "ADMIN", features: [], roles: [], org_id: 1, org_nm: "경찰청" }),
+  userDto({ user_id: "admin", user_nm: "부관리자", user_se: "ADMIN", features: [], roles: [], org_id: 1, org_nm: "경찰청" }),
   userDto({}),
-  userDto({ user_id: "lee02", user_nm: "이감정", lock_at: "Y", features: ["SHOE_EDIT"] }),
-  userDto({ user_id: "park03", user_nm: "박중지", use_at: "N", features: [], last_login_dt: null }),
+  userDto({ user_id: "lee02", user_nm: "이감정", lock_at: "Y", features: ["SHOE_EDIT"], roles: ["EXAMINER", "REVIEWER"] }),
+  userDto({ user_id: "park03", user_nm: "박중지", use_at: "N", features: [], last_login_dt: null, roles: [] }),
+]
+
+/** GET /admin/orgs — 사용 중지된 관서(5)는 새로 고를 수 없다. */
+const ORGS = [
+  { org_id: 1, upper_org_id: null, org_se: "HQ", org_nm: "경찰청", grfc_code: null, use_at: "Y", sort_ordr: 0 },
+  { org_id: 2, upper_org_id: 1, org_se: "PROVINCIAL", org_nm: "서울청", grfc_code: null, use_at: "Y", sort_ordr: 0 },
+  { org_id: 3, upper_org_id: 2, org_se: "STATION", org_nm: "종로경찰서", grfc_code: null, use_at: "Y", sort_ordr: 0 },
+  { org_id: 4, upper_org_id: 2, org_se: "STATION", org_nm: "중부경찰서", grfc_code: null, use_at: "Y", sort_ordr: 0 },
+  { org_id: 5, upper_org_id: 2, org_se: "STATION", org_nm: "폐지경찰서", grfc_code: null, use_at: "N", sort_ordr: 0 },
+]
+
+/** GET /admin/roles — 서버 역할 목록(테스트 고정값). */
+const ROLES = [
+  { role_code: "INVESTIGATOR", role_nm: "수사관", sort_ordr: 10, features: ["CRIME_REGISTER", "CASE_STATUS_VIEW", "REPORT_VIEW"] },
+  { role_code: "EXAMINER", role_nm: "감정관", sort_ordr: 20, features: ["EXAM_DECIDE"] },
+  { role_code: "REVIEWER", role_nm: "검증자", sort_ordr: 30, features: ["REPORT_APPROVE"] },
 ]
 
 function renderPage() {
@@ -72,6 +91,8 @@ beforeEach(() => {
   useSessionStore.getState().setUser(me)
   mswServer.use(
     http.get("*/admin/users", () => HttpResponse.json(USERS)),
+    http.get("*/admin/orgs", () => HttpResponse.json(ORGS)),
+    http.get("*/admin/roles", () => HttpResponse.json(ROLES)),
     http.get("*/auth/me", () => {
       meCalls += 1
       return HttpResponse.json({
@@ -316,5 +337,82 @@ describe("ManageUsersPage — 사용자·권한 관리", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: "추가" }))
 
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("이미 등록된 아이디입니다")
+  })
+})
+
+describe("ManageUsersPage — 관서·역할(실증 확장 설계서 §5-A)", () => {
+  it("표 맨 끝에 관서·역할 열 — 역할 이름은 서버 역할 목록에서", async () => {
+    renderPage()
+    const table = await screen.findByRole("table", { name: "사용자 목록" })
+    const headers = within(table).getAllByRole("columnheader").map((th) => th.textContent)
+    expect(headers.slice(-2)).toEqual(["관서", "역할"])
+
+    const kimRow = (await within(table).findByText("kim01")).closest("tr")!
+    expect(within(kimRow).getByText("종로경찰서")).toBeInTheDocument()
+    expect(await within(kimRow).findByText("수사관")).toBeInTheDocument()
+    const leeRow = within(table).getByText("lee02").closest("tr")!
+    expect(within(leeRow).getByText("감정관 · 검증자")).toBeInTheDocument()
+  })
+
+  it("역할 체크 → 역할 저장이 PUT /admin/users/{id}/roles를 부른다", async () => {
+    const bodies: unknown[] = []
+    mswServer.use(
+      http.put("*/admin/users/kim01/roles", async ({ request }) => {
+        bodies.push(await request.json())
+        return HttpResponse.json(userDto({ roles: ["INVESTIGATOR", "EXAMINER"] }))
+      })
+    )
+    renderPage()
+    await selectUser("kim01")
+
+    const panel = detailPanel()
+    expect(await within(panel).findByRole("checkbox", { name: "수사관" })).toBeChecked()
+    const save = within(panel).getByRole("button", { name: "역할 저장" })
+    expect(save).toBeDisabled()
+
+    fireEvent.click(within(panel).getByRole("checkbox", { name: "감정관" }))
+    expect(save).toBeEnabled()
+    fireEvent.click(save)
+
+    await waitFor(() => expect(bodies).toEqual([{ roles: ["INVESTIGATOR", "EXAMINER"] }]))
+  })
+
+  it("역할 저장 실패는 패널 안에 서버 문구로", async () => {
+    mswServer.use(
+      http.put("*/admin/users/kim01/roles", () =>
+        HttpResponse.json({ detail: "모르는 역할입니다: X" }, { status: 400 })
+      )
+    )
+    renderPage()
+    await selectUser("kim01")
+
+    fireEvent.click(await within(detailPanel()).findByRole("checkbox", { name: "검증자" }))
+    fireEvent.click(within(detailPanel()).getByRole("button", { name: "역할 저장" }))
+
+    expect(await within(detailPanel()).findByRole("alert")).toHaveTextContent("모르는 역할입니다: X")
+  })
+
+  it("소속 관서를 바꾸면 정보 저장 본문에 orgId — 사용 중지된 관서는 고를 수 없다", async () => {
+    const bodies: unknown[] = []
+    mswServer.use(
+      http.put("*/admin/users/kim01", async ({ request }) => {
+        bodies.push(await request.json())
+        return HttpResponse.json(userDto({ org_id: 4, org_nm: "중부경찰서" }))
+      })
+    )
+    renderPage()
+    await selectUser("kim01")
+
+    const select = within(detailPanel()).getByLabelText("소속 관서")
+    await waitFor(() => expect(within(select).getByRole("option", { name: "중부경찰서" })).toBeInTheDocument())
+    expect(select).toHaveValue("3")
+    expect(within(select).queryByRole("option", { name: "폐지경찰서" })).not.toBeInTheDocument()
+
+    fireEvent.change(select, { target: { value: "4" } })
+    fireEvent.click(within(detailPanel()).getByRole("button", { name: "정보 저장" }))
+
+    await waitFor(() =>
+      expect(bodies).toEqual([{ userNm: "김수사", userSe: "USER", useAt: "Y", orgId: 4 }])
+    )
   })
 })

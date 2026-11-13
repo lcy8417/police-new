@@ -1,11 +1,12 @@
-import { useId, useState, type FormEvent, type ReactNode } from "react"
+import { useId, useMemo, useState, type FormEvent, type ReactNode } from "react"
 import { KeyRound, Loader2, LockOpen, Power, PowerOff, ShieldCheck, UserRound } from "lucide-react"
 
-import type { AdminUser, UpdateUserInput } from "@/entities/admin"
-import type { UserSe } from "@/entities/session"
+import type { AdminUser, Org, RoleCode, RoleInfo, UpdateUserInput } from "@/entities/admin"
+import { FEATURE_LABELS, type UserSe } from "@/entities/session"
 import { formatKstDateTime } from "@/shared/lib"
 import {
   Button,
+  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -18,12 +19,15 @@ import {
 
 import { adminErrorMessage } from "../model/error-message"
 import {
+  useOrgsQuery,
   useReplaceFeatures,
+  useReplaceRoles,
+  useRolesQuery,
   useUnlockUser,
   useUpdateUser,
   type AdminUserMutationOptions,
 } from "../model/use-admin-users"
-import { USER_FORM_MESSAGES } from "../model/user-rules"
+import { USER_FORM_MESSAGES, sameRoles, toggleRole } from "../model/user-rules"
 import { AdminField, AdminFormError, AdminTextField } from "./AdminFormField"
 import { FeatureToggles } from "./FeatureToggles"
 import { PasswordResetDialog } from "./PasswordResetDialog"
@@ -62,14 +66,91 @@ function ActionRow({ title, description, action }: { title: string; description:
   )
 }
 
+/** 관서 고르기 선택지 — 사용 중인 관서 + (사용 중지됐더라도) 지금 소속. 목록을 못 읽었으면 지금 소속만. */
+function orgChoices(orgs: Org[] | undefined, user: AdminUser): Array<{ orgId: number; label: string }> {
+  const usable = (orgs ?? []).filter((org) => org.useAt === "Y" || org.orgId === user.orgId)
+  const choices = usable.map((org) => ({
+    orgId: org.orgId,
+    label: org.useAt === "Y" ? org.orgNm : `${org.orgNm} (사용 중지)`,
+  }))
+  return choices.some((choice) => choice.orgId === user.orgId)
+    ? choices
+    : [{ orgId: user.orgId, label: user.orgNm }, ...choices]
+}
+
+interface RoleChecksProps {
+  /** 서버에 저장된 역할(편집 시작값). */
+  value: RoleCode[]
+  /** 역할 선택지(`GET /admin/roles`). */
+  roles: RoleInfo[]
+  saving: boolean
+  onSave: (roles: RoleCode[]) => void
+}
+
 /**
- * 선택한 사용자 상세(`/manage/users` 오른쪽) — 기본 정보(이름·구분) 저장, 기능 권한 스위치,
- * 비밀번호 초기화·잠금 해제(잠긴 경우만)·사용 중지/다시 사용. 관리자 계정이면 스위치 대신
+ * 역할 체크(서버 역할 목록 — 지금은 수사관 · 감정관 · 검증자) + "역할 저장". 각 줄 아래에 그 역할이 주는
+ * 기능 권한을 보인다. 바뀐 것이 없으면 저장 버튼이 꺼져 있다. 색은 토큰 이름만(새 hex 금지) —
+ * 값은 위 기능 권한 목록과 같다.
+ */
+function RoleChecks({ value, roles, saving, onSave }: RoleChecksProps) {
+  const [draft, setDraft] = useState<RoleCode[]>(value)
+  const baseId = useId()
+  const order = roles.map((role) => role.roleCode)
+  const dirty = !sameRoles(draft, value)
+
+  return (
+    <div className="flex flex-col gap-3">
+      <ul className="flex flex-col divide-y divide-line-2 rounded-lg border border-border bg-strip/50">
+        {roles.map((role) => {
+          const id = `${baseId}-${role.roleCode}`
+          return (
+            <li key={role.roleCode} className="flex items-center gap-3 px-4 py-3">
+              <Checkbox
+                id={id}
+                checked={draft.includes(role.roleCode)}
+                disabled={saving}
+                onCheckedChange={(on) =>
+                  setDraft((prev) => toggleRole(prev, role.roleCode, on === true, order))
+                }
+              />
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <label htmlFor={id} className="cursor-pointer text-[13px] font-medium text-foreground">
+                  {role.roleNm}
+                </label>
+                <span className="text-[11px] text-dim">
+                  {role.features.map((code) => FEATURE_LABELS[code] ?? code).join(" · ")}
+                </span>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={!dirty || saving}
+          onClick={() => onSave(draft)}
+          className={OUTLINE_BUTTON_CLASS}
+        >
+          {saving && <Loader2 className="animate-spin" aria-hidden="true" />}
+          역할 저장
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 선택한 사용자 상세(`/manage/users` 오른쪽) — 기본 정보(이름·구분·소속 관서) 저장, 역할 체크,
+ * 기능 권한 스위치, 비밀번호 초기화·잠금 해제(잠긴 경우만)·사용 중지/다시 사용. 관리자 계정이면 스위치 대신
  * "관리자는 모든 기능을 사용할 수 있습니다". 서버 거절 문구(마지막 관리자 보호 등)는 패널 안에.
  */
 export function UserDetailPanel({ user, currentUserId, onUserChanged }: UserDetailPanelProps) {
   const [userNm, setUserNm] = useState(user.userNm)
   const [userSe, setUserSe] = useState<UserSe>(user.userSe)
+  const [orgId, setOrgId] = useState(user.orgId)
   const [localError, setLocalError] = useState<string | null>(null)
   const [resetOpen, setResetOpen] = useState(false)
   const [disableOpen, setDisableOpen] = useState(false)
@@ -77,20 +158,26 @@ export function UserDetailPanel({ user, currentUserId, onUserChanged }: UserDeta
 
   const update = useUpdateUser({ onUserChanged })
   const features = useReplaceFeatures({ onUserChanged })
+  const roles = useReplaceRoles({ onUserChanged })
   const unlock = useUnlockUser({ onUserChanged })
+  const rolesQuery = useRolesQuery()
+  const orgsQuery = useOrgsQuery()
+  const orgOptions = useMemo(() => orgChoices(orgsQuery.data, user), [orgsQuery.data, user])
 
   const isSelf = user.userId === currentUserId
   const isAdminUser = user.userSe === "ADMIN"
   const disabled = user.useAt === "N"
   const locked = user.lockAt === "Y"
-  const infoDirty = userNm.trim() !== user.userNm || userSe !== user.userSe
-  const busy = update.isPending || features.isPending || unlock.isPending
+  const orgChanged = orgId !== user.orgId
+  const infoDirty = userNm.trim() !== user.userNm || userSe !== user.userSe || orgChanged
+  const busy = update.isPending || features.isPending || roles.isPending || unlock.isPending
 
   /** 새 작업을 시작하기 전에 이전 오류 문구를 지운다(한 번에 하나만 보이게). */
   const clearErrors = () => {
     setLocalError(null)
     update.reset()
     features.reset()
+    roles.reset()
     unlock.reset()
   }
 
@@ -109,14 +196,15 @@ export function UserDetailPanel({ user, currentUserId, onUserChanged }: UserDeta
       setLocalError(USER_FORM_MESSAGES.userNm)
       return
     }
-    saveUser({ userNm: name, userSe, useAt: user.useAt })
+    // 소속 관서는 바꿨을 때만 보낸다(안 보내면 서버가 그대로 둔다).
+    saveUser({ userNm: name, userSe, useAt: user.useAt, ...(orgChanged && { orgId }) })
   }
 
   const setUseAt = (useAt: "Y" | "N", onSettled?: () => void) =>
     saveUser({ userNm: user.userNm, userSe: user.userSe, useAt }, onSettled)
 
   const error =
-    localError ?? adminErrorMessage(update.error ?? features.error ?? unlock.error)
+    localError ?? adminErrorMessage(update.error ?? features.error ?? roles.error ?? unlock.error)
 
   return (
     <section
@@ -174,6 +262,26 @@ export function UserDetailPanel({ user, currentUserId, onUserChanged }: UserDeta
                 </NativeSelect>
               </AdminField>
             </div>
+            <AdminField
+              id={`${baseId}-org`}
+              label="소속 관서"
+              hint={
+                orgsQuery.isError ? "관서 목록을 확인하지 못했습니다 — 지금 소속만 보입니다" : undefined
+              }
+            >
+              <NativeSelect
+                id={`${baseId}-org`}
+                value={String(orgId)}
+                aria-describedby={orgsQuery.isError ? `${baseId}-org-hint` : undefined}
+                onChange={(event) => setOrgId(Number(event.target.value))}
+              >
+                {orgOptions.map((choice) => (
+                  <option key={choice.orgId} value={String(choice.orgId)}>
+                    {choice.label}
+                  </option>
+                ))}
+              </NativeSelect>
+            </AdminField>
             {isSelf && (
               <p id={`${baseId}-self`} className="text-[11px] text-[#5B6B85]">
                 본인 계정의 구분·사용 여부는 바꿀 수 없습니다.
@@ -192,6 +300,38 @@ export function UserDetailPanel({ user, currentUserId, onUserChanged }: UserDeta
               </Button>
             </div>
           </form>
+        </PanelSection>
+
+        <PanelSection title="역할">
+          {rolesQuery.data ? (
+            <RoleChecks
+              value={user.roles}
+              roles={rolesQuery.data}
+              saving={roles.isPending}
+              onSave={(next) => {
+                clearErrors()
+                roles.mutate({ userId: user.userId, roles: next })
+              }}
+            />
+          ) : rolesQuery.isError ? (
+            <p className="flex items-center gap-2 text-[12px] text-muted-foreground">
+              역할 목록을 확인하지 못했습니다
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void rolesQuery.refetch()}
+                className={OUTLINE_BUTTON_CLASS}
+              >
+                다시
+              </Button>
+            </p>
+          ) : (
+            <p className="flex items-center gap-2 text-[12px] text-dim">
+              <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+              역할 목록을 불러오는 중…
+            </p>
+          )}
         </PanelSection>
 
         <PanelSection title="기능 권한">

@@ -11,12 +11,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   adminQueryKeys,
   createUser,
+  fetchOrgs,
+  fetchRoles,
   fetchUsers,
   replaceUserFeatures,
+  replaceUserRoles,
   resetPassword,
   unlockUser,
   updateUser,
   type CreateUserInput,
+  type RoleCode,
   type UpdateUserInput,
 } from "@/entities/admin"
 import type { FeatureCode } from "@/entities/session"
@@ -29,6 +33,16 @@ export interface AdminUserMutationOptions {
 /** GET /admin/users — 사용자 표. */
 export function useUsersQuery() {
   return useQuery({ queryKey: adminQueryKeys.users, queryFn: fetchUsers })
+}
+
+/** GET /admin/roles — 역할 선택지(이름 · 순서는 서버가 정본). 자주 바뀌지 않아 5분 동안 다시 읽지 않는다. */
+export function useRolesQuery() {
+  return useQuery({ queryKey: adminQueryKeys.roles, queryFn: fetchRoles, staleTime: 5 * 60_000 })
+}
+
+/** GET /admin/orgs — 관서 목록(사용 중지 포함). */
+export function useOrgsQuery() {
+  return useQuery({ queryKey: adminQueryKeys.orgs, queryFn: fetchOrgs, staleTime: 5 * 60_000 })
 }
 
 /** 성공 후 공통 처리: 목록 무효화 + 변경 알림. */
@@ -69,6 +83,17 @@ export function useReplaceFeatures(options: AdminUserMutationOptions = {}) {
       replaceUserFeatures(userId, features),
     onSuccess: (_data, { userId }) => afterChange(userId),
     meta: { success: "기능 권한을 저장했습니다", inlineError: true },
+  })
+}
+
+/** PUT /admin/users/{id}/roles — 역할 전체 교체(실효 권한은 다음 요청부터 역할 권한이 합쳐진다). */
+export function useReplaceRoles(options: AdminUserMutationOptions = {}) {
+  const afterChange = useAfterChange(options)
+  return useMutation({
+    mutationFn: ({ userId, roles }: { userId: string; roles: RoleCode[] }) =>
+      replaceUserRoles(userId, roles),
+    onSuccess: (_data, { userId }) => afterChange(userId),
+    meta: { success: "역할을 저장했습니다", inlineError: true },
   })
 }
 

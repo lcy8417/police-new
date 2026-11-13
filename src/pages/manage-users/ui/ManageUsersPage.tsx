@@ -5,6 +5,7 @@ import {
   CreateUserDialog,
   UserDetailPanel,
   UserTable,
+  useRolesQuery,
   useUsersQuery,
 } from "@/features/admin-users"
 import { refreshSession, useSessionStore } from "@/features/auth"
@@ -19,6 +20,8 @@ export function ManageUsersPage() {
   const me = useSessionStore((s) => s.user)
   const usersQuery = useUsersQuery()
   const users = useMemo(() => usersQuery.data ?? [], [usersQuery.data])
+  // 표의 역할 열 이름표(상세 패널의 역할 칸과 같은 캐시).
+  const rolesQuery = useRolesQuery()
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const selectedUser = users.find((user) => user.userId === selectedUserId)
@@ -57,6 +60,7 @@ export function ManageUsersPage() {
           isLoading={usersQuery.isLoading}
           onSelect={setSelectedUserId}
           onCreate={() => setCreateOpen(true)}
+          roles={rolesQuery.data}
         />
 
         {selectedUser ? (

@@ -1,4 +1,12 @@
-import { apiGet, apiSend, backendMediaUrl, stripDataUrl, stripDataUrlPrefix } from "@/shared/api";
+import {
+  apiGet,
+  apiSend,
+  backendFetch,
+  backendMediaUrl,
+  stripDataUrl,
+  stripDataUrlPrefix,
+  toApiError,
+} from "@/shared/api";
 import { convertKeysToCamelCase } from "@/shared/lib";
 import { insertPatternPath, stripPatternPath, type PatternEntry, type PatternZone } from "@/entities/pattern";
 import type {
@@ -10,6 +18,7 @@ import type {
   CrimeRegisterInput,
   EditImageSaveBody,
   HistorySaveBody,
+  OriginalUploadResult,
   PatternsPutBody,
   SaveCrimeEditImageInput,
   SaveCrimeHistoryInput,
@@ -63,7 +72,10 @@ export async function fetchCrimeHistory(searchNo: number): Promise<Crime> {
   return convertKeysToCamelCase<Crime>(data);
 }
 
-/** POST /crime/register — 본문 키는 설계서 §4-4 그대로, image만 접두어 제거. */
+/**
+ * POST /crime/register — 본문 키는 설계서 §4-4 그대로, image만 접두어 제거.
+ * `originalFileId`(원본 파일 번호)는 있을 때만 넣는다(실증 확장 설계서 §5-E).
+ */
 export async function registerCrime(input: CrimeRegisterInput): Promise<Response> {
   const body: CrimeRegisterBody = {
     image: stripDataUrlPrefix(input.image),
@@ -74,9 +86,27 @@ export async function registerCrime(input: CrimeRegisterInput): Promise<Response
     pickMthCode: input.pickMthCode,
     crimeNm: input.crimeNm,
     rqestGrfcNm: input.rqestGrfcNm,
+    ...(input.originalFileId !== undefined && { originalFileId: input.originalFileId }),
   };
 
   return apiSend("/crime/register", "POST", body);
+}
+
+/**
+ * POST /files/original — 편집 전 원본 이미지를 바이트 그대로 보관한다(multipart `file`,
+ * 실증 확장 설계서 §5-E). 등록 화면이 파일을 고르는 순간 부르고, 받은 `fileId`를 등록 요청의
+ * `originalFileId`로 보낸다. 실패는 `ApiError` — 413 「파일이 너무 큽니다(최대 50MB)」·
+ * 400 「이미지 파일이 아닙니다」 같은 서버 `detail`을 그대로 담는다.
+ *
+ * `Content-Type`은 직접 붙이지 않는다(브라우저가 multipart 경계 값을 넣어야 한다).
+ */
+export async function uploadOriginal(file: File): Promise<OriginalUploadResult> {
+  const form = new FormData();
+  // File을 그대로 넣는다(파일 이름은 File.name이 따라간다 — 서버가 orgnl_file_nm에 남김).
+  form.append("file", file);
+  const response = await backendFetch("/files/original", { method: "POST", body: form });
+  if (!response.ok) throw await toApiError(response);
+  return convertKeysToCamelCase<OriginalUploadResult>(await response.json());
 }
 
 /** PUT /crime/:aprthngNo. Mirror of crud.js#fetchPatterns. */

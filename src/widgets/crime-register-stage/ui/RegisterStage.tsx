@@ -4,7 +4,13 @@ import { useMutation } from "@tanstack/react-query"
 import { registerCrime, useCrimeStore } from "@/entities/crime"
 import { FEATURES } from "@/entities/session"
 import { hasFeature, useSessionStore } from "@/features/auth"
-import { rotateArbitrary, useImageAdjustments, useImageEditor } from "@/features/crime-register"
+import {
+  originalRejectDetail,
+  rotateArbitrary,
+  useImageAdjustments,
+  useImageEditor,
+  useOriginalUpload,
+} from "@/features/crime-register"
 import { ApiError } from "@/shared/api"
 import { DotGrid, GlowOrb } from "@/shared/ui/glow-fx"
 import { rotateImage, resizeImage } from "@/utils/get-input-change"
@@ -30,6 +36,8 @@ interface RegisterStageProps {
  * 임계값·반전·흑백) / 저장 / 초기화를 crime 엔티티 계층과 연결한다. `TopNav`에는
  * 제목만 게시하고, 편집 도구(크롭·각도보정·초기화)는 이미지 옆 도크로 내렸다.
  * 회전·가시성 보정은 비파괴로 미리보기하다가 저장 시점에만 픽셀로 굽는다.
+ * 파일을 고르는 순간 편집 전 원본을 `POST /files/original`로 보관하고, 성공한 원본 번호만
+ * 등록 요청의 `originalFileId`로 붙인다(실패하면 「원본 보관 실패 — 작업본만 저장됩니다」를 남기고 계속).
  * 저장 성공·취소 시 `onExit`로 조회 모드에 복귀한다.
  */
 export function RegisterStage({ onExit }: RegisterStageProps) {
@@ -39,6 +47,14 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
   const adjust = useImageAdjustments(formData.image)
   // 안정적인 콜백(아래 메모이즈된 핸들러에서 참조됨).
   const { bake: bakeAdjustments, resetAdjustments } = adjust
+  // 원본 먼저 올리기(실증 확장 설계서 §5-E): 파일을 고르는 순간 편집 전 바이트를 보관한다.
+  const original = useOriginalUpload()
+  const {
+    start: startOriginalUpload,
+    resolveFileId: resolveOriginalFileId,
+    reject: rejectOriginal,
+    reset: resetOriginal,
+  } = original
 
   // 자유각 회전(슬라이더). 회전 드래그 중에도 crop/calibration 래퍼가 참조적으로
   // 안정적으로 유지되도록 ref에도 미러링한다.
@@ -59,6 +75,8 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
 
   const handleFileSelect = useCallback(async (file: File) => {
     setErrorMessage(null)
+    // 줄이기 · 회전 · 보정 전의 원본을 먼저 보관한다(실패해도 등록은 계속 — 안내만 남김).
+    startOriginalUpload(file)
     const reader = new FileReader()
     reader.onloadend = async () => {
       const base64 = reader.result as string
@@ -71,7 +89,7 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
       }
     }
     reader.readAsDataURL(file)
-  }, [])
+  }, [startOriginalUpload])
 
   const handleRotate = useCallback(
     async (deg: number) => {
@@ -87,9 +105,10 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
     setFormData(EMPTY_FORM)
     setErrorMessage(null)
     resetAdjustments()
+    resetOriginal()
     setRotation(0)
     onExit()
-  }, [resetAdjustments, setRotation, onExit])
+  }, [resetAdjustments, resetOriginal, setRotation, onExit])
 
   const handleImageChange = useCallback((next: string) => {
     setFormData((prev) => ({ ...prev, image: next }))
@@ -127,11 +146,13 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
 
   const registerMutation = useMutation({
     mutationFn: registerCrime,
-    meta: { success: "사건이 등록되었습니다." },
+    // 실패 문구는 폼 위 오류 영역에만 남긴다(전역 실패 토스트 끔 — 같은 문구가 두 번 뜨지 않게).
+    meta: { success: "사건이 등록되었습니다.", inlineError: true },
     onSuccess: () => {
       setFormData(EMPTY_FORM)
       setErrorMessage(null)
       resetAdjustments()
+      resetOriginal()
       setRotation(0)
       // 사건 목록 새로고침은 사건 조회 권한이 있을 때만(없으면 목록 API가 403) + 등록 후 조회 모드로 복귀.
       if (hasFeature(useSessionStore.getState().user, FEATURES.CRIME_SEARCH)) {
@@ -139,14 +160,19 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
       }
       onExit()
     },
-    // 서버 검증 실패(400)·중복(409)의 한국어 `detail`을 폼 위에 그대로 보인다
-    // (전역 MutationCache 토스트와 별개로, 사용자가 고칠 위치 옆에 남겨 둔다).
-    onError: (error) => {
+    // 서버 검증 실패(400)·범위 밖(403 「다른 관서의 의뢰입니다」·「소속 관서가 지정되지 않아 등록할 수
+    // 없습니다」)·중복/SCAS 과거 사건(409)의 한국어 `detail`을 폼 위에 그대로 보인다(사용자가 고칠 위치 옆).
+    onError: (error, variables) => {
       setErrorMessage(
         error instanceof ApiError
           ? (error.detail ?? error.message)
           : "사건 등록에 실패했습니다"
       )
+      // 붙인 원본 번호를 서버가 거절(400)했으면 원본 실패 안내로 바꾸고, 다시 저장은 원본 없이 보낸다.
+      const rejected = originalRejectDetail(error)
+      if (rejected !== null && variables.originalFileId !== undefined) {
+        rejectOriginal(variables.originalFileId, rejected)
+      }
     },
   })
 
@@ -168,6 +194,8 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
         ? await rotateArbitrary(formData.image, rotationRef.current)
         : formData.image
     const image = await bakeAdjustments(rotated)
+    // 원본이 아직 올라가는 중이면 끝날 때까지 기다린다. 성공한 원본 번호만 붙인다(실패면 작업본만 저장).
+    const originalFileId = await resolveOriginalFileId()
     // 감정물 순번(aprthngSn)은 화면 전용 — 서버에는 조합된 감정물 번호만 보낸다.
     registerMutation.mutate({
       image,
@@ -178,8 +206,9 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
       pickMthCode: formData.pickMthCode,
       crimeNm: formData.crimeNm,
       rqestGrfcNm: formData.rqestGrfcNm,
+      ...(originalFileId !== null && { originalFileId }),
     })
-  }, [formData, registerMutation, bakeAdjustments])
+  }, [formData, registerMutation, bakeAdjustments, resolveOriginalFileId])
 
   // 앱셸 헤더 제목은 페이지(`CrimeSearchPage`)가 모드에 따라 게시한다 —
   // 이 위젯은 편집 스테이지만 렌더한다.
@@ -210,6 +239,9 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
           onReset={handleReset}
           isSubmitting={registerMutation.isPending}
           errorMessage={errorMessage}
+          originalFailure={
+            original.state.status === "failed" ? { detail: original.state.detail } : null
+          }
         />
       </div>
     </div>

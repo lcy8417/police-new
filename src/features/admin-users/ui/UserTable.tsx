@@ -1,12 +1,12 @@
 import type { KeyboardEvent } from "react"
 import { Loader2, UserPlus, Users } from "lucide-react"
 
-import type { AdminUser } from "@/entities/admin"
+import type { AdminUser, RoleInfo } from "@/entities/admin"
 import { formatKstDateTime } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
 import { Button, StatusChip, TechCorners, type StatusChipTone } from "@/shared/ui"
 
-import { USER_STATUS_LABELS, userStatus, type UserStatus } from "../model/user-rules"
+import { USER_STATUS_LABELS, roleNames, userStatus, type UserStatus } from "../model/user-rules"
 
 const STATUS_TONE: Record<UserStatus, StatusChipTone> = {
   ACTIVE: "teal",
@@ -14,7 +14,8 @@ const STATUS_TONE: Record<UserStatus, StatusChipTone> = {
   DISABLED: "gray",
 }
 
-const COLUMNS = ["아이디", "이름", "구분", "상태", "마지막 로그인"] as const
+// 새 열은 맨 끝에(SCAS 열 순서 유지 — police-ui-design 원칙).
+const COLUMNS = ["아이디", "이름", "구분", "상태", "마지막 로그인", "관서", "역할"] as const
 
 export interface UserTableProps {
   users: AdminUser[]
@@ -24,6 +25,8 @@ export interface UserTableProps {
   onSelect: (userId: string) => void
   /** "사용자 추가" 버튼. */
   onCreate: () => void
+  /** 역할 이름표(`GET /admin/roles`) — 아직 못 읽었으면 빈 목록(역할 코드를 그대로 보인다). */
+  roles?: RoleInfo[]
 }
 
 /** 계정 구분 칩 — 관리자 = blue, 사용자 = 회색. */
@@ -42,10 +45,17 @@ export function UserStatusChip({ user }: { user: Pick<AdminUser, "useAt" | "lock
 }
 
 /**
- * 사용자 표(`/manage/users` 왼쪽) — 아이디·이름·구분·상태·마지막 로그인(KST).
+ * 사용자 표(`/manage/users` 왼쪽) — 아이디·이름·구분·상태·마지막 로그인(KST)·관서·역할.
  * 행을 누르거나(키보드: Enter·Space) 고르면 오른쪽 상세 패널이 열린다.
  */
-export function UserTable({ users, selectedUserId, isLoading, onSelect, onCreate }: UserTableProps) {
+export function UserTable({
+  users,
+  selectedUserId,
+  isLoading,
+  onSelect,
+  onCreate,
+  roles = [],
+}: UserTableProps) {
   const handleRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>, userId: string) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
@@ -145,6 +155,10 @@ export function UserTable({ users, selectedUserId, isLoading, onSelect, onCreate
                     </td>
                     <td className="px-4 py-2.5 font-mono text-[12px] whitespace-nowrap tabular-nums text-[#8A93A6]">
                       {user.lastLoginDt ? formatKstDateTime(user.lastLoginDt) : "—"}
+                    </td>
+                    <td className="px-4 py-2.5 whitespace-nowrap text-fg-2">{user.orgNm}</td>
+                    <td className="px-4 py-2.5 whitespace-nowrap text-muted-foreground">
+                      {roleNames(user.roles, roles) ?? "—"}
                     </td>
                   </tr>
                 )

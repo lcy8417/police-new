@@ -139,10 +139,23 @@ export interface CrimeRegisterBody {
   crimeNm: string;
   /** 의뢰관서명(최대 300자). */
   rqestGrfcNm: string;
+  /**
+   * 편집 전 원본 파일 번호(`POST /files/original` 응답의 `fileId`, 실증 확장 설계서 §5-E).
+   * 원본 올리기가 성공했을 때만 보낸다 — 없으면 서버가 작업본만 「원본 없음」으로 남긴다.
+   */
+  originalFileId?: number;
 }
 
 /** Input to `registerCrime` — 등록 폼 값(본문과 같은 키), `image`는 접두어 제거 전. */
 export type CrimeRegisterInput = CrimeRegisterBody;
+
+/** `POST /files/original` 응답 — 서버가 이미 camel로 준다. */
+export interface OriginalUploadResult {
+  /** 보관된 원본 파일 번호 — 등록 요청의 `originalFileId`로 쓴다. */
+  fileId: number;
+  /** 원본 바이트의 SHA-256(소문자 hex 64자). */
+  sha256: string;
+}
 
 /** PUT /crime/:aprthngNo body. Mirror of crud.js#fetchPatterns. */
 export interface PatternsPutBody {

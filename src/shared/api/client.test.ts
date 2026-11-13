@@ -58,6 +58,20 @@ describe("ApiError — 서버 detail 문구 전달", () => {
     expect(nonString.detail).toBeNull();
   });
 
+  it("413(파일이 너무 큼)도 서버 detail 문구를 그대로 담는다", async () => {
+    mswServer.use(
+      http.post("*/files/original", () =>
+        HttpResponse.json({ detail: "파일이 너무 큽니다(최대 50MB)" }, { status: 413 })
+      )
+    );
+
+    const error = (await apiSend("/files/original", "POST").catch((e: unknown) => e)) as ApiError;
+
+    expect(error.status).toBe(413);
+    expect(error.detail).toBe("파일이 너무 큽니다(최대 50MB)");
+    expect(error.message).toBe("파일이 너무 큽니다(최대 50MB)");
+  });
+
   it("본문이 JSON이 아니어도 ApiError를 던진다", async () => {
     mswServer.use(
       http.post("*/crime/broken", () => new HttpResponse("oops", { status: 409 }))

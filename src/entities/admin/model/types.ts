@@ -26,6 +26,12 @@ export interface AdminUserDto {
   features: FeatureCode[];
   /** 마지막 로그인 시각(KST ISO) 또는 null. */
   last_login_dt: string | null;
+  /** 역할 코드(역할 `sort_ordr` 순). */
+  roles: RoleCode[];
+  /** 소속 관서 번호(`app.organization`). */
+  org_id: number;
+  /** 소속 관서 이름. */
+  org_nm: string;
 }
 
 /** 사용자 표 한 행(camel). */
@@ -40,10 +46,87 @@ export interface AdminUser {
   useAt: YesNo;
   /** `Y` = 잠김(관리자가 해제). */
   lockAt: YesNo;
-  /** 저장된 기능 권한. */
+  /** 저장된 기능 권한(개인 권한 — 역할 권한은 여기 없음). */
   features: FeatureCode[];
   /** 마지막 로그인 시각(KST ISO) 또는 null. */
   lastLoginDt: string | null;
+  /** 역할 코드(역할 `sort_ordr` 순). */
+  roles: RoleCode[];
+  /** 소속 관서 번호. */
+  orgId: number;
+  /** 소속 관서 이름. */
+  orgNm: string;
+}
+
+/**
+ * 역할 코드 — 서버 `app.role`(지금은 `INVESTIGATOR` 수사관 · `EXAMINER` 감정관 · `REVIEWER` 검증자).
+ * 목록과 이름은 `GET /admin/roles`가 정본이라 화면에 고정하지 않는다(문자열로 둔다).
+ * 관리자는 역할이 아니라 `userSe = "ADMIN"`으로만 판단한다(실증 확장 설계서 §5-A).
+ */
+export type RoleCode = string;
+
+/** GET /admin/roles 한 행(snake). */
+export interface RoleInfoDto {
+  role_code: RoleCode;
+  role_nm: string;
+  sort_ordr: number;
+  features: FeatureCode[];
+}
+
+/** 역할 선택지 한 행(camel). */
+export interface RoleInfo {
+  /** 역할 코드. */
+  roleCode: RoleCode;
+  /** 화면에 보일 역할 이름(예: 수사관). */
+  roleNm: string;
+  /** 표시 순서. */
+  sortOrdr: number;
+  /** 이 역할이 주는 기능 권한(기능 표시 순서). */
+  features: FeatureCode[];
+}
+
+/** 관서 구분 — 본청 / 시도청 / 경찰서 / 타기관. 계층: 경찰서 ⊂ 시도청 ⊂ 본청, 타기관은 상위 없음. */
+export type OrgSe = "HQ" | "PROVINCIAL" | "STATION" | "EXTERNAL";
+
+/** GET /admin/orgs 한 행(snake). */
+export interface OrgDto {
+  org_id: number;
+  upper_org_id: number | null;
+  org_se: OrgSe;
+  org_nm: string;
+  grfc_code: string | null;
+  use_at: YesNo;
+  sort_ordr: number;
+}
+
+/** 관서 한 행(camel). */
+export interface Org {
+  /** 관서 번호. */
+  orgId: number;
+  /** 상위 관서 번호(본청 · 타기관은 null). */
+  upperOrgId: number | null;
+  /** 관서 구분. */
+  orgSe: OrgSe;
+  /** 관서 이름. */
+  orgNm: string;
+  /** SCAS 관서 코드(5자 이내, 확인된 것만) 또는 null. */
+  grfcCode: string | null;
+  /** `N` = 사용 중지(통폐합) — 새로 소속시킬 수 없다. */
+  useAt: YesNo;
+  /** 표시 순서. */
+  sortOrdr: number;
+}
+
+/** POST /admin/orgs 본문(camel 그대로 전송). 계층 위반은 서버 400, 관서 코드 중복은 409. */
+export interface CreateOrgInput {
+  /** 관서 이름(1~100자). */
+  orgNm: string;
+  /** 관서 구분(본청 `HQ`는 새로 못 만듦). */
+  orgSe: Exclude<OrgSe, "HQ">;
+  /** 상위 관서 번호(시도청 → 본청, 경찰서 → 시도청, 타기관 → 없음). */
+  upperOrgId?: number | null;
+  /** SCAS 관서 코드(5자 이내) — 모르면 비움. */
+  grfcCode?: string | null;
 }
 
 /** POST /admin/users 본문(camel 그대로 전송). */
@@ -68,6 +151,8 @@ export interface UpdateUserInput {
   userSe: UserSe;
   /** `N` = 사용 중지(자기 자신은 불가 — 서버 400). */
   useAt: YesNo;
+  /** 소속 관서 번호 — 안 보내면 그대로, 바꾸면 서버가 소속 이력을 닫고 새로 연다. 사용 중지된 관서는 400. */
+  orgId?: number;
 }
 
 /** GET /admin/sessions 필터(빈 값은 쿼리에 넣지 않음). 날짜는 `YYYY-MM-DD`(KST, 끝 날짜 포함). */

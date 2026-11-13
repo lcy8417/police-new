@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { http, HttpResponse } from "msw";
 import { mswServer } from "@/test/msw-server";
 import { PATTERNS_ROOT } from "@/entities/pattern";
@@ -10,6 +10,7 @@ import {
   registerCrime,
   saveCrimeEditImage,
   saveCrimeHistory,
+  uploadOriginal,
 } from "./crime-api";
 
 beforeAll(() => mswServer.listen({ onUnhandledRequest: "error" }));
@@ -59,6 +60,83 @@ describe("registerCrime (POST /crime/register)", () => {
         "rqestGrfcNm",
       ].sort()
     );
+  });
+
+  it("originalFileId를 주면 본문에 숫자 그대로 넣는다(원본 연결, 설계서 §5-E)", async () => {
+    let captured: Record<string, unknown> | undefined;
+    mswServer.use(
+      http.post("*/crime/register", async ({ request }) => {
+        captured = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({});
+      })
+    );
+
+    await registerCrime({
+      image: "data:image/png;base64,AAAA",
+      aprthngNo: "05019-24-0017_5",
+      apprslReqestNo: "05019-24-0017",
+      pickDt: "",
+      pickPlace: "",
+      pickMthCode: "",
+      crimeNm: "",
+      rqestGrfcNm: "",
+      originalFileId: 42,
+    });
+
+    expect(captured?.originalFileId).toBe(42);
+  });
+});
+
+describe("uploadOriginal (POST /files/original)", () => {
+  it("multipart `file`로 고른 File을 손대지 않고 그대로 보내고 {fileId, sha256}을 돌려준다", async () => {
+    let contentType = "";
+    let hasFileField = false;
+    mswServer.use(
+      http.post("*/files/original", async ({ request }) => {
+        contentType = request.headers.get("content-type") ?? "";
+        hasFileField = (await request.formData()).has("file");
+        return HttpResponse.json({ fileId: 42, sha256: "ab".repeat(32) });
+      })
+    );
+    // 보낸 본문은 fetch 직전에 본다 — 테스트 환경(jsdom → Node)의 FormData 변환이 파일 이름을
+    // 지우므로(서버 쪽에서는 "blob"으로 보임), 같은 File 객체가 그대로 실렸는지를 여기서 확인한다.
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    const file = new File(["raw-bytes"], "현장 사진.png", { type: "image/png" });
+    const result = await uploadOriginal(file);
+
+    const init = fetchSpy.mock.calls[0][1] as RequestInit;
+    fetchSpy.mockRestore();
+    expect(init.method).toBe("POST");
+    expect(init.body).toBeInstanceOf(FormData);
+    expect((init.body as FormData).get("file")).toBe(file);
+    // Content-Type은 직접 붙이지 않는다(브라우저가 경계 값을 넣음).
+    expect(new Headers(init.headers).has("content-type")).toBe(false);
+    expect(contentType).toMatch(/^multipart\/form-data; boundary=/);
+    expect(hasFileField).toBe(true);
+    expect(result).toEqual({ fileId: 42, sha256: "ab".repeat(32) });
+  });
+
+  it("413·400은 서버 detail 문구를 그대로 담은 ApiError", async () => {
+    mswServer.use(
+      http.post("*/files/original", () =>
+        HttpResponse.json({ detail: "파일이 너무 큽니다(최대 50MB)" }, { status: 413 })
+      )
+    );
+    await expect(uploadOriginal(new File(["x"], "big.png"))).rejects.toMatchObject({
+      status: 413,
+      detail: "파일이 너무 큽니다(최대 50MB)",
+    });
+
+    mswServer.use(
+      http.post("*/files/original", () =>
+        HttpResponse.json({ detail: "이미지 파일이 아닙니다" }, { status: 400 })
+      )
+    );
+    await expect(uploadOriginal(new File(["x"], "a.txt"))).rejects.toMatchObject({
+      status: 400,
+      detail: "이미지 파일이 아닙니다",
+    });
   });
 });
 

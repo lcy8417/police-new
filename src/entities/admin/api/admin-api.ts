@@ -15,12 +15,19 @@ import type {
   AdminSessionDto,
   AdminUser,
   AdminUserDto,
+  CreateOrgInput,
   CreateUserInput,
   EventFilters,
   FeatureInfo,
   FeatureInfoDto,
+  Org,
+  OrgDto,
+  RoleCode,
+  RoleInfo,
+  RoleInfoDto,
   SessionFilters,
   UpdateUserInput,
+  YesNo,
 } from "../model/types";
 
 /** 사용자 ID를 URL 경로 조각으로 — 허용 문자만 쓰지만 방어용으로 인코딩한다. */
@@ -53,18 +60,53 @@ export async function createUser(input: CreateUserInput): Promise<void> {
   });
 }
 
-/** PUT /admin/users/{user_id} — 이름·구분·사용 여부. */
+/** PUT /admin/users/{user_id} — 이름·구분·사용 여부, 소속 관서(`orgId`는 줄 때만 보낸다 — 안 보내면 그대로). */
 export async function updateUser(userId: string, input: UpdateUserInput): Promise<void> {
   await apiSend(userPath(userId), "PUT", {
     userNm: input.userNm,
     userSe: input.userSe,
     useAt: input.useAt,
+    ...(input.orgId !== undefined && { orgId: input.orgId }),
   });
 }
 
 /** PUT /admin/users/{user_id}/features — 기능 권한 전체 교체. */
 export async function replaceUserFeatures(userId: string, features: FeatureCode[]): Promise<void> {
   await apiSend(`${userPath(userId)}/features`, "PUT", { features });
+}
+
+/** PUT /admin/users/{user_id}/roles — 역할 전체 교체(모르는 역할 코드는 서버 400). */
+export async function replaceUserRoles(userId: string, roles: RoleCode[]): Promise<void> {
+  await apiSend(`${userPath(userId)}/roles`, "PUT", { roles });
+}
+
+/** GET /admin/roles — 역할 선택지(역할 표시 순서, 역할마다 주는 기능 권한 포함). */
+export async function fetchRoles(): Promise<RoleInfo[]> {
+  const data = await apiGet<RoleInfoDto[]>("/admin/roles");
+  return convertKeysToCamelCase<RoleInfo[]>(data);
+}
+
+/** GET /admin/orgs — 모든 관서(사용 중지 포함), 표시 순서·번호 순. */
+export async function fetchOrgs(): Promise<Org[]> {
+  const data = await apiGet<OrgDto[]>("/admin/orgs");
+  return convertKeysToCamelCase<Org[]>(data);
+}
+
+/** POST /admin/orgs — 관서 추가(201). 계층 위반 400, 관서 코드 중복 409. 만든 관서를 돌려준다. */
+export async function createOrg(body: CreateOrgInput): Promise<Org> {
+  const response = await apiSend("/admin/orgs", "POST", {
+    orgNm: body.orgNm,
+    orgSe: body.orgSe,
+    upperOrgId: body.upperOrgId ?? null,
+    grfcCode: body.grfcCode ?? null,
+  });
+  return convertKeysToCamelCase<Org>(await response.json());
+}
+
+/** PUT /admin/orgs/{org_id} — 사용 여부만 바꾼다(통폐합은 `N` + 새 관서). 없는 관서 404, 본청 400. */
+export async function updateOrgUse(orgId: number, useAt: YesNo): Promise<Org> {
+  const response = await apiSend(`/admin/orgs/${encodeURIComponent(orgId)}`, "PUT", { useAt });
+  return convertKeysToCamelCase<Org>(await response.json());
 }
 
 /** POST /admin/users/{user_id}/password-reset — 204, 그 사용자의 열린 세션은 모두 종료된다. */

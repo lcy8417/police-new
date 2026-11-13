@@ -2,8 +2,11 @@
 // FSD: entities·shared만 import(features/auth 금지 — 본인 수정 후 세션 재확인은 페이지가 `onUserChanged`로).
 export {
   useCreateUser,
+  useOrgsQuery,
   useReplaceFeatures,
+  useReplaceRoles,
   useResetPassword,
+  useRolesQuery,
   useUnlockUser,
   useUpdateUser,
   useUsersQuery,

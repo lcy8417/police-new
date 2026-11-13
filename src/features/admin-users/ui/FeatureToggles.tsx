@@ -7,12 +7,20 @@ import { Button, Switch } from "@/shared/ui"
 
 import { isImpliedFeature, sameFeatures, toggleFeature } from "../model/user-rules"
 
-/** 기능별 한 줄 설명 — 어떤 메뉴·화면이 열리는지(설계서 §2). */
+/** 기능별 한 줄 설명 — 어떤 메뉴·화면이 열리는지(설계서 §2, 실증 확장 설계서 §5-A). */
 const FEATURE_HINTS: Record<FeatureCode, string> = {
   CRIME_REGISTER: "사건 등록 화면에서 현장 이미지를 올립니다",
   CRIME_SEARCH: "사건 목록·검색·유사도·감정 결과를 봅니다",
   SHOE_VIEW: "신발 저장소를 조회만 합니다",
   SHOE_EDIT: "신발을 새로 등록하고 문양을 수정합니다",
+  CASE_STATUS_VIEW: "의뢰 목록에서 진행 상태를 봅니다",
+  REPORT_VIEW: "발송된 감정서를 봅니다",
+  EXAM_DECIDE: "감정 판정을 확정합니다(결과확인완료)",
+  CROSS_REVIEW: "다른 감정관의 판정을 교차 검증합니다",
+  REPORT_WRITE: "감정서를 작성해 제출합니다",
+  REPORT_APPROVE: "제출된 감정서를 결재하거나 반려합니다",
+  REPORT_SEND: "결재된 감정서를 발송합니다",
+  SHOE_COLLECT_REVIEW: "수집된 신발 자료를 검수합니다",
 }
 
 export interface FeatureTogglesProps {
@@ -23,7 +31,8 @@ export interface FeatureTogglesProps {
 }
 
 /**
- * 기능 권한 스위치 4개 + "권한 저장". `SHOE_EDIT`를 켜면 `SHOE_VIEW`도 켜진 것으로 보이고
+ * 기능 권한 스위치(서버 기능 목록 전체, `FEATURE_ORDER`) + "권한 저장" — 개인 권한만 다루고 역할 권한은
+ * 역할 칸에서 정한다. `SHOE_EDIT`를 켜면 `SHOE_VIEW`도 켜진 것으로 보이고
  * 끌 수 없다(신발 등록·수정에 포함). 바뀐 것이 없으면 저장 버튼이 꺼져 있다.
  * 다른 사용자를 고르면 상위에서 `key`를 바꿔 새로 시작한다.
  */

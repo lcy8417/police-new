@@ -9,6 +9,10 @@ export const adminQueryKeys = {
   users: ["admin", "users"] as const,
   /** GET /admin/actions */
   actions: ["admin", "actions"] as const,
+  /** GET /admin/roles */
+  roles: ["admin", "roles"] as const,
+  /** GET /admin/orgs */
+  orgs: ["admin", "orgs"] as const,
   /** GET /admin/sessions — 페이지(`page`)는 무한 스크롤 쿼리가 관리하므로 키에 넣지 않는다. */
   sessions: (filters: Omit<SessionFilters, "page">) => ["admin", "sessions", filters] as const,
   /** GET /admin/sessions/{id}/events */
