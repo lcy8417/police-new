@@ -9,8 +9,10 @@ import process from 'node:process'
  * `/crime/...`·`/crime?x`·`/auth/me`는 넘기고, 같은 글자로 시작하는 화면 주소
  * (`/crimeRegister`, `/shoesRepository`)는 넘기지 않도록 뒤에 `/`·끝·`?`만 허용한다
  * (설계서 §3-1). 관리자 화면은 `/manage/*`라 `/admin/*` API와 겹치지 않는다.
+ * `/files/*`는 증거 파일 API(원본 올리기 `POST /files/original`, 열람 `GET /files/{id}` —
+ * 실증 확장 설계서 §5-E · §6-3). 빠지면 POST가 Vite 화면 서버로 가서 404가 된다.
  */
-export const BACKEND_PROXY_PATTERN = '^/(crime|shoes|auth|admin)(/|$|\\?)'
+export const BACKEND_PROXY_PATTERN = '^/(crime|shoes|auth|admin|files)(/|$|\\?)'
 
 /** 백엔드 정적 이미지 폴더(로그인 쿠키로 보호됨) — 앞부분이 같으면 중계한다. */
 export const BACKEND_STATIC_PREFIXES = [

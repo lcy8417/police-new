@@ -15,6 +15,13 @@ describe("vite.config.js 중계(proxy) 규칙 — 같은 주소(same-origin)", (
     expect(matchesApi("/admin/users")).toBe(true);
   });
 
+  it("증거 파일 API(/files)도 넘긴다 — 원본 올리기 POST · 파일 열람 GET", () => {
+    expect(matchesApi("/files/original")).toBe(true);
+    expect(matchesApi("/files/42")).toBe(true);
+    // 같은 글자로 시작하는 화면 주소는 넘기지 않는다.
+    expect(matchesApi("/filesView")).toBe(false);
+  });
+
   it("화면 주소는 넘기지 않는다", () => {
     expect(matchesApi("/crimeRegister")).toBe(false);
     expect(matchesApi("/search/abc")).toBe(false);

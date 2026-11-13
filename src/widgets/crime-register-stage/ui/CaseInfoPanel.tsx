@@ -1,4 +1,4 @@
-import { AlertTriangle, Calendar } from "lucide-react"
+import { AlertTriangle, Calendar, Loader2 } from "lucide-react"
 import { useState, type ReactNode } from "react"
 
 import { cn } from "@/shared/lib/utils"
@@ -30,10 +30,11 @@ interface CaseInfoPanelProps {
   /** 폼 위 오류 영역에 띄울 문구(화면 검증 실패 또는 서버 400/403/409 `detail`). 없으면 숨김. */
   errorMessage?: string | null
   /**
-   * 원본 보관 실패 안내(실증 확장 설계서 §5-E · §11-2 「실패는 그 자리에」). `detail`은 서버 문구 그대로
-   * (예 413 「파일이 너무 큽니다(최대 50MB)」, 없으면 null). null이면 숨김 — 등록은 막지 않는다.
+   * 원본 보관 상태 안내(실증 확장 설계서 §5-E · §11-2 「실패는 그 자리에」). `uploading` = 「원본 올리는 중…」,
+   * `failed` = 「원본 보관 실패 — 작업본만 저장됩니다」 + 서버 문구 그대로(예 413 「파일이 너무 큽니다(최대 50MB)」,
+   * 없으면 null). null이면 숨김 — 실패해도 등록은 막지 않는다.
    */
-  originalFailure?: { detail: string | null } | null
+  originalStatus?: { kind: "uploading" } | { kind: "failed"; detail: string | null } | null
 }
 
 /**
@@ -48,7 +49,7 @@ export function CaseInfoPanel({
   onReset,
   isSubmitting = false,
   errorMessage = null,
-  originalFailure = null,
+  originalStatus = null,
 }: CaseInfoPanelProps) {
   // 사건 내용 has no counterpart in the register body (backend contract has no
   // description field), so it stays local + optional and is not submitted.
@@ -78,8 +79,20 @@ export function CaseInfoPanel({
           </div>
         )}
 
+        {/* 원본 올리는 중 — 회색 안내(저장을 누르면 끝날 때까지 기다린다). 색은 토큰만(새 hex 금지). */}
+        {originalStatus?.kind === "uploading" && (
+          <div
+            role="status"
+            aria-label="원본 보관"
+            className="flex items-center gap-2 rounded-lg border border-border bg-strip px-3 py-2.5 text-[13px] text-muted-foreground"
+          >
+            <Loader2 className="size-4 shrink-0 motion-safe:animate-spin" aria-hidden="true" />
+            <span>원본 올리는 중…</span>
+          </div>
+        )}
+
         {/* 원본 보관 실패 — 경고(주황)로 남기고 등록은 계속할 수 있다. 색은 토큰만(새 hex 금지). */}
-        {originalFailure && (
+        {originalStatus?.kind === "failed" && (
           <div
             role="status"
             aria-label="원본 보관"
@@ -88,8 +101,8 @@ export function CaseInfoPanel({
             <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             <span className="flex min-w-0 flex-col gap-0.5">
               <span>원본 보관 실패 — 작업본만 저장됩니다</span>
-              {originalFailure.detail && (
-                <span className="text-[12px] text-fg-2">{originalFailure.detail}</span>
+              {originalStatus.detail && (
+                <span className="text-[12px] text-fg-2">{originalStatus.detail}</span>
               )}
             </span>
           </div>

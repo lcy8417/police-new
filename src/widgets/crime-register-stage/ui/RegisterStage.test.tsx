@@ -27,6 +27,49 @@ class ResizeObserverStub {
 globalThis.ResizeObserver =
   globalThis.ResizeObserver ?? (ResizeObserverStub as unknown as typeof ResizeObserver)
 
+/**
+ * 이미지 줄이기(`resizeImage`) 제어 — 기본은 jsdom처럼 실패(원본 data URL 그대로 사용).
+ * `gateNextResize()`로 다음 한 번을 붙잡아 두면, 그 파일의 화면 반영(디코드)이 풀어 줄 때까지 늦어진다.
+ */
+const resize = vi.hoisted(() => ({
+  gates: [] as Array<Promise<void>>,
+}))
+vi.mock("@/utils/get-input-change", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/utils/get-input-change")>()
+  return {
+    ...actual,
+    resizeImage: async (base64: string) => {
+      const gate = resize.gates.shift()
+      if (gate) {
+        await gate
+        return base64
+      }
+      throw new Error("jsdom에서는 이미지 줄이기를 하지 않는다")
+    },
+  }
+})
+
+/** 다음 이미지 줄이기 한 번을 붙잡는다 — 돌려준 함수를 부르면 풀린다. */
+function gateNextResize(): () => void {
+  let release: () => void = () => {}
+  resize.gates.push(
+    new Promise<void>((resolve) => {
+      release = resolve
+    })
+  )
+  return release
+}
+
+/** 파일 고르기만(화면 반영을 기다리지 않음). */
+function pickFile(content: string, name = "scene.png") {
+  const input = document.querySelector<HTMLInputElement>('input[type="file"]')
+  if (!input) throw new Error("파일 입력칸이 없습니다")
+  fireEvent.change(input, { target: { files: [new File([content], name, { type: "image/png" })] } })
+}
+
+/** 그 내용의 파일이 등록 본문 `image`로 갈 때의 값(data URL 접두어 뺀 base64). */
+const imageOf = (content: string) => btoa(content)
+
 /** 파일을 고르면 먼저 가는 원본 올리기(POST /files/original) 기본 응답. 테스트마다 덮어쓸 수 있다. */
 const ORIGINAL_FILE_ID = 42
 
@@ -40,6 +83,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   mswServer.resetHandlers()
+  resize.gates.length = 0
   useSessionStore.setState({ user: null, status: "loading" })
 })
 afterAll(() => mswServer.close())
@@ -389,5 +433,136 @@ describe("RegisterStage — 원본 먼저 올리기(설계서 §5-E)", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(detail)
     expect(toastedMeta).toEqual([])
     expect(onExit).not.toHaveBeenCalled()
+  })
+})
+
+describe("RegisterStage — 원본 번호는 화면의 그 이미지를 고른 것의 번호만(fix 1)", () => {
+  /** 원본 올리기 — 요청 순서대로 1, 2, 3 … 번호를 준다. `gates[i]`가 있으면 i번째 응답을 붙잡는다. */
+  function numberedOriginals(gates: Array<Promise<void> | undefined> = []) {
+    let calls = 0
+    mswServer.use(
+      http.post("*/files/original", async () => {
+        const index = calls++
+        if (gates[index]) await gates[index]
+        return HttpResponse.json({ fileId: index + 1, sha256: "ab".repeat(32) })
+      })
+    )
+    return { calls: () => calls }
+  }
+
+  function captureRegister() {
+    const bodies: Record<string, unknown>[] = []
+    mswServer.use(
+      http.post("*/crime/register", async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>)
+        return PNG_RESPONSE()
+      })
+    )
+    return bodies
+  }
+
+  it("(a) 다시 고른 이미지가 아직 화면에 안 올라왔으면 저장을 막고, 올라온 뒤에는 그 이미지 + 그 원본 번호", async () => {
+    numberedOriginals()
+    const bodies = captureRegister()
+    const { onExit } = renderStage()
+
+    pickFile("image-A")
+    await waitFor(() => expect(screen.getAllByRole("img").length).toBeGreaterThan(0))
+    fill("감정의뢰번호", "05019-24-0017")
+
+    const releaseB = gateNextResize()
+    pickFile("image-B")
+    fireEvent.click(screen.getByRole("button", { name: "저장" }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("이미지를 불러오는 중입니다")
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    expect(bodies).toEqual([])
+
+    releaseB()
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole("button", { name: "저장" }))
+
+    await waitFor(() => expect(onExit).toHaveBeenCalled())
+    expect(bodies).toHaveLength(1)
+    expect(bodies[0].image).toBe(imageOf("image-B"))
+    expect(bodies[0].originalFileId).toBe(2)
+  })
+
+  it("(b) 저장을 누른 뒤(굽기 · 원본 대기 중) 다른 파일을 골라도 누른 순간의 이미지 + 그 원본 번호로 등록", async () => {
+    let releaseA: () => void = () => {}
+    const gateA = new Promise<void>((resolve) => {
+      releaseA = resolve
+    })
+    const originals = numberedOriginals([gateA])
+    const bodies = captureRegister()
+    const { onExit } = renderStage()
+
+    pickFile("image-A")
+    await waitFor(() => expect(screen.getAllByRole("img").length).toBeGreaterThan(0))
+    fill("감정의뢰번호", "05019-24-0017")
+    fireEvent.click(screen.getByRole("button", { name: "저장" }))
+
+    // 기다리는 동안 다시 고르기 — 무시된다(고르기도 잠김).
+    pickFile("image-B")
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    expect(originals.calls()).toBe(1)
+
+    releaseA()
+    await waitFor(() => expect(onExit).toHaveBeenCalled())
+    expect(bodies).toHaveLength(1)
+    expect(bodies[0].image).toBe(imageOf("image-A"))
+    expect(bodies[0].originalFileId).toBe(1)
+  })
+
+  it("(c) 앞 파일의 디코드가 뒤 파일보다 늦게 끝나도 화면은 뒤 파일, 원본 번호도 뒤 파일", async () => {
+    numberedOriginals()
+    const bodies = captureRegister()
+    const { onExit } = renderStage()
+
+    const releaseA = gateNextResize()
+    pickFile("image-A")
+    pickFile("image-B") // 붙잡지 않음 → 먼저 화면에 오른다
+    await waitFor(() => expect(screen.getAllByRole("img").length).toBeGreaterThan(0))
+
+    releaseA() // 늦게 끝난 A는 버려져야 한다
+    await new Promise((resolve) => setTimeout(resolve, 30))
+
+    fill("감정의뢰번호", "05019-24-0017")
+    fireEvent.click(screen.getByRole("button", { name: "저장" }))
+
+    await waitFor(() => expect(onExit).toHaveBeenCalled())
+    expect(bodies).toHaveLength(1)
+    expect(bodies[0].image).toBe(imageOf("image-B"))
+    expect(bodies[0].originalFileId).toBe(2)
+  })
+
+  it("원본이 올라가는 중이면 「원본 올리는 중…」, 저장을 누르면 저장 · 파일 고르기가 잠긴다", async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    numberedOriginals([gate])
+    const bodies = captureRegister()
+    const { onExit } = renderStage()
+
+    pickFile("image-A")
+    await waitFor(() => expect(screen.getAllByRole("img").length).toBeGreaterThan(0))
+    expect(screen.getByRole("status", { name: "원본 보관" })).toHaveTextContent("원본 올리는 중…")
+
+    fill("감정의뢰번호", "05019-24-0017")
+    fireEvent.click(screen.getByRole("button", { name: "저장" }))
+
+    const saving = await screen.findByRole("button", { name: "저장 중..." })
+    expect(saving).toBeDisabled()
+    expect(document.querySelector<HTMLInputElement>('input[type="file"]')).toBeDisabled()
+
+    // 잠긴 동안 다시 누르기는 요청을 더 만들지 않는다.
+    fireEvent.click(saving)
+
+    release()
+    await waitFor(() => expect(onExit).toHaveBeenCalled())
+    expect(bodies).toHaveLength(1)
+    expect(bodies[0].originalFileId).toBe(1)
+    expect(screen.queryByText("원본 올리는 중…")).not.toBeInTheDocument()
   })
 })

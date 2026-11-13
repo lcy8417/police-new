@@ -67,6 +67,21 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
   const imageRef = useRef(formData.image)
   imageRef.current = formData.image
 
+  // 고르기 번호(원본 올리기 훅이 매김) — 화면의 이미지가 어느 고르기에서 왔는지 이미지와 함께 들고 있다가,
+  // 등록 때 그 고르기의 원본 번호만 붙인다(다른 파일의 원본이 붙지 않게).
+  const [imagePick, setImagePick] = useState<number | null>(null)
+  // 마지막 고르기 번호 — 늦게 끝난 앞 파일의 디코드(FileReader · 줄이기) 결과를 버리는 기준. 초기화면 0.
+  const latestPickRef = useRef(0)
+  // 마지막으로 고른 파일이 아직 화면에 오르지 않았으면 true — 그동안 저장을 막는다.
+  const [decoding, setDecoding] = useState(false)
+  // 저장을 누른 뒤 등록이 끝날 때까지 true — 저장 · 파일 고르기를 잠근다(누른 순간의 값을 지키려고).
+  const [submitting, setSubmitting] = useState(false)
+  const submittingRef = useRef(false)
+  const setSubmittingBoth = useCallback((on: boolean) => {
+    submittingRef.current = on
+    setSubmitting(on)
+  }, [])
+
   const handleFieldChange = useCallback((name: keyof CrimeRegisterForm, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
     // 입력을 고치면 이전 오류 문구는 더 이상 맞지 않으므로 지운다.
@@ -74,18 +89,35 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
   }, [])
 
   const handleFileSelect = useCallback(async (file: File) => {
+    // 저장 중에는 고르기를 받지 않는다(고르기 칸도 잠겨 있다).
+    if (submittingRef.current) return
     setErrorMessage(null)
     // 줄이기 · 회전 · 보정 전의 원본을 먼저 보관한다(실패해도 등록은 계속 — 안내만 남김).
-    startOriginalUpload(file)
+    const pick = startOriginalUpload(file)
+    latestPickRef.current = pick
+    setDecoding(true)
+    /** 이 고르기가 아직 마지막이면 이미지와 고르기 번호를 함께 올린다. 늦게 끝난 앞 고르기는 버린다. */
+    const commit = (image: string) => {
+      if (pick !== latestPickRef.current) return
+      setFormData((prev) => ({ ...prev, image }))
+      setImagePick(pick)
+      setDecoding(false)
+      setErrorMessage(null)
+    }
     const reader = new FileReader()
     reader.onloadend = async () => {
-      const base64 = reader.result as string
+      if (typeof reader.result !== "string") {
+        if (pick !== latestPickRef.current) return
+        setDecoding(false)
+        setErrorMessage("이미지를 읽지 못했습니다 — 파일을 다시 고르세요")
+        return
+      }
+      const base64 = reader.result
       try {
-        const processed = await resizeImage(base64)
-        setFormData((prev) => ({ ...prev, image: processed }))
+        commit(await resizeImage(base64))
       } catch (error) {
         console.error("이미지 처리 중 오류 발생:", error)
-        setFormData((prev) => ({ ...prev, image: base64 }))
+        commit(base64)
       }
     }
     reader.readAsDataURL(file)
@@ -101,14 +133,22 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
   )
 
   // 초기화(취소): 작성 중이던 상태를 비우고 조회 모드(목록)로 복귀한다.
+  /** 이미지 · 고르기 · 원본 상태를 비운다(초기화 · 등록 성공 공통). 진행 중인 디코드 결과도 버린다. */
+  const clearPicks = useCallback(() => {
+    latestPickRef.current = 0
+    setImagePick(null)
+    setDecoding(false)
+    resetOriginal()
+  }, [resetOriginal])
+
   const handleReset = useCallback(() => {
     setFormData(EMPTY_FORM)
     setErrorMessage(null)
     resetAdjustments()
-    resetOriginal()
+    clearPicks()
     setRotation(0)
     onExit()
-  }, [resetAdjustments, resetOriginal, setRotation, onExit])
+  }, [resetAdjustments, clearPicks, setRotation, onExit])
 
   const handleImageChange = useCallback((next: string) => {
     setFormData((prev) => ({ ...prev, image: next }))
@@ -152,7 +192,7 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
       setFormData(EMPTY_FORM)
       setErrorMessage(null)
       resetAdjustments()
-      resetOriginal()
+      clearPicks()
       setRotation(0)
       // 사건 목록 새로고침은 사건 조회 권한이 있을 때만(없으면 목록 API가 403) + 등록 후 조회 모드로 복귀.
       if (hasFeature(useSessionStore.getState().user, FEATURES.CRIME_SEARCH)) {
@@ -177,6 +217,12 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
   })
 
   const handleSubmit = useCallback(async () => {
+    if (submittingRef.current) return
+    // 마지막으로 고른 파일이 아직 화면에 오르지 않았으면 막는다(화면의 이미지와 원본이 어긋나지 않게).
+    if (decoding) {
+      setErrorMessage("이미지를 불러오는 중입니다 — 화면에 이미지가 오른 뒤 저장하세요")
+      return
+    }
     if (!formData.image) {
       setErrorMessage("현장 이미지를 등록하세요")
       return
@@ -187,28 +233,59 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
       return
     }
     setErrorMessage(null)
-    // 분석관의 보정이 미리보기에만 그치지 않고 서버 측에도 유지되도록, 자유각
-    // 회전을 먼저 굽고 이어서 비파괴 가시성 조정값을 이미지에 굽는다.
-    const rotated =
-      rotationRef.current !== 0
-        ? await rotateArbitrary(formData.image, rotationRef.current)
-        : formData.image
-    const image = await bakeAdjustments(rotated)
-    // 원본이 아직 올라가는 중이면 끝날 때까지 기다린다. 성공한 원본 번호만 붙인다(실패면 작업본만 저장).
-    const originalFileId = await resolveOriginalFileId()
+    // 누른 순간의 값을 붙잡는다 — 이미지와 그 이미지를 고른 번호는 같은 렌더의 짝이다.
+    const form = formData
+    const sourceImage = formData.image
+    const pick = imagePick
+    setSubmittingBoth(true)
+    let originalFileId: number | null
+    let image: string
+    try {
+      // 분석관의 보정이 미리보기에만 그치지 않고 서버 측에도 유지되도록, 자유각
+      // 회전을 먼저 굽고 이어서 비파괴 가시성 조정값을 이미지에 굽는다.
+      const rotated =
+        rotationRef.current !== 0 ? await rotateArbitrary(sourceImage, rotationRef.current) : sourceImage
+      image = await bakeAdjustments(rotated)
+      // 그 고르기의 원본이 아직 올라가는 중이면 끝날 때까지 기다린다. 성공한 번호만 붙인다(실패면 작업본만).
+      originalFileId = pick === null ? null : await resolveOriginalFileId(pick)
+    } catch (error) {
+      console.error("등록 이미지 준비 중 오류:", error)
+      setSubmittingBoth(false)
+      setErrorMessage("이미지를 저장용으로 만들지 못했습니다 — 다시 저장하세요")
+      return
+    }
     // 감정물 순번(aprthngSn)은 화면 전용 — 서버에는 조합된 감정물 번호만 보낸다.
-    registerMutation.mutate({
-      image,
-      aprthngNo: buildAprthngNo(formData.apprslReqestNo, formData.aprthngSn),
-      apprslReqestNo: formData.apprslReqestNo,
-      pickDt: formData.pickDt,
-      pickPlace: formData.pickPlace,
-      pickMthCode: formData.pickMthCode,
-      crimeNm: formData.crimeNm,
-      rqestGrfcNm: formData.rqestGrfcNm,
-      ...(originalFileId !== null && { originalFileId }),
-    })
-  }, [formData, registerMutation, bakeAdjustments, resolveOriginalFileId])
+    registerMutation.mutate(
+      {
+        image,
+        aprthngNo: buildAprthngNo(form.apprslReqestNo, form.aprthngSn),
+        apprslReqestNo: form.apprslReqestNo,
+        pickDt: form.pickDt,
+        pickPlace: form.pickPlace,
+        pickMthCode: form.pickMthCode,
+        crimeNm: form.crimeNm,
+        rqestGrfcNm: form.rqestGrfcNm,
+        ...(originalFileId !== null && { originalFileId }),
+      },
+      { onSettled: () => setSubmittingBoth(false) }
+    )
+  }, [
+    decoding,
+    formData,
+    imagePick,
+    registerMutation,
+    bakeAdjustments,
+    resolveOriginalFileId,
+    setSubmittingBoth,
+  ])
+
+  // 원본 보관 안내 — 올리는 중 / 실패(마지막으로 고른 파일 기준).
+  const originalStatus =
+    original.state.status === "uploading"
+      ? ({ kind: "uploading" } as const)
+      : original.state.status === "failed"
+        ? ({ kind: "failed", detail: original.state.detail } as const)
+        : null
 
   // 앱셸 헤더 제목은 페이지(`CrimeSearchPage`)가 모드에 따라 게시한다 —
   // 이 위젯은 편집 스테이지만 렌더한다.
@@ -231,17 +308,16 @@ export function RegisterStage({ onExit }: RegisterStageProps) {
           onCalibrate={handleCalibrate}
           onMeasure={handleMeasure}
           onReset={handleReset}
+          pickerDisabled={submitting}
         />
         <CaseInfoPanel
           formData={formData}
           onFieldChange={handleFieldChange}
           onSubmit={handleSubmit}
           onReset={handleReset}
-          isSubmitting={registerMutation.isPending}
+          isSubmitting={submitting || registerMutation.isPending}
           errorMessage={errorMessage}
-          originalFailure={
-            original.state.status === "failed" ? { detail: original.state.detail } : null
-          }
+          originalStatus={originalStatus}
         />
       </div>
     </div>

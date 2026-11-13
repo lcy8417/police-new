@@ -127,4 +127,42 @@ describe("useOriginalUpload — 고른 파일을 원본으로 먼저 올리기",
     expect(result.current.state).toEqual({ status: "idle" })
     await expect(result.current.resolveFileId()).resolves.toBeNull()
   })
+
+  it("start는 고르기 번호를 돌려주고, resolveFileId(번호)는 그 고르기의 원본 번호만", async () => {
+    mswServer.use(
+      originalHandler({ fileId: 1, slow: true }, { status: 400, detail: "이미지 파일이 아닙니다" })
+    )
+    const { result } = renderHook(() => useOriginalUpload())
+
+    let pickA = 0
+    let pickB = 0
+    act(() => {
+      pickA = result.current.start(png("a.png"))
+    })
+    act(() => {
+      pickB = result.current.start(png("b.png"))
+    })
+
+    expect(pickB).toBeGreaterThan(pickA)
+    // 화면 상태는 마지막 고르기(B, 실패) 기준이지만, A 이미지에는 A의 원본 번호가 맞다.
+    await expect(result.current.resolveFileId(pickA)).resolves.toBe(1)
+    await expect(result.current.resolveFileId(pickB)).resolves.toBeNull()
+    await expect(result.current.resolveFileId()).resolves.toBeNull()
+    expect(result.current.state).toEqual({ status: "failed", detail: "이미지 파일이 아닙니다" })
+  })
+
+  it("모르는 고르기 번호 · reset 전 번호는 null", async () => {
+    mswServer.use(originalHandler({ fileId: 7 }))
+    const { result } = renderHook(() => useOriginalUpload())
+
+    let pick = 0
+    act(() => {
+      pick = result.current.start(png("a.png"))
+    })
+    await waitFor(() => expect(result.current.state.status).toBe("done"))
+    await expect(result.current.resolveFileId(pick + 100)).resolves.toBeNull()
+
+    act(() => result.current.reset())
+    await expect(result.current.resolveFileId(pick)).resolves.toBeNull()
+  })
 })

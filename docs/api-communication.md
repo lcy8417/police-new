@@ -2,7 +2,7 @@
 
 **한 줄 요약**: 무거운 처리(패턴 추출·이미지 검색·각도 보정·유사도)는 **별도 FastAPI 백엔드**가 한다. 이 저장소는 그 백엔드와 HTTP로 통신하는 **순수 클라이언트**이고, 모든 요청은 공용 함수 `backendFetch` 하나를 거쳐 로그인 쿠키와 함께 나간다(§1-1). 통신 계층이 **두 규약(camelCase 변환 / 무변환)**으로 갈리니 항상 어느 계층인지 확인한다.
 
-> `.env`의 `VITE_API_URL`은 **비워 두는 것이 기본**이다(같은 주소 중계 — 브라우저는 프론트 주소만 보고, Vite가 `/crime`·`/shoes`·`/auth`·`/admin`·이미지 폴더 요청을 `VITE_PROXY_TARGET`으로 넘긴다). 주소를 분리할 때만 `https://<서버>:8000`을 넣는다(서버 쪽 쿠키 설정 필요).
+> `.env`의 `VITE_API_URL`은 **비워 두는 것이 기본**이다(같은 주소 중계 — 브라우저는 프론트 주소만 보고, Vite가 `/crime`·`/shoes`·`/auth`·`/admin`·`/files`·이미지 폴더 요청을 `VITE_PROXY_TARGET`으로 넘긴다). 주소를 분리할 때만 `https://<서버>:8000`을 넣는다(서버 쪽 쿠키 설정 필요).
 
 ---
 
@@ -40,7 +40,7 @@
 
 - **쿠키**: 로그인 성공 시 서버가 HttpOnly 세션 쿠키를 심는다. 화면 코드는 토큰을 직접 다루지 않는다.
 - **이미지 주소**: 서버는 루트 기준 상대 경로(`/crime_images/...`, `/shoes_images/B/...`, `/crime_outlines/...`, `/crime_history/...`)를 준다. 표시용은 `backendMediaUrl(path)`, 코드로 내려받을 때는 `toBackendPath(url)` → `backendFetch`. 백엔드 이미지를 canvas로 읽을 때 `crossOrigin="use-credentials"`.
-- **중계(proxy)**: `vite.config.js`의 `BACKEND_PROXY_PATTERN`(`^/(crime|shoes|auth|admin)(/|$|\?)`)과 이미지 폴더 4개를 개발·미리보기 서버가 `VITE_PROXY_TARGET`으로 넘긴다(`secure: false` — 자체 서명 인증서, `changeOrigin: false` — 서버의 요청 출처 검사가 프론트 주소를 보게). 화면 주소 `/crimeRegister`·`/shoesRepository`·`/manage/*`는 중계하지 않는다.
+- **중계(proxy)**: `vite.config.js`의 `BACKEND_PROXY_PATTERN`(`^/(crime|shoes|auth|admin|files)(/|$|\?)` — `/files`는 증거 파일 API: 원본 올리기 `POST /files/original`·열람 `GET /files/{id}`)과 이미지 폴더 4개를 개발·미리보기 서버가 `VITE_PROXY_TARGET`으로 넘긴다(`secure: false` — 자체 서명 인증서, `changeOrigin: false` — 서버의 요청 출처 검사가 프론트 주소를 보게). 화면 주소 `/crimeRegister`·`/shoesRepository`·`/manage/*`는 중계하지 않는다.
 - **목록 API는 끝에 `/`**: `/crime/`, `/shoes/?page=0`(리다이렉트 없이 바로 응답).
 - **권한**: 서버가 주는 `features`는 실효 권한(`SHOE_EDIT`면 `SHOE_VIEW` 포함)이다. 프론트는 `hasFeature(user, FEATURES.X)`(관리자는 항상 true)로 메뉴·라우트·버튼을 가린다. 기능 코드 문자열은 `src/entities/session/model/features.ts` 상수만 쓴다.
 

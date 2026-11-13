@@ -62,6 +62,8 @@ interface EvidenceImagePanelProps {
   onCalibrate: () => void
   onMeasure: () => void
   onReset: () => void
+  /** true면 파일 고르기를 잠근다(저장 중 — 누른 순간의 이미지와 원본 번호를 지키려고). */
+  pickerDisabled?: boolean
 }
 
 /**
@@ -83,6 +85,7 @@ export function EvidenceImagePanel({
   onCalibrate,
   onMeasure,
   onReset,
+  pickerDisabled = false,
 }: EvidenceImagePanelProps) {
   const [viewMode, setViewMode] = useState<(typeof VIEW_MODES)[number]>("보정")
   const [dimensions, setDimensions] = useState<[number, number]>([0, 0])
@@ -122,6 +125,7 @@ export function EvidenceImagePanel({
         type="file"
         accept="image/*"
         className="hidden"
+        disabled={pickerDisabled}
         onChange={handleFileChange}
       />
 
@@ -293,6 +297,7 @@ export function EvidenceImagePanel({
           ) : (
             <button
               type="button"
+              disabled={pickerDisabled}
               onClick={() => fileInputRef.current?.click()}
               className="relative flex flex-col items-center gap-3 rounded-xl border border-dashed border-[#26334A] px-10 py-8 text-[#5B6B85] transition-colors hover:border-[#3B82F6]/60 hover:text-[#4A9EFF]"
             >
