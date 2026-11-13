@@ -64,7 +64,7 @@ description: 족적 감정 플랫폼 화면 디자인 정본 — 토큰 · 부�
 
 읽는 법: 새 부품을 어디 둘지 모르면 위에서부터 「질문」에 답해 처음 "예"인 출입구에 둔다. 어디에도 "예"가 아니면 공용 부품이 아니다.
 
-- **가져오기 규칙(ESLint가 검사)**: `pages` · `widgets` · `features` · `entities`는 위 4개 출입구로만 가져온다. `@/shared/ui` 루트, `@/shared/ui/<shadcn 파일>`, `@/shared/ui/kit/<파일>`처럼 안쪽을 직접 가져오면 경고(새 파일 · 전환 완료 파일은 오류). 「전환 완료 목록」 `scripts/ui/ui-converted.txt`에 오른 파일은 날것 `<button>` · `<input>` · `<select>` · `<textarea>`도 오류.
+- **가져오기 규칙(ESLint가 검사)**: `pages` · `widgets` · `features` · `entities`는 위 4개 출입구로만 가져온다. `@/shared/ui` 루트, `@/shared/ui/<shadcn 파일>`, `@/shared/ui/kit/<파일>`처럼 안쪽을 직접 가져오면 — 전환 완료 목록(`scripts/ui/ui-converted.txt`)에 오른 파일은 오류, 나머지는 경고 — 새 화면 파일은 만들 때 이 목록에 올린다(지금 목록은 `src/pages/dev/**`뿐). 목록에 오른 파일은 날것 `<button>` · `<input>` · `<select>` · `<textarea>`도 오류.
 - **출입구 사이 방향**: `panel` → `viewer` · `ai` → `kit`(왼쪽이 오른쪽을 가져올 수 있음). 지금은 문서 규칙과 리뷰로 지킨다.
 - **기존 shadcn 파일**(`src/shared/ui/button.tsx` 등)은 그대로 두고 `kit`이 감싸서 다시 내보낸다(shadcn 갱신으로 덮어써도 감싼 쪽은 안전).
 - **좌표를 재는 사진은 공용 부품으로 감싸지 않는다** → `references/layout.md` 「좌표 민감 영역」.
@@ -95,7 +95,8 @@ description: 족적 감정 플랫폼 화면 디자인 정본 — 토큰 · 부�
 
 **5. 구현에도 같은 표식을 붙인다** — `partAttrs()`(`src/shared/ui/part-attrs.ts`)로 `data-part` · `data-part-variant` · `data-part-state` · `data-part-id`. 변형 이름은 시안 표식과 **글자까지 같게**.
 
-**6. 자동 대조에 짝을 넣는다.** 진열 화면 픽스처(`src/pages/dev/parts/fixtures-meta.ts` 데이터 + `fixtures.tsx` 그림)에 시안과 같은 `data-part-id`로 한 줄. 부품에는 props만 넘기고 `className`을 덧씌우지 않는다(부모에서 물려받는 줄 높이 등은 픽스처의 `boxClass`로 상자에). `npx playwright test -c playwright.ui.config.ts parts-compare`가 요소 · 자식 · `::before`/`::after` 계산값(px 0.01 이내)과 요소 스크린샷(차이 0픽셀)을 비교한다. 차이가 하나라도 있으면 실패.
+**6. 자동 대조에 짝을 넣는다.** 진열 화면 픽스처(`src/pages/dev/parts/fixtures-meta.ts` 데이터 + `fixtures.tsx` 그림)에 시안과 같은 `data-part-id`로 한 줄. 부품에는 props만 넘기고 `className`을 덧씌우지 않는다(부모에서 물려받는 줄 높이 등은 픽스처의 `boxClass`로 상자에). `npx playwright test -c playwright.ui.config.ts parts-compare`가 요소 · 자식 · `::before`/`::after` **계산값**(px 0.01 이내)을 비교하고, 예외로 빼지 않은 짝은 **요소 스크린샷**(기본 차이 0픽셀)도 비교한다. 비교하는 범위 안에서 차이가 하나라도 있으면 실패.
+   - 예외(`noShot` 스크린샷 생략 · `shotMaxDiffPixels` 허용 픽셀 · `compare` 대조 범위 줄임 · `ignoreSize` 크기 제외 · `ignorePlacement` 위치 제외)는 **측정한 이유**가 있을 때만 쓰고, 그 이유를 픽스처 주석과 `references/components.md` 「픽셀 대조를 뺀 자리」 · 「대조 방식이 기본과 다른 짝」에 적는다. 지금 예외가 걸린 짝과 대조하지 못한 변형은 그 절에 있다 — 「검증됨」은 「모든 변형 · 모든 픽셀이 같다」가 아니라 「적힌 범위에서 대조 통과」라는 뜻이다.
 
 **7. 목록에 한 줄.** `components.md`에 부품 · 파일 · 원본 · 쓰는 화면 · 변형 · 상태. 상태는 **후보 → 구현됨 → 검증됨** 순서로만 올린다(구현됨 = 파일이 있음, 검증됨 = 시안 짝과 대조 통과).
 

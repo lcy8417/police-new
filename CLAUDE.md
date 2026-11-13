@@ -47,7 +47,7 @@ npx vitest run   # 테스트 (단일: npx vitest run <file> | -t "패턴")
 
 - **손으로 쓴 `.css` 금지**(정본은 `src/index.css`의 Tailwind 엔트리 하나뿐). 슬라이스 마이그레이션 시 그 화면 전용 `.css` 삭제. 전역 규약(스크롤바 등)만 `index.css @layer`에.
 - **인라인 `style={{}}` 금지**(단, 좌표 파생 위치값 `top/left/width/height`처럼 런타임 계산이 불가피한 경우만 예외 — 색·간격은 Tailwind).
-- 색은 `police-ui-design` 스킬의 토큰만 — 기존 hex는 화면을 옮길 때 바꿈(검사 `npm run check:ui`). `TechCorners`·`DotGrid`/`GlowOrb`(shared/ui)로 시그니처 통일.
+- 색은 `police-ui-design` 스킬의 토큰만 — 기존 hex는 화면을 옮길 때 바꿈(검사 `npm run check:ui`).
 - 순수 장식 오버레이는 `pointer-events-none` — 캔버스 좌표 판정을 절대 막지 않는다.
 
 ## 명명 & 임포트
