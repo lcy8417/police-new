@@ -11,7 +11,7 @@
 - 「출입구」 = 가져올 곳(`@/shared/ui/<출입구>`). 「파일」 = 구현 파일(후보는 빈칸).
 - 「원본(data-part)」 = r3 시안에서 이 부품을 그리는 클래스 · 그림 함수. 백틱 없는 괄호 설명은 시안에 클래스가 없는 자리(손으로 찾음). 구현 때 그 자리에 `data-part` 표식이 붙는다.
 - 「쓰는 화면」 = 그 원본이 나오는 시안 화면(S00 로그인 … S15 모델 관리). 백틱 원본은 `node scripts/ui/count-part-usage.mjs`가 센 값(2026-11-13), 괄호 원본은 설계서 §7의 손 집계.
-- 「변형」 = 승인된 다른 모양. 맨 앞 `[ ]`은 출처 — `[감싸기]` shadcn 부품을 감쌈 · `[새로]` 새로 만듦 · `[기존]` 이 앱의 기존 자체 부품. (설계서 §7은 Button · Field를 shadcn 감싸기로 예정했으나 시안 값을 맞추려고 새로 만들었다 — 기존 `button.tsx` · `input.tsx`는 그대로.)
+- 「변형」 = 승인된 다른 모양. 맨 앞 `[ ]`은 출처 — `[재내보내기]` shadcn 파일을 **손대지 않고 그대로** 다시 내보냄(생김새 = 원래 파일, 시안 대조 안 함) · `[기존]` 이 앱의 기존 자체 부품을 그대로 다시 내보냄 · `[새로]` 시안 값으로 새로 만든 부품 · `[감싸기 예정 …]` 후보 — 구현 때 그 shadcn 부품을 감쌀 계획. (설계서 §7은 Button · Field를 shadcn 감싸기로 예정했으나 시안 값을 맞추려고 새로 만들었다 — 기존 `button.tsx` · `input.tsx`는 그대로 있고 **kit의 Button · Field와 다른 부품**이다. 가져오기 경로만 `@/shared/ui/button` → `@/shared/ui/kit`으로 바꾸면 모양이 조용히 바뀌므로, 그 화면을 옮길 때만 바꾼다 — `SKILL.md` 「부품은 출입구 4개에서」.)
 - 아래 표 밖의 작은 표들은 「부품」 열 이름을 쓰지 않는다(관문이 「부품」 열을 부품 이름으로 읽기 때문).
 - 「상태」 = `후보`(시안에 있음, 코드 없음) → `구현됨`(코드 있음) → `검증됨`(시안 짝과 자동 대조 통과). 이 순서로만 올린다.
 
@@ -22,36 +22,36 @@
 | Button | kit | `src/shared/ui/kit/Button.tsx` | `.btn` | S00–S15 | [새로] 크기 `sm` · `sm-h26` · `sm-h22`(+ `md`) × 색 `default` · `pri` · `ok` · `warn`(+ `ai` · `danger` · `ghost`) · 행 버튼 `row`(→ `sm-ok-row` · `sm-warn-row`) · 상태 `role-lock` · `locked` | 검증됨 |
 | Chip | kit | `src/shared/ui/kit/Chip.tsx` | `.chip` · `.chip-ref` | S00–S15 | [새로] `blue` · `violet-h20` · `green-h18` · `h18` · `amber` · `amber-h18` · `amber-h19` · `h19` · `blue-h20` · `h20-warn` · `blue-mono-h20` · `h22` · 상태 `on` | 검증됨 |
 | Field | kit | `src/shared/ui/kit/Field.tsx` | `.inp` | S00–S15 | [새로] `text` · `mono` · `mono-sm` · `mono-sm-flex` · `select` · `pick` · `select-mono` · `select-warn` · `search-shell` · 상태 `readonly` · `invalid`(모양 미정) | 검증됨 |
-| Segmented | kit | | `.seg` | S01–S06 · S08–S10 · S13 · S14 | [감싸기 toggle-group] 2~4칸 · 아이콘 | 후보 |
+| Segmented | kit | | `.seg` | S01–S06 · S08–S10 · S13 · S14 | [감싸기 예정 toggle-group] 2~4칸 · 아이콘 | 후보 |
 | RadioRow | kit | | `.radio` | S01 · S02 · S04 · S07 · S08 · S10 | [새로] SCAS ◉○ 한 줄 | 후보 |
 | Combobox | kit | | (S02 관서 검색 한 칸) | S01 · S02 | [새로] 검색형 · 결과 경로 표시(「대구청 › 동부서」) — 관서 목록 조회는 `features`가 조립 | 후보 |
 | StatusDot | kit | | `.dot` | S00 · S08 · S11 · S15 | [새로] ok · warn · danger · 꺼짐 | 후보 |
 | StatusChip | kit | `src/shared/ui/status-chip.tsx` | (인라인 꼬리표) | 다수 | [기존] 기존 부품 재내보내기 — 시안 대조 안 함. 색 `blue` · `teal` · `amber` · `red` · `gray` | 구현됨 |
 | Avatar | kit | | `.avatar` | S01–S15 | [새로] 이니셜 · 역할색 | 후보 |
-| Tooltip | kit | `src/shared/ui/tooltip.tsx` | (시안 title 속성) | 다수 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| TooltipTrigger | kit | `src/shared/ui/tooltip.tsx` | (시안 title 속성) | 다수 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| TooltipContent | kit | `src/shared/ui/tooltip.tsx` | (시안 title 속성) | 다수 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| TooltipProvider | kit | `src/shared/ui/tooltip.tsx` | (시안 title 속성) | 다수 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
+| Tooltip | kit | `src/shared/ui/tooltip.tsx` | (시안 title 속성) | 다수 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| TooltipTrigger | kit | `src/shared/ui/tooltip.tsx` | (시안 title 속성) | 다수 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| TooltipContent | kit | `src/shared/ui/tooltip.tsx` | (시안 title 속성) | 다수 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| TooltipProvider | kit | `src/shared/ui/tooltip.tsx` | (시안 title 속성) | 다수 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
 | DataGrid | kit | | `.grid` | S01 · S02 · S04 · S07–S09 · S11–S15 | [새로] SCAS 열 순서 · 행 선택(`tr.sel`) · 새 행 강조(`tr.fx-new`) · 행 안 버튼 | 후보 |
 | Pagination | kit | | (목록 아래 쪽수) | S01 · S05 · S10 | [새로] SCAS 「전체 n 중 a-b」 · 「더 보기」(S14) | 후보 |
-| DialogShell | kit | | (레이어 팝업 머리 · 몸 · 발) | S02–S10 중 표식 때 확정 | [감싸기 dialog] 1겹 · 큰 팝업(90%) | 후보 |
-| Dialog | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| DialogClose | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| DialogContent | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| DialogDescription | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| DialogFooter | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| DialogHeader | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| DialogTitle | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| DialogTrigger | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| Tabs | kit | `src/shared/ui/tabs.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| TabsContent | kit | `src/shared/ui/tabs.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| TabsList | kit | `src/shared/ui/tabs.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| TabsTrigger | kit | `src/shared/ui/tabs.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| Checkbox | kit | `src/shared/ui/checkbox.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| Label | kit | `src/shared/ui/label.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| Switch | kit | `src/shared/ui/switch.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
-| ToggleGroup | kit | `src/shared/ui/toggle-group.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함(시안 `.seg`는 Segmented 후보가 맡음) | 구현됨 |
-| ToggleGroupItem | kit | `src/shared/ui/toggle-group.tsx` | — | 앱 기존 화면 | [감싸기] 기존 부품 재내보내기 — 시안 대조 안 함 | 구현됨 |
+| DialogShell | kit | | (레이어 팝업 머리 · 몸 · 발) | S02–S10 중 표식 때 확정 | [감싸기 예정 dialog] 1겹 · 큰 팝업(90%) | 후보 |
+| Dialog | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| DialogClose | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| DialogContent | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| DialogDescription | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| DialogFooter | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| DialogHeader | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| DialogTitle | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| DialogTrigger | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| Tabs | kit | `src/shared/ui/tabs.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| TabsContent | kit | `src/shared/ui/tabs.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| TabsList | kit | `src/shared/ui/tabs.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| TabsTrigger | kit | `src/shared/ui/tabs.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| Checkbox | kit | `src/shared/ui/checkbox.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| Label | kit | `src/shared/ui/label.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| Switch | kit | `src/shared/ui/switch.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
+| ToggleGroup | kit | `src/shared/ui/toggle-group.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함(시안 `.seg`는 Segmented 후보가 맡음) | 구현됨 |
+| ToggleGroupItem | kit | `src/shared/ui/toggle-group.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
 | InlineError | kit | | (S00 필드 아래 오류) | S00 | [새로] 필드 아래 한 줄 | 후보 |
 | Banner | kit | | (S11 화면 위 고정 배너) | S11 | [새로] 화면 위 고정 | 후보 |
 | LoadingImage | kit | `src/shared/ui/image-loading-overlay.tsx` | — | 앱 기존 화면 | [기존] 기존 부품 재내보내기 — 시안 대조 안 함. 표시용 — 래퍼를 만드므로 좌표 재는 캔버스류에 쓰지 말 것 | 구현됨 |

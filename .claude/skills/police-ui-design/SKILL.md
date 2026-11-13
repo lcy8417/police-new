@@ -64,9 +64,12 @@ description: 족적 감정 플랫폼 화면 디자인 정본 — 토큰 · 부�
 
 읽는 법: 새 부품을 어디 둘지 모르면 위에서부터 「질문」에 답해 처음 "예"인 출입구에 둔다. 어디에도 "예"가 아니면 공용 부품이 아니다.
 
-- **가져오기 규칙(ESLint가 검사)**: `pages` · `widgets` · `features` · `entities`는 위 4개 출입구로만 가져온다. `@/shared/ui` 루트, `@/shared/ui/<shadcn 파일>`, `@/shared/ui/kit/<파일>`처럼 안쪽을 직접 가져오면 — 전환 완료 목록(`scripts/ui/ui-converted.txt`)에 오른 파일은 오류, 나머지는 경고 — 새 화면 파일은 만들 때 이 목록에 올린다(지금 목록은 `src/pages/dev/**`뿐). 목록에 오른 파일은 날것 `<button>` · `<input>` · `<select>` · `<textarea>`도 오류.
+- **가져오기 규칙(ESLint가 검사)**: `pages` · `widgets` · `features` · `entities`는 위 4개 출입구로만 가져온다. `@/shared/ui` 루트, `@/shared/ui/<shadcn 파일>`, `@/shared/ui/kit/<파일>`처럼 안쪽을 직접 가져오면 **오류**다. 예외는 기존 파일 목록 `scripts/ui/ui-legacy.txt`(부품 작업 직전 커밋 d6987ae에 있던 파일, 233개)뿐으로 이 파일들만 **경고**. 새 파일은 목록에 더하지 않는다 — 만드는 순간 오류 규칙을 받는다. 화면을 옮겨 끝낸 파일은 전환 완료 목록 `scripts/ui/ui-converted.txt`에 올린다(레거시 목록에 있어도 전환 완료가 이겨 오류). 전환 완료 목록 파일은 날것 `<button>` · `<input>` · `<select>` · `<textarea>`도 오류.
 - **출입구 사이 방향**: `panel` → `viewer` · `ai` → `kit`(왼쪽이 오른쪽을 가져올 수 있음). 지금은 문서 규칙과 리뷰로 지킨다.
-- **기존 shadcn 파일**(`src/shared/ui/button.tsx` 등)은 그대로 두고 `kit`이 감싸서 다시 내보낸다(shadcn 갱신으로 덮어써도 감싼 쪽은 안전).
+- **기존 shadcn 파일과 kit의 관계 — 두 가지가 섞여 있다**(`references/components.md` 「변형」 열 앞 출처 표시):
+  - `[재내보내기]` · `[기존]`: `kit`이 shadcn 파일(Tooltip · Dialog · Tabs · Checkbox · Label · Switch · ToggleGroup)과 이 앱의 기존 자체 부품(StatusChip · TechCorners · 빛 장식 · LoadingImage)을 **손대지 않고 그대로 다시 내보낸다**. 생김새는 원래 파일 그대로이고 시안 대조를 하지 않았다.
+  - `[새로]`: `kit`의 **Button · Field는 shadcn `button.tsx` · `input.tsx`를 감싼 것이 아니라 시안 값으로 새로 만든 다른 부품**이다(Chip도 새로). 기존 `button.tsx` · `input.tsx`는 그대로 남아 기존 화면이 쓴다.
+  - 그래서 **`@/shared/ui/button` → `@/shared/ui/kit`처럼 경로만 바꾸면 컴파일은 되지만 모양이 조용히 바뀐다.** shadcn 가져오기는 그 화면을 부품으로 옮길 때(시안 표식 → 대조 → 전환 완료 목록) 한꺼번에 바꾸고, 경로만 고치지 않는다. ESLint가 `@/shared/ui/button` · `@/shared/ui/input` 가져오기에 이 안내(「kit의 Button/Field는 다른 부품입니다 — 경로만 바꾸지 말고 화면을 옮길 때 교체」)를 출입구 규칙과 같은 등급으로 띄운다.
 - **좌표를 재는 사진은 공용 부품으로 감싸지 않는다** → `references/layout.md` 「좌표 민감 영역」.
 
 ## 작업 순서 — 부품을 쓰거나 늘릴 때
