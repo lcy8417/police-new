@@ -1,6 +1,16 @@
 import { useSearchParams } from "react-router-dom";
 
-import { PART_FIXTURES, type PartFixture } from "./fixtures";
+import { FIXTURE_RENDERS } from "./fixtures";
+import { PART_FIXTURES, type FixtureSurface, type PartFixture } from "./fixtures-meta";
+
+// 상자 바탕 토큰 클래스(R12). 시안 요소의 가장 가까운 불투명 조상 배경에 대응한다.
+const SURFACE_CLASS: Record<FixtureSurface, string> = {
+  canvas: "bg-canvas",
+  panel: "bg-panel",
+  "panel-2": "bg-panel-2",
+  "panel-3": "bg-panel-3",
+  strip: "bg-strip",
+};
 
 /**
  * 부품 진열 화면(`/dev/parts`, 개발 실행 전용 — 설계서 §9).
@@ -44,7 +54,12 @@ function FixtureBox({ fixture }: FixtureBoxProps) {
     <section data-fixture-id={fixture.id} className="flex flex-col gap-2">
       <h2 className="font-mono text-[11px] text-muted-foreground">{label}</h2>
       {/* 부모 폭은 예시마다 다른 데이터 값이라 인라인 width 로 준다(위치값 예외). */}
-      <div style={{ width: fixture.parentWidth }}>{fixture.render()}</div>
+      <div
+        className={SURFACE_CLASS[fixture.surface ?? "canvas"]}
+        style={{ width: fixture.parentWidth }}
+      >
+        {FIXTURE_RENDERS[fixture.id]?.()}
+      </div>
     </section>
   );
 }

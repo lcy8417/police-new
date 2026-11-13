@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { test, expect, type Locator, type Page, type TestInfo } from "@playwright/test";
-import { PART_FIXTURES } from "../../src/pages/dev/parts/fixtures";
+import { PART_FIXTURES } from "../../src/pages/dev/parts/fixtures-meta";
 import { assertFonts, openMockup, type MockupScreen } from "./mockup-open";
 import { diffStyle, readStyle } from "./style-read";
 
@@ -84,6 +84,9 @@ function isUpdateMode(testInfo: TestInfo): boolean {
   return mode === "all" || mode === "changed";
 }
 
+/** 픽스처 id 형식(화면 번호-순번). */
+const ID_FORMAT = /^S\d{2}-\d{2}$/;
+
 function screenOf(id: string): MockupScreen {
   return id.slice(0, 3) as MockupScreen;
 }
@@ -164,29 +167,43 @@ for (const fixture of PART_FIXTURES) {
       "parts-compare 는 --update-snapshots 없이 돌린다(기준은 매번 시안에서 뜬다)"
     ).toBe(false);
 
+    expect(fixture.id, "픽스처 id 형식").toMatch(ID_FORMAT);
     const sel = `[data-part-id="${fixture.id}"]`;
 
-    // 1) 시안: 실제 글꼴로 열고 요소 하나를 읽는다.
-    const mockupPage = await browser.newPage();
-    const frame = await openMockup(mockupPage, screenOf(fixture.id), { fonts: "real" });
-    const mockupEl = frame.locator(sel);
-    const count = await mockupEl.count();
-    expect(count, `시안에 data-part-id=${fixture.id} 가 1개가 아님`).toBe(1);
-    await mockupEl.scrollIntoViewIfNeeded();
-    await loadFontsFor(mockupEl);
-    const mockupStyle = await readStyle(mockupEl);
-    const mockupRect = await mockupEl.evaluate((el) => el.getBoundingClientRect().toJSON() as Rect);
+    // 1) 시안: 실제 글꼴로 열고 요소 하나를 읽는다(시안 페이지는 끝나면 반드시 닫는다).
     const shotName = `${fixture.id}.png`;
     const target = testInfo.snapshotPath(shotName, { kind: "screenshot" });
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, await mockupEl.screenshot(SHOT));
-    await mockupPage.close();
+    let mockupStyle: Awaited<ReturnType<typeof readStyle>>;
+    let mockupRect: Rect;
+    const mockupPage = await browser.newPage();
+    try {
+      const frame = await openMockup(mockupPage, screenOf(fixture.id), { fonts: "real" });
+      const mockupEl = frame.locator(sel);
+      const count = await mockupEl.count();
+      expect(count, `시안에 data-part-id=${fixture.id} 가 1개가 아님`).toBe(1);
+      // 시안 전용 주석 핀(.pin)은 부품이 아니다(절대 위치 덧씌움) → 읽기 · 촬영 전에 뗀다.
+      await mockupEl.evaluate((el) => el.querySelectorAll(".pin").forEach((p) => p.remove()));
+      await mockupEl.scrollIntoViewIfNeeded();
+      await loadFontsFor(mockupEl);
+      mockupStyle = await readStyle(mockupEl);
+      mockupRect = await mockupEl.evaluate((el) => el.getBoundingClientRect().toJSON() as Rect);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, await mockupEl.screenshot(SHOT));
+    } finally {
+      await mockupPage.close();
+    }
 
     // 2) 구현: 진열 화면에서 같은 id 요소(설정의 baseURL 을 쓰는 기본 page).
     await openGallery(page, fixture.id);
     await assertFonts(page);
     const devEl = page.locator(`[data-parts-gallery] ${sel}`);
     await expect(devEl, `진열 화면에 data-part-id=${fixture.id} 가 1개가 아님`).toHaveCount(1);
+    // 부품 루트 = 진열 상자의 첫 자식 요소(표식이 상자 안 다른 요소에 붙는 것을 막는다).
+    const isRoot = await devEl.evaluate((el) => {
+      const box = el.closest("[data-fixture-id]")?.lastElementChild;
+      return !!box && box.firstElementChild === el;
+    });
+    expect(isRoot, `data-part-id=${fixture.id} 요소가 진열 상자의 첫 자식 요소가 아님`).toBe(true);
     await loadFontsFor(devEl);
     const devStyle = await readStyle(devEl);
 
