@@ -39,3 +39,6 @@ dist-ssr
 # 개발 도구 상태 파일
 .moai/state/
 .omc/
+
+# 파이썬 캐시(.claude/hooks · tests/hooks 실행 때 생김)
+__pycache__/

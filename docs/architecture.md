@@ -83,5 +83,6 @@ FSD 정본과 레거시가 섞여 있다. **기존 레거시를 모방하지 말
 - **새 읽기쿼리** → `entities/{도메인}/api/*.ts` (`useQuery` + fetcher 동거) → `@docs/api-communication.md`.
 - **새 뮤테이션·사용자 액션** → `features/{도메인}/`.
 - **도메인 표시 UI(카드·차트·뱃지)** → `entities/{도메인}/ui`. **여러 feature 조합** → `widgets/`. **라우트 엔트리** → `pages/`.
+- **UI 부품(생김새)** → `police-ui-design` 스킬(`.claude/skills/police-ui-design/`)이 정본. 화면은 `@/shared/ui/{kit,viewer,ai,panel}` 4개 출입구에서만 가져온다(부품 목록 `references/components.md`).
 - **범용 UI 껍데기·유틸** → `shared/ui`·`shared/lib`. 전역 상태 → store(현재는 `entities/crime/model`의 crime-store가 사실상 전역).
 - **문양·좌표를 다루는 코드**는 반드시 `@docs/pattern-data-model.md`의 불변식을 먼저 확인.
