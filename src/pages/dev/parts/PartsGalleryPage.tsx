@@ -30,6 +30,18 @@ export function PartsGalleryPage() {
   const id = params.get("id");
   const fixtures = id ? PART_FIXTURES.filter((f) => f.id === id) : PART_FIXTURES;
 
+  // `?view=example` 이면 S01 조립 예시만 그린다(반응형 확인용 — 시안 고정 폭 상자 제외, R32).
+  if (!id && params.get("view") === "example") {
+    return (
+      <main
+        data-parts-gallery=""
+        className="h-full overflow-auto bg-canvas p-6 font-ui text-[14px] leading-[1.6] text-foreground antialiased"
+      >
+        <S01Assembly />
+      </main>
+    );
+  }
+
   return (
     <main
       data-parts-gallery=""
