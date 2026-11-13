@@ -4,6 +4,36 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* 값 토큰 --t-* : 시안(docs/mockups/scas-redesign/assets/mockup.css :root)이 원본.
+     역할 이름(.dark 의 shadcn 변수 · @theme 의 새 역할)은 이 값을 가리키기만 한다. */
+  --t-bg: #05080d;
+  --t-bg-2: #0a0f1a;
+  --t-panel: #0b121d;
+  --t-panel-2: #0f1826;
+  --t-panel-3: #141f30;
+  --t-strip: #0d1420;
+  --t-select: #16233b; /* 선택 배경(앱 전용) */
+  --t-line: #1e2a3c;
+  --t-line-2: #141d2c;
+  --t-line-3: #26334a;
+  --t-fg: #e5e9f0;
+  --t-fg-2: #c7cedb;
+  --t-mute: #8a93a6;
+  --t-dim: #5b6b85;
+  --t-faint: #4a5568;
+  --t-brand: #4a9eff;
+  --t-brand-2: #3b82f6;
+  --t-brand-3: #2563eb;
+  --t-ai: #2dd4bf;
+  --t-ai-bg: #0f2624;
+  --t-danger: #ef4444;
+  --t-danger-bg: #1a1013;
+  --t-ok: #22c55e;
+  --t-ok-bg: #12241a;
+  --t-warn: #f59e0b;
+  --t-warn-bg: #241b0c;
+  --t-violet: #a78bfa;
+  --t-violet-bg: #1b1630;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -40,35 +70,35 @@
 
 .dark {
   /* forensic-navy palette (Phase 2a app shell) */
-  --background: #0a0f1a;
-  --foreground: #e5e9f0;
-  --card: #0f1826;
-  --card-foreground: #e5e9f0;
-  --popover: #0f1826;
-  --popover-foreground: #e5e9f0;
-  --primary: #2563eb;
+  --background: var(--t-bg-2);
+  --foreground: var(--t-fg);
+  --card: var(--t-panel-2);
+  --card-foreground: var(--t-fg);
+  --popover: var(--t-panel-2);
+  --popover-foreground: var(--t-fg);
+  --primary: var(--t-brand-3);
   --primary-foreground: #ffffff;
-  --secondary: #16233b;
-  --secondary-foreground: #e5e9f0;
-  --muted: #16233b;
-  --muted-foreground: #8a93a6;
-  --accent: #16233b;
-  --accent-foreground: #3b82f6;
+  --secondary: var(--t-select);
+  --secondary-foreground: var(--t-fg);
+  --muted: var(--t-select);
+  --muted-foreground: var(--t-mute);
+  --accent: var(--t-select);
+  --accent-foreground: var(--t-brand-2);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: #1e2a3c;
-  --input: #0d1420;
-  --ring: #2563eb;
+  --border: var(--t-line);
+  --input: var(--t-strip);
+  --ring: var(--t-brand-3);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: #0d1420;
-  --sidebar-foreground: #8a93a6;
-  --sidebar-primary: #2563eb;
+  --sidebar: var(--t-strip);
+  --sidebar-foreground: var(--t-mute);
+  --sidebar-primary: var(--t-brand-3);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #16233b;
-  --sidebar-accent-foreground: #3b82f6;
+  --sidebar-accent: var(--t-select);
+  --sidebar-accent-foreground: var(--t-brand-2);
   --sidebar-border: #1c2636;
   --sidebar-ring: #2563eb;
 }
@@ -109,6 +139,32 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* 족적 역할 토큰(새 이름) — 값은 :root 의 --t-* */
+  --color-canvas: var(--t-bg);
+  --color-panel: var(--t-panel);
+  --color-panel-3: var(--t-panel-3);
+  --color-strip: var(--t-strip);
+  --color-line-2: var(--t-line-2);
+  --color-line-3: var(--t-line-3);
+  --color-fg-2: var(--t-fg-2);
+  --color-dim: var(--t-dim);
+  --color-faint: var(--t-faint);
+  --color-brand: var(--t-brand);
+  --color-brand-2: var(--t-brand-2);
+  --color-brand-3: var(--t-brand-3);
+  --color-ai: var(--t-ai);
+  --color-ai-bg: var(--t-ai-bg);
+  --color-danger: var(--t-danger);
+  --color-danger-bg: var(--t-danger-bg);
+  --color-ok: var(--t-ok);
+  --color-ok-bg: var(--t-ok-bg);
+  --color-warn: var(--t-warn);
+  --color-warn-bg: var(--t-warn-bg);
+  --color-violet: var(--t-violet);
+  --color-violet-bg: var(--t-violet-bg);
+  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "D2Coding", ui-monospace, Menlo, monospace;
 }
 
 html,
@@ -128,7 +184,7 @@ body,
    트랙은 투명, 썸은 보더색(#1e2a3c)으로 배경과 약간만 다르게 둔다. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #1e2a3c transparent;
+  scrollbar-color: var(--t-line) transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
@@ -138,7 +194,7 @@ body,
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: #1e2a3c;
+  background-color: var(--t-line);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: content-box;
