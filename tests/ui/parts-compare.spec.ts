@@ -183,6 +183,9 @@ for (const fixture of PART_FIXTURES) {
       expect(count, `시안에 data-part-id=${fixture.id} 가 1개가 아님`).toBe(1);
       // 시안 전용 주석 핀(.pin)은 부품이 아니다(절대 위치 덧씌움) → 읽기 · 촬영 전에 뗀다.
       await mockupEl.evaluate((el) => el.querySelectorAll(".pin").forEach((p) => p.remove()));
+      // 핀을 얹으려고 붙인 `.pinbox`(position: relative, 위치 값 0)도 주석 장치라 뗀다 — 핀이 없으면 의미 없고, 떼지 않으면
+      // 위치 값(R24)이 부품 값처럼 어긋나 보인다(S01-02 · S02-04 · S01-16 에서 측정: relative / 0·0·0·0). 인라인 절대 위치(S01-17/18)는 배치라 건드리지 않는다.
+      await mockupEl.evaluate((el) => [el, ...Array.from(el.querySelectorAll(".pinbox"))].forEach((b) => b.classList.remove("pinbox")));
       await mockupEl.scrollIntoViewIfNeeded();
       await loadFontsFor(mockupEl);
       mockupStyle = await readStyle(mockupEl);

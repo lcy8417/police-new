@@ -38,6 +38,13 @@ export const STYLE_PROPS: readonly string[] = [
   "gap",
   "text-transform",
   "content",
+  // 위치 · 빛번짐(R24): 모서리 장식(::before/::after)의 위치와 drop-shadow 를 지킨다.
+  "filter",
+  "position",
+  "top",
+  "right",
+  "bottom",
+  "left",
 ];
 
 /** px 비교 허용 오차(설계서 §9 · R5). */
@@ -159,7 +166,8 @@ export type ShellIgnore = "width" | "height";
  * 컨테이너 부품(Panel · ButtonBar) 대조용 정규화(Task 7). 컨테이너의 안쪽 내용(데이터 표 · 라디오 · 분할 버튼 같은 부품이 아닌
  * 시안 조각)은 부품이 소유하지 않으므로 대조 대상이 아니다. 남기는 것:
  * - 루트의 자기 계산값 + ::before/::after (단 `ignoreSize` 로 지정한 width/height 는 내용 크기라 뺀다)
- * - `head: true` 이면 첫 자식(머리: 시안 `.panel-h` ↔ 앱 `<header>`)의 자기 계산값(태그는 header 로 통일, 그 안쪽은 뺀다)
+ * - `head: true` 이면 첫 자식(머리: 시안 `.panel-h` ↔ 앱 `<header>`)의 자기 계산값(태그는 header 로 통일)과, 머리의 첫 자식(제목:
+ *   시안 span.t ↔ 앱 h2, 태그는 title 로 통일)의 자기 계산값. 제목 안쪽과 머리의 나머지 자식은 뺀다.
  * 나머지 자식은 모두 뺀다. 자식 수 · 계산값은 한쪽이라도 어긋나면 diffStyle 이 그대로 잡는다(루트 · 머리 · 가상요소).
  */
 export function normalizeShell(
@@ -167,9 +175,25 @@ export function normalizeShell(
   opts: { head?: boolean; ignoreSize?: readonly ShellIgnore[] } = {}
 ): StyleSnapshot {
   const props = { ...snap.props };
-  for (const key of opts.ignoreSize ?? []) delete props[key];
+  const before = { ...snap.pseudo.before };
+  const after = { ...snap.pseudo.after };
+  for (const key of opts.ignoreSize ?? []) {
+    delete props[key];
+    // 모서리 장식의 반대편 간격(::before 의 bottom/right, ::after 의 top/left)은 루트 크기에서 파생되므로 같이 뺀다.
+    if (key === "height") {
+      delete before.bottom;
+      delete after.top;
+    } else {
+      delete before.right;
+      delete after.left;
+    }
+  }
   const first = snap.children[0];
+  // 머리의 첫 자식 = 제목(시안 span.t ↔ 앱 h2): 태그만 통일하고 자기 값(글자 크기 · 굵기 · 색 · 줄 높이)은 비교, 그 안쪽은 뺀다(R23).
+  const title = first?.children[0];
   const children: StyleSnapshot[] =
-    opts.head && first ? [{ ...first, tag: "header", children: [] }] : [];
-  return { ...snap, props, children };
+    opts.head && first
+      ? [{ ...first, tag: "header", children: title ? [{ ...title, tag: "title", children: [] }] : [] }]
+      : [];
+  return { ...snap, props, pseudo: { before, after }, children };
 }

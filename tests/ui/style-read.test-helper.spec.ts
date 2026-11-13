@@ -112,10 +112,12 @@ test("컨테이너 정규화(shell): 안쪽 내용은 무시하고 루트 · 머
       body { margin: 0; font: 14px/1.6 sans-serif; }
       .p { width: 300px; border: 1px solid rgb(30, 42, 60); border-radius: 14px; }
       .h { display: flex; gap: 10px; min-height: 40px; padding: 0 14px; }
-      h2 { margin: 0; font-size: 13px; }
+      h2, .t { margin: 0; font-size: 13px; font-weight: 600; }
     </style>
-    <div id="m" class="p"><div class="h"><b>제목</b><i>덧</i></div><table><tr><td>표</td></tr></table><p>끝</p></div>
+    <div id="m" class="p"><div class="h"><span class="t">제목</span><i>덧</i></div><table><tr><td>표</td></tr></table><p>끝</p></div>
     <div id="ok" class="p"><header class="h"><h2>제목</h2></header></div>
+    <div id="tsize" class="p"><header class="h"><h2 style="font-size: 15px">제목</h2></header></div>
+    <div id="tcolor" class="p"><header class="h"><h2 style="color: rgb(74, 158, 255)">제목</h2></header></div>
     <div id="head" class="p"><header class="h" style="gap: 4px"><h2>제목</h2></header></div>
     <div id="tall" class="p" style="height: 120px"><header class="h"><h2>제목</h2></header></div>
     <div id="nohead" class="p"></div>
@@ -127,6 +129,12 @@ test("컨테이너 정규화(shell): 안쪽 내용은 무시하고 루트 · 머
   const nohead = normalizeShell(await readStyle(page.locator("#nohead")), { head: true, ignoreSize: ["height"] });
   // 안쪽 내용(표 · 문단 · 머리 안쪽)은 달라도 같다
   expect(diffStyle(m, ok)).toEqual([]);
+  // 제목(머리 첫 자식: span.t ↔ h2)은 태그만 달라도 같고, 글자 크기 · 색이 다르면 잡는다(R23)
+  const o = { head: true, ignoreSize: ["height"] } as const;
+  const tsize = normalizeShell(await readStyle(page.locator("#tsize")), o);
+  const tcolor = normalizeShell(await readStyle(page.locator("#tcolor")), o);
+  expect(diffStyle(m, tsize)).toContain("div > header[0] > title[0] font-size: 시안=13px 구현=15px");
+  expect(diffStyle(m, tcolor).some((l) => l.startsWith("div > header[0] > title[0] color:"))).toBe(true);
   // 머리 자기 값(gap)이 다르면 잡는다
   expect(diffStyle(m, gap)).toContain("div > header[0] gap: 시안=10px 구현=4px");
   // 높이는 제외 지정했으므로 달라도 통과, 지정하지 않으면 잡는다

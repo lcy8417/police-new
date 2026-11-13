@@ -12,7 +12,8 @@ export type PanelVariant = "default" | "tc" | "default-pad"
 
 // 모서리 장식(::before 왼쪽 위 · ::after 오른쪽 아래). 선 색은 brand-2, 빛번짐은 값 토큰.
 const CORNER =
-  "before:absolute after:absolute before:pointer-events-none after:pointer-events-none " +
+  // box-content: 시안은 가상요소에 border-box 가 걸리지 않아(`*` 는 ::before 를 못 잡음) 12px + 테두리 2px = 14px 모서리다(R24 측정: right 1165 ↔ 1167)
+  "before:absolute after:absolute before:box-content after:box-content before:pointer-events-none after:pointer-events-none " +
   "before:content-[''] after:content-[''] before:size-[12px] after:size-[12px] " +
   "before:border-solid after:border-solid before:border-brand-2 after:border-brand-2 " +
   "before:[filter:drop-shadow(0_0_4px_var(--t-corner-glow))] after:[filter:drop-shadow(0_0_4px_var(--t-corner-glow))] " +
@@ -69,7 +70,7 @@ export function Panel({
             "border-b-line-2 [border-style:none_none_solid] [border-width:0_0_1px]"
           }
         >
-          {title != null && <h2 className="text-[13px] font-semibold">{title}</h2>}
+          {title != null && <h2 className="border-none text-[13px] font-semibold">{title}</h2>}
           {label != null && (
             <span className="font-mono text-[9.5px] font-semibold tracking-[0.2em] text-faint">{label}</span>
           )}
