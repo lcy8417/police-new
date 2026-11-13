@@ -35,6 +35,8 @@ DEV_PLAN = f"{DEV_DIR}/parts/parts-plan.md"
 PLAN_NAME = "parts-plan.md"
 VERDICTS = {"그대로", "확장", "새로"}
 NEEDS_APPROVAL = {"확장", "새로"}
+# 「그대로」로 쓸 수 있는 components.md 상태(코드가 있는 부품만)
+KEEP_STATUSES = {"구현됨", "검증됨"}
 
 # 「부품 불필요 — 사유」 한 줄
 EXEMPT_RE = re.compile(r"^\s*부품\s*불필요\s*[—–:-]\s*\S.*$", re.MULTILINE)
@@ -49,7 +51,7 @@ HOW_TO = (
     "| 자리 | 부품 | 판정 | 메모 |\n"
     "|---|---|---|---|\n"
     "| S01 검색 버튼 | Button | 그대로 | |\n"
-    "판정은 그대로 · 확장 · 새로 중 하나. 확장·새로는 `승인: 11/13 소유자 — 부품(변형)` 줄에 부품 이름이 있어야 한다. "
+    "판정은 그대로 · 확장 · 새로 중 하나. 그대로는 components.md 상태가 구현됨 · 검증됨인 부품만(후보는 새로). 확장·새로는 `승인: 11/13 소유자 — 부품(변형)` 줄에 부품 이름이 있어야 한다. "
     "부품과 상관없는 수정은 `부품 불필요 — 사유` 한 줄."
 )
 
@@ -82,10 +84,14 @@ def part_names(cell: str) -> list[str]:
     return [n.strip(" `*") for n in re.split(r"[·,/]", cell) if n.strip(" `*")]
 
 
-def read_catalog_names(catalog_text: str) -> set[str]:
-    """components.md 표의 「부품」 열만 이름으로 인정한다(설명 문장은 부품이 아니다)."""
-    names: set[str] = set()
+def read_catalog(catalog_text: str) -> dict[str, str]:
+    """components.md 표의 「부품」 열 이름 → 「상태」 열 값(후보 · 구현됨 · 검증됨).
+
+    「부품」 열만 이름으로 인정한다(설명 문장은 부품이 아니다). 「상태」 열이 없는 표의 이름은 상태 "".
+    """
+    catalog: dict[str, str] = {}
     col = None
+    status_col = None
     for line in catalog_text.splitlines():
         if not line.strip().startswith("|"):
             col = None
@@ -94,10 +100,13 @@ def read_catalog_names(catalog_text: str) -> set[str]:
         if col is None:
             if "부품" in cells:
                 col = cells.index("부품")
+                status_col = cells.index("상태") if "상태" in cells else None
             continue
         if col < len(cells) and not re.fullmatch(r":?-+:?", cells[col] or "-"):
-            names.update(part_names(cells[col]))
-    return names
+            status = cells[status_col].strip("` ") if status_col is not None and status_col < len(cells) else ""
+            for name in part_names(cells[col]):
+                catalog[name] = status
+    return catalog
 
 
 def find_table(text: str) -> tuple[list[str], list[list[str]]] | None:
@@ -118,10 +127,12 @@ def find_table(text: str) -> tuple[list[str], list[list[str]]] | None:
     return None
 
 
-def validate_plan(text: str, catalog_names: set[str] | None) -> list[str]:
+def validate_plan(text: str, catalog: dict[str, str] | None) -> list[str]:
     """부품표 본문을 검사해 위반 목록을 돌려준다(빈 목록이면 통과).
 
-    catalog_names 가 None 이면 components.md 를 못 읽은 상태다.
+    catalog 는 부품 이름 → 상태(read_catalog). None 이면 components.md 를 못 읽은 상태다.
+    「그대로」는 상태가 구현됨 · 검증됨인 부품만 된다 — 후보(코드 없음)는 확장 · 새로 + 승인 줄.
+    이 검사는 부품표가 **형식에 맞는지**만 본다. 고친 파일의 모든 자리가 표에 올랐는지(빠짐없음)는 보지 않는다.
     """
     text = FENCE_RE.sub("", text)  # 코드 블록 안의 예시는 실제 부품표가 아니다
     if EXEMPT_RE.search(text):
@@ -154,21 +165,26 @@ def validate_plan(text: str, catalog_names: set[str] | None) -> list[str]:
             problems.append(f"부품 이름이 빈 줄: {' | '.join(row)}")
         for name in names:
             if verdict == "그대로":
-                if catalog_names is None:
+                if catalog is None:
                     if not catalog_missing_reported:
                         problems.append("components.md 없음 — 「그대로」 부품 이름을 확인할 수 없음")
                         catalog_missing_reported = True
-                elif name not in catalog_names:
+                elif name not in catalog:
                     problems.append(f"「그대로」 부품 「{name}」 이 components.md 에 없다 — 없으면 판정을 새로로 적는다.")
+                elif catalog[name] not in KEEP_STATUSES:
+                    problems.append(
+                        f"「그대로」 부품 「{name}」 은 components.md 상태가 「{catalog[name] or '없음'}」 이다 — "
+                        "구현됨 · 검증됨 부품만 그대로 쓴다. 후보는 판정을 확장 · 새로로 적고 승인 줄을 단다."
+                    )
             elif verdict in NEEDS_APPROVAL:
                 if not re.search(rf"(?<![\w]){re.escape(name)}(?![\w])", approval_text):
                     problems.append(f"「{verdict}」 부품 「{name}」 이 `승인: MM/DD 소유자 — {name}(…)` 줄에 없다.")
     return problems
 
 
-def load_catalog(root: Path) -> set[str] | None:
+def load_catalog(root: Path) -> dict[str, str] | None:
     try:
-        return read_catalog_names((root / CATALOG_REL).read_text(encoding="utf-8"))
+        return read_catalog((root / CATALOG_REL).read_text(encoding="utf-8"))
     except OSError:
         return None
 
