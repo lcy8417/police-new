@@ -2,6 +2,8 @@ import { fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { rankOfRun, S04_RUNS } from "../s04/mock-cases"
+import { S05_WINDOW_FIRST } from "../s05/mock-cases"
 import { OPEN_CASES_FULL } from "./case-window-query"
 import { S01DevPage } from "./S01DevPage"
 
@@ -363,7 +365,9 @@ describe("S01 사건 창", () => {
       expect(within(d).queryByText("이미지번호")).toBeNull()
       const left = within(d).getByRole("region", { name: "현장 족적" })
       expect(within(left).getByRole("group", { name: "보기 조정" })).toBeInTheDocument()
-      expect(within(left).getByRole("button", { name: "137위부터 이어 보기" })).toBeInTheDocument()
+      // 검색번호 없이 열면 가장 최근 검색(572433)의 결과 — 시안 고정 857건이 아님(2회차 검수)
+      expect(within(d).queryByText(/^857건/)).toBeNull()
+      const hits = rankOfRun(S04_RUNS[0])
       const list = within(d).getByRole("region", { name: "순위 목록" })
       for (const name of ["한 줄 개수", "본 것 거르기", "결과 이미지 보기", "넘김"]) expect(within(list).getByRole("group", { name })).toBeInTheDocument()
       expect(within(d).queryByPlaceholderText(/화류번호/)).toBeNull()
@@ -372,15 +376,16 @@ describe("S01 사건 창", () => {
       // 1위부터 이어진 한 목록 · 점수 · 부위 일치 표식
       const cards = list.querySelectorAll("[data-result-card]")
       expect(cards[0]).toHaveAttribute("data-rank", "1")
-      expect(cards.length).toBeGreaterThan(100)
-      expect(cards[0]).toHaveTextContent("84.1")
+      expect(cards.length).toBe(Math.min(hits.length, S05_WINDOW_FIRST))
+      expect(cards[0]).toHaveTextContent(hits[0].ftwrId)
+      // 넣은 문양이 있는 부위(상 · 중 · 윤곽)만 일치 표식
       expect(cards[0].querySelectorAll("[data-zone-mark]")).toHaveLength(3)
       // ⚙ 설정 팝 — 속도 · 쪽 넘김
       fireEvent.click(within(list).getByRole("button", { name: "자동 설정" }))
       expect(within(list).getByRole("dialog", { name: "자동 설정" })).toHaveTextContent("쪽 넘김")
       // 누르면 고름(바닥 줄) · Enter 는 정밀 대조 탭
       fireEvent.click(cards[2])
-      expect(within(d).getByText("281904", { selector: "[data-selected-summary] span" })).toBeInTheDocument()
+      expect(within(d).getByText(hits[2].ftwrId, { selector: "[data-selected-summary] span" })).toBeInTheDocument()
       fireEvent.keyDown(cards[2], { key: "Enter" })
       expect(workTab("정밀 대조")).toHaveAttribute("aria-selected", "true")
     })
@@ -464,6 +469,79 @@ describe("S01 사건 창", () => {
     expect(query().get("tab")).toBe("confirm")
     const row = within(dialog()).getByRole("group", { name: "00001-25-0649_4 판정" }).closest("tr, [role='row'], li, div") as HTMLElement
     expect(within(row.parentElement as HTMLElement).getByText("02219")).toBeInTheDocument()
+  })
+
+  it("2회차 검수 — 사건 정보 탭: 현장 이미지 칸(이미지 번호 · 채취 장소)은 장마다 따로, 사건 공통 칸은 사건 단위", () => {
+    renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=1&tab=info")
+    const field = (name: string) => within(dialog()).getByRole("textbox", { name }) as HTMLInputElement
+    const showTab = (name: RegExp) => fireEvent.click(within(dialog()).getByRole("tab", { name }))
+    fireEvent.change(field("사건 이름"), { target: { value: "주거침입(고침)" } })
+    showTab(/현장 이미지 정보/)
+    fireEvent.change(field("채취 장소"), { target: { value: "거실 A" } })
+    const rail = () => screen.getByRole("navigation", { name: /현장 이미지/ }).querySelectorAll('[data-slot="window-rail-item"]')
+    fireEvent.click(rail()[1])
+    showTab(/현장 이미지 정보/)
+    expect(field("이미지 번호").value).toBe("2")
+    expect(field("채취 장소").value).not.toBe("거실 A")
+    showTab(/사건정보/)
+    expect(field("사건 이름").value).toBe("주거침입(고침)")
+    fireEvent.click(rail()[0])
+    showTab(/현장 이미지 정보/)
+    expect(field("채취 장소").value).toBe("거실 A")
+    expect(field("이미지 번호").value).toBe("1")
+  })
+
+  it("2회차 검수 — 확인대상: 검색 결과 ★ · 정밀 대조 「확인대상」이 한 목록(여러 후보), ★ 는 다른 검색으로 옮겨 붙지 않는다", () => {
+    renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=2&tab=search")
+    const first = rankOfRun(S04_RUNS[0])[0].ftwrId
+    fireEvent.click(within(dialog()).getByRole("button", { name: `1위 ${first} 확인대상 넣기` }))
+    // 다른 검색(572419)을 열면 그 신발이 그 검색 1위라도 ★ 가 꺼져 있다
+    fireEvent.click(workTab(/문양 코드/))
+    fireEvent.click(within(dialog()).getByRole("tab", { name: /검색 이력/ }))
+    fireEvent.click(within(dialog()).getByRole("button", { name: "검색 572419 — 자세히" }))
+    const other = rankOfRun(S04_RUNS[1])[0].ftwrId
+    expect(within(dialog()).getByRole("button", { name: `1위 ${other} 확인대상 넣기` })).toHaveAttribute("aria-pressed", "false")
+    // 정밀 대조에서 다른 신발을 확인대상으로 → 결과 확인 _2 줄 = 대표(정밀 대조) + 외 1
+    fireEvent.click(workTab(/정밀 대조/))
+    fireEvent.click(within(dialog()).getByRole("button", { name: "확인대상" }))
+    expect(query().get("tab")).toBe("confirm")
+    const row = within(dialog()).getByRole("group", { name: "00001-25-0649_2 판정" })
+    expect(row).toHaveTextContent(/확인대상 · #\d+ 외 1/)
+    // 확인대상이 있으니 발견을 누를 수 있다
+    expect(within(within(dialog()).getByRole("group", { name: "_2 판정" })).getByRole("button", { name: "발견" })).toBeEnabled()
+  })
+
+  it("2회차 검수 — 검색 1위 후보만 있는 줄은 「1위 후보」(발견 잠김), 판정을 누르면 왼쪽 이미지 목록 알약이 바로 바뀐다", () => {
+    renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&tab=confirm")
+    const judge = (no: string) => within(within(dialog()).getByRole("group", { name: `_${no} 판정` }))
+    expect(within(dialog()).getByRole("group", { name: "00001-25-0649_3 판정" })).toHaveTextContent("1위 후보")
+    expect(judge("3").getByRole("button", { name: "발견" })).toBeDisabled()
+    fireEvent.click(judge("3").getByRole("button", { name: "불발견" }))
+    // 불발견을 눌러도 1위 후보 글자는 「확인대상」으로 바뀌지 않는다
+    expect(within(dialog()).getByRole("group", { name: "00001-25-0649_3 판정" })).toHaveTextContent("1위 후보")
+    const rail = screen.getByRole("navigation", { name: /현장 이미지/ }).querySelectorAll('[data-slot="window-rail-item"]')
+    expect(rail[2]).toHaveAccessibleName("_3 · 불발견")
+  })
+
+  it("2회차 검수 — 발견으로 판정한 뒤 확인대상을 바꾸면 발견을 물려받지 않고 「다시 판정」, 「열기」는 그 줄의 신발로", () => {
+    renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&tab=confirm")
+    // _1 은 발견으로 저장된 장 — 열기 = 정밀 대조 탭, 그 줄의 확인대상 신발로(기본 신발 00758 이 아님)
+    const row1 = within(dialog()).getByRole("group", { name: "00001-25-0649_1 판정" })
+    const shoeId = within(row1).getAllByText(/^[\w-]+$/, { selector: "b" }).map((b) => b.textContent)[1]
+    fireEvent.click(within(dialog()).getByRole("button", { name: "_1 열기" }))
+    expect(query().get("tab")).toBe("compare")
+    expect(query().get("ftwr")).toBe(shoeId)
+    // 다른 신발을 확인대상으로 넣으면 _1 은 다시 판정
+    fireEvent.click(within(dialog()).getByRole("button", { name: "다음" }))
+    fireEvent.click(within(dialog()).getByRole("button", { name: "확인대상" }))
+    const row = within(dialog()).getByRole("group", { name: "00001-25-0649_1 판정" })
+    expect(row).toHaveTextContent("다시 판정")
+    expect(within(within(dialog()).getByRole("group", { name: "_1 판정" })).getByRole("button", { name: "발견" })).toHaveAttribute("aria-pressed", "false")
+  })
+
+  it("2회차 검수 — 수사관 시점 위 막대 건수는 자기 관서 사건 수(전국 건수 아님)", () => {
+    renderAt("/dev/s01?case=ready&as=investigator")
+    expect(screen.queryByText("116건")).toBeNull()
   })
 
   it("1회차 검수 — 수사관은 자기 관서(대구청) 의뢰만 열리고, 창은 「사건 정보」 탭만, 신발 DB 패널은 주소로도 안 열림", () => {

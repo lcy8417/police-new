@@ -77,9 +77,10 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
     return (
       <span role="group" aria-label={`_${row.no} 판정`} className="inline-flex items-center gap-[2px]">
         {OPTIONS.map((j) => {
-          // 발견 = 확인대상(또는 후보) 신발이 있어야 한다(DB 판정 제약 §5-C — 1회차 검수). 불발견 · 감정불능은 신발 없이도
+          // 발견 = 채택한 확인대상 신발이 있어야 한다(DB 판정 제약 §5-C). 검색 1위 후보는 참고일 뿐 — 확인대상이 아니다(2회차 검수).
+          // 불발견 · 감정불능은 신발 없이도
           const notSearched = j === "found" && row.searchNo === null
-          const noShoe = j === "found" && !notSearched && row.shoe === null
+          const noShoe = j === "found" && !notSearched && !row.shoe?.confirmed
           const blocked = notSearched || noShoe
           return (
             <WorkbenchButton
@@ -102,13 +103,15 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
   const shoeCell = (row: ConfirmRow) => {
     const shoe = row.shoe
     if (!shoe) return <span className="text-[11px] text-faint">—</span>
-    const candidate = row.judgement === null
+    // 채택한 확인대상과 검색 1위 후보(참고)는 글자로 가른다 — 판정 결과와 상관없이(2회차 검수)
+    const candidate = !shoe.confirmed
+    const more = !candidate && row.moreTargets ? ` 외 ${row.moreTargets}` : ""
     return (
       <span className={cn("flex min-w-0 items-center gap-2", candidate && "opacity-60")}>
         <img src={shoe.image} alt="" className="size-9 shrink-0 rounded-[6px] border border-solid border-border bg-canvas object-contain" />
         <span className="grid min-w-0">
           <b className="truncate font-code text-[12.5px] font-bold text-foreground">{shoe.ftwrId}</b>
-          <span className="truncate text-[11px] text-muted-foreground">{candidate ? `1위 후보 · #${shoe.ranking}` : `확인대상 · #${shoe.ranking}`}</span>
+          <span className="truncate text-[11px] text-muted-foreground">{candidate ? `1위 후보 · #${shoe.ranking}` : `확인대상 · #${shoe.ranking}${more}`}</span>
         </span>
       </span>
     )
@@ -147,7 +150,13 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
               <img src={row.thumb} alt="" className="size-10 shrink-0 rounded-[6px] border border-solid border-border bg-canvas object-cover" />
               <span className="grid min-w-0">
                 <b className="font-code text-[13px] font-bold text-foreground">_{row.no}</b>
-                <span className="text-[11px] text-muted-foreground">{row.kind}</span>
+                {row.note ? (
+                  <span title={row.note} className="truncate text-[11px] text-warn">
+                    다시 판정
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">{row.kind}</span>
+                )}
               </span>
             </span>
             <span className="min-w-0">
@@ -164,10 +173,10 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
             <span
               className={cn(
                 "text-right font-code text-[16px] font-bold tabular-nums",
-                row.shoe ? (row.judgement === null ? "text-muted-foreground" : "text-foreground") : "text-faint"
+                row.shoe && row.shoe.score !== null ? (row.shoe.confirmed ? "text-foreground" : "text-muted-foreground") : "text-faint"
               )}
             >
-              {row.shoe ? row.shoe.score.toFixed(1) : "—"}
+              {row.shoe && row.shoe.score !== null ? row.shoe.score.toFixed(1) : "—"}
             </span>
             {props.onOpenImage ? (
               <WorkbenchButton

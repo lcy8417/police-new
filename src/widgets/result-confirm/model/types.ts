@@ -190,10 +190,15 @@ export interface ConfirmRowShoe {
   ftwrId: string
   /** 밑창 썸네일 URL */
   image: string
-  /** 유사도 퍼센트 0~100 */
-  score: number
+  /** 유사도 퍼센트 0~100 — 모르면 null(「—」, 0 점과 구분) */
+  score: number | null
   /** 검색 순위(1부터) */
   ranking: number
+  /**
+   * 채택한 확인대상인가(검색 결과 ★ · 정밀 대조 「확인대상」 · 저장된 발견 판정). false 면 검색 1위 후보(참고만) —
+   * 「발견」은 채택한 확인대상이 있을 때만 누를 수 있다(DB §5-C `examination_candidate`, 2회차 검수)
+   */
+  confirmed: boolean
 }
 
 /** 이미지(감정물) 한 장의 판정 줄 */
@@ -210,8 +215,12 @@ export interface ConfirmRow {
   searchNo: string | null
   /** 저장된 판정 — 없으면 판정 전 */
   judgement: Judgement | null
-  /** 발견이면 확인대상 신발, 판정 전이면 검색 1위 후보(`candidate`), 그 밖은 null */
+  /** 확인대상 신발(`confirmed`) 또는 검색 1위 후보(참고), 없으면 null */
   shoe: ConfirmRowShoe | null
+  /** 대표 확인대상 말고 더 채택한 확인대상 수(여러 검색 · 여러 후보 — 「외 n」) */
+  moreTargets?: number
+  /** 다시 판정해야 하는 까닭(예 판정 뒤 확인대상이 바뀜) — 줄에 보인다 */
+  note?: string
 }
 
 /** 교차 검증 상태 — none 아직 요청 안 함 · requested 요청함(검증 중) · done 검증 끝 */

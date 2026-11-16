@@ -119,7 +119,12 @@ export function s07FactsOf(row: CaseListRow, flow: CaseFlow) {
   }
 }
 
-export type S07Facts = ReturnType<typeof s07FactsOf>
+export type S07Facts = ReturnType<typeof s07FactsOf> & {
+  /** 장마다 지금 확인대상 지문(`targetsKey`) — 판정 뒤 대상이 바뀌면 발견 판정을 다시 받는다(2회차 검수) */
+  targetKeys?: Readonly<Record<string, string>>
+  /** 장마다 그 장에서 마지막으로 본 검색번호(검색 결과 탭) — 「열기」가 그 검색으로 */
+  runOf?: Readonly<Record<string, string>>
+}
 
 /** 고른 이미지 기준 탭 표시(사건 정보 = 사건 빈 칸 수, 결과 확인 = 사건 전체) */
 export function tabMarksOf(

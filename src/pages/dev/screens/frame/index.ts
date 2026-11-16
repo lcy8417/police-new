@@ -14,8 +14,22 @@ export {
   type RememberedUpdate,
 } from "./use-remembered-state"
 export {
+  CASE_CROSS_REQUESTED_FIELD,
+  CASE_JUDGEMENTS_FIELD,
+  CASE_TARGETS_FIELD,
+  type CaseJudgementPick,
+  addTarget,
+  leadTarget,
+  removeTarget,
+  sameTarget,
+  targetsKey,
+  type CaseTarget,
+} from "./case-targets"
+export {
   WorkMemoryProvider,
+  caseScopeOf,
   imageScope,
+  useInWorkMemory,
   readWork,
   useWorkScope,
   useWorkState,

@@ -122,7 +122,8 @@ export function SearchWindow(props: SearchResultScreenProps) {
   // 마우스 올림 빠른 비교가 떠 있는 동안은 잠시 멈춘다(카드가 손 밑에서 빠져나가지 않게)
   const running = auto && !(peek?.hover ?? false)
   const hasMore = results.length < totalCount && Boolean(props.onLoadMore)
-  const isTarget = (rank: number) => targets.some((t) => t.rank === rank)
+  // 확인대상은 신발 ID 로 가른다(순위로 가르면 다른 검색의 같은 순위 카드에 ★ 가 붙는다 — 2회차 검수). targets 는 지금 검색의 것만 받는다
+  const isTarget = (ftwrId: string) => targets.some((t) => t.ftwrId === ftwrId)
 
   const setAuto = (mode: AutoMode) => {
     props.onAutoModeChange?.(mode)
@@ -300,7 +301,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
           per={per}
           selected={focus === rank}
           seen={plus !== null && rank <= seenUpTo}
-          starred={isTarget(rank)}
+          starred={isTarget(item.ftwrId)}
           canStar={roles.analyst}
           onSelect={() => {
             props.onFocusChange?.(rank)
@@ -582,7 +583,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
             variant="soft"
             icon={Star}
             disabled={!selected || !roles.analyst}
-            aria-pressed={selected ? isTarget(selected.rank) : false}
+            aria-pressed={selected ? isTarget(selected.item.ftwrId) : false}
             onClick={() => selected && toggleTarget({ rank: selected.rank, ftwrId: selected.item.ftwrId })}
           >
             확인대상

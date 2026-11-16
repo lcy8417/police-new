@@ -25,6 +25,9 @@ import {
   useDevViewer,
   useRememberedState,
   useWorkState,
+  CASE_CROSS_REQUESTED_FIELD,
+  CASE_JUDGEMENTS_FIELD,
+  type CaseJudgementPick,
   type DevGo,
 } from "../frame"
 import type { S07Facts } from "../s01/case-flow"
@@ -96,12 +99,20 @@ function S07WindowContent({ devCase, facts, go }: { devCase: S07ContentProps["de
   const to = go ?? nav
   const viewer = useDevViewer()
   // 판정 · 교차 검증 요청은 탭을 옮겨도 남는다(사건 창 보관함 — 사건 단위, 1회차 검수)
-  const [picked, setPicked] = useWorkState<Record<string, Judgement>>("s07.picked", {})
-  const [requested, setRequested] = useWorkState("s07.requested", false)
+  const [picked, setPicked] = useWorkState<Record<string, CaseJudgementPick>>(CASE_JUDGEMENTS_FIELD, {})
+  const [requested, setRequested] = useWorkState(CASE_CROSS_REQUESTED_FIELD, false)
   const [reviewer, setReviewer] = useWorkState<string | null>("s07.reviewer", null)
+  // 발견 판정은 그때의 확인대상에 묶인다 — 판정 뒤 확인대상을 바꾸면(정밀 대조 · ★) 발견을 그대로 물려받지 않고 다시 판정을 받는다(2회차 검수)
   const rows = useMemo<ConfirmRow[]>(
-    () => facts.rows.map((r) => (picked[r.no] ? { ...r, judgement: picked[r.no] } : r)),
-    [facts.rows, picked],
+    () =>
+      facts.rows.map((r) => {
+        const now = facts.targetKeys?.[r.no] ?? ""
+        const p = picked[r.no]
+        const stale = p ? p.result === "found" && p.targets !== now : r.judgement === "found" && now !== ""
+        if (stale) return { ...r, judgement: null, note: "판정 뒤 확인대상이 바뀌었습니다 — 다시 판정하세요" }
+        return p ? { ...r, judgement: p.result } : r
+      }),
+    [facts.rows, facts.targetKeys, picked],
   )
   const crossReview = requested && facts.crossReview === "none" ? "requested" : facts.crossReview
   // 요청 전이면 고를 수 있는 검증자 목록, 요청 뒤면 그 사람 이름 하나
@@ -120,11 +131,20 @@ function S07WindowContent({ devCase, facts, go }: { devCase: S07ContentProps["de
       aprthngNo={facts.aprthngNo}
       rows={devCase === "empty" ? [] : rows}
       onJudgementChange={(row, result) => {
-        setPicked((prev) => ({ ...prev, [row.no]: result }))
+        setPicked((prev) => ({ ...prev, [row.no]: { result, targets: facts.targetKeys?.[row.no] ?? "" } }))
         toast.success(`_${row.no} ${LABEL[result]} 저장(진열용)`)
       }}
       lockedReason={crossReview === "none" ? undefined : (facts.lockedReason ?? "교차 검증 중에는 판정을 바꿀 수 없습니다")}
-      onOpenImage={(row) => to(row.judgement === "found" ? "/dev/s06" : "/dev/s05", { image: row.imageNo })}
+      // 「열기」 = 그 줄의 확인대상 신발 · 순위 · 검색번호 그대로(다른 장의 발견 줄이 기본 신발로 열리던 것 — 2회차 검수)
+      onOpenImage={(row) => {
+        const run = facts.runOf?.[row.no] ?? row.searchNo ?? undefined
+        const shoe = row.shoe?.confirmed ? row.shoe : null
+        if (row.judgement === "found" && shoe) {
+          to("/dev/s06", { image: row.imageNo, ftwr: shoe.ftwrId, rank: String(shoe.ranking), ...(run ? { run } : {}) })
+        } else {
+          to("/dev/s05", { image: row.imageNo, ...(run ? { run } : {}) })
+        }
+      }}
       crossReview={crossReview}
       reviewers={reviewers}
       reviewer={facts.crossReviewer ? "assigned" : reviewer}

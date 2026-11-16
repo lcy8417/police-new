@@ -21,15 +21,21 @@ import {
   WorkMemoryProvider,
   imageScope,
   readWork,
+  CASE_CROSS_REQUESTED_FIELD,
+  CASE_JUDGEMENTS_FIELD,
+  CASE_TARGETS_FIELD,
+  leadTarget,
+  targetsKey,
+  type CaseJudgementPick,
+  type CaseTarget,
   type DevGo,
   type WorkStore,
 } from "../frame"
 import { sampleSoleUrl } from "../mock-assets/sample-images"
 import { S05_RUN_NO_FIELD } from "../s05/mock-cases"
-import { CONFIRM_TARGET_FIELD, type ConfirmTarget } from "../s06"
 import { S02Content } from "../s02"
 import { CaseWindowUpload } from "./CaseWindowUpload"
-import { caseFlowOf, s02FactsOf, s07FactsOf, tabMarksOf } from "./case-flow"
+import { caseFlowOf, s02FactsOf, s07FactsOf, tabMarksOf, type S07Facts } from "./case-flow"
 import { S03Content } from "../s03"
 import { S04Content } from "../s04"
 import { S05Content } from "../s05"
@@ -69,6 +75,9 @@ type QuickValues = Record<string, string[]>
 const EMPTY_QUICK: QuickValues = { view: [], progress: [], result: [], kind: [], mine: [] }
 
 const resultKey = (r: CaseListRow) => (r.caseResult === "" ? "none" : r.caseResult)
+
+/** 결과 확인에서 누른 판정 → 이미지 목록 알약 */
+const STATUS_OF_JUDGEMENT = { found: "발견", notFound: "불발견", unable: "감정불능" } as const
 
 // (r4 +α) 「빠른 보기」 — 옛 할 일 타일(결과 확인 전 · 이미지 미검색 · 교차 검증)을 뚜껑 칩으로 옮긴 것. 가짜 데이터 기준 정의:
 //  결과 확인 전 = 아직 확인 안 된 장(등록 · 검색 단계 장)이 하나라도 있는 사건
@@ -202,6 +211,8 @@ export function S01DevPage() {
   // 사건 창 작업 보관함(1회차 검수 — 탭을 옮겨도 문양 · 가중치 · 검색 이력 · 확인대상 · 판정 · 편집 이력이 남게).
   // 본문(S02–S07 내용)은 탭마다 새로 그려지므로 작업 값은 여기(S01)가 사건 · 이미지별로 든다(frame/work-memory)
   const [workStore] = React.useState<WorkStore>(() => new Map())
+  // 창 안에서 판정 · 확인대상 · 교차 검증 요청이 바뀌면 다시 그려 이미지 목록 알약 · 머리 흐름 · 탭 표시를 맞춘다(2회차 검수)
+  const [, bumpWork] = React.useReducer((n: number) => n + 1, 0)
   // 볼 수 있는 사건만 창으로 연다(수사관은 다른 관서 사건을 주소로 열어도 안 열림)
   const rowOf = (no: string) => matched.find((r) => r.aprthngNo === no)
   const imagesOf = (no: string) => {
@@ -240,16 +251,20 @@ export function S01DevPage() {
     const next = writeCaseWindow(params, { ...win, tab, img })
     if (extra.ftwr) next.set("ftwr", extra.ftwr)
     if (extra.rank) next.set("rank", extra.rank)
-    // 문양 코드 검색 이력 「자세히 →」 = 그 검색 번호의 결과로(검색 결과 탭이 읽는다)
+    // 문양 코드 검색 이력 「자세히 →」 = 그 검색 번호의 결과로(검색 결과 탭이 읽는다).
+    // 같은 장 안에서 탭을 옮길 때는 보던 검색을 그대로 둔다(정밀 대조 왕복 뒤 검색 문맥 유지 — 2회차 검수). 장이 바뀌면 writeCaseWindow 가 지운다
     if (extra.run) next.set("run", extra.run)
-    else if (tab !== "search") next.delete("run")
     setParams(next)
   }
 
   const openRow = win ? rowOf(win.open) : undefined
   let caseWindow: React.ReactNode = null
   if (win && openRow) {
-    const images = makeCaseImages(openRow)
+    // 결과 확인 탭에서 누른 판정 · 교차 검증 요청을 이미지 목록 알약 · 머리 흐름 · 탭 표시에 바로 반영(2회차 검수 — 처음 값에 머물던 것)
+    const picks = readWork<Record<string, CaseJudgementPick>>(workStore, win.open, CASE_JUDGEMENTS_FIELD) ?? {}
+    const crossAsked = readWork<boolean>(workStore, win.open, CASE_CROSS_REQUESTED_FIELD) === true
+    const images = makeCaseImages(openRow).map((i) => (picks[i.no] ? { ...i, status: STATUS_OF_JUDGEMENT[picks[i.no].result] } : i))
+    const liveRow: CaseListRow = crossAsked && (openRow.stage ?? -1) < 0 ? { ...openRow, stage: 1 } : openRow
     const img = win.img ?? images[0]?.no ?? null
     const imageNo = img ? `${win.open}_${img}` : undefined
     // ‹ › = 지금 목록(걸러진 · 이 쪽) 순서의 앞 · 뒤 사건. 목록에 없으면 둘 다 잠김
@@ -261,7 +276,7 @@ export function S01DevPage() {
     }
     const key = `${win.open}|${win.tab === "confirm" ? "" : img}|${win.tab}`
     // 머리 흐름 한 줄 · 탭 표시 · S02 값 — 모두 이 사건 행(장수 · 진행 · 결과 · 단계)에서 만든다(case-flow.ts)
-    const flow = caseFlowOf(openRow, images, plus)
+    const flow = caseFlowOf(liveRow, images, plus)
     const canEdit = viewer.isAdmin || viewer.features.includes(FEATURES.CRIME_REGISTER)
     // 문양 코드 탭 진행 · 「다음 이미지」 = 바깥 이미지 목록 그대로(장 상태 → 코딩 상태)
     const caseImages = images.map((i) => ({
@@ -272,23 +287,35 @@ export function S01DevPage() {
       const no = /_(\d+)$/.exec(imageNo)?.[1]
       if (no) setWindow({ ...win, img: no })
     }
-    // 결과 확인 = 정밀 대조에서 「확인대상」으로 넘긴 신발을 그 장의 판정 줄에 싣는다(1회차 검수)
+    // 결과 확인 = 그 장의 확인대상 목록(검색 결과 ★ · 정밀 대조 「확인대상」 — 여러 검색 · 여러 후보)을 판정 줄에 싣는다(2회차 검수).
+    // 대표 1켤레(정밀 대조에서 정한 것 먼저)를 보이고 나머지는 「외 n」. 확인대상이 있어야 발견 판정
     const baseFacts = s07FactsOf(openRow, flow)
-    const confirmFacts = {
+    const targetKeys: Record<string, string> = {}
+    const runOf: Record<string, string> = {}
+    const confirmFacts: S07Facts = {
       ...baseFacts,
+      targetKeys,
+      runOf,
       rows: baseFacts.rows.map((r) => {
-        const t = readWork<ConfirmTarget>(workStore, imageScope(win.open, r.no), CONFIRM_TARGET_FIELD)
-        if (!t) return r
-        // 그 장에서 결과 탭이 본 검색번호가 있으면 그 번호(검색한 장 — 발견 판정 가능)
-        const runNo = readWork<number>(workStore, imageScope(win.open, r.no), S05_RUN_NO_FIELD)
+        const scope = imageScope(win.open, r.no)
+        const list = readWork<readonly CaseTarget[]>(workStore, scope, CASE_TARGETS_FIELD) ?? []
+        const runNo = readWork<number>(workStore, scope, S05_RUN_NO_FIELD)
+        targetKeys[r.no] = targetsKey(list)
+        if (runNo !== undefined) runOf[r.no] = String(runNo)
+        const lead = leadTarget(list)
+        const withRun = runNo !== undefined ? { ...r, searchNo: String(runNo) } : r
+        if (!lead) return withRun
         return {
-          ...r,
-          searchNo: runNo !== undefined ? String(runNo) : r.searchNo,
+          ...withRun,
+          searchNo: lead.searchNo ?? withRun.searchNo,
+          moreTargets: list.length - 1,
           shoe: {
-            ftwrId: t.ftwrId,
-            image: sampleSoleUrl(t.ftwrId, { kind: "shoe" }),
-            score: t.similarity ?? r.shoe?.score ?? 0,
-            ranking: t.rank ?? r.shoe?.ranking ?? 1,
+            ftwrId: lead.ftwrId,
+            image: sampleSoleUrl(lead.ftwrId, { kind: "shoe" }),
+            // 점수를 모르면(검색번호 없는 기본 검색 등) 0 이 아니라 「—」
+            score: lead.similarity,
+            ranking: lead.rank ?? 1,
+            confirmed: true,
           },
         }
       }),
@@ -315,8 +342,8 @@ export function S01DevPage() {
       ) : (
         <S07Content key={key} devCase="ready" go={windowGo} inWindow facts={confirmFacts} />
       )
-    // 작업 값 범위: 사건 정보 · 결과 확인 = 사건 단위, 그 밖 = 이미지 단위
-    const workScope = win.tab === "confirm" || win.tab === "info" ? win.open : imageScope(win.open, img)
+    // 작업 값 범위: 결과 확인 = 사건 단위, 그 밖 = 이미지 단위(사건 정보 탭의 사건 공통 칸은 S02 가 사건 단위로 따로 든다 — 2회차 검수)
+    const workScope = win.tab === "confirm" ? win.open : imageScope(win.open, img)
     // 작업 탭 줄 「+」(11/17 사용자 「오른쪽에 + 버튼으로 기존 기능들이나 사건들 추가」): 사건 찾아 열기 · 기능 열기
     const needleAdd = addQuery.trim().toLowerCase()
     const full = win.tabs.length >= MAX_OPEN_CASES
@@ -421,7 +448,7 @@ export function S01DevPage() {
         }}
         onConfirmResult={() => setWindow({ ...win, tab: "confirm" })}
       >
-        <WorkMemoryProvider store={workStore} scope={workScope}>
+        <WorkMemoryProvider store={workStore} scope={workScope} notify={bumpWork}>
           {body}
         </WorkMemoryProvider>
       </CaseWindow>
@@ -439,10 +466,10 @@ export function S01DevPage() {
     </CaseWindowFrame>
   ) : null
 
-  // 위 막대 제목 뒤: 전체 건수 · (+α) 갱신 시각
+  // 위 막대 제목 뒤: 볼 수 있는 사건 수(수사관 = 자기 관서 의뢰만 — 전국 건수를 보이지 않는다, 2회차 검수) · (+α) 갱신 시각
   const meta = (
     <>
-      <span className="font-code tabular-nums">{allRows.length}건</span>
+      <span className="font-code tabular-nums">{matched.length}건</span>
       {plus ? (
         <span className="inline-flex items-center gap-1">
           <i aria-hidden="true" className="size-1.5 rounded-full bg-ok" />

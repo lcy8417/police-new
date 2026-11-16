@@ -56,6 +56,7 @@ import {
   S04_RUNS,
   S04_RUNS_FIELD,
   S04_ZONES_FIELD,
+  S04_META_FIELD,
   S04_CODE_NOTES,
   S04_FUNNEL,
   S04_IMAGE_REST,
@@ -172,7 +173,7 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow, caseImages, onPickI
   const nav = useDevNavigate()
   const go = goProp ?? nav
   // 탭을 옮겨도 남는 작업 값(1회차 검수) — 사건 창이면 S01 보관함에 이미지별로 남는다(frame/work-memory). 단독 진열은 useState 와 같음
-  const [meta, setMeta] = useWorkState<PatternMetaMap>("s04.meta", mock.meta)
+  const [meta, setMeta] = useWorkState<PatternMetaMap>(S04_META_FIELD, mock.meta)
   const [ownStatuses, setImageStatuses] = React.useState<Record<string, ImageCodingStatus>>(S04_IMAGE_STATUSES)
   // 사건 창은 그 사건의 이미지 목록(바깥 왼쪽 목록과 같은 것), 단독 진열은 시안 6장
   const imageStatuses = React.useMemo(

@@ -26,9 +26,15 @@ import {
   useWorkState,
   useWorkValue,
   useWorkWriter,
+  useInWorkMemory,
+  CASE_TARGETS_FIELD,
+  addTarget,
+  removeTarget,
+  sameTarget,
+  type CaseTarget,
   type DevGo,
 } from "../frame"
-import { fakeShoePatterns, rankOfRun, S04_RUNS_FIELD } from "../s04/mock-cases"
+import { fakeShoePatterns, rankOfRun, S04_RUNS, S04_RUNS_FIELD } from "../s04/mock-cases"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
 import { samplePhotoUrl, sampleSoleUrl } from "../mock-assets/sample-images"
 import type { ZoneTriple } from "../mock-assets/fake-art"
@@ -102,17 +108,41 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
   const [page, setPage] = useState(1)
   // 지금 앱 기본값은 이진화보기
   const [imageMode, setImageMode] = useState<ImageMode>("이진화보기")
-  // 확인대상 · 본 위치는 탭을 옮겨도 남는다(사건 창 보관함 — 이미지별)
-  const [targets, setTargets] = useWorkState<readonly SearchTarget[]>("s05.targets", INITIAL_TARGETS)
-  // 사건 창: 문양 코드 탭 검색 이력의 그 검색(「자세히 →」) — 그 검색의 문양 · 가중치로 낸 순위 · 점수 · 건수를 보인다(1회차 검수)
+  // 사건 창: 문양 코드 탭 검색 이력의 그 검색(「자세히 →」) — 그 검색의 문양 · 가중치로 낸 순위 · 점수 · 건수를 보인다(1회차 검수).
+  // 번호 없이 열면(작업 탭 · 목록 「검색」) 이 장에서 마지막으로 본 검색, 그것도 없으면 가장 최근 검색(2회차 검수 — 고정 857건이 뜨던 것).
+  // 문양 코드 탭을 아직 안 열었으면 그 탭의 처음 이력(S04_RUNS)과 같은 값으로 본다
+  const inWork = useInWorkMemory()
+  const windowed = inWindow === true && inWork
   const workRuns = useWorkValue<SearchRun[]>(S04_RUNS_FIELD)
-  const run = useMemo(() => (searchNo ? workRuns?.find((r) => String(r.searchNo) === searchNo) : undefined), [workRuns, searchNo])
-  const runHits = useMemo(() => (run && runQueryPatterns(run).length > 0 ? rankOfRun(run) : undefined), [run])
+  const lastRunNo = useWorkValue<number>(S05_RUN_NO_FIELD)
+  const runs = windowed ? (workRuns ?? S04_RUNS) : workRuns
+  const run = useMemo(() => {
+    if (!runs) return undefined
+    if (searchNo) return runs.find((r) => String(r.searchNo) === searchNo)
+    return windowed ? (runs.find((r) => r.searchNo === lastRunNo) ?? runs[0]) : undefined
+  }, [runs, searchNo, windowed, lastRunNo])
+  // 문양 없이 한 검색도 그 검색의 결과(이미지 유사도 순 · 점수 없음) 그대로 — 시안 고정값으로 바꾸지 않는다
+  const runHits = useMemo(() => (run ? rankOfRun(run) : undefined), [run])
+  const runHasPatterns = run ? runQueryPatterns(run).length > 0 : false
+  const runKey = run ? String(run.searchNo) : null
   const writeWork = useWorkWriter()
   useEffect(() => {
-    // 정밀 대조 탭이 같은 검색의 후보를 쓰게 지금 보는 검색번호를 남긴다
-    writeWork(S05_RUN_NO_FIELD, runHits && run ? run.searchNo : undefined)
-  }, [writeWork, run, runHits])
+    // 정밀 대조 · 결과 확인 탭이 같은 검색을 쓰게 지금 보는 검색번호를 남긴다
+    if (run) writeWork(S05_RUN_NO_FIELD, run.searchNo)
+  }, [writeWork, run])
+  // 확인대상(★)은 이 장의 확인대상 목록(검색번호 + 신발 ID, 정밀 대조 · 결과 확인과 같은 목록 — 2회차 검수).
+  // 카드 ★ 는 지금 보는 검색의 것만. 단독 진열은 시안 처음 값(검색번호 없음)
+  const [caseTargets, setCaseTargets] = useWorkState<readonly CaseTarget[]>(CASE_TARGETS_FIELD, () =>
+    inWork ? [] : INITIAL_TARGETS.map((t) => ({ ftwrId: t.ftwrId, rank: t.rank, similarity: null, searchNo: null, from: "search" as const })),
+  )
+  const targets = useMemo<SearchTarget[]>(
+    () =>
+      caseTargets
+        .filter((t) => t.searchNo === runKey)
+        .map((t) => ({ rank: t.rank ?? 0, ftwrId: t.ftwrId }))
+        .sort((a, b) => a.rank - b.rank),
+    [caseTargets, runKey],
+  )
 
   // r3 보기 설정 — 결과형태 · 썸네일 · 간격 · 필터는 이 브라우저에 기억(결과형태 null = 화면 기본: +α 8열 · 아니면 4열)
   const [columns, setColumns] = useRememberedState<ResultColumns | null>("s05", "columns", null, oneOf(COLUMN_VALUES))
@@ -154,18 +184,22 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
         aiTop: (zones, ftwrId) => sampleSoleUrl(ftwrId, { kind: "shoe", zones }),
       }),
       ...(searchNo ? { searchNo } : {}),
-      // 그 검색의 시각 · 필수 요약 · 넣은 문양(이력 줄 값 그대로). 문양 없이 검색했으면 이미지 유사도 결과(시안 값) 그대로
+      // 그 검색의 번호 · 시각 · 필수 요약 · 넣은 문양(이력 줄 값 그대로). 문양 없이 한 검색은 이미지 유사도 순(점수 없음)
       ...(run
         ? {
+            searchNo: String(run.searchNo),
             searchedAt: run.at.slice(5, 16),
             essentialSummary: runEssentialSummary(run),
-            searchMethod: runHits ? "문양 점수(가중치)" : "이미지 검색",
+            searchMethod: runHasPatterns ? "문양 점수(가중치)" : "이미지 검색",
             queryPatterns: runQueryPatterns(run),
-            ...(runHits ? { focusRank: null, peek: null, detail: null, rerankUp: {} } : {}),
+            focusRank: null,
+            peek: null,
+            detail: null,
+            rerankUp: {},
           }
         : {}),
     }),
-    [sceneImage, searchNo, run, runHits],
+    [sceneImage, searchNo, run, runHasPatterns],
   )
   // 「어디까지 봤는지」는 초점이 지나가며 올라간다(제어형)
   const insight = useMemo(() => ({ ...baseInsight, seenUpTo: seen.upTo, seenAt: seen.at }), [baseInsight, seen])
@@ -198,8 +232,15 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
       insight={insight}
       targets={targets}
       onToggleTarget={(t) => {
-        const has = targets.some((x) => x.rank === t.rank)
-        setTargets(has ? targets.filter((x) => x.rank !== t.rank) : [...targets, t].sort((a, b) => a.rank - b.rank))
+        // 같은 후보 = 같은 검색번호 + 같은 신발(순위로 가르지 않는다 — 2회차 검수)
+        const key = { ftwrId: t.ftwrId, searchNo: runKey }
+        const has = caseTargets.some((x) => sameTarget(x, key))
+        const similarity = results.find((r) => r.ftwrId === t.ftwrId)?.similarity
+        setCaseTargets(
+          has
+            ? removeTarget(caseTargets, key)
+            : addTarget(caseTargets, { ...key, rank: t.rank, similarity: typeof similarity === "number" ? similarity : null, from: "search" }),
+        )
         toast(has ? `${t.rank}위 ${t.ftwrId} 확인대상 제외(진열용)` : `${t.rank}위 ${t.ftwrId} 확인대상 등록(진열용)`)
       }}
       onResume={(rank) => {

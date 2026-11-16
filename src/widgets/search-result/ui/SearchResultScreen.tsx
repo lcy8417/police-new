@@ -152,7 +152,8 @@ function SearchResultPage({
   const lastRank = firstRank + results.length - 1
   const hasNext = page * pageSize < totalCount
   const action = (label: string) => onPlusAction?.(label)
-  const isTarget = (rank: number) => targets.some((t) => t.rank === rank)
+  // 확인대상은 신발 ID 로 가른다(순위로 가르면 다른 검색의 같은 순위 카드에 ★ — 2회차 검수)
+  const isTarget = (ftwrId: string) => targets.some((t) => t.ftwrId === ftwrId)
   const colCount = columns
   const auto = autoMode === "auto" && status === "ready"
   const focus = focusProp !== undefined ? focusProp : (plus?.focusRank ?? null)
@@ -419,7 +420,7 @@ function SearchResultPage({
             plus
               ? {
                   dim: chips.has("이미 본 것 흐리게") && ranking <= plus.seenUpTo,
-                  starred: isTarget(ranking),
+                  starred: isTarget(item.ftwrId),
                   rerankUp: plus.rerankUp[ranking] ?? 0,
                   canStar: roles.analyst,
                   onStar: () => toggleTarget({ rank: ranking, ftwrId: item.ftwrId }),
@@ -650,7 +651,7 @@ function SearchResultPage({
         detail={detail}
         canWrite={roles.analyst}
         onRegister={() => {
-          if (!isTarget(detail.rank)) toggleTarget({ rank: detail.rank, ftwrId: detail.ftwrId })
+          if (!isTarget(detail.ftwrId)) toggleTarget({ rank: detail.rank, ftwrId: detail.ftwrId })
         }}
         onAction={action}
         onClose={() => setDetailOpen(false)}

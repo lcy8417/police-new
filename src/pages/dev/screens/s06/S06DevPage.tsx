@@ -11,7 +11,7 @@ import {
   type CompareCount,
   type ZonePatterns,
 } from "@/widgets/match-compare"
-import type { SearchRun, SearchRunHit } from "@/widgets/pattern-code"
+import type { PatternMetaMap, SearchRun, SearchRunHit } from "@/widgets/pattern-code"
 
 import {
   DevScreenFrame,
@@ -26,9 +26,22 @@ import {
   useRememberedState,
   useWorkValue,
   useWorkWriter,
+  useInWorkMemory,
+  CASE_TARGETS_FIELD,
+  addTarget,
+  type CaseTarget,
   type DevGo,
 } from "../frame"
-import { fakeShoePatterns, rankOfRun, S04_RUNS_FIELD, S04_ZONES_FIELD, type NamedZones } from "../s04/mock-cases"
+import {
+  fakeShoePatterns,
+  rankOfRun,
+  S04_META_FIELD,
+  S04_MOCK,
+  S04_RUNS,
+  S04_RUNS_FIELD,
+  S04_ZONES_FIELD,
+  type NamedZones,
+} from "../s04/mock-cases"
 import { S05_RUN_NO_FIELD } from "../s05/mock-cases"
 import { FakeSole, fakeSoleUrl, SOLE_PALETTE } from "../mock-assets/FakeSole"
 import { hasSamplePhotos, samplePhotoUrl, sampleSoleUrl } from "../mock-assets/sample-images"
@@ -39,9 +52,7 @@ import { AlignmentDecor } from "./AlignmentDecor"
 import { fakeSideShoeUrl } from "./fake-side-shoe"
 import {
   CASE_INFO,
-  CONFIRM_TARGET_FIELD,
   CRIME_PATTERNS,
-  type ConfirmTarget,
   CRIME_SIZE,
   FAKE_ALIGNMENT,
   makeMatchInsight,
@@ -149,14 +160,22 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
   // r3 후보 넘기기: 검색 결과 1쪽(S05 가짜 값)을 후보 목록으로. 주소의 신발이 목록에 없으면 맨 앞에 넣는다.
   // 지금 후보는 여기서 든다(자동 넘김마다 주소를 쌓지 않게) — 처음 값만 주소(?ftwr · ?rank)에서.
   // 사건 창: 같은 이미지의 문양 코드 탭 값(4부위 문양 · 검색 이력)과 검색 결과 탭이 본 검색 번호를 보관함에서 읽는다
-  const workZones = useWorkValue<NamedZones>(S04_ZONES_FIELD)
-  const workRuns = useWorkValue<SearchRun[]>(S04_RUNS_FIELD)
+  // 문양 코드 · 검색 결과 탭을 아직 안 열었어도 그 탭의 처음 값(4부위 · 이력 · 가장 최근 검색)과 같은 값으로 본다(2회차 검수 — 방문 전후 값이 다르던 것)
+  const inWork = useInWorkMemory()
+  const workZones = useWorkValue<NamedZones>(S04_ZONES_FIELD) ?? (inWork ? S04_MOCK.ready.zones : undefined)
+  const workMeta = useWorkValue<PatternMetaMap>(S04_META_FIELD) ?? (inWork ? S04_MOCK.ready.meta : undefined)
+  const workRuns = useWorkValue<SearchRun[]>(S04_RUNS_FIELD) ?? (inWork ? S04_RUNS : undefined)
   const workRunNo = useWorkValue<number>(S05_RUN_NO_FIELD)
+  const urlRun = params.get("run")
+  const run = useMemo(() => {
+    if (!workRuns) return undefined
+    const no = urlRun ? Number(urlRun) : workRunNo
+    return workRuns.find((r) => r.searchNo === no) ?? (inWork ? workRuns[0] : undefined)
+  }, [workRuns, workRunNo, urlRun, inWork])
+  const runHits = useMemo(() => (run ? rankOfRun(run) : undefined), [run])
+  // 확인대상 목록(검색 결과 ★ 와 같은 목록 — 여러 후보를 쌓는다, 2회차 검수). 넣고 곧바로 결과 확인 탭으로 옮기므로 보관함에 바로 적는다
+  const caseTargets = useWorkValue<readonly CaseTarget[]>(CASE_TARGETS_FIELD) ?? []
   const writeWork = useWorkWriter()
-  const runHits = useMemo(() => {
-    const run = workRuns?.find((r) => r.searchNo === workRunNo)
-    return run ? rankOfRun(run) : undefined
-  }, [workRuns, workRunNo])
   const candidates = useMemo(() => makeCandidates(urlFtwr, urlRank, runHits), [urlFtwr, urlRank, runHits])
   const [current, setCurrent] = useState<{ ftwrId: string; rank: number | null }>(() => {
     const hit = candidates.find((c) => c.ftwrId === urlFtwr && (urlRank === null || c.rank === urlRank))
@@ -187,18 +206,12 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
   )
   // 비교 띠 문양(1회차 검수 — 상수였던 것): 현장 = 문양 코드 탭의 지금 4부위(사건 창), 신발 = 지금 후보의 신발 DB 문양(가짜 DB 에 있으면).
   // 없으면 시안 값 그대로(단독 진열)
-  const crimePatterns = useMemo(
-    () =>
-      workZones
-        ? zonePatternsOf({
-            top: workZones.top.map(([n]) => n),
-            mid: workZones.mid.map(([n]) => n),
-            bottom: workZones.bottom.map(([n]) => n),
-            outline: workZones.outline.map(([n]) => n),
-          })
-        : CRIME_PATTERNS,
-    [workZones],
-  )
+  // 현장 쪽은 검색에 쓰는 문양만(확인 전 AI 제안 빼고 — 가중치 스펙 §4 Q, 2회차 검수)
+  const crimePatterns = useMemo(() => {
+    if (!workZones) return CRIME_PATTERNS
+    const used = (z: PatternZone) => workZones[z].map(([n]) => n).filter((n) => workMeta?.[z]?.[n]?.status !== "suggested")
+    return zonePatternsOf({ top: used("top"), mid: used("mid"), bottom: used("bottom"), outline: used("outline") })
+  }, [workZones, workMeta])
   const shoePatterns = useMemo(() => {
     const shoe = fakeShoePatterns(ftwrId)
     return shoe ? zonePatternsOf(shoe.zones) : SHOE_PATTERNS
@@ -243,13 +256,17 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
         toast.success("정렬을 저장했습니다(진열용)")
       }}
       onConfirmTarget={() => {
-        // 사건 창: 이 이미지의 확인대상을 보관함에 남긴다 → 결과 확인 탭이 그 장 판정 줄에 싣는다(1회차 검수)
-        const target: ConfirmTarget = {
-          ftwrId,
-          rank: ranking,
-          similarity: typeof currentCandidate.similarity === "number" ? currentCandidate.similarity : null,
-        }
-        writeWork(CONFIRM_TARGET_FIELD, target)
+        // 사건 창: 이 장의 확인대상 목록에 더한다(덮어쓰지 않음 — 여러 검색의 여러 후보, DB §5-C) → 결과 확인 탭이 그 장 판정 줄에 싣는다(2회차 검수)
+        writeWork(
+          CASE_TARGETS_FIELD,
+          addTarget(caseTargets, {
+            ftwrId,
+            rank: ranking,
+            similarity: typeof currentCandidate.similarity === "number" ? currentCandidate.similarity : null,
+            searchNo: run ? String(run.searchNo) : null,
+            from: "compare",
+          }),
+        )
         to("/dev/s07", { ftwr: ftwrId })
       }}
       onClose={() => to("/dev/s05")}

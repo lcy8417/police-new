@@ -141,7 +141,14 @@ export function makeConfirmRows(row: CaseListRow): ConfirmRow[] {
   const thumbsOf = confirmShoeThumbs
   return makeCaseImages(row).map((img, i) => {
     const k = (i + Number(row.aprthngNo.slice(-2))) % CONFIRM_SHOES.length
-    const shoe = { ftwrId: CONFIRM_SHOES[k].ftwrId, image: thumbsOf[k], score: Math.round((84.1 - i * 2.7) * 10) / 10, ranking: 1 + (i % 3) }
+    // 발견으로 저장된 장 = 채택한 확인대상, 검색만 한 장 = 검색 1위 후보(참고 — 발견 판정 근거가 아님)
+    const shoe = {
+      ftwrId: CONFIRM_SHOES[k].ftwrId,
+      image: thumbsOf[k],
+      score: Math.round((84.1 - i * 2.7) * 10) / 10,
+      ranking: img.status === "발견" ? 1 + (i % 3) : 1,
+      confirmed: img.status === "발견",
+    }
     const searchNo = String(572420 - i * 37)
     const judgement: Judgement | null =
       img.status === "발견" ? "found" : img.status === "불발견" || img.status === "확인" ? "notFound" : img.status === "감정불능" ? "unable" : null

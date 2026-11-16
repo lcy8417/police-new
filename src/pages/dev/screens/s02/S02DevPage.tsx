@@ -35,6 +35,17 @@ import { useFakeUpload } from "./use-fake-upload"
 
 const info = devScreen("s02")
 
+/** 사건 공통 칸 — 사건 단위로 보관 */
+const CASE_FIELDS = ["apprslReqestNo", "rqestGrfcNm", "crimeNm"] as const
+/** 현장 이미지(감정물)별 칸 — 이미지 단위로 보관(DB 감정물 단위 열 · 결정 기록 §3-1 「현장 이미지 정보」 탭) */
+const IMAGE_FIELDS = ["aprthngSn", "pickDt", "pickPlace", "pickMthCode"] as const
+type CaseField = (typeof CASE_FIELDS)[number]
+type ImageField = (typeof IMAGE_FIELDS)[number]
+
+function pickFields<K extends keyof CaseDetailForm>(form: CaseDetailForm, keys: readonly K[]): Pick<CaseDetailForm, K> {
+  return Object.fromEntries(keys.map((k) => [k, form[k]])) as Pick<CaseDetailForm, K>
+}
+
 export interface S02ContentProps {
   devCase: (typeof SCREEN_CASES.s02)[number]
   /** 열어 본 사건 감정번호(없으면 새 등록) */
@@ -87,10 +98,17 @@ export function S02Content({ devCase, caseId: id, imageId, go, inWindow = false,
     : S02_PLUS
 
   const [mode, setMode] = React.useState<"detail" | "register">(id ? "detail" : "register")
-  // 사건 창: 고친 사건 정보는 탭을 옮겨도 남는다(보관함 — 사건 단위, 1회차 검수)
-  const [form, setForm] = useWorkState<CaseDetailForm>("s02.form", () =>
-    id ? loadedForm(id) : copyOf ? { ...loadedForm(copyOf), apprslReqestNo: "" } : EMPTY_FORM
-  )
+  // 사건 창: 고친 사건 정보는 탭을 옮겨도 남는다(보관함). 사건 공통 칸(사건등록번호 · 의뢰관서 · 사건명)은 사건 단위,
+  // 현장 이미지 칸(이미지 번호 · 채취 일시 · 장소 · 방법)은 이미지 단위로 따로 든다 — 다른 장을 골라도 앞 장 값이 남거나 덮이지 않게(2회차 검수)
+  const startForm = (): CaseDetailForm => (id ? loadedForm(id) : copyOf ? { ...loadedForm(copyOf), apprslReqestNo: "" } : EMPTY_FORM)
+  const [caseForm, setCaseForm] = useWorkState<Pick<CaseDetailForm, CaseField>>("s02.caseForm", () => pickFields(startForm(), CASE_FIELDS), "case")
+  const [imageForm, setImageForm] = useWorkState<Pick<CaseDetailForm, ImageField>>("s02.imageForm", () => pickFields(startForm(), IMAGE_FIELDS))
+  const form: CaseDetailForm = React.useMemo(() => ({ ...caseForm, ...imageForm }), [caseForm, imageForm])
+  const setForm = (next: CaseDetailForm | ((f: CaseDetailForm) => CaseDetailForm)) => {
+    const resolved = typeof next === "function" ? next(form) : next
+    setCaseForm(pickFields(resolved, CASE_FIELDS))
+    setImageForm(pickFields(resolved, IMAGE_FIELDS))
+  }
   const [images, setImages] = React.useState<CaseImage[]>(() => (source ? loadedImages(source) : []))
   // 시안은 _2(전사판)를 보고 있는 모양
   const [selected, setSelected] = React.useState<string | null>(imageId ?? (id ? `${id}_2` : null))

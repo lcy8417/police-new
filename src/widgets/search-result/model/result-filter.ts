@@ -39,7 +39,7 @@ function matchesGroup(key: ResultFilterKey, values: readonly string[], row: Rank
       return values.includes(seen ? "seen" : "unseen")
     }
     case "target":
-      return ctx.targets.some((t) => t.rank === row.rank)
+      return ctx.targets.some((t) => t.ftwrId === row.item.ftwrId)
     case "ai":
       return ctx.aiIds === null ? true : ctx.aiIds.has(row.item.ftwrId)
   }

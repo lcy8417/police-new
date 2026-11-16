@@ -19,7 +19,8 @@ const SIDE = "flex h-[30px] items-center text-[10px] font-semibold text-muted-fo
 
 function Icons({ label, items, shared }: { label: string; items: readonly PatternIconItem[]; shared: Set<string> }) {
   return (
-    <span role="list" aria-label={label} className="flex h-[30px] min-w-0 items-center gap-[3px] overflow-hidden">
+    // 같은 부위 문양이 많으면 가로로 넘겨 본다(잘라 숨기지 않음 — layout.md 스크롤 잘림 방지, 2회차 검수)
+    <span role="list" aria-label={label} className="flex h-[30px] min-w-0 items-center gap-[3px] overflow-x-auto overflow-y-hidden [scrollbar-width:thin]">
       {items.length === 0 ? <span className="text-[11px] text-dim">—</span> : null}
       {items.map((p) => {
         const hit = shared.has(p.name)
@@ -63,14 +64,22 @@ export function ZoneCompareStrip({
         const b = shoe[z.key]
         const shared = sharedNames(a, b)
         const score = z.basis ? basis?.find((r) => r.zone === z.basis) : undefined
-        const ok = score ? score.ok : shared.size > 0 && shared.size === a.length
+        // 일치 표식은 실제 문양 겹침으로만(AI 부위 점수는 옆 숫자로 따로 — 0/2 인데 ✓ 가 뜨던 것, 2회차 검수). 현장 문양이 없으면 비교 안 함
+        const ok = shared.size > 0 && shared.size === a.length
+        const none = a.length === 0
         return (
           <div key={z.key} data-zone-cell={z.key} className="grid min-w-0 gap-[2px] border-0 border-l border-solid border-border pl-[10px]">
             <span className="flex h-[18px] items-center gap-[6px] font-code text-[11px] tabular-nums">
               <b className="font-ui text-[12.5px] text-foreground">{z.label}</b>
-              <span aria-label={ok ? "일치" : "불일치"} className={cn("font-bold", ok ? "text-ai" : "text-warn")}>
-                {ok ? "✓" : "✕"}
-              </span>
+              {none ? (
+                <span aria-label="현장 문양 없음" className="text-dim">
+                  —
+                </span>
+              ) : (
+                <span aria-label={ok ? "일치" : "불일치"} className={cn("font-bold", ok ? "text-ai" : "text-warn")}>
+                  {ok ? "✓" : "✕"}
+                </span>
+              )}
               <span className="text-muted-foreground" title="겹친 문양 / 현장 문양">{`${shared.size}/${a.length}`}</span>
               {score ? <b className={cn("ml-auto font-semibold", score.ok ? "text-ai" : "text-warn")}>{score.score.toFixed(2)}</b> : null}
             </span>

@@ -243,6 +243,8 @@ export function fakeSearchRun(args: {
 export const S04_RUNS_FIELD = "s04.runs"
 /** 사건 창 보관함에서 이 이미지의 4부위 문양 칸 이름 — 정밀 대조 탭 비교 띠 · 검색 결과 빠른 비교가 읽는다 */
 export const S04_ZONES_FIELD = "s04.zones"
+/** 사건 창 보관함에서 이 이미지의 문양 카드 덧붙임(AI 제안 · 확인 · 확신도) 칸 이름 — 정밀 대조 비교 띠가 확인 전 제안을 거른다 */
+export const S04_META_FIELD = "s04.meta"
 
 /**
  * 이력 한 줄의 전체 순위(검색 결과 탭 「자세히 →」) — 그때 남긴 문양 · 필수 · 가중치로 같은 가짜 신발 DB 를 다시 돌린다.
