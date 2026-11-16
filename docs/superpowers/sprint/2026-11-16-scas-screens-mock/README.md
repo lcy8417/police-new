@@ -77,4 +77,18 @@
 | `ColumnPicker` | `columns: { key; label; locked? }[]`(이 순서 그대로) `visible: string[]` `onChange(keys)`(열 순서 유지, 잠긴 열 항상 포함) `defaultVisible?`(「기본으로」, 없으면 전체) |
 | `ViewCountSwitch` | `options: number[] \| string[]` `value` `onChange(value)`(받은 종류 그대로) `label?`(「보기」). 숫자는 「n개」로 보인다 |
 | `AutoPlayControl` | `mode: "manual"\|"auto"` `onModeChange` `intervalMs` `onIntervalChange(ms)`(빠른 1·2·3·5초, − + 는 0.5초 단위 0.5~10초) `playing` `onPlayPause` `position: { index(0부터); total }` `remainingRatio`(0~1). 수동에서는 모드 + 위치만. Space 키는 화면이 처리 |
-| `useAutoPlay` | `({ count, intervalMs, enabled, onStep?, loop? })` → `{ index, playing, play, pause, next, prev, remainingMs }`. `enabled`=자동 모드. 마지막 칸에서 정지(loop 기본 꺼짐), 정지 뒤 `play()` 는 처음부터. 주기 변경은 즉시 새 주기로. 움직임 줄이기와 무관. `remainingRatio = remainingMs / intervalMs` 로 `AutoPlayControl` 에 연결 |
+| `useAutoPlay` | `({ count, intervalMs, enabled, onStep?, loop? })` → `{ index, playing, play, pause, next, prev, goTo, remainingMs }`. `enabled`=자동 모드. 마지막 칸에서 정지(loop 기본 꺼짐), 끝까지 가서 멈춘 뒤 `play()` 는 처음부터. 주기 변경은 즉시 새 주기로. 움직임 줄이기와 무관. `goTo(i)`(최종 수정): 0~count-1 로 맞춰 바로 옮김 — 칸이 바뀌면 `onStep` 한 번, 같은 칸이면 안 부름, 어느 쪽이든 주기는 처음부터, 일시정지 중이면 멈춘 채 옮김(뒤의 `play()` 가 처음으로 되감지 않음). `remainingRatio = remainingMs / intervalMs` 로 `AutoPlayControl` 에 연결 |
+| `shouldHandleShortcut` | `@/shared/lib`(최종 수정). `(e) => boolean` — 창 전체 단축키를 화면이 받아도 되는지. 거름: `defaultPrevented` · Alt/Ctrl/Meta(Shift 는 통과 — `?`) · 글자형 input/textarea/select/contenteditable · 버튼류(button · a[href] · 체크박스 · 라디오 · role button/checkbox/switch/tab/option …) 위 Space · Enter · 라디오/범위/탭/선택지/슬라이더 위 화살표. S05 · S06 · S10 이 같이 쓴다. `isTextEntryTarget(target)` 도 내보낸다 |
+
+## 최종 수정 (r2–r3 전체 리뷰 뒤 한 번에)
+
+| # | 무엇 | 바뀐 것 |
+|---|---|---|
+| 1 | S00 앱 「움직임 줄이기」 | 시연은 Web Animations 라 범위 `data-motion` CSS 로 안 멈췄다 → `LoginScreen` · `LoginDemo` `reducedMotion` prop(진열 페이지가 `useDisplayPrefs()` 값을 넘김). 켜면 시계 null = 다 끝난 모양 |
+| 2 | 단축키 규칙 통일 | 공용 `shouldHandleShortcut`(위 표). S10 이 버튼 · 체크박스 위 Space 를 막고 Alt+← 를 먹던 것 고침 — 초점이 「재생/일시정지」 버튼이면 Space 는 그 버튼이 눌려 바뀐다 |
+| 3 | S01 「엑셀」 · 「문양보기」 | `showPlus && onMockAction` 일 때만 활성(알림), 아니면 §5-2 규칙 3 그대로 잠금 + 「준비 중」. RadioRow 옵션에 칸별 `disabled` · `title` 추가 |
+| 4 | 보기 설정 기억 | 공용 `useRememberedState`(`src/pages/dev/screens/frame/use-remembered-state.ts`, 키 `scas-dev:<화면>:<이름>`) 하나로 — S01 · S05 · S06 · S07 · S10 사본 3벌 삭제, S13(열 · 거르기 칩) · S14(줄 수 · 열 2벌) · S04(검색 이력 열) 새로 기억. 검색어는 어디서도 기억 안 함. S02 는 고르는 보기 설정이 없어(파일명 검색어뿐) 해당 없음. S01 · S10 키가 `dev.s01.*` · `dev.s10.*` → `scas-dev:s01:*` · `scas-dev:s10:*` 로 바뀌어 예전 기억은 한 번 기본값으로 돌아간다(진열용) |
+| 5 | 밝은 팔레트 대비 | S00 대조 · 감정서 카드 그림 바탕 `bg-foreground` → `bg-paper`. S03 자르기 틀 3분할선 `/30` → `/55`(회색 사진 위에서 안 보이던 것) |
+| 6 | S03 설명 줄 | 「A · 1차 작업 — …」 · 「B · 2차 작업 — …」 은 시안 목업 설명이라 `showPlus` 뒤로(`data-plus`) |
+| 7 | 자동 넘김 시계 | `useAutoPlay.goTo` 추가 → search-result · match-compare 의 `use-step-clock.ts` 두 벌 삭제(화면이 훅을 바로 쓰고 손 걸음은 `goTo(지금 칸)` 으로 주기만 다시), S10 `jumpTo`(한 칸씩 반복) → `goTo` |
+| 8 | 타입 | `ShoeDbScreenProps.onPlusAction` 선택 값으로(다른 위젯과 같게) |

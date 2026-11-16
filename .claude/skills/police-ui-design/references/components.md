@@ -37,7 +37,7 @@
 | FilterBar | kit | `src/shared/ui/kit/FilterBar.tsx` | (시안 짝 없음) | r3 목록 화면 | [새로] 시안 짝 없음(r3 사용자 피드백). 검색 칸(×로 지움) · 묶음별 다중 선택 칩(개수 선택) · 「조건 지우기」 · 「n / 전체 m」. 0건 안내 글은 화면 몫 | 구현됨 |
 | ColumnPicker | kit | `src/shared/ui/kit/ColumnPicker.tsx` | (시안 짝 없음) | r3 목록 화면 | [새로] 시안 짝 없음. 열 팝오버 체크 목록(주어진 순서) · 잠긴 열 비활성 · 「전체 보기」 · 「기본으로」(`defaultVisible`) · Esc · 바깥 누름 닫힘 | 구현됨 |
 | ViewCountSwitch | kit | `src/shared/ui/kit/ViewCountSwitch.tsx` | (시안 짝 없음) | r3 족적 보기 | [새로] 시안 짝 없음. 라벨 + Segmented(「보기 1 · 3 · 5」), 숫자는 「n개」 | 구현됨 |
-| AutoPlayControl | kit | `src/shared/ui/kit/AutoPlayControl.tsx` | (시안 짝 없음) | r3 검색 결과 | [새로] 시안 짝 없음. 수동/자동 · 빠른 1·2·3·5초 · 0.5초 미세(0.5~10초) · 재생/일시정지 · 「n / 전체」 · 남은 시간 막대. 훅 `useAutoPlay`(`@/shared/lib`)와 짝. kit 에 둔 이유: 족적 아닌 앱에서도 뜻이 통하는 조작(ai 는 AI 상태 표시용) | 구현됨 |
+| AutoPlayControl | kit | `src/shared/ui/kit/AutoPlayControl.tsx` | (시안 짝 없음) | r3 검색 결과 | [새로] 시안 짝 없음. 수동/자동 · 빠른 1·2·3·5초 · 0.5초 미세(0.5~10초) · 재생/일시정지 · 「n / 전체」 · 남은 시간 막대. 훅 `useAutoPlay`(`@/shared/lib`)와 짝(`goTo(i)` 로 바로 옮기기 — 칸이 바뀌면 `onStep` 한 번 · 주기 다시 · 일시정지 유지). 화면의 Space · ← → · Enter 단축키는 `shouldHandleShortcut`(`@/shared/lib`)로 거른다(글자 칸 · 보조키 · 이미 처리된 키, 버튼류 위 Space · Enter, 라디오 · 탭 위 화살표는 화면이 받지 않음). kit 에 둔 이유: 족적 아닌 앱에서도 뜻이 통하는 조작(ai 는 AI 상태 표시용) | 구현됨 |
 | DialogShell | kit | `src/shared/ui/kit/DialogShell.tsx` | (레이어 팝업 머리 · 몸 · 발) | S02–S10 중 표식 때 확정 | [새로] 기본 · `large`(폭 90%) · `layer`(시안 S10: `container` 칸 안 절대 위치 왼 150 · 위 480 · 폭 880, 덮개는 그 칸만, 머리 ✕). 슬롯 `titleExtra` · `headerRight`. shadcn dialog 감쌈. 기본 폭 720은 임시값 | 구현됨 |
 | Dialog | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
 | DialogClose | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
