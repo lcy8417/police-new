@@ -216,7 +216,8 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
                   value: filter.query,
                   onChange: (e) => filter.onQueryChange(e.target.value),
                 }}
-                className="flex-[0_1_200px]"
+                // 로망 LidSearch 는 오른쪽 끝(ml-auto)이 기본 — 이 뚜껑은 찾기가 맨 앞이라 왼쪽에 붙인다
+                className="ml-0 flex-[0_1_160px]"
               />
               {filter.groups.map((g) => (
                 <React.Fragment key={g.key}>
@@ -235,13 +236,6 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
             {ready ? (
               <span className="font-code text-[11px] font-normal text-paper/70 tabular-nums">
                 {filter ? `${users.length} / 전체 ${filter.total}` : `${users.length}명`}
-              </span>
-            ) : null}
-            {showPlus ? (
-              <span data-plus className="inline-flex">
-                <WorkbenchButton variant="ghost" icon={Download} onClick={props.onExport} className="text-paper/85 hover:bg-paper/16 hover:text-paper">
-                  엑셀
-                </WorkbenchButton>
               </span>
             ) : null}
             {/* 진한 뚜껑(brand-3) 위라 primary(같은 brand-3 채움)는 묻힌다 — 밝은 soft 로(사건관리 「+ 등록」과 같음) */}
@@ -274,6 +268,13 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
                   visible={props.visibleColumns ?? USER_COLUMNS.map((c) => c.key)}
                   onChange={(keys) => props.onVisibleColumnsChange?.(keys)}
                 />
+                {showPlus ? (
+                  <span data-plus className="inline-flex">
+                    <WorkbenchButton size="sm" variant="ghost" icon={Download} onClick={props.onExport}>
+                      엑셀
+                    </WorkbenchButton>
+                  </span>
+                ) : null}
               </span>
             </div>
             {list}
