@@ -30,11 +30,15 @@ function timelineNow(): number | null {
   return typeof t === "number" ? t : null
 }
 
-/** 시연 시계의 시작 시각(ms). 움직임 줄이기면 null */
-export function useDemoOrigin(): number | null {
+/**
+ * 시연 시계의 시작 시각(ms). 움직임 줄이기면 null.
+ * 움직임 줄이기 = 운영체제 설정 또는 앱 「화면 설정 → 움직임 줄이기」(`reducedMotion`, 범위 `data-motion="reduce"`).
+ * Web Animations(`el.animate`)는 CSS 범위 규칙으로 멈추지 않으므로 앱 설정도 여기서 직접 받아 시계를 끈다.
+ */
+export function useDemoOrigin(reducedMotion = false): number | null {
   const reduced = usePrefersReducedMotion()
   const [origin] = useState(timelineNow)
-  return reduced ? null : origin
+  return reduced || reducedMotion ? null : origin
 }
 
 export const DemoClockContext = createContext<number | null>(null)

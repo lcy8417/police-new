@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
 import { insertPatternPath } from "@/entities/pattern"
+import { useDisplayPrefs } from "@/shared/lib/display-prefs"
 import { PASSWORD_MESSAGES, passwordRuleError } from "@/entities/session"
 import { LoginScreen, type DemoScreen, type LoginDemoArt } from "@/widgets/login-screen"
 
@@ -55,6 +56,8 @@ export function S00DevPage() {
   const viewer = useDevViewer()
   const activeCase = useDevCase(info.cases, "ready")
   const art = useMemo(buildDemoArt, [])
+  // 화면 설정 「움직임 줄이기」 — 시연은 Web Animations 라 범위 CSS 로 멈추지 않으므로 값으로 넘긴다
+  const { reducedMotion } = useDisplayPrefs()
   const [userId, setUserId] = useState("")
   const [password, setPassword] = useState("")
   const [remember, setRemember] = useState(true)
@@ -97,6 +100,7 @@ export function S00DevPage() {
     features: viewer.features,
     demoArt: art,
     onOpenDemoStep: handleOpenDemoStep,
+    reducedMotion,
   } as const
 
   if (activeCase === "password-change") {

@@ -360,7 +360,9 @@ export function LoginScreen(props: LoginScreenProps) {
             <div className="relative z-[1] grid grid-cols-[minmax(0,1fr)_380px] gap-[40px] px-[44px] pt-[26px] pb-[32px]">
               <div data-plus className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-[18px]">
                 <Intro />
-                {props.demoArt && <LoginDemo art={props.demoArt} onOpenStep={props.onOpenDemoStep} />}
+                {props.demoArt && (
+                  <LoginDemo art={props.demoArt} onOpenStep={props.onOpenDemoStep} reducedMotion={props.reducedMotion} />
+                )}
                 <p className="-mt-[6px] mb-0 text-[11px] text-dim">
                   화면 속 사건·신발·수치는 모두 예시입니다. AI 결과는 「추천」으로만 표시되며, 감정관이 확인하기 전에는 사건 결과에 들어가지
                   않습니다.

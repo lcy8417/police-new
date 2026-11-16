@@ -281,7 +281,7 @@ export function CompareCard({ art }: { art: LoginDemoArt }) {
           <span className="overflow-hidden rounded-[8px] border border-solid border-border bg-picon">
             <img src={art.binary} alt="현장 이진화(예시)" className={IMG} />
           </span>
-          <span className="relative overflow-hidden rounded-[8px] border border-solid border-ai-line bg-foreground">
+          <span className="relative overflow-hidden rounded-[8px] border border-solid border-ai-line bg-paper">
             <img src={art.answer} alt="1위 신발 305657 밑창(예시)" className={IMG} />
             <span ref={heatRef} aria-hidden="true" className="absolute inset-0">
               <span className="absolute inset-y-0 left-1/2 aspect-[100/264] h-full -translate-x-1/2">
@@ -367,7 +367,7 @@ export function ReportCard({ art }: { art: LoginDemoArt }) {
             <span className="h-[44px] w-[26px] border border-solid border-fg-2 bg-picon">
               <img src={art.binary} alt="" className={IMG} />
             </span>
-            <span className="h-[44px] w-[26px] border border-solid border-fg-2 bg-foreground">
+            <span className="h-[44px] w-[26px] border border-solid border-fg-2 bg-paper">
               <img src={art.answer} alt="" className={IMG} />
             </span>
             <span className="self-end text-[8px] text-dim">발견 이미지 첨부</span>

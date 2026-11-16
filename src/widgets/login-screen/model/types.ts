@@ -43,6 +43,8 @@ interface LoginScreenBase {
   demoArt?: LoginDemoArt
   /** 시연 단계 줄을 눌렀다 */
   onOpenDemoStep?: (screen: DemoScreen) => void
+  /** 앱 「화면 설정 → 움직임 줄이기」. 켜면 시연이 다 끝난 모양으로 멈춘다(운영체제 설정은 화면이 따로 본다, 기본 false) */
+  reducedMotion?: boolean
   /** 요청 상태. loading = 제출 중(버튼 잠김), error = 서버에 닿지 못함. empty 는 없다 */
   status: Exclude<ScreenStatus, "empty">
   /** 서버가 준 거절 문구 그대로(401 불일치 · 423 잠금 · 400 규칙 …). 없으면 null */

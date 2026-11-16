@@ -2,6 +2,9 @@ import { fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+import { resetDisplayPrefsCache, setDisplayPrefs } from "@/shared/lib/display-prefs"
+import { LoginScreen } from "@/widgets/login-screen"
+
 import { S00DevPage } from "./S00DevPage"
 import { LOCKED_MESSAGE, LOGIN_FAILED_MESSAGE } from "./mock-cases"
 
@@ -222,6 +225,54 @@ describe("S00 로그인 진열 페이지 — r2 시안 구성", () => {
     expect(demo.querySelector('[data-rank-row="305657"]')).toHaveStyle({ top: "0px" })
     expect(within(demo).getByText("87%")).toBeInTheDocument()
     expect(demo.querySelector("[data-demo-stamp]")).toHaveTextContent("초안")
+  })
+
+  it("앱 「화면 설정 → 움직임 줄이기」만 켜도(운영체제 설정 없음) 시연이 다 끝난 모양으로 멈춘다", () => {
+    const { animate } = stubMotion(false)
+    setDisplayPrefs({ reducedMotion: true })
+    try {
+      renderAt("?case=ready")
+      expect(animate).not.toHaveBeenCalled()
+      const demo = screen.getByRole("region", { name: "AI 감정 시연" })
+      expect(demo).toHaveAttribute("data-demo-motion", "still")
+      expect(demo.querySelector("[data-demo-stamp]")).toHaveTextContent("초안")
+    } finally {
+      setDisplayPrefs({ reducedMotion: false })
+      window.localStorage.clear()
+      resetDisplayPrefsCache()
+    }
+  })
+
+  it("LoginScreen reducedMotion prop 이 켜지면 시계를 끄고, 꺼지면 시연을 돌린다", () => {
+    const { animate } = stubMotion(false)
+    const art = {
+      scene: "scene.png",
+      binary: "bin.png",
+      answer: "answer.png",
+      candidates: ["c1.png", "c2.png", "c3.png", "c4.png"] as [string, string, string, string],
+      patterns: { top: "t.png", mid: "m.png", bottom: "b.png" },
+    }
+    const base = {
+      mode: "login" as const,
+      status: "ready" as const,
+      errorMessage: null,
+      onRetry: () => {},
+      onSubmit: () => {},
+      userId: "",
+      onUserIdChange: () => {},
+      password: "",
+      onPasswordChange: () => {},
+      remember: false,
+      onRememberChange: () => {},
+      demoArt: art,
+    }
+    const { unmount } = render(<LoginScreen {...base} reducedMotion />)
+    expect(screen.getByRole("region", { name: "AI 감정 시연" })).toHaveAttribute("data-demo-motion", "still")
+    expect(animate).not.toHaveBeenCalled()
+    unmount()
+    render(<LoginScreen {...base} />)
+    expect(screen.getByRole("region", { name: "AI 감정 시연" })).toHaveAttribute("data-demo-motion", "running")
+    expect(animate).toHaveBeenCalled()
   })
 
   it("움직임이 허용되면 14초 반복 애니메이션을 모두 같은 시작 시각으로 건다", () => {

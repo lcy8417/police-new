@@ -81,10 +81,12 @@ function LiveBadge() {
 export interface LoginDemoProps {
   art: LoginDemoArt
   onOpenStep?: (screen: DemoScreen) => void
+  /** 앱 「움직임 줄이기」 — 켜면 시연이 다 끝난 모양으로 멈춘다(운영체제 설정과 함께 본다) */
+  reducedMotion?: boolean
 }
 
-export const LoginDemo = memo(function LoginDemo({ art, onOpenStep }: LoginDemoProps) {
-  const origin = useDemoOrigin()
+export const LoginDemo = memo(function LoginDemo({ art, onOpenStep, reducedMotion = false }: LoginDemoProps) {
+  const origin = useDemoOrigin(reducedMotion)
   return (
     <DemoClockContext.Provider value={origin}>
       <Panel
