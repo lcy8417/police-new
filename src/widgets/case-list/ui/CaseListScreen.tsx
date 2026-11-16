@@ -76,7 +76,12 @@ function Clip({ text, max }: { text: string; max: string }) {
   )
 }
 
-const FIELD_ARIA = (label: string) => ({ "aria-label": label })
+type StringFilterKey = Exclude<
+  { [K in keyof CaseListFilters]: CaseListFilters[K] extends string ? K : never }[keyof CaseListFilters],
+  "kind"
+>
+
+const FIELD_ARIA =(label: string) => ({ "aria-label": label })
 
 export function CaseListScreen({
   status,
@@ -109,24 +114,29 @@ export function CaseListScreen({
 
   const set = <K extends keyof CaseListFilters>(key: K, value: CaseListFilters[K]) =>
     onFiltersChange({ ...filters, [key]: value })
-  const text = (key: keyof CaseListFilters, label: string, variant: "text" | "mono" = "text") => (
+  const setStr = (key: StringFilterKey, value: string) => onFiltersChange({ ...filters, [key]: value })
+  // 목록 열에 값이 없어 걸러 낼 수 없는 칸은 자리만 두고 잠근다(spec §5-2 규칙 3)
+  const pendingProps = (pending: boolean) => (pending ? { disabled: true, title: "준비 중" } : {})
+  const text = (key: StringFilterKey, label: string, variant: "text" | "mono" = "text", pending = false) => (
     <Field
       variant={variant}
-      value={String(filters[key])}
-      onChange={(e) => set(key, e.target.value as never)}
+      value={filters[key]}
+      onChange={(e) => setStr(key, e.target.value)}
       {...FIELD_ARIA(label)}
+      {...pendingProps(pending)}
     />
   )
-  const select = (key: keyof CaseListFilters, label: string) => (
+  const select = (key: StringFilterKey, label: string, pending = false) => (
     <Field
       variant="select"
-      value={String(filters[key])}
+      value={filters[key]}
       placeholder="전체"
-      onChange={(e) => set(key, e.target.value as never)}
+      onChange={(e) => setStr(key, e.target.value)}
       {...FIELD_ARIA(label)}
+      {...pendingProps(pending)}
     />
   )
-  const office = (key: keyof CaseListFilters, label: string) => (
+  const office = (key: StringFilterKey, label: string) => (
     <span className="flex gap-[4px]">
       {text(key, label)}
       <Button size="sm-h26" disabled title="준비 중" aria-label={`${label} 찾기`}>
@@ -160,7 +170,7 @@ export function CaseListScreen({
         </span>
       ),
     },
-    { label: "피해자", field: text("victim", "피해자") },
+    { label: "피해자", field: text("victim", "피해자", "text", true) },
     {
       label: "구분",
       field: (
@@ -176,8 +186,8 @@ export function CaseListScreen({
         />
       ),
     },
-    { label: "사건장소", field: text("place", "사건장소") },
-    { label: "검거여부", field: select("arrested", "검거여부") },
+    { label: "사건장소", field: text("place", "사건장소", "text", true) },
+    { label: "검거여부", field: select("arrested", "검거여부", true) },
     { label: "작성자", field: text("author", "작성자") },
     { label: "처리관서", field: office("processOffice", "처리관서") },
     { label: "의뢰관서", field: office("requestOffice", "의뢰관서") },
@@ -198,7 +208,7 @@ export function CaseListScreen({
         </span>
       ),
     },
-    { label: "타기관여부", field: select("otherOrg", "타기관여부") },
+    { label: "타기관여부", field: select("otherOrg", "타기관여부", true) },
   ]
 
   const actionCol: DataGridColumn<CaseListRow> = {

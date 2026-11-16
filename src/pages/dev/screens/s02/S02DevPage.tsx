@@ -12,7 +12,7 @@ import {
 
 import { DEV_SCREENS, DevScreenFrame, useDevCase, useDevViewer } from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
-import { DETAIL_FORM, EMPTY_FORM, OFFICE_ITEMS, makeImages } from "./mock-cases"
+import { DETAIL_FORM, EMPTY_FORM, OFFICE_ITEMS, PENDING_VALUES, makeImages } from "./mock-cases"
 
 const info = DEV_SCREENS.find((s) => s.id === "s02")!
 // 사건 상세에는 「결과 없음」이 없다
@@ -48,7 +48,15 @@ export function S02DevPage() {
     setForm((f) => ({ ...f, [name]: value }))
   }
 
+  // 올리는 중 막대: 0 → 100 을 흉내 낸 뒤 목록에 붙인다(가짜 — 서버 호출 없음)
+  const [uploading, setUploading] = React.useState<{ fileName: string; percent: number } | undefined>()
+  const timer = React.useRef<ReturnType<typeof setInterval> | null>(null)
+  React.useEffect(() => () => {
+    if (timer.current) clearInterval(timer.current)
+  }, [])
+
   const addFiles = (files: File[]) => {
+    if (timer.current) return
     const base = form.apprslReqestNo || "새사건"
     const start = images.reduce((m, i) => Math.max(m, Number(/_(\d+)\./.exec(i.fileName)?.[1] ?? 0)), 0)
     const added = files.map((f, k) => {
@@ -60,9 +68,34 @@ export function S02DevPage() {
         src: fakePhotoUrl({ seed: n, tag: String(n) }),
       }
     })
-    setImages((cur) => [...cur, ...added])
+    let percent = 0
+    setUploading({ fileName: added[0].fileName, percent })
+    timer.current = setInterval(() => {
+      percent += 25
+      if (percent < 100) {
+        setUploading({ fileName: added[0].fileName, percent })
+        return
+      }
+      if (timer.current) clearInterval(timer.current)
+      timer.current = null
+      setUploading(undefined)
+      setImages((cur) => [...cur, ...added])
+      setError(null)
+      toast(`${added.length}장을 추가했습니다(가짜 이미지)`)
+    }, 150)
+  }
+
+  // 초기화: 열어 본 사건이면 불러온 값으로 되돌리고, 새 등록이면 비운다
+  const resetForm = () => {
     setError(null)
-    toast(`${added.length}장을 추가했습니다(가짜 이미지)`)
+    setChecked([])
+    if (mode === "detail" && id) {
+      setForm({ ...DETAIL_FORM, apprslReqestNo: id })
+      setImages(makeImages(id))
+    } else {
+      setForm(EMPTY_FORM)
+      setImages([])
+    }
   }
 
   const onSave = () => {
@@ -89,6 +122,8 @@ export function S02DevPage() {
         mode={mode}
         aprthngNo={caseId}
         form={form}
+        pendingValues={PENDING_VALUES}
+        uploading={uploading}
         onFieldChange={onFieldChange}
         officeItems={OFFICE_ITEMS}
         images={images}
@@ -105,12 +140,7 @@ export function S02DevPage() {
         continuous={continuous}
         onContinuousChange={setContinuous}
         onSave={onSave}
-        onReset={() => {
-          setError(null)
-          setForm(EMPTY_FORM)
-          setImages([])
-          setChecked([])
-        }}
+        onReset={resetForm}
         onClose={() => to("/dev/s01")}
         onPrev={() => toast("이전 사건은 목록의 정렬 순서를 따릅니다(가짜 데이터)")}
         onNext={() => toast("다음 사건은 목록의 정렬 순서를 따릅니다(가짜 데이터)")}

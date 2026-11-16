@@ -30,11 +30,20 @@ export function S01DevPage() {
     navigate(s ? `${path}?${s}` : path)
   }
 
+  // 목록 열에 값이 있는 조건은 모두 건다(피해자 · 사건장소 · 검거여부 · 타기관여부는 위젯에서 「준비 중」으로 잠김)
+  const has = (value: string, needle: string) => value.includes(needle.trim())
   const matched = allRows.filter(
     (r) =>
-      r.aprthngNo.includes(applied.aprthngNo.trim()) &&
-      r.docNo.includes(applied.docNo.trim()) &&
-      r.caseName.includes(applied.caseName.trim()) &&
+      has(r.aprthngNo, applied.aprthngNo) &&
+      has(r.docNo, applied.docNo) &&
+      has(r.caseName, applied.caseName) &&
+      has(r.processOffice, applied.processOffice) &&
+      has(r.requestOffice, applied.requestOffice) &&
+      has(r.occurOffice, applied.occurOffice) &&
+      has(r.author, applied.author) &&
+      has(r.caseResult, applied.caseResult) &&
+      (applied.registeredFrom === "" || r.registeredAt >= applied.registeredFrom) &&
+      (applied.registeredTo === "" || r.registeredAt <= applied.registeredTo) &&
       (applied.kind === "all" || (applied.kind === "shoe" ? r.shoeCount > 0 : r.tireCount > 0)) &&
       (!applied.awaitingResult || r.caseResult === "")
   )

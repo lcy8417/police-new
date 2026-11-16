@@ -2,7 +2,17 @@ import * as React from "react"
 
 import { FEATURES } from "@/entities/session"
 import { cn } from "@/shared/lib/utils"
-import { Button, Checkbox, Combobox, DataGrid, Field, InlineError, type DataGridColumn } from "@/shared/ui/kit"
+import {
+  Button,
+  Checkbox,
+  Chip,
+  Combobox,
+  DataGrid,
+  Field,
+  InlineError,
+  RadioRow,
+  type DataGridColumn,
+} from "@/shared/ui/kit"
 import { ButtonBar, Panel, SearchForm, type SearchFormRow } from "@/shared/ui/panel"
 import { EvidenceImage } from "@/shared/ui/viewer"
 
@@ -32,6 +42,7 @@ export function CaseDetailScreen({
   mode,
   aprthngNo,
   form,
+  pendingValues,
   onFieldChange,
   officeItems,
   images,
@@ -58,6 +69,8 @@ export function CaseDetailScreen({
   const fileInput = React.useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = React.useState(false)
 
+  // 0~100 밖의 값은 막대가 틀 밖으로 나가지 않게 줄인다
+  const percent = uploading ? Math.min(100, Math.max(0, Math.round(uploading.percent))) : 0
   const canEdit = isAdmin || features.includes(FEATURES.CRIME_REGISTER)
   const canSearch = isAdmin || features.includes(FEATURES.CRIME_SEARCH)
 
@@ -104,24 +117,76 @@ export function CaseDetailScreen({
     />
   )
 
-  const rows: SearchFormRow[] = [
+  // 지금 앱에 동작이 없는 SCAS 칸: 자리와 값만 두고 잠근다(spec §5-2 규칙 3 · 판정 R10)
+  const pendingText = (label: string, variant: "text" | "mono-sm" = "text") => (
+    <Field
+      variant={variant}
+      value={pendingValues?.[label] ?? ""}
+      readOnly
+      disabled
+      title="준비 중"
+      aria-label={label}
+    />
+  )
+  const pendingRadio = (label: string, options: string[]) => (
+    <span title="준비 중" className="inline-flex">
+      <RadioRow
+        name={label}
+        value={pendingValues?.[label] ?? null}
+        onValueChange={() => undefined}
+        options={options.map((o) => ({ value: o, label: o }))}
+        disabled
+      />
+    </span>
+  )
+
+  // 사건정보: 시안 순서 그대로(감정번호 자리에 사건등록번호). 동작하는 칸 7개만 고칠 수 있다.
+  const caseRows: SearchFormRow[] = [
     { label: "사건등록번호", required: true, field: text("apprslReqestNo", "사건등록번호", "mono") },
-    { label: "이미지 번호", field: text("aprthngSn", "이미지 번호", "mono") },
+    { label: "문서번호", field: pendingText("문서번호") },
+    { label: "SCAS사건번호", field: pendingText("SCAS사건번호") },
+    { label: "피해자 성명", field: pendingText("피해자 성명") },
     {
       label: "의뢰관서",
-      field: (
+      field: canEdit ? (
         <Combobox
           items={officeItems}
           value={form.rqestGrfcNm || null}
-          onValueChange={(v) => canEdit && onFieldChange("rqestGrfcNm", v)}
+          onValueChange={(v) => onFieldChange("rqestGrfcNm", v)}
           placeholder="의뢰관서 검색"
         />
+      ) : (
+        <Field variant="pick" readOnly value={form.rqestGrfcNm} aria-label="의뢰관서" />
       ),
     },
+    { label: "출생년도", field: pendingText("출생년도") },
     { label: "사건 이름", field: text("crimeNm", "사건 이름") },
+    { label: "용의자 유무", field: pendingRadio("용의자 유무", ["유", "무"]) },
+    { label: "사건일시", field: pendingText("사건일시", "mono-sm") },
+    { label: "사건장소", field: pendingText("사건장소") },
+    { label: "발생관서", field: pendingText("발생관서") },
+    { label: "검거여부", field: pendingText("검거여부") },
+    { label: "사건주소", field: pendingText("사건주소") },
+    { label: "감정의뢰 담당자", field: pendingText("감정의뢰 담당자") },
+    { label: "사건개요", span: 3, field: pendingText("사건개요") },
+    { label: "비고", span: 3, field: pendingText("비고") },
+  ]
+
+  // 현장 이미지 정보: 시안 순서 그대로. 채취 일시 · 채취 장소 · 발견 방법(= 채취 방법) · 이미지 번호만 동작한다.
+  const imageRows: SearchFormRow[] = [
+    { label: "구분", field: pendingRadio("구분", ["신발", "타이어"]) },
+    { label: "이미지 번호", field: text("aprthngSn", "이미지 번호", "mono") },
     { label: "채취 일시", field: text("pickDt", "채취 일시", "mono-sm") },
+    { label: "채취자 계급", field: pendingText("채취자 계급") },
     { label: "채취 장소", field: text("pickPlace", "채취 장소") },
-    { label: "발견 방법", span: 3, field: text("pickMthCode", "발견 방법", "mono") },
+    { label: "채취자 이름", field: pendingText("채취자 이름") },
+    { label: "발견 방법", field: text("pickMthCode", "발견 방법", "mono") },
+    { label: "감정물 종류", field: pendingText("감정물 종류") },
+    { label: "제조사", field: pendingText("제조사") },
+    { label: "족적 구분", field: pendingRadio("족적 구분", ["좌", "우", "불상"]) },
+    { label: "상표", field: pendingText("상표") },
+    { label: "굽 유무", field: pendingRadio("굽 유무", ["유", "무", "불상"]) },
+    { label: "화종", span: 3, field: pendingText("화종") },
   ]
 
   const handleFiles = (list: FileList | null) => {
@@ -246,17 +311,17 @@ export function CaseDetailScreen({
                   <span className="grid gap-[3px]">
                     <span className="flex justify-between font-code text-[10.5px] text-dim">
                       <span className="truncate">{uploading.fileName} 업로드 중</span>
-                      <span>{uploading.percent}%</span>
+                      <span>{percent}%</span>
                     </span>
                     <span
                       role="progressbar"
                       aria-label="업로드"
-                      aria-valuenow={uploading.percent}
+                      aria-valuenow={percent}
                       aria-valuemin={0}
                       aria-valuemax={100}
                       className="h-[4px] overflow-hidden rounded-[2px] bg-line-3"
                     >
-                      <i className="block h-full bg-brand-2" style={{ width: `${uploading.percent}%` }} />
+                      <i className="block h-full bg-brand-2" style={{ width: `${percent}%` }} />
                     </span>
                   </span>
                 ) : null}
@@ -287,7 +352,11 @@ export function CaseDetailScreen({
                 {errorMessage}
               </p>
             ) : null}
-            <SearchForm columns={2} rows={rows} />
+            <SearchForm columns={2} rows={caseRows} />
+            <Band title="현장 이미지 정보">
+              {selected ? <Chip variant="blue-mono-h20">{selected.fileName.replace(/^.*(_\d+)\.[^.]+$/, "$1")}</Chip> : null}
+            </Band>
+            <SearchForm columns={2} rows={imageRows} />
             {canEdit ? (
               <div className="flex flex-wrap items-center justify-end gap-[10px] px-[4px]">
                 {mode === "register" ? (

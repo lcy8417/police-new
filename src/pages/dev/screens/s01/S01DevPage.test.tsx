@@ -30,10 +30,32 @@ describe("S01DevPage 사건관리 목록", () => {
     expect(screen.queryByText("결과 없음")).toBeNull()
   })
 
-  it("ready 데이터에 긴 사건명이 있어도 열 머리는 가로로 넘치지 않게 줄여 보인다", () => {
+  it("긴 사건명(40자 이상)은 한 줄로 줄여(truncate) 보이고 전체 값은 title 에 있다", () => {
     renderAt("/dev/s01?case=ready")
     const long = screen.getAllByTitle(/야간 건조물/)[0]
     expect(long.className).toMatch(/truncate/)
+    expect((long.getAttribute("title") ?? "").length).toBeGreaterThanOrEqual(40)
+  })
+
+  it("피해자 · 사건장소 · 검거여부 · 타기관여부는 「준비 중」으로 잠겨 있다", () => {
+    renderAt("/dev/s01?case=ready")
+    for (const label of ["피해자", "사건장소", "검거여부", "타기관여부"]) {
+      const el = screen.getByLabelText(label)
+      expect(el).toBeDisabled()
+      expect(el).toHaveAttribute("title", "준비 중")
+    }
+  })
+
+  it("작성자 · 등록일자 조건도 조회에 걸린다", () => {
+    renderAt("/dev/s01?case=ready")
+    fireEvent.change(screen.getByLabelText("작성자"), { target: { value: "김" } })
+    fireEvent.click(screen.getByRole("button", { name: "조회" }))
+    expect(screen.getByText("결과 없음")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "초기화" }))
+    fireEvent.change(screen.getByLabelText("등록일자 시작"), { target: { value: "2025-07-24" } })
+    fireEvent.click(screen.getByRole("button", { name: "조회" }))
+    expect(screen.getByText(/전체 \d+ 중 1-/)).toBeInTheDocument()
+    expect(screen.queryByText("전체 116 중 1-14")).toBeNull()
   })
 
   it("loading 케이스는 aria-busy=\"true\"", () => {

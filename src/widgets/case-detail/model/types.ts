@@ -45,6 +45,11 @@ export interface CaseDetailScreenProps {
   /** 제목 옆에 보이는 감정번호(detail) */
   aprthngNo?: string
   form: CaseDetailForm
+  /**
+   * 지금 앱에 동작이 없는 SCAS 칸(문서번호 · 피해자 성명 · 제조사 …)에 보일 값. 키 = 라벨.
+   * 이 칸들은 「준비 중」으로 잠긴 채 값만 보인다(spec §5-2 규칙 3 · 판정 R10).
+   */
+  pendingValues?: Readonly<Record<string, string>>
   onFieldChange: (name: CaseDetailFieldName, value: string) => void
   /** 의뢰관서 검색 후보(관서 조회는 쓰는 쪽이 조립) */
   officeItems: ComboboxItem[]
