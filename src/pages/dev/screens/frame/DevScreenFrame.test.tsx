@@ -75,4 +75,34 @@ describe("DevScreenFrame", () => {
     expect(document.querySelector('[data-part="ScasShell"]')).toBeNull()
     expect(screen.getByText("로그인")).toBeInTheDocument()
   })
+
+  const renderAt = (url: string) =>
+    render(
+      <MemoryRouter initialEntries={[url]}>
+        <DevScreenFrame screen="S01" title="사건관리" cases={["ready"]}>
+          <p>본문</p>
+        </DevScreenFrame>
+      </MemoryRouter>,
+    )
+
+  it("메뉴 링크가 보는 사람(as)을 유지한다", () => {
+    renderAt("/dev/s01?as=admin")
+    expect(screen.getByRole("link", { name: "사용자 관리" })).toHaveAttribute("href", "/dev/s13?as=admin")
+  })
+
+  it("as 가 없으면 메뉴 링크에 쿼리를 붙이지 않는다", () => {
+    renderAt("/dev/s01")
+    expect(screen.getByRole("link", { name: "사건 상세" })).toHaveAttribute("href", "/dev/s02")
+  })
+
+  it("관리 묶음은 관리자에게만 보인다", () => {
+    const { unmount } = renderAt("/dev/s01?as=admin")
+    expect(screen.getByText("관리")).toBeInTheDocument()
+    unmount()
+    const second = renderAt("/dev/s01?as=investigator")
+    expect(screen.queryByText("관리")).toBeNull()
+    second.unmount()
+    renderAt("/dev/s01?as=readonly")
+    expect(screen.queryByText("관리")).toBeNull()
+  })
 })

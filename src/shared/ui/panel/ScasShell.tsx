@@ -22,6 +22,14 @@ export interface ScasMenuGroup {
   items: ScasMenuItem[]
 }
 
+/** 메뉴 링크를 그리는 쪽이 정한다(예: react-router `Link`로 화면 새로고침 없이 이동). 없으면 `<a href>`. */
+export interface ScasLinkProps {
+  href: string
+  className: string
+  "aria-current"?: "page"
+  children: React.ReactNode
+}
+
 export interface ScasShellProps {
   /** 현재 메뉴 항목 이름(`aria-current="page"` + 강조) */
   active: string
@@ -32,6 +40,8 @@ export interface ScasShellProps {
   /** 현재 탭. 없으면 탭 첫째 */
   tabOn?: string
   menu: ScasMenuGroup[]
+  /** 메뉴 링크 그리기(선택). 껍데기는 라우터를 모른다 */
+  renderLink?: (props: ScasLinkProps) => React.ReactNode
   user: { name: string; org: string; roleLabel: string }
   children: React.ReactNode
   /** 시안 위치 식별자(`data-part-id`) */
@@ -47,7 +57,15 @@ const ITEM_ON =
 const ITEM_OOS =
   "opacity-[0.45] cursor-default after:ml-auto after:font-code after:text-[9px] after:font-semibold after:text-faint after:content-['SCAS']"
 
-function MenuItem({ item, active }: { item: ScasMenuItem; active: boolean }) {
+function MenuItem({
+  item,
+  active,
+  renderLink,
+}: {
+  item: ScasMenuItem
+  active: boolean
+  renderLink?: ScasShellProps["renderLink"]
+}) {
   const className = cn(ITEM_BASE, active && ITEM_ON, item.disabled && ITEM_OOS)
   const inner = (
     <>
@@ -57,21 +75,30 @@ function MenuItem({ item, active }: { item: ScasMenuItem; active: boolean }) {
       )}
     </>
   )
-  if (item.disabled) {
+  // 링크가 아닌 항목(비활성 · href 없음)은 글자만 그린다
+  if (item.disabled || item.href == null) {
     return (
-      <span aria-disabled="true" className={className}>
+      <span
+        aria-disabled={item.disabled ? "true" : undefined}
+        aria-current={active && !item.disabled ? "page" : undefined}
+        className={className}
+      >
         {inner}
       </span>
     )
   }
+  const current = active ? ("page" as const) : undefined
+  if (renderLink) {
+    return <>{renderLink({ href: item.href, className, "aria-current": current, children: inner })}</>
+  }
   return (
-    <a href={item.href} aria-current={active ? "page" : undefined} className={className}>
+    <a href={item.href} aria-current={current} className={className}>
       {inner}
     </a>
   )
 }
 
-export function ScasShell({ active, title, tabs, tabOn, menu, user, children, partId }: ScasShellProps) {
+export function ScasShell({ active, title, tabs, tabOn, menu, renderLink, user, children, partId }: ScasShellProps) {
   const tabList = tabs ?? [active]
   const currentTab = tabOn ?? tabList[0]
   return (
@@ -166,7 +193,7 @@ export function ScasShell({ active, title, tabs, tabOn, menu, user, children, pa
                 {group.group}
               </div>
               {group.items.map((item) => (
-                <MenuItem key={item.label} item={item} active={item.label === active} />
+                <MenuItem key={item.label} item={item} active={item.label === active} renderLink={renderLink} />
               ))}
             </React.Fragment>
           ))}
@@ -177,7 +204,7 @@ export function ScasShell({ active, title, tabs, tabOn, menu, user, children, pa
             // 점 격자 · 번짐 빛: 순수 장식(클릭을 막지 않는다)
             "before:pointer-events-none before:absolute before:inset-0 before:content-[''] " +
             "before:bg-[radial-gradient(var(--t-dot-grid)_1px,transparent_1px)] before:[background-size:24px_24px] " +
-            "before:[mask-image:radial-gradient(ellipse_at_60%_0%,#000_0%,transparent_70%)] " +
+            "before:[mask-image:radial-gradient(ellipse_at_60%_0%,black_0%,transparent_70%)] " +
             "after:pointer-events-none after:absolute after:top-[-120px] after:right-[20%] after:size-[300px] after:rounded-full " +
             "after:bg-[var(--t-glow-orb)] after:blur-[60px] after:content-['']"
           }

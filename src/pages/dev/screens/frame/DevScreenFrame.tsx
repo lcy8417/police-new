@@ -18,8 +18,10 @@ export interface DevScreenFrameProps {
   children: React.ReactNode
 }
 
-function menuFor(isAdmin: boolean): ScasMenuGroup[] {
-  const toItem = (s: (typeof DEV_SCREENS)[number]) => ({ label: s.title, href: `/dev/${s.id}` })
+// 보는 사람(`as`)은 화면을 옮겨도 유지한다. 케이스(`case`)는 화면마다 다르므로 넘기지 않는다.
+function menuFor(isAdmin: boolean, as: string | null): ScasMenuGroup[] {
+  const query = as ? `?as=${encodeURIComponent(as)}` : ""
+  const toItem = (s: (typeof DEV_SCREENS)[number]) => ({ label: s.title, href: `/dev/${s.id}${query}` })
   const groups: ScasMenuGroup[] = [
     { group: "족윤적 감정", items: DEV_SCREENS.filter((s) => !s.admin && s.id !== "s00").map(toItem) },
   ]
@@ -31,6 +33,7 @@ const PILL = "rounded-[999px] border border-solid px-[8px] py-[1px] font-code te
 
 export function DevScreenFrame({ screen, title, cases, bare = false, children }: DevScreenFrameProps) {
   const { pathname, search } = useLocation()
+  const as = new URLSearchParams(search).get("as")
   const activeCase = useDevCase(cases, cases[0] ?? "ready")
   const viewer = useDevViewer()
   const viewerKey = DEV_VIEWER_KEYS.find((k) => DEV_VIEWERS[k] === viewer) ?? "investigator"
@@ -89,7 +92,12 @@ export function DevScreenFrame({ screen, title, cases, bare = false, children }:
       {bar}
       <ScasShell
         active={title}
-        menu={menuFor(viewer.isAdmin)}
+        menu={menuFor(viewer.isAdmin, as)}
+        renderLink={({ href, children, ...rest }) => (
+          <Link to={href} {...rest}>
+            {children}
+          </Link>
+        )}
         user={{ name: "박○○", org: "경찰청 범죄분석과", roleLabel: viewer.label }}
       >
         {children}

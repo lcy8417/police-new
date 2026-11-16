@@ -71,4 +71,20 @@ describe("ScasShell", () => {
     expect(root).toHaveAttribute("data-part", "ScasShell")
     expect(root).toHaveAttribute("data-part-id", "S01-00")
   })
+
+  it("href 없는 항목은 링크가 아닌 글자로 그린다", () => {
+    renderShell()
+    expect(screen.getByText("문서접수대장").closest("a")).toBeNull()
+  })
+
+  it("renderLink 가 있으면 그 함수로 링크를 그린다", () => {
+    renderShell({
+      renderLink: ({ href, children, ...rest }) => (
+        <a data-custom href={`${href}?x=1`} {...rest}>
+          {children}
+        </a>
+      ),
+    })
+    expect(screen.getByText("사용자 관리").closest("a")).toHaveAttribute("href", "/dev/s13?x=1")
+  })
 })

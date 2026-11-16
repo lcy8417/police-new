@@ -118,6 +118,7 @@ function App() {
           path={path}
           element={
             <Suspense fallback={null}>
+              {/* 목록에서 꺼낸 컴포넌트라 JSX 이름이 변수로 안 잡혀 lint 오류가 나므로 createElement 로 만든다 */}
               {createElement(Page)}
             </Suspense>
           }

@@ -1,9 +1,13 @@
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 
 import { DEV_CASES, DEV_SCREENS } from "../frame"
 
 // `/dev` 목차: 11개 화면 · 케이스 바로가기.
 export function DevIndexPage() {
+  // 보는 사람(`as`)은 목차에서 화면으로 넘어갈 때 유지한다
+  const as = useSearchParams()[0].get("as")
+  const asQuery = as ? `&as=${encodeURIComponent(as)}` : ""
+  const asOnly = as ? `?as=${encodeURIComponent(as)}` : ""
   return (
     <main className="min-h-screen bg-canvas px-[24px] py-[20px] text-foreground">
       <h1 className="m-0 text-[22px] font-semibold">화면 진열 목차</h1>
@@ -16,14 +20,14 @@ export function DevIndexPage() {
             key={s.id}
             className="flex flex-wrap items-center gap-[10px] rounded-[8px] border border-solid border-border bg-panel px-[12px] py-[8px]"
           >
-            <Link to={`/dev/${s.id}`} className="w-[240px] text-[13px] text-foreground no-underline">
+            <Link to={`/dev/${s.id}${asOnly}`} className="w-[240px] text-[13px] text-foreground no-underline">
               <span className="mr-[8px] font-code text-brand">{s.screen}</span>
               {s.title}
             </Link>
             {DEV_CASES.map((c) => (
               <Link
                 key={c}
-                to={`/dev/${s.id}?case=${c}`}
+                to={`/dev/${s.id}?case=${c}${asQuery}`}
                 aria-label={`${s.screen} ${c}`}
                 className="font-code text-[11px] text-dim no-underline"
               >

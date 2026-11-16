@@ -1,9 +1,11 @@
-import { DEV_CASES, DevScreenFrame } from "../frame"
+import { DEV_CASES, DEV_SCREENS, DevScreenFrame } from "../frame"
+
+const info = DEV_SCREENS.find((s) => s.id === "s14")!
 
 // S14 사용 기록 진열 페이지(자리). 화면 트랙이 위젯으로 채운다.
 export function S14DevPage() {
   return (
-    <DevScreenFrame screen="S14" title="사용 기록" cases={DEV_CASES}>
+    <DevScreenFrame screen={info.screen} title={info.title} cases={DEV_CASES}>
       <p className="text-[12.5px] text-muted-foreground">준비 중</p>
     </DevScreenFrame>
   )
