@@ -24,8 +24,8 @@ import {
   useRememberedState,
   type DevGo,
 } from "../frame"
-import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
+import { samplePhotoUrl, sampleSoleUrl } from "../mock-assets/sample-images"
 import type { ZoneTriple } from "../mock-assets/fake-art"
 import { fakeSideShoeUrl } from "../s06/fake-side-shoe"
 import {
@@ -107,27 +107,30 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
   const [focusRank, setFocusRank] = useState<number | null>(S05_FOCUS_RANK)
   const [seen, setSeen] = useState({ upTo: S05_SEEN_UP_TO, at: S05_SEEN_AT })
 
-  const sceneImage = useMemo(() => fakePhotoUrl({ zones: ["herring", "herring", "herring"], flip: true, tag: "" }), [])
+  // 표본 그림: 현장 = 이 이미지 번호의 실제 사진, 후보 = 신발 번호로 고른 실제 밑창(없으면 가짜 그림)
+  const sceneImage = useMemo(() => samplePhotoUrl(imageNo, { zones: ["herring", "herring", "herring"], flip: true, tag: "" }), [imageNo])
+  const soleKind = imageMode === "이진화보기" ? "bin" : "shoe"
   const soleUrls = useMemo(
-    () => ZONES.map((zones, i) => fakeSoleUrl({ kind: imageMode === "이진화보기" ? "bin" : "shoe", zones, seed: i + 1 })),
-    [imageMode],
+    () => ZONES.map((zones, i) => fakeSoleUrl({ kind: soleKind, zones, seed: i + 1 })),
+    [soleKind],
   )
   // 사건 창(11/17 「순위가 쭉」)은 1위부터 이어진 한 목록 — 끝에 닿으면 더 붙인다. 단독 진열은 쪽 넘김 그대로
   const [windowCount, setWindowCount] = useState(S05_WINDOW_FIRST)
   const results = useMemo(() => {
     if (activeCase !== "ready") return []
-    const imageFor = (rank: number) => soleUrls[(rank - 1) % soleUrls.length]
+    const imageFor = (rank: number, ftwrId: string) => sampleSoleUrl(ftwrId, { kind: soleKind }, () => soleUrls[(rank - 1) % soleUrls.length])
     return inWindow
       ? makeRange(windowCount, imageFor, (rank) => ZONES[(rank - 1) % ZONES.length])
       : makeResults(page, imageFor)
-  }, [activeCase, page, soleUrls, inWindow, windowCount])
+  }, [activeCase, page, soleUrls, soleKind, inWindow, windowCount])
   const baseInsight = useMemo(
     () => ({
       ...makeInsight({
         scene: sceneImage,
-        shoe: fakeSoleUrl({ kind: "shoe", zones: ZONES[0] }),
+        // 상세조회 = 137위 305102(결과 목록 그 카드와 같은 그림)
+        shoe: sampleSoleUrl("305102", { kind: "shoe", zones: ZONES[0] }),
         side: fakeSideShoeUrl(),
-        aiTop: (zones) => fakeSoleUrl({ kind: "shoe", zones }),
+        aiTop: (zones, ftwrId) => sampleSoleUrl(ftwrId, { kind: "shoe", zones }),
       }),
       ...(searchNo ? { searchNo } : {}),
     }),

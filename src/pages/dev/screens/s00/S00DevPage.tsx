@@ -8,6 +8,7 @@ import { LoginScreen, type DemoScreen, type LoginDemoArt } from "@/widgets/login
 
 import { DEV_SCREENS, DevScreenFrame, devScreen, useDevCase, useDevNavigate, useDevPlus, useDevViewer } from "../frame"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
+import { hasSamplePhotos, samplePhotoUrl, sampleSoleUrl } from "../mock-assets/sample-images"
 import type { ZoneTriple } from "../mock-assets/fake-art"
 import {
   ATTEMPT_LIMIT,
@@ -26,13 +27,21 @@ const info = devScreen("s00")
 const triple = (z: readonly [string, string, string]) => [z[0], z[1], z[2]] as ZoneTriple
 
 /** 시연 그림(가짜 밑창 · 문양) — 한 번 만들어 계속 같은 값을 넘긴다(시연이 다시 그려지지 않게) */
+// 표본 그림이 있으면: 현장 = 실제 현장 사진 · 그 이진화본, 정답 = 상 · 중 · 하가 모두 헤링본(n32_04)인 실제 신발 209608,
+// 후보 4켤레 = 다른 실제 신발(없으면 가짜 그림)
+const DEMO_SCENE_KEY = "로그인 시연"
+const DEMO_ANSWER = "209608"
+const DEMO_CANDIDATES = ["205078", "206815", "205002", "208969"] as const
+
 function buildDemoArt(): LoginDemoArt {
   const zones = triple(DEMO_SOLE_ZONES)
-  const [c1, c2, c3, c4] = DEMO_CANDIDATE_ZONES.map((z, i) => fakeSoleUrl({ kind: "shoe", zones: triple(z), seed: i + 2 }))
+  const [c1, c2, c3, c4] = DEMO_CANDIDATE_ZONES.map((z, i) =>
+    sampleSoleUrl(DEMO_CANDIDATES[i], { kind: "shoe", zones: triple(z), seed: i + 2 }),
+  )
   return {
-    scene: fakeSoleUrl({ kind: "scene", zones, cut: true }),
-    binary: fakeSoleUrl({ kind: "bin", zones }),
-    answer: fakeSoleUrl({ kind: "shoe", zones }),
+    scene: sampleSoleUrl(DEMO_SCENE_KEY, { kind: "scene", zones, cut: true }),
+    binary: hasSamplePhotos ? samplePhotoUrl(DEMO_SCENE_KEY, { look: "binary" }) : fakeSoleUrl({ kind: "bin", zones }),
+    answer: sampleSoleUrl(DEMO_ANSWER, { kind: "shoe", zones }),
     candidates: [c1, c2, c3, c4],
     patterns: {
       top: insertPatternPath(DEMO_PATTERN_NAMES.top) as string,

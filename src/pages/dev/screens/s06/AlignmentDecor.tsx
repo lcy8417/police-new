@@ -5,14 +5,19 @@ import { CRIME_SIZE } from "./mock-cases"
 
 // S06 정렬 설정 슬롯에 넣는 진열용 고정 장식(spec §6-1): 가짜 현장 사진 + 관심영역 다각형 + 방향 화살표.
 // 조작할 수 없다(pointer-events-none). 운영은 이 자리에 AlignmentCaptureCanvas 를 그대로 끼운다(좌표 수학은 그쪽 소유).
-export function AlignmentDecor({ alignment }: { alignment: Alignment }) {
+// src(표본 현장 사진)를 주면 가짜 그림 대신 그 사진을 같은 틀에 채운다(가짜 그림처럼 잘라 채움 — 다각형 좌표는 그대로).
+export function AlignmentDecor({ alignment, src }: { alignment: Alignment; src?: string }) {
   const polygon = alignment.polygon ?? []
   const arrow = alignment.arrow ?? []
   const [tail, head] = arrow
   return (
     <div className="pointer-events-none mx-auto aspect-[2/3] h-full" data-alignment-decor>
       <div className="relative size-full">
-        <FakePhoto zones={["herring", "grid", "tri"]} rotate={0} tag="1" />
+        {src ? (
+          <img src={src} alt="" className="block size-full object-cover" />
+        ) : (
+          <FakePhoto zones={["herring", "grid", "tri"]} rotate={0} tag="1" />
+        )}
         <svg
           viewBox={`0 0 ${CRIME_SIZE.width} ${CRIME_SIZE.height}`}
           aria-hidden="true"

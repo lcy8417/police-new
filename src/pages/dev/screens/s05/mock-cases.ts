@@ -48,15 +48,18 @@ const FIXED_RANKS: Readonly<Record<number, { ftwrId: string; similarity: number 
 export const MOCK_BRANDS = ["나이키", "아디다스", "크록스", "뉴발란스", "○○스포츠"] as const
 
 /** 한 순위의 결과 */
-function resultAt(rank: number, imageFor: (rank: number) => string): ImageSearchResultItem {
+/** 순위 · 신발 번호 → 그림 주소(진열 페이지가 정한다 — 표본 신발 사진은 번호로 고른다) */
+export type ImageFor = (rank: number, ftwrId: string) => string
+
+function resultAt(rank: number, imageFor: ImageFor): ImageSearchResultItem {
   const fixed = FIRST_PAGE[rank - 1] ?? FIXED_RANKS[rank]
   const ftwrId = fixed ? fixed.ftwrId : String((rank * 37) % 100000).padStart(5, "0")
   const similarity = fixed ? fixed.similarity : Math.round((56.5 - (rank - 20) * 0.018) * 100) / 100
-  return { ftwrId, similarity, image: imageFor(rank), brandNm: MOCK_BRANDS[(rank - 1) % MOCK_BRANDS.length] }
+  return { ftwrId, similarity, image: imageFor(rank, ftwrId), brandNm: MOCK_BRANDS[(rank - 1) % MOCK_BRANDS.length] }
 }
 
 /** 쪽(1부터)의 결과. 이미지 URL 은 rank 로 고른 그림을 받는 함수가 정한다 */
-export function makeResults(page: number, imageFor: (rank: number) => string): ImageSearchResultItem[] {
+export function makeResults(page: number, imageFor: ImageFor): ImageSearchResultItem[] {
   const first = (page - 1) * S05_PAGE_SIZE + 1
   const last = Math.min(S05_TOTAL, first + S05_PAGE_SIZE - 1)
   const out: ImageSearchResultItem[] = []
@@ -112,7 +115,7 @@ export function zoneInfo(rank: number, zones: ZoneTriple): Pick<ImageSearchResul
 /** 사건 창 목록: 1위부터 count 위까지(그림 · 부위 무늬는 순위로 고른다) */
 export function makeRange(
   count: number,
-  imageFor: (rank: number) => string,
+  imageFor: ImageFor,
   zonesFor: (rank: number) => ZoneTriple,
 ): ImageSearchResultItem[] {
   const out: ImageSearchResultItem[] = []
@@ -163,7 +166,7 @@ export function makeInsight(img: {
   scene: string
   shoe: string
   side: string
-  aiTop: (zones: ZoneTriple) => string
+  aiTop: (zones: ZoneTriple, ftwrId: string) => string
 }): SearchInsight {
   return {
     searchNo: "572433",
@@ -182,7 +185,7 @@ export function makeInsight(img: {
       rank: t.rank,
       ftwrId: t.ftwrId,
       similarity: t.similarity,
-      image: img.aiTop(t.zones),
+      image: img.aiTop(t.zones, t.ftwrId),
       why: t.why,
       seen: t.seen,
       heat: t.rank <= 3,

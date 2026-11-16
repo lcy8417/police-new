@@ -29,6 +29,7 @@ import {
 import type { S07Facts } from "../s01/case-flow"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
+import { samplePhotoUrl, sampleSoleUrl } from "../mock-assets/sample-images"
 import type { ZoneTriple } from "../mock-assets/fake-art"
 import {
   CASE_SUMMARY,
@@ -158,17 +159,18 @@ function S07StandaloneContent({ devCase: activeCase, go }: S07ContentProps) {
     [],
   )
   const insight = useMemo(
-    () => makeConfirmInsight((id) => fakeSoleUrl({ kind: "shoe", zones: OTHER_ZONES[id] ?? ["herring", "grid", "tri"] })),
+    () => makeConfirmInsight((id) => sampleSoleUrl(id, { kind: "shoe", zones: OTHER_ZONES[id] ?? ["herring", "grid", "tri"] })),
     [],
   )
 
+  // 표본 그림: 현장 = 그 이미지 번호의 실제 사진, 확인대상 = 신발 번호의 실제 밑창(없으면 위 가짜 그림)
   const blocks: ConfirmImageBlock[] = useMemo(
     () =>
       makeBlocks(ftwr).map((b, i) => ({
         aprthngNo: b.aprthngNo,
-        sceneImage: images.scenes[i % images.scenes.length],
+        sceneImage: samplePhotoUrl(b.aprthngNo, {}, () => images.scenes[i % images.scenes.length]),
         history: [...b.history, ...(added[b.aprthngNo] ?? [])],
-        target: b.target ? { ...b.target, image: images.shoe } : null,
+        target: b.target ? { ...b.target, image: sampleSoleUrl(b.target.ftwrId, { kind: "shoe" }, () => images.shoe) } : null,
       })),
     [ftwr, images, added],
   )

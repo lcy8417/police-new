@@ -20,7 +20,7 @@ import {
   useDevViewer,
   type DevGo,
 } from "../frame"
-import { fakePhotoUrl } from "../mock-assets/FakePhoto"
+import { samplePhotoUrl } from "../mock-assets/sample-images"
 import {
   DETAIL_FORM,
   EMPTY_FORM,
@@ -117,7 +117,7 @@ export function S02Content({ devCase, caseId: id, imageId, go, inWindow = false,
         id: `${base}_${n}`,
         fileName: `${base}_${n}.jpg`,
         sizeBytes: f.size || 4_800_000,
-        src: fakePhotoUrl({ seed: n, tag: String(n) }),
+        src: samplePhotoUrl(`${base}_${n}`, { seed: n, tag: String(n) }),
       }
     })
     start(added[0].fileName, () => {

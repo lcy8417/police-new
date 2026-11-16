@@ -4,6 +4,8 @@ import type { ShoeAiDetail, ShoeCardInfo, ShoeDbFilters, ShoeOfficeItem, ShoeSta
 import type { SCREEN_CASES } from "../frame/dev-screens"
 import type { ZoneTriple } from "../mock-assets/fake-art"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
+import { sampleSoleUrl } from "../mock-assets/sample-images"
+import { SAMPLE_SHOES } from "../mock-assets/sample-shoes"
 
 // S10 가짜 값. 신발 ID 는 문자열(앞자리 0 보존), 긴 값 1건 포함(가로 넘침 점검).
 // 케이스 이름의 단일 출처는 frame/dev-screens.ts 의 SCREEN_CASES.
@@ -116,7 +118,7 @@ export function makeS10AiDetails(): Record<string, ShoeAiDetail> {
       sameKind: { label: "헤링본", code: "n32_04", hint: "행 3번 → 1번" },
       duplicate: {
         ftwrId: "298114",
-        image: fakeSoleUrl({ kind: "shoe", zones: ["herring", "grid", "herring"] }),
+        image: sampleSoleUrl("298114", { kind: "shoe", zones: ["herring", "grid", "herring"] }),
         similarity: 0.96,
         registeredAt: "2023-11",
       },
@@ -137,7 +139,7 @@ export function makeS10Shoes(): Shoe[] {
     makrCode: "M013",
     colctPlace: "공식몰",
     colctYear: "2025",
-    image: fakeSoleUrl({ kind: "shoe", zones: ["herring", "grid", "herring"] }),
+    image: sampleSoleUrl(id, { kind: "shoe", zones: ["herring", "grid", "herring"] }),
     // 시안 모달 예시: 상·하 헤링본, 중 격자 + 마크, 윤곽 s10c
     top: ["n32_04"],
     mid: ["n21_05", "s81b"],
@@ -152,7 +154,7 @@ export function makeS10Shoes(): Shoe[] {
     makrCode: i % 3 === 0 ? null : `M0${i + 10}`,
     colctPlace: i % 2 === 0 ? "신발닷컴" : "공식몰",
     colctYear: i === 0 ? "2019" : "2025",
-    image: fakeSoleUrl({ kind: "shoe", zones: ZONES[i % ZONES.length] }),
+    image: sampleSoleUrl(id, { kind: "shoe", zones: ZONES[i % ZONES.length] }),
     top: i % 3 === 2 ? [] : ["s21b"],
     mid: i % 3 === 1 ? ["n32_04"] : [],
     bottom: i % 3 === 2 ? [] : ["s21b"],
@@ -164,14 +166,31 @@ export function makeS10Shoes(): Shoe[] {
 
 const BRANDS = ["나이키", "아디다스", "뉴발란스", "크록스", "컨버스", "푸마"]
 
-/** 첫 16건은 기존 진열 값 그대로, 나머지는 번호가 내려가는 가짜 신발. 문자열 ID 그대로. */
+/**
+ * 첫 16건은 기존 진열 값 그대로, 그다음 40건(2 · 3 · 4쪽)은 실제 신발 정보(sample-shoes.ts — 번호 · 그룹 · 모델 · 문양 · 밑창 그림),
+ * 나머지는 번호가 내려가는 가짜 신발(그림은 표본 밑창을 번호로 고름). 문자열 ID 그대로.
+ */
 export function makeS10AllShoes(): Shoe[] {
   const base = makeS10Shoes()
   const imgs = ZONES.map((z) => fakeSoleUrl({ kind: "shoe", zones: z }))
-  const rest = Array.from({ length: S10_TOTAL - base.length }, (_, k): Shoe => {
-    const i = base.length + k
+  const real = SAMPLE_SHOES.map(
+    (s, k): Shoe => ({
+      ...s,
+      brandCode: null,
+      makrCode: null,
+      colctPlace: null,
+      image: sampleSoleUrl(s.ftwrId, { kind: "shoe" }, () => imgs[k % imgs.length]),
+      top: [...s.top],
+      mid: [...s.mid],
+      bottom: [...s.bottom],
+      outline: [...s.outline],
+    }),
+  )
+  const rest = Array.from({ length: S10_TOTAL - base.length - real.length }, (_, k): Shoe => {
+    const i = base.length + real.length + k
+    const ftwrId = String(303334 - k)
     return {
-      ftwrId: String(303334 - k),
+      ftwrId,
       ftwrGroupId: `G${String(i % 90).padStart(3, "0")}`,
       ftwrGroupNm: `${BRANDS[i % BRANDS.length]}-${String(i % 90).padStart(3, "0")}`,
       modlNm: `${BRANDS[i % BRANDS.length]} 모델 ${200 + (i % 300)}`,
@@ -179,14 +198,14 @@ export function makeS10AllShoes(): Shoe[] {
       makrCode: `M0${(i % 20) + 10}`,
       colctPlace: i % 2 === 0 ? "신발닷컴" : "공식몰",
       colctYear: "2025",
-      image: imgs[i % imgs.length],
+      image: sampleSoleUrl(ftwrId, { kind: "shoe" }, () => imgs[i % imgs.length]),
       top: i % 3 === 2 ? [] : ["s21b"],
       mid: i % 3 === 1 ? ["n32_04"] : [],
       bottom: i % 3 === 2 ? [] : ["s21b"],
       outline: [],
     }
   })
-  return [...base, ...rest]
+  return [...base, ...real, ...rest]
 }
 
 /** 카드 작업 상태 · AI 표시: 시안 예시 15건은 그대로, 나머지는 값을 돌려 쓴다 */

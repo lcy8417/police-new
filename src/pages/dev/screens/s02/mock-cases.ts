@@ -1,6 +1,6 @@
 import type { CaseDetailForm, CaseDetailPlus, CaseImage } from "@/widgets/case-detail"
 
-import { fakePhotoUrl } from "../mock-assets/FakePhoto"
+import { samplePhotoUrl } from "../mock-assets/sample-images"
 
 // S02 가짜 데이터(시안 s02-case-detail.js 예시값, 이름은 가림).
 export const EMPTY_FORM: CaseDetailForm = {
@@ -73,7 +73,8 @@ export function makeImages(caseNo: string, count = 12): CaseImage[] {
     id: `${caseNo}_${n}`,
     fileName: `${caseNo}_${n}.jpg`,
     sizeBytes: KB[(n - 1) % KB.length] * 1024,
-    src: fakePhotoUrl({ seed: n, tag: String(n), rotate: -4 + (n % 5) }),
+    // 표본 사진이 있으면 그 사건 · 그 장의 실제 사진(없으면 가짜 그림)
+    src: samplePhotoUrl(`${caseNo}_${n}`, { seed: n, tag: String(n), rotate: -4 + (n % 5) }),
   }))
 }
 

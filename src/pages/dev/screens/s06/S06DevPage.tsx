@@ -23,8 +23,8 @@ import {
   useRememberedState,
   type DevGo,
 } from "../frame"
-import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { FakeSole, fakeSoleUrl, SOLE_PALETTE } from "../mock-assets/FakeSole"
+import { hasSamplePhotos, samplePhotoUrl, sampleSoleUrl } from "../mock-assets/sample-images"
 import { resolvePalette, type ZoneTriple } from "../mock-assets/fake-art"
 import { svgToUrl } from "../mock-assets/svg-url"
 import { makeResults } from "../s05/mock-cases"
@@ -67,13 +67,21 @@ function makeCandidates(ftwr: string, rank: number | null): CompareCandidate[] {
     const seed = i === 0 ? undefined : i + 1
     return { rgb: fakeSoleUrl({ kind: "shoe", zones, seed }), sketch: fakeSoleUrl({ kind: "bin", zones, seed }) }
   })
+  // 표본 신발 사진은 신발 번호로 고른다(검색 결과 카드와 같은 그림) — 없으면 가짜 그림
+  const imagesOf = (id: string, k: number) => {
+    const fake = art[k % art.length]
+    return {
+      rgb: sampleSoleUrl(id, { kind: "shoe" }, () => fake.rgb),
+      sketch: sampleSoleUrl(id, { kind: "bin" }, () => fake.sketch),
+    }
+  }
   const list: CompareCandidate[] = makeResults(1, () => "").map((r, i) => ({
     ftwrId: r.ftwrId,
     rank: i + 1,
     similarity: r.similarity,
-    ...art[i % art.length],
+    ...imagesOf(r.ftwrId, i),
   }))
-  if (!list.some((c) => c.ftwrId === ftwr)) list.unshift({ ftwrId: ftwr, rank, similarity: "—", ...art[0] })
+  if (!list.some((c) => c.ftwrId === ftwr)) list.unshift({ ftwrId: ftwr, rank, similarity: "—", ...imagesOf(ftwr, 0) })
   return list
 }
 
@@ -128,13 +136,15 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
   const [autoMode, setAutoMode] = useState<CompareAutoMode>("manual")
   const [playing, setPlaying] = useState(false)
 
+  // 현장 = 이 이미지 번호의 실제 사진(표본 사진이 없으면 가짜 그림)
+  const sceneKey = caseInfo.aprthngNo ?? "00001-25-0646_1"
   const crimeImage = useMemo(
     () => ({
-      rgb: fakePhotoUrl({ zones: ZONES, rotate: 0, tag: "1" }),
-      sketch: fakePhotoUrl({ zones: ZONES, rotate: 0, tag: "1", look: "binary" }),
+      rgb: samplePhotoUrl(sceneKey, { zones: ZONES, rotate: 0, tag: "1" }),
+      sketch: samplePhotoUrl(sceneKey, { zones: ZONES, rotate: 0, tag: "1", look: "binary" }),
       ...CRIME_SIZE,
     }),
-    [],
+    [sceneKey],
   )
   // 1:1 의 발견 이미지 = 지금 후보 그림(좌표계는 같은 가짜 밑창 크기)
   const shoeImage = useMemo(
@@ -144,15 +154,15 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
   const insight = useMemo(
     () =>
       makeMatchInsight({
-        overlayCrime: fakePhotoUrl({ zones: ZONES, rotate: 0, tag: "", ruler: false }),
-        overlayShoe: svgToUrl(
-          <FakeSole kind="shoe" zones={ZONES} palette={{ ...resolvePalette(SOLE_PALETTE.shoe), ground: "transparent" }} />,
+        overlayCrime: samplePhotoUrl(sceneKey, { zones: ZONES, rotate: 0, tag: "", ruler: false }),
+        overlayShoe: sampleSoleUrl(ftwrId, { kind: "shoe" }, () =>
+          svgToUrl(<FakeSole kind="shoe" zones={ZONES} palette={{ ...resolvePalette(SOLE_PALETTE.shoe), ground: "transparent" }} />),
         ),
-        cropCrime: fakePhotoUrl({ zones: ZONES, rotate: 0, tag: "", ruler: false, look: "contrast" }),
-        cropShoe: fakeSoleUrl({ kind: "shoe", zones: ZONES }),
+        cropCrime: samplePhotoUrl(sceneKey, { zones: ZONES, rotate: 0, tag: "", ruler: false, look: "contrast" }),
+        cropShoe: sampleSoleUrl(ftwrId, { kind: "shoe", zones: ZONES }),
         side: fakeSideShoeUrl(),
       }),
-    [],
+    [sceneKey, ftwrId],
   )
 
 
@@ -175,7 +185,7 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
       shoeInfo={shoeInfoFor(ftwrId)}
       crimePatterns={CRIME_PATTERNS}
       shoePatterns={SHOE_PATTERNS}
-      alignmentSlot={<AlignmentDecor alignment={FAKE_ALIGNMENT} />}
+      alignmentSlot={<AlignmentDecor alignment={FAKE_ALIGNMENT} src={hasSamplePhotos ? crimeImage.rgb : undefined} />}
       onSaveAlignment={() => {
         setSavedAlignment(FAKE_ALIGNMENT)
         toast.success("정렬을 저장했습니다(진열용)")

@@ -18,14 +18,14 @@ import {
 } from "@/widgets/pattern-code"
 
 import type { SCREEN_CASES } from "../frame/dev-screens"
-import { fakeSoleUrl } from "../mock-assets/FakeSole"
+import { sampleSoleUrl } from "../mock-assets/sample-images"
 
-/** 신발 ID → 가짜 밑창 그림(검색 이력 썸네일 — 같은 ID 는 같은 그림, 한 번만 만든다) */
+/** 신발 ID → 밑창 그림(검색 이력 썸네일 — 표본 신발 사진, 같은 ID 는 같은 그림, 한 번만 만든다) */
 const SOLE_CACHE = new Map<string, string>()
 const soleOf = (ftwrId: string) => {
   let url = SOLE_CACHE.get(ftwrId)
   if (!url) {
-    url = fakeSoleUrl({ kind: "shoe", seed: (Number.parseInt(ftwrId, 10) % 7) + 1 })
+    url = sampleSoleUrl(ftwrId, { kind: "shoe", seed: (Number.parseInt(ftwrId, 10) % 7) + 1 })
     SOLE_CACHE.set(ftwrId, url)
   }
   return url

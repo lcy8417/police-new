@@ -3,6 +3,7 @@ import type { CaseImageStatus, CaseWindowImage } from "@/widgets/case-window"
 import type { ConfirmRow, Judgement } from "@/widgets/result-confirm"
 
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
+import { samplePhotoUrl, sampleSoleUrl } from "../mock-assets/sample-images"
 import type { ZoneTriple } from "../mock-assets/fake-art"
 
 // S01 가짜 데이터. 숫자 · 이름은 시안(s01-case-list.js) 예시값과 맞춘다(감정번호 00001-25-0646 등, 이름은 가림).
@@ -64,18 +65,19 @@ function binFor(i: number): string {
   return binThumbs[i % binThumbs.length]
 }
 
-/** 시안 0646 펼침: 이미지별 현장 → 이진화 → 1위 후보 */
-function makeSummary(i: number): CaseListRowSummary {
-  const sole = (kind: "scene" | "bin" | "shoe", k: number) =>
-    fakeSoleUrl({ kind, zones: [...THUMB_ZONES[k]] })
+/** 시안 0646 펼침: 이미지별 현장 → 이진화 → 1위 후보(표본 사진이 있으면 그 사건 _1 · _2 · _3 의 실제 사진 · 이진화본) */
+function makeSummary(i: number, aprthngNo: string): CaseListRowSummary {
+  const fake = (kind: "scene" | "bin" | "shoe", k: number) => fakeSoleUrl({ kind, zones: [...THUMB_ZONES[k]] })
+  const scene = (k: number) => samplePhotoUrl(`${aprthngNo}_${k + 1}`, {}, () => fake("scene", k))
+  const bin = (k: number) => samplePhotoUrl(`${aprthngNo}_${k + 1}`, { look: "binary" }, () => fake("bin", k))
   return {
     defaultOpen: i === 2,
     confirmedAt: "07-24 17:35",
     crossReviewer: "김○○ 경위",
     images: [
-      { seq: "_1", result: "발견", searchNo: "572420", target: "2 / 500", sceneSrc: sole("scene", 0), binSrc: sole("bin", 0), shoeSrc: sole("shoe", 0), topCandidate: "305659", similarity: "60.8" },
-      { seq: "_2", result: "불발견", searchNo: "572356", target: "0 / 1,204", sceneSrc: sole("scene", 1), binSrc: sole("bin", 1), note: "끝까지 봄" },
-      { seq: "_3", result: "감정불능", searchNo: "—", target: "검색 안 함", sceneSrc: sole("scene", 2), binSrc: sole("bin", 2), note: "족적 30%만 남음" },
+      { seq: "_1", result: "발견", searchNo: "572420", target: "2 / 500", sceneSrc: scene(0), binSrc: bin(0), shoeSrc: sampleSoleUrl("305659", { kind: "shoe" }, () => fake("shoe", 0)), topCandidate: "305659", similarity: "60.8" },
+      { seq: "_2", result: "불발견", searchNo: "572356", target: "0 / 1,204", sceneSrc: scene(1), binSrc: bin(1), note: "끝까지 봄" },
+      { seq: "_3", result: "감정불능", searchNo: "—", target: "검색 안 함", sceneSrc: scene(2), binSrc: bin(2), note: "족적 30%만 남음" },
     ],
   }
 }
@@ -108,7 +110,8 @@ export function makeCaseImages(row: CaseListRow): CaseWindowImage[] {
     imageNo: `${row.aprthngNo}_${i + 1}`,
     kind: i < row.shoeCount ? "신발" : "타이어",
     status: statusAt(i),
-    thumbSrc: thumbFor(i),
+    // 표본 사진이 있으면 그 사건 · 그 장의 실제 사진(어느 탭에서나 같은 사진), 없으면 가짜 그림
+    thumbSrc: samplePhotoUrl(`${row.aprthngNo}_${i + 1}`, {}, () => thumbFor(i)),
   }))
 }
 
@@ -134,7 +137,7 @@ let confirmShoeThumbs: string[] | null = null
  * 발견 = 확인대상 신발 · 점수, 불발견 · 확인 = 검색했고 매칭 없음, 감정불능 = 검색 안 함, 검색됨 = 판정 전(1위 후보), 등록 = 검색 전.
  */
 export function makeConfirmRows(row: CaseListRow): ConfirmRow[] {
-  confirmShoeThumbs ??= CONFIRM_SHOES.map((s) => fakeSoleUrl({ kind: "shoe", zones: [...s.zones] }))
+  confirmShoeThumbs ??= CONFIRM_SHOES.map((s) => sampleSoleUrl(s.ftwrId, { kind: "shoe", zones: [...s.zones] }))
   const thumbsOf = confirmShoeThumbs
   return makeCaseImages(row).map((img, i) => {
     const k = (i + Number(row.aprthngNo.slice(-2))) % CONFIRM_SHOES.length
@@ -161,17 +164,19 @@ export function makeCaseRows(): CaseListRow[] {
     const k = i % SEEDS.length
     const s = SEEDS[k]
     const confirmed = s.progress.confirmed > 0
+    // 첫 7건은 시안 감정번호(0649 · 0647 · 0646 …) 그대로, 그 뒤는 겹치지 않게 0583 에서 내려간다
+    const aprthngNo = i < SEEDS.length ? s.aprthngNo : `00001-25-${String(590 - i).padStart(4, "0")}`
     return {
       ...s,
-      stackSrc: s.shoeCount + s.tireCount > 1 ? binFor(i) : undefined,
+      // 겹친 그림 = 2번째 장의 이진화본(표본 사진이 없으면 가짜 그림)
+      stackSrc: s.shoeCount + s.tireCount > 1 ? samplePhotoUrl(`${aprthngNo}_2`, { look: "binary" }, () => binFor(i)) : undefined,
       source: k === 6 ? "manual" : "auto",
       isNew: i === 0,
       ai: i === 0 ? { state: "running", ready: 7, total: 12 } : { state: "done", ready: s.shoeCount, total: s.shoeCount },
       stage: STAGES[k],
       crossReviewer: k === 2 ? "김○○ 경위" : undefined,
-      summary: k === 2 ? makeSummary(i) : undefined,
-      // 첫 7건은 시안 감정번호(0649 · 0647 · 0646 …) 그대로, 그 뒤는 겹치지 않게 0583 에서 내려간다
-      aprthngNo: i < SEEDS.length ? s.aprthngNo : `00001-25-${String(590 - i).padStart(4, "0")}`,
+      summary: k === 2 ? makeSummary(i, aprthngNo) : undefined,
+      aprthngNo,
       caseName: i === 5 ? LONG_CASE_NAME : s.caseName,
       processOffice: "경찰청 범죄분석과",
       confirmedAt: confirmed ? s.registeredAt : "",
@@ -179,7 +184,8 @@ export function makeCaseRows(): CaseListRow[] {
       receiver: "박○○",
       // 담당 두 사람(감정관 박○○ · 수사관 이○○)이 섞여 「내 담당만」이 보는 사람마다 다른 건수를 낸다(i%3==1 이 이○○ 39건, 나머지 박○○ 77건)
       author: i % 3 === 1 ? "이○○" : "박○○",
-      thumbSrc: thumbFor(i),
+      // 목록 썸네일 = 그 사건 첫 장(사건 창 왼쪽 목록 _1 과 같은 사진)
+      thumbSrc: samplePhotoUrl(`${aprthngNo}_1`, {}, () => thumbFor(i)),
     }
   })
 }

@@ -30,8 +30,8 @@ import {
   useDevViewer,
   type DevGo,
 } from "../frame"
-import { FakePhoto, fakePhotoUrl } from "../mock-assets/FakePhoto"
-import { fakeSoleUrl } from "../mock-assets/FakeSole"
+import { FakePhoto } from "../mock-assets/FakePhoto"
+import { hasSamplePhotos, samplePhotoUrl, sampleSoleUrl } from "../mock-assets/sample-images"
 import {
   S03_AI_SUGGESTIONS,
   S03_APRTHNG_NO,
@@ -89,18 +89,25 @@ function FakeCanvas({
   tool,
   rotate,
   photoSrc,
+  binarySrc,
   plus,
 }: {
   tool: ImageEditTool | null
   rotate: number
   photoSrc: string
+  /** 실제 현장 사진의 이진화본(표본 사진이 있을 때만 — 없으면 가짜 그림이 스스로 이진화 모양을 그린다) */
+  binarySrc: string
   /** 신규 켜기 — 자 인식 뒤라 자르기 틀 크기에 cm 를 덧붙인다(시안 핀 3) */
   plus: boolean
 }) {
   return (
     <>
       <div className="absolute top-[58px] bottom-[34px] left-1/2 aspect-[2/3] -translate-x-1/2">
-        <FakePhoto rotate={rotate} look={tool === "threshold" ? "binary" : "raw"} preserveAspectRatio="xMidYMid meet" />
+        {hasSamplePhotos ? (
+          <img src={tool === "threshold" ? binarySrc : photoSrc} alt="" className="block size-full object-contain" />
+        ) : (
+          <FakePhoto rotate={rotate} look={tool === "threshold" ? "binary" : "raw"} preserveAspectRatio="xMidYMid meet" />
+        )}
         {tool === "crop" ? (
           <CropFrame rect={{ left: 21, right: 21, top: 3, bottom: 3 }} sizeLabel={plus ? S03_CROP_LABEL_CM : S03_CROP_LABEL}>
             <RotateHandle label={`${deg(rotate)} → 0°`} />
@@ -152,9 +159,12 @@ function S03Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S03Ca
   const [history, setHistory] = React.useState<ImageEditHistoryEntry[]>(mock.history)
   const [adjustments, setAdjustments] = React.useState<ViewAdjustments>(DEFAULT_VIEW_ADJUSTMENTS)
 
-  const photoSrc = React.useMemo(() => fakePhotoUrl({ rotate: S03_TILT, tag: "" }), [])
-  const viewerSrc = React.useMemo(() => fakePhotoUrl({ rotate: 0, flip: true, tag: "" }), [])
-  const foundSrc = React.useMemo(() => fakeSoleUrl({ kind: "shoe", zones: ["dots", "herring", "grid"] }), [])
+  // 표본 사진이 있으면 이 이미지 번호(감정번호_n)의 실제 사진 — 같은 사건 · 같은 장은 어느 탭에서나 같은 사진
+  const photoSrc = React.useMemo(() => samplePhotoUrl(imageNo, { rotate: S03_TILT, tag: "" }), [imageNo])
+  const viewerSrc = React.useMemo(() => samplePhotoUrl(imageNo, { rotate: 0, flip: true, tag: "" }), [imageNo])
+  const binarySrc = React.useMemo(() => samplePhotoUrl(imageNo, { look: "binary" }), [imageNo])
+  const foundSrc = React.useMemo(() => sampleSoleUrl("305659", { kind: "shoe", zones: ["dots", "herring", "grid"] }), [])
+  const fakeNote = hasSamplePhotos ? "" : "(가짜 예시)"
 
   // 진열용: 노이즈제거를 누르면 잠시 뒤 끝난 모양으로(running 케이스는 계속 도는 모양을 보여 준다)
   React.useEffect(() => {
@@ -181,7 +191,7 @@ function S03Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S03Ca
       onPlusAction={notReady}
       aprthngNo={imageNo}
       originalSize={S03_ORIGINAL_SIZE}
-      canvasSlot={<FakeCanvas tool={activeTool} rotate={rotation} photoSrc={photoSrc} plus={plus} />}
+      canvasSlot={<FakeCanvas tool={activeTool} rotate={rotation} photoSrc={photoSrc} binarySrc={binarySrc} plus={plus} />}
       zoom={zoom}
       onZoomChange={setZoom}
       rotateStep={rotateStep}
@@ -229,7 +239,7 @@ function S03Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S03Ca
         toast.success("편집 이미지를 저장했습니다.")
         go("/dev/s04")
       }}
-      viewerImage={{ src: viewerSrc, alt: `${imageNo} 사건 이미지(가짜 예시)` }}
+      viewerImage={{ src: viewerSrc, alt: `${imageNo} 사건 이미지${fakeNote}` }}
       adjustments={adjustments}
       onAdjustmentsChange={setAdjustments}
       onClose={() => go("/dev/s02")}
@@ -242,11 +252,12 @@ function S03Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S03Ca
         edited("AI 제안대로 기울기를 맞췄습니다.", `기울기 맞추기 ${deg(rotation)} → 0°`)
         setRotation(0)
       }}
-      beforeAfter={{ original: photoSrc, edited: viewerSrc }}
+      // 실제 사진이면 편집본 = 이진화본(가짜 그림은 뒤집은 그림으로 차이를 보였다)
+      beforeAfter={{ original: photoSrc, edited: hasSamplePhotos ? binarySrc : viewerSrc }}
       editHistory={history}
       originalHash={S03_HASH}
       viewerLabel={S03_VIEWER_LABEL}
-      foundImage={{ src: foundSrc, alt: "발견 이미지 305659 밑창(가짜 예시)", label: S03_FOUND_LABEL }}
+      foundImage={{ src: foundSrc, alt: "발견 이미지 305659 밑창", label: S03_FOUND_LABEL }}
       onReextractFromView={() => {
         toast("보이는 그대로 AI 문양 추출을 다시 돌립니다(진열용 — 저장 안 함).")
         go("/dev/s04")

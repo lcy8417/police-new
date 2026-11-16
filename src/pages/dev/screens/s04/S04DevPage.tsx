@@ -42,6 +42,7 @@ import {
   type DevGo,
 } from "../frame"
 import { FakePhoto } from "../mock-assets/FakePhoto"
+import { hasSamplePhotos, samplePhotoUrl } from "../mock-assets/sample-images"
 import {
   DEFAULT_CODE_NOTE,
   fakeSearchRun,
@@ -99,17 +100,26 @@ const CONFIDENCE_TAGS: ZoneConfidenceTag[] = BANDS.map((b) => ({
  * 경계선 캔버스 자리에 넣는 가짜 그림 + 시안 도구 모양(고정 장식, pointer-events-none).
  * 신규 켜기면 띠 글자 대신 영역별 AI 확신도 꼬리표(시안 r3)와 가격표 네모(시안 핀 8)를 얹는다.
  */
-function FakePatternCanvas({ source, plus }: { source: SearchImageSource; plus: boolean }) {
+function FakePatternCanvas({ source, plus, imageNo }: { source: SearchImageSource; plus: boolean; imageNo: string }) {
+  // 표본 사진이 있으면 이 이미지 번호의 실제 사진(편집본 = 이진화본). 띠 · 경계선 · 상자 좌표는 그대로 얹는다
+  const sample = React.useMemo(
+    () => (hasSamplePhotos ? samplePhotoUrl(imageNo, { look: source === "edited" ? "binary" : "raw" }) : null),
+    [imageNo, source],
+  )
   return (
     <div className="absolute inset-y-[8px] left-1/2 aspect-[2/3] -translate-x-1/2">
-      <FakePhoto
-        look={source === "edited" ? "binary" : "raw"}
-        zones={["herring", "herring", "herring"]}
-        rotate={0}
-        flip
-        tag=""
-        preserveAspectRatio="xMidYMid meet"
-      />
+      {sample ? (
+        <img src={sample} alt="" className="block size-full object-contain" />
+      ) : (
+        <FakePhoto
+          look={source === "edited" ? "binary" : "raw"}
+          zones={["herring", "herring", "herring"]}
+          rotate={0}
+          flip
+          tag=""
+          preserveAspectRatio="xMidYMid meet"
+        />
+      )}
       <ZoneBands zones={BANDS} className={plus ? "[&_span]:hidden" : undefined} />
       <BoundaryLines ys={[35, 67]} />
       <RoiBox left={22} top={1} width={56} height={98} />
@@ -279,7 +289,7 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
         setAprthngNo(no)
         toast(`${no} 이미지로 바꿨습니다(진열용 — 문양은 같은 가짜 값).`)
       }}
-      canvasSlot={<FakePatternCanvas source={searchImage} plus={plus} />}
+      canvasSlot={<FakePatternCanvas source={searchImage} plus={plus} imageNo={imageNo} />}
       searchImage={searchImage}
       onSearchImageChange={setSearchImage}
       extractState={extractState}
@@ -384,7 +394,7 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
       searchRuns={searchRuns}
       onRestoreRun={restoreRun}
       onOpenRun={(searchNo) => go("/dev/s05", { run: String(searchNo) })}
-      lensSource={<FakePatternCanvas source={searchImage} plus={plus} />}
+      lensSource={<FakePatternCanvas source={searchImage} plus={plus} imageNo={imageNo} />}
     />
   )
 }
