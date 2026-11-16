@@ -69,4 +69,11 @@ describe("ResultConfirmScreen", () => {
     screen.getAllByRole("radio").forEach((r) => expect(r).toBeDisabled())
     expect(screen.getByRole("button", { name: "결과확인완료" })).toBeDisabled()
   })
+
+  it("r3 보기 개수 · 필터를 넘기지 않으면(운영 연결 모양) 이미지가 5장이어도 모두 보이고 편의 줄은 없다", () => {
+    const blocks = [1, 2, 3, 4, 5].map((n) => ({ ...base.blocks[0], aprthngNo: `00001-25-0646_${n}` }))
+    render(<ResultConfirmScreen {...base} blocks={blocks} judgements={{}} />)
+    expect(document.querySelectorAll("[data-image-block]")).toHaveLength(5)
+    expect(document.querySelector("[data-r3-toolbar]")).toBeNull()
+  })
 })

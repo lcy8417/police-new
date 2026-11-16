@@ -3,12 +3,14 @@ import * as React from "react"
 import type { FeatureCode } from "@/entities/session"
 import { cn } from "@/shared/lib/utils"
 import { AiTag, ConfidenceBar } from "@/shared/ui/ai"
-import { Button, Chip, DialogShell, InlineError, Segmented } from "@/shared/ui/kit"
+import { AutoPlayControl, Button, Chip, DialogShell, InlineError, Segmented, ViewCountSwitch } from "@/shared/ui/kit"
 import { ButtonBar, Panel } from "@/shared/ui/panel"
 import { PatternIcon } from "@/shared/ui/viewer"
 
 import { viewerRoles } from "../model/roles"
-import type { MatchCompareScreenProps, ZonePatterns } from "../model/types"
+import type { CompareCount, MatchCompareScreenProps, ZonePatterns } from "../model/types"
+import { useStepClock, type StepDir } from "../model/use-step-clock"
+import { MultiStage } from "./MultiStage"
 import { PairStage } from "./PairStage"
 import { PrecisionPanel } from "./PrecisionPanel"
 
@@ -18,6 +20,8 @@ import { PrecisionPanel } from "./PrecisionPanel"
 // 정렬 캔버스는 슬롯(alignmentSlot)이다 — 좌표 수학은 운영 캔버스가 소유. 호버 · 보기 방식 · 대화상자 열림은 저장하지 않는 위젯 안 상태.
 // r2: 시안 r3 +α(AI 대응점 39 · 구역 선 · AI 정합 보정 · 확대 줄 · 측면 이미지 · 확인 막대 · 감정서 첨부 · 오른쪽 정밀 대조 칸)를
 // `showPlus` 하나로 감싸 얹는다(감싼 요소마다 `data-plus`). 시안 `data-role`(그룹등록 · 확인대상 = 감정관 · 관리자)도 showPlus 일 때 따른다.
+// r3(편의 — +α 아님): 비교 「1:1 · 1:3 · 1:5」(1:1 = 2차 PairStage 그대로, 1:3 · 1:5 = 현장 1장 대 후보 n장),
+// 후보 넘기기(이전 · 다음 · ← → · 수동/자동 — 마지막 후보에서 멈춤, 비교 그림 위 마우스 = 잠시 멈춤). 값은 제어형.
 
 type Look = "rgb" | "sketch"
 
@@ -25,6 +29,10 @@ const LOOK_ITEMS = [
   { value: "rgb", label: "RGB" },
   { value: "sketch", label: "스케치·이진" },
 ]
+
+// r3 비교 개수(현장 1 : 후보 n) · 자동 넘김 기본 간격
+const COMPARE_OPTIONS: readonly CompareCount[] = ["1:1", "1:3", "1:5"]
+const DEFAULT_INTERVAL_MS = 2000
 
 const NO_ALIGNMENT = "정렬(ROI+방향)이 설정되지 않았습니다. 먼저 정렬을 저장해 주세요."
 const NOT_READY = "준비 중"
@@ -139,6 +147,16 @@ export function MatchCompareScreen({
   showPlus = true,
   insight,
   onPlusAction,
+  candidates = [],
+  onCandidateChange,
+  compareCount = "1:1",
+  onCompareCountChange,
+  autoMode = "manual",
+  onAutoModeChange,
+  intervalMs = DEFAULT_INTERVAL_MS,
+  onIntervalChange,
+  playing = false,
+  onPlayingChange,
 }: MatchCompareScreenProps) {
   const canWrite = isAdmin || features.includes(WRITE_FEATURE)
   const roles = viewerRoles(isAdmin, features)
@@ -182,19 +200,75 @@ export function MatchCompareScreen({
     ...(plus ? [{ label: "비고", value: plus.shoeExtra.note, plus: true }] : []),
   ]
 
+  // ── r3 후보 넘기기(← → · 이전/다음 · 자동) ──
+  const byId = candidates.findIndex((c) => c.ftwrId === shoeInfo.ftwrId && (ranking == null || c.rank === ranking))
+  const currentIndex = byId >= 0 ? byId : candidates.findIndex((c) => c.ftwrId === shoeInfo.ftwrId)
+  const canStep = status === "ready" && candidates.length > 1 && onCandidateChange !== undefined
+  const auto = canStep && autoMode === "auto"
+  const [hold, setHold] = React.useState(false)
+
+  const advance = (dir: StepDir) => {
+    if (!canStep) return
+    const to = currentIndex + dir
+    if (to >= 0 && to < candidates.length) {
+      onCandidateChange?.(candidates[to])
+      return
+    }
+    // 마지막 후보: 자동 넘김은 멈춘다
+    if (dir === 1 && auto && playing) onPlayingChange?.(false)
+  }
+  const clock = useStepClock({ auto, playing, hold, intervalMs, onStep: advance })
+
+  // ← → 후보 · Space 재생/일시정지 — 글자 입력 중 · 정렬 설정 창이 열렸을 때는 듣지 않는다
+  const keyRef = React.useRef<(e: KeyboardEvent) => void>(() => undefined)
+  React.useEffect(() => {
+    keyRef.current = (e: KeyboardEvent) => {
+      if (!canStep || alignOpen || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return
+      const el = e.target instanceof HTMLElement ? e.target : null
+      if (el?.closest("input, textarea, select, [contenteditable='true']")) return
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        e.preventDefault()
+        clock.step(e.key === "ArrowRight" ? 1 : -1)
+      } else if (e.key === " " && autoMode === "auto" && !el?.closest("button, a, [role='button']")) {
+        e.preventDefault()
+        onPlayingChange?.(!playing)
+      }
+    }
+  })
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => keyRef.current(e)
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
+  const multi = compareCount === "1:1" ? null : compareCount === "1:3" ? 3 : 5
+
   const buttons = (
     <ButtonBar variant="modal-head">
-      {/* 이전 · 다음 · 그룹등록 · 프린트는 지금 앱에 없는 동작 — SCAS 자리만 지키고 비활성 */}
-      <span title={NOT_READY} className="inline-flex">
-        <Button size="sm" disabled>
-          이전
-        </Button>
-      </span>
-      <span title={NOT_READY} className="inline-flex">
-        <Button size="sm" disabled>
-          다음
-        </Button>
-      </span>
+      {/* 이전 · 다음: r3 후보 목록이 있으면 앞 · 뒤 후보로(없으면 SCAS 자리만 지키고 비활성). 그룹등록 · 프린트는 지금 앱에 없는 동작 */}
+      {canStep ? (
+        <>
+          <Button size="sm" disabled={currentIndex <= 0} onClick={() => clock.step(-1)}>
+            이전
+          </Button>
+          <Button size="sm" disabled={currentIndex >= candidates.length - 1} onClick={() => clock.step(1)}>
+            다음
+          </Button>
+        </>
+      ) : (
+        <>
+          <span title={NOT_READY} className="inline-flex">
+            <Button size="sm" disabled>
+              이전
+            </Button>
+          </span>
+          <span title={NOT_READY} className="inline-flex">
+            <Button size="sm" disabled>
+              다음
+            </Button>
+          </span>
+        </>
+      )}
       {showDecide ? (
         <span title={NOT_READY} className="inline-flex">
           <Button size="sm" disabled>
@@ -361,23 +435,59 @@ export function MatchCompareScreen({
       </div>
     )
   } else {
+    const infoColumn = (
+      <div className="grid min-w-0 content-start gap-[6px]">
+        {plus ? (
+          <div data-plus className="grid gap-[6px]">
+            <span className="rounded-[4px] bg-strip px-[6px] py-[3px] text-[11.5px] text-muted-foreground">측면 이미지</span>
+            <span className="relative block h-[104px] overflow-hidden rounded-[10px] border border-solid border-border bg-canvas">
+              <img src={plus.sideImage} alt="측면 이미지" className="block size-full object-contain" />
+            </span>
+          </div>
+        ) : null}
+        <InfoTable caseRows={caseRows} shoeRows={shoeRows} />
+      </div>
+    )
+    // 마우스를 비교 그림 위에 올리면 자동 넘김을 잠시 멈춘다
+    const holdProps = { onMouseEnter: () => setHold(true), onMouseLeave: () => setHold(false) }
     body = (
       <div className="grid min-w-0 gap-[10px]">
-        <div className="grid min-w-0 grid-cols-[460px_minmax(0,1fr)] gap-[10px]">
-          {compare}
-          <div className="grid min-w-0 content-start gap-[6px]">
-            {plus ? (
-              <div data-plus className="grid gap-[6px]">
-                <span className="rounded-[4px] bg-strip px-[6px] py-[3px] text-[11.5px] text-muted-foreground">측면 이미지</span>
-                <span className="relative block h-[104px] overflow-hidden rounded-[10px] border border-solid border-border bg-canvas">
-                  <img src={plus.sideImage} alt="측면 이미지" className="block size-full object-contain" />
-                </span>
+        {multi && candidates.length > 0 ? (
+          <>
+            <div data-compare-area className="grid min-w-0 gap-[6px]" {...holdProps}>
+              <div className="flex items-center gap-[8px]">
+                <span className="text-[11.5px] text-dim">{`현장 1장 대 후보 ${multi}장 · 후보 칸을 누르면 지금 후보(1:1 로 정밀 대조)`}</span>
+                <Segmented
+                  items={LOOK_ITEMS}
+                  value={look}
+                  onValueChange={(v) => setLook(v as Look)}
+                  aria-label="보기 방식"
+                  className="ml-auto"
+                />
               </div>
-            ) : null}
-            <InfoTable caseRows={caseRows} shoeRows={shoeRows} />
-          </div>
-        </div>
-        {pairList}
+              <MultiStage
+                count={multi}
+                crimeImage={crimeImage}
+                crimeCaption={caseInfo.aprthngNo ?? ""}
+                look={look}
+                candidates={candidates}
+                currentIndex={currentIndex}
+                onPick={(c) => onCandidateChange?.(c)}
+              />
+            </div>
+            {infoColumn}
+          </>
+        ) : (
+          <>
+            <div className="grid min-w-0 grid-cols-[460px_minmax(0,1fr)] gap-[10px]">
+              <div data-compare-area className="min-w-0" {...holdProps}>
+                {compare}
+              </div>
+              {infoColumn}
+            </div>
+            {pairList}
+          </>
+        )}
         <div className="grid grid-cols-2 gap-[10px]">
           <PatternColumn title="유류 이미지 문양" patterns={crimePatterns} />
           <PatternColumn title="발견 이미지 문양" patterns={shoePatterns} />
@@ -409,6 +519,35 @@ export function MatchCompareScreen({
         <div className="@container p-[12px_14px_14px]">
           <div className={cn("grid min-w-0 gap-[14px]", plus && status === "ready" && "@min-[1120px]:grid-cols-[820px_minmax(0,1fr)]")}>
             <div className="grid min-w-0 content-start gap-[8px]">
+              {status === "ready" && (onCompareCountChange || (canStep && onAutoModeChange)) ? (
+                // r3 편의 줄: 비교 개수 · 후보 넘기기(수동 · 자동)
+                <div data-r3-toolbar className="flex flex-wrap items-center gap-x-[14px] gap-y-[6px]">
+                  {onCompareCountChange ? (
+                    <ViewCountSwitch<CompareCount>
+                      label="비교"
+                      options={COMPARE_OPTIONS}
+                      value={compareCount}
+                      onChange={onCompareCountChange}
+                    />
+                  ) : null}
+                  {canStep && onAutoModeChange ? (
+                    <span className="inline-flex flex-wrap items-center gap-[8px]">
+                      <span className="text-[12px] text-muted-foreground">후보 넘기기</span>
+                      <AutoPlayControl
+                        mode={autoMode}
+                        onModeChange={onAutoModeChange}
+                        intervalMs={intervalMs}
+                        onIntervalChange={(ms) => onIntervalChange?.(ms)}
+                        playing={playing}
+                        onPlayPause={() => onPlayingChange?.(!playing)}
+                        position={{ index: Math.max(0, currentIndex), total: candidates.length }}
+                        remainingRatio={clock.remainingRatio}
+                      />
+                      <span className="text-[11px] text-dim">← → 후보 · Space 재생/일시정지</span>
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="flex justify-end">{buttons}</div>
               {showPlus && roles.analyst && asking ? (
                 <div

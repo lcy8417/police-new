@@ -5,7 +5,7 @@ import { AiProgress, AiTag, ScanOverlay } from "@/shared/ui/ai"
 import { Chip, StatusDot } from "@/shared/ui/kit"
 
 import { formatSimilarity, GRADE_DOT, parseSimilarity, similarityGrade } from "../model/similarity"
-import type { ImageSearchResultItem } from "../model/types"
+import type { ImageSearchResultItem, ThumbSize } from "../model/types"
 import { CHIP_TEAL } from "./plus-style"
 import { SoleHeat } from "./SoleHeat"
 
@@ -13,8 +13,6 @@ import { SoleHeat } from "./SoleHeat"
 export interface ResultCardPlus {
   /** 이미 본 카드 — 흐리게(보기 거르기 「이미 본 것 흐리게」가 켜졌을 때) */
   dim: boolean
-  /** 키보드 초점 카드 — 파란 테 · 일치 부위 · 훑기 */
-  focus: boolean
   /** 확인대상(★) */
   starred: boolean
   /** AI 순위 다시 매김으로 오른 계단(0 이면 없음) */
@@ -28,49 +26,73 @@ export interface ResultCardPlus {
 
 // 결과 카드: 지금 기능(F23 #순위 · No. 신발ID · 유사도 % 색 등급 · TOP 3)은 그대로, 시안 r3 +α(유사도 막대 · ▲ 계단 · ☆ · 초점 · 일치 부위)를 얹는다.
 // ☆ 는 카드 버튼 안에 넣을 수 없어(버튼 안 버튼 금지) 카드 오른쪽 아래에 겹친 형제 버튼이다.
+// r3: 초점(파란 테)은 +α 와 무관하게 `focused` 로 — 자동 모드 · ← → 가 옮긴다. 일치 부위 · 훑기 · 빠른 비교는 +α 일 때만.
+
+/** r3 썸네일 높이(정적 클래스 — Tailwind 가 읽을 수 있게 전부 적는다). 「보통」이 1 · 2차 값(150 · 촘촘 104) */
+const THUMB_H: Record<ThumbSize, { normal: string; compact: string }> = {
+  작게: { normal: "h-[110px]", compact: "h-[80px]" },
+  보통: { normal: "h-[150px]", compact: "h-[104px]" },
+  크게: { normal: "h-[220px]", compact: "h-[150px]" },
+}
+
 export function ResultCard({
   item,
   ranking,
   compact,
+  focused = false,
+  thumbSize = "보통",
   onOpen,
+  onHover,
   plus,
 }: {
   item: ImageSearchResultItem
   ranking: number
   /** 촘촘 8열 — 사진 높이 104(시안), 아니면 150 */
   compact: boolean
+  /** 초점 카드 — 파란 테(+α 면 일치 부위 · 훑기도) */
+  focused?: boolean
+  /** 썸네일 크기 */
+  thumbSize?: ThumbSize
   onOpen: () => void
+  /** 마우스가 카드에 올라감 / 나감(자동 모드 잠시 멈춤) */
+  onHover?: (over: boolean) => void
   plus?: ResultCardPlus
 }) {
   const value = parseSimilarity(item.similarity)
   const grade = similarityGrade(value)
   const dot = GRADE_DOT[grade]
   const pct = formatSimilarity(value)
+  const plusFocus = Boolean(plus) && focused
   // 시안 막대 폭 = (유사도 − 50) × 8 %
   const bar = value === null ? 0 : Math.min(1, Math.max(0, ((value - 50) * 8) / 100))
   return (
-    <li className={cn("relative min-w-0", plus?.focus && "z-[5]")}>
+    <li
+      className={cn("relative min-w-0", focused && "z-[5]")}
+      onMouseEnter={onHover ? () => onHover(true) : undefined}
+      onMouseLeave={onHover ? () => onHover(false) : undefined}
+    >
       <button
         type="button"
         data-result-card
         data-rank={ranking}
         data-seen={plus?.dim ? "true" : undefined}
-        data-focus={plus?.focus ? "true" : undefined}
+        data-focus={focused ? "true" : undefined}
+        title={item.brandNm ? `상표 ${item.brandNm}` : undefined}
         onClick={onOpen}
         className={cn(
           "grid w-full min-w-0 cursor-pointer gap-[4px] rounded-[9px] border border-solid border-border bg-panel-2 p-[4px] text-left hover:border-brand-line focus-visible:outline-2 focus-visible:outline-brand",
           plus?.dim && "opacity-50",
-          plus?.focus && "border-brand [box-shadow:0_0_0_2px_var(--t-brand),0_0_14px_0_var(--t-corner-glow)]",
+          focused && "border-brand [box-shadow:0_0_0_2px_var(--t-brand),0_0_14px_0_var(--t-corner-glow)]",
         )}
       >
         <span
           className={cn(
             "relative block overflow-hidden rounded-[6px] bg-foreground",
-            compact ? "h-[104px]" : "h-[150px]",
+            compact ? THUMB_H[thumbSize].compact : THUMB_H[thumbSize].normal,
           )}
         >
           <img src={item.image} alt={`신발 ${item.ftwrId} 밑창`} className="block size-full object-contain" />
-          {plus?.focus ? <SoleHeat /> : null}
+          {plusFocus ? <SoleHeat /> : null}
           <span className="absolute top-[4px] left-[4px] flex flex-col items-start gap-[2px]">
             {ranking <= 3 ? (
               <Chip variant="blue-h20" className="font-code">
@@ -87,7 +109,7 @@ export function ResultCard({
               </Chip>
             ) : null}
           </span>
-          {plus?.focus ? (
+          {plusFocus ? (
             <span data-plus>
               <ScanOverlay active className="motion-safe:[animation-duration:2.8s]" />
               <AiTag className="absolute right-[4px] bottom-[4px] h-[15px] text-[9px]">일치 부위</AiTag>

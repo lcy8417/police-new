@@ -21,6 +21,13 @@ export function containScale(pane: { w: number; h: number }, image: { width: num
   return Math.min(pane.w / image.width, pane.h / image.height)
 }
 
+/** r3 「1:3 · 1:5」 후보 창: 지금 후보가 맨 앞에 오도록 n칸(끝에서는 마지막 n칸) — [start, end) */
+export function candidateWindow(length: number, current: number, n: number): { start: number; end: number } {
+  const size = Math.min(n, length)
+  const start = Math.max(0, Math.min(current, length - size))
+  return { start, end: start + size }
+}
+
 /** 현장(왼쪽 칸) 그림 좌표 → 무대 좌표 */
 export function crimeToStage(image: { width: number; height: number }, x: number, y: number): [number, number] {
   return containPoint({ w: STAGE.crimeW, h: STAGE.h }, image, x, y)

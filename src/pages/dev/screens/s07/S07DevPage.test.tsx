@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
 
 import { S07DevPage } from "./S07DevPage"
 
@@ -173,5 +173,105 @@ describe("S07 r2 — 시안 +α", () => {
     expect(bar).toHaveAttribute("aria-valuenow", "67")
     expect((bar.querySelector("i") as HTMLElement).style.width).toMatch(/^66\.6/)
     expect(block("00001-25-0646_1").querySelector('[data-part="ScanOverlay"]')).not.toBeNull()
+  })
+})
+
+// ── r3 편의: 이미지 블록 1 · 3 · 5개씩 · 필터 ──
+
+const shownBlocks = () =>
+  Array.from(document.querySelectorAll("[data-image-block] [data-block-title]")).map((el) => el.textContent?.slice(-2))
+const search = () => screen.getByRole("search")
+const chip = (name: RegExp) => within(search()).getByRole("button", { name })
+
+describe("S07 r3 — 보기 개수 · 필터", () => {
+  beforeEach(() => window.localStorage.clear())
+
+  it("보기 「1 · 3 · 5개씩」: 1개씩이면 한 장만 보이고 이전 · 다음으로 넘긴다", () => {
+    renderAt("?case=ready")
+    const group = screen.getByRole("group", { name: "한 번에" })
+    expect(within(group).getAllByRole("button").map((b) => b.textContent)).toEqual(["1개", "3개", "5개"])
+    expect(shownBlocks()).toEqual(["_1", "_2", "_3"])
+    fireEvent.click(within(group).getByRole("button", { name: "1개" }))
+    expect(shownBlocks()).toEqual(["_1"])
+    const nav = document.querySelector("[data-block-nav]") as HTMLElement
+    expect(within(nav).getByText("1–1 / 3")).toBeInTheDocument()
+    expect(within(nav).getByRole("button", { name: "이전" })).toBeDisabled()
+    fireEvent.click(within(nav).getByRole("button", { name: "다음" }))
+    expect(shownBlocks()).toEqual(["_2"])
+    fireEvent.click(within(nav).getByRole("button", { name: "다음" }))
+    expect(shownBlocks()).toEqual(["_3"])
+    expect(within(nav).getByRole("button", { name: "다음" })).toBeDisabled()
+    fireEvent.click(within(group).getByRole("button", { name: "5개" }))
+    expect(shownBlocks()).toEqual(["_1", "_2", "_3"])
+    expect(document.querySelector("[data-block-nav]")).toBeNull()
+  })
+
+  it("이미지 바로가기는 가려진 블록이면 그 블록부터 보이게 넘긴다", () => {
+    renderAt("?case=ready")
+    fireEvent.click(within(screen.getByRole("group", { name: "한 번에" })).getByRole("button", { name: "1개" }))
+    fireEvent.click(within(document.querySelector("[data-progress-strip]") as HTMLElement).getByText("_3 ✓"))
+    expect(shownBlocks()).toEqual(["_3"])
+  })
+
+  it("「판정 미완료만」 · 판정(발견 · 불발견 · 감정불능)으로 거른다", () => {
+    renderAt("?case=ready&ftwr=00758")
+    fireEvent.click(chip(/^판정 미완료만/))
+    expect(shownBlocks()).toEqual(["_1"])
+    fireEvent.click(chip(/^판정 미완료만/))
+    fireEvent.click(chip(/^불발견/))
+    expect(shownBlocks()).toEqual(["_2"])
+    fireEvent.click(chip(/^감정불능/))
+    expect(shownBlocks()).toEqual(["_2", "_3"])
+    fireEvent.click(chip(/^불발견/))
+    fireEvent.click(chip(/^감정불능/))
+    // 아직 저장 전이어도 고른 라디오로 거른다
+    fireEvent.click(within(block("00001-25-0646_1")).getByRole("radio", { name: /^발견/ }))
+    fireEvent.click(chip(/^발견/))
+    expect(shownBlocks()).toEqual(["_1"])
+  })
+
+  it("「AI 추천과 다름」 — 0건이면 「조건에 맞는 항목 없음 · 조건 지우기」(결과 없음 · 조회 실패와 다른 모양)", () => {
+    renderAt("?case=ready&ftwr=00758")
+    fireEvent.click(chip(/^AI 추천과 다름/))
+    const empty = document.querySelector("[data-filter-empty]") as HTMLElement
+    expect(within(empty).getByText("조건에 맞는 항목 없음")).toBeInTheDocument()
+    expect(screen.queryByText("결과 없음")).toBeNull()
+    expect(screen.queryByRole("button", { name: "다시" })).toBeNull()
+    fireEvent.click(within(empty).getByRole("button", { name: "조건 지우기" }))
+    expect(shownBlocks()).toEqual(["_1", "_2", "_3"])
+    // _1 을 AI 추천(발견)과 다르게 불발견으로 고르면 걸린다
+    fireEvent.click(within(block("00001-25-0646_1")).getByRole("radio", { name: /^불발견/ }))
+    fireEvent.click(chip(/^AI 추천과 다름/))
+    expect(shownBlocks()).toEqual(["_1"])
+  })
+
+  it("빠른 찾기는 이미지번호 · 신발 번호로 거른다", () => {
+    renderAt("?case=ready&ftwr=00758")
+    const input = within(search()).getByRole("textbox", { name: "검색어" })
+    fireEvent.change(input, { target: { value: "_2" } })
+    expect(shownBlocks()).toEqual(["_2"])
+    fireEvent.change(input, { target: { value: "00758" } })
+    expect(shownBlocks()).toEqual(["_1"])
+  })
+
+  it("신규 기능을 꺼도(?plus=0) 필터 · 보기 개수는 보이고, 감정불능 · AI 칩은 없다", () => {
+    renderAt("?case=ready&plus=0")
+    expect(screen.getByRole("group", { name: "한 번에" })).toBeInTheDocument()
+    expect(within(search()).queryByRole("button", { name: /감정불능/ })).toBeNull()
+    expect(within(search()).queryByRole("button", { name: /AI 추천과 다름/ })).toBeNull()
+    expect(document.querySelectorAll("[data-plus]")).toHaveLength(0)
+  })
+
+  it("보기 개수 · 필터는 기억한다", () => {
+    const first = renderAt("?case=ready")
+    fireEvent.click(within(screen.getByRole("group", { name: "한 번에" })).getByRole("button", { name: "1개" }))
+    fireEvent.click(chip(/^판정 미완료만/))
+    first.unmount()
+    renderAt("?case=ready")
+    expect(within(screen.getByRole("group", { name: "한 번에" })).getByRole("button", { name: "1개" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    )
+    expect(shownBlocks()).toEqual(["_1"])
   })
 })

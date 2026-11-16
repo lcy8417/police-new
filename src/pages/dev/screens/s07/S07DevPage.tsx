@@ -4,7 +4,7 @@ import { toast } from "sonner"
 
 import type { CrimeHistoryRow } from "@/entities/crime"
 import { toKstIso } from "@/shared/lib/kst"
-import { ResultConfirmScreen, type ConfirmImageBlock, type Judgement } from "@/widgets/result-confirm"
+import { ResultConfirmScreen, type BlockViewCount, type ConfirmImageBlock, type Judgement } from "@/widgets/result-confirm"
 
 import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevPlus, useDevViewer } from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
@@ -21,8 +21,11 @@ import {
   S07_DEFAULT_FTWR,
   S07_ERROR_AT,
 } from "./mock-cases"
+import { isStringListRecord, oneOf, REMEMBER_PREFIX, useRememberedState } from "../s05/use-remembered-state"
 
 const info = devScreen("s07")
+const KEY = `${REMEMBER_PREFIX}s07:`
+const BLOCK_COUNTS: readonly BlockViewCount[] = [1, 3, 5]
 
 // 이미지마다 다른 가짜 사진 무늬 · 기울기(시안 S07 BLOCKS)
 const SCENE: readonly { zones: ZoneTriple; rotate: number }[] = [
@@ -49,6 +52,10 @@ export function S07DevPage() {
   const [added, setAdded] = useState<Record<string, CrimeHistoryRow[]>>({})
   const [completed, setCompleted] = useState<Record<string, Judgement>>(INITIAL_COMPLETED)
   const [reviewer, setReviewer] = useState<string | null>(REVIEWERS[0].value)
+  // r3 보기 설정 — 보기 개수 · 필터는 이 브라우저에 기억
+  const [blockCount, setBlockCount] = useRememberedState<BlockViewCount>(`${KEY}blocks`, 3, oneOf(BLOCK_COUNTS))
+  const [filters, setFilters] = useRememberedState<Record<string, string[]>>(`${KEY}filters`, {}, isStringListRecord)
+  const [query, setQuery] = useState("")
 
   const images = useMemo(
     () => ({
@@ -110,6 +117,16 @@ export function S07DevPage() {
           toast(PLUS_NOT_READY, { description: `교차 검증 요청 → ${name}` })
         }}
         onPlusAction={(label) => toast(PLUS_NOT_READY, { description: label })}
+        blockCount={blockCount}
+        onBlockCountChange={setBlockCount}
+        query={query}
+        onQueryChange={setQuery}
+        filters={filters}
+        onFiltersChange={(key, values) => setFilters({ ...filters, [key]: values })}
+        onClearFilters={() => {
+          setQuery("")
+          setFilters({})
+        }}
       />
     </DevScreenFrame>
   )

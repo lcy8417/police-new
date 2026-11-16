@@ -3,13 +3,20 @@ import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
 
 import type { Alignment } from "@/entities/alignment"
-import { MatchCompareScreen } from "@/widgets/match-compare"
+import {
+  MatchCompareScreen,
+  type CompareAutoMode,
+  type CompareCandidate,
+  type CompareCount,
+} from "@/widgets/match-compare"
 
 import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevPlus, useDevViewer } from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { FakeSole, fakeSoleUrl, SOLE_PALETTE } from "../mock-assets/FakeSole"
 import { resolvePalette, type ZoneTriple } from "../mock-assets/fake-art"
 import { svgToUrl } from "../mock-assets/svg-url"
+import { makeResults } from "../s05/mock-cases"
+import { isIntervalMs, oneOf, REMEMBER_PREFIX, useRememberedState } from "../s05/use-remembered-state"
 import { AlignmentDecor } from "./AlignmentDecor"
 import { fakeSideShoeUrl } from "./fake-side-shoe"
 import {
@@ -28,6 +35,37 @@ import {
 
 const info = devScreen("s06")
 const ZONES: ZoneTriple = ["herring", "grid", "tri"]
+const KEY = `${REMEMBER_PREFIX}s06:`
+const COMPARE_VALUES: readonly CompareCount[] = ["1:1", "1:3", "1:5"]
+
+// 후보 밑창 무늬(첫 칸은 2차 발견 이미지 무늬 그대로)
+const CANDIDATE_ZONES: readonly ZoneTriple[] = [
+  ZONES,
+  ["grid", "grid", "blocks"],
+  ["herring", "herring", "lines"],
+  ["dots", "herring", "grid"],
+  ["wave", "grid", "herring"],
+  ["blocks", "herring", "blocks"],
+  ["tri", "herring", "grid"],
+  ["herring", "dots", "herring"],
+]
+
+/** r3 비교 후보 — S05 가짜 결과 1쪽(20건). 주소의 신발이 없으면 맨 앞에 */
+function makeCandidates(ftwr: string, rank: number | null): CompareCandidate[] {
+  // 첫 칸은 2차 발견 이미지와 같은 그림(seed 없음)
+  const art = CANDIDATE_ZONES.map((zones, i) => {
+    const seed = i === 0 ? undefined : i + 1
+    return { rgb: fakeSoleUrl({ kind: "shoe", zones, seed }), sketch: fakeSoleUrl({ kind: "bin", zones, seed }) }
+  })
+  const list: CompareCandidate[] = makeResults(1, () => "").map((r, i) => ({
+    ftwrId: r.ftwrId,
+    rank: i + 1,
+    similarity: r.similarity,
+    ...art[i % art.length],
+  }))
+  if (!list.some((c) => c.ftwrId === ftwr)) list.unshift({ ftwrId: ftwr, rank, similarity: "—", ...art[0] })
+  return list
+}
 
 // S06 상세 조회 · 정밀 대조 진열 페이지. `?ftwr=` · `?rank=`는 S05 카드에서 넘어온다.
 // 정렬은 여기서 들고 있다(제어형) — no-alignment 케이스에서 「정렬 저장」을 누르면 가짜 정렬이 저장된 것처럼 바뀐다.
@@ -35,14 +73,29 @@ export function S06DevPage() {
   const to = useDevNavigate()
   const { search } = useLocation()
   const params = new URLSearchParams(search)
-  const ftwrId = params.get("ftwr") || S06_DEFAULT_FTWR
+  const urlFtwr = params.get("ftwr") || S06_DEFAULT_FTWR
   const rankParam = Number(params.get("rank"))
-  const ranking = Number.isInteger(rankParam) && rankParam > 0 ? rankParam : null
+  const urlRank = Number.isInteger(rankParam) && rankParam > 0 ? rankParam : null
   const activeCase = useDevCase(SCREEN_CASES.s06, "ready")
   const viewer = useDevViewer()
   const showPlus = useDevPlus()
   const [savedAlignment, setSavedAlignment] = useState<Alignment | null>(null)
   const alignment = activeCase === "no-alignment" ? savedAlignment : FAKE_ALIGNMENT
+
+  // r3 후보 넘기기: 검색 결과 1쪽(S05 가짜 값)을 후보 목록으로. 주소의 신발이 목록에 없으면 맨 앞에 넣는다.
+  // 지금 후보는 여기서 든다(자동 넘김마다 주소를 쌓지 않게) — 처음 값만 주소(?ftwr · ?rank)에서.
+  const candidates = useMemo(() => makeCandidates(urlFtwr, urlRank), [urlFtwr, urlRank])
+  const [current, setCurrent] = useState<{ ftwrId: string; rank: number | null }>(() => {
+    const hit = candidates.find((c) => c.ftwrId === urlFtwr && (urlRank === null || c.rank === urlRank))
+    return { ftwrId: urlFtwr, rank: hit ? hit.rank : urlRank }
+  })
+  const ftwrId = current.ftwrId
+  const ranking = current.rank
+  const currentCandidate = candidates.find((c) => c.ftwrId === ftwrId) ?? candidates[0]
+  const [compareCount, setCompareCount] = useRememberedState<CompareCount>(`${KEY}compare`, "1:1", oneOf(COMPARE_VALUES))
+  const [intervalMs, setIntervalMs] = useRememberedState<number>(`${KEY}interval`, 2000, isIntervalMs)
+  const [autoMode, setAutoMode] = useState<CompareAutoMode>("manual")
+  const [playing, setPlaying] = useState(false)
 
   const crimeImage = useMemo(
     () => ({
@@ -52,13 +105,10 @@ export function S06DevPage() {
     }),
     [],
   )
+  // 1:1 의 발견 이미지 = 지금 후보 그림(좌표계는 같은 가짜 밑창 크기)
   const shoeImage = useMemo(
-    () => ({
-      rgb: fakeSoleUrl({ kind: "shoe", zones: ZONES }),
-      sketch: fakeSoleUrl({ kind: "bin", zones: ZONES }),
-      ...SHOE_SIZE,
-    }),
-    [],
+    () => ({ rgb: currentCandidate.rgb, sketch: currentCandidate.sketch, ...SHOE_SIZE }),
+    [currentCandidate],
   )
   const insight = useMemo(
     () =>
@@ -105,6 +155,19 @@ export function S06DevPage() {
         showPlus={showPlus}
         insight={insight}
         onPlusAction={(label) => toast("시안 — 기능 준비 중", { description: label })}
+        candidates={candidates}
+        onCandidateChange={(c) => setCurrent({ ftwrId: c.ftwrId, rank: c.rank })}
+        compareCount={compareCount}
+        onCompareCountChange={setCompareCount}
+        autoMode={autoMode}
+        onAutoModeChange={(mode) => {
+          setAutoMode(mode)
+          setPlaying(mode === "auto")
+        }}
+        intervalMs={intervalMs}
+        onIntervalChange={setIntervalMs}
+        playing={playing}
+        onPlayingChange={setPlaying}
       />
     </DevScreenFrame>
   )

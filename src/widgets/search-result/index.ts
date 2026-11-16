@@ -1,5 +1,10 @@
 export { SearchResultScreen } from "./ui/SearchResultScreen"
 export type {
+  AutoMode,
+  ResultColumns,
+  ResultFilterKey,
+  ResultFilterValues,
+  ThumbSize,
   AiTopItem,
   ImageMode,
   ImageSearchResultItem,

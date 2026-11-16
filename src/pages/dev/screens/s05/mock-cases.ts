@@ -9,6 +9,10 @@ export const S05_IMAGE_NO = "00001-25-0646_1"
 export const S05_TOTAL = 857
 export const S05_PAGE_SIZE = 20
 export const S05_ERROR_AT = "17:41"
+/** 시안 본 위치(136위 · 07-24 17:52)와 초점 카드(137위) */
+export const S05_SEEN_UP_TO = 136
+export const S05_SEEN_AT = "07-24 17:52"
+export const S05_FOCUS_RANK = 137
 
 /** 1쪽 고정 결과: 1위 00758(앞자리 0) · 2위 69.99(→ 70%) · 8자 신발 ID(긴 값) · 문자열 유사도 */
 const FIRST_PAGE: readonly { ftwrId: string; similarity: number | string }[] = [
@@ -39,6 +43,9 @@ const FIXED_RANKS: Readonly<Record<number, { ftwrId: string; similarity: number 
   137: { ftwrId: "305102", similarity: 58.4 },
 }
 
+/** r3 빠른 찾기용 가짜 상표명(순위마다 돌려 씀 — 3 · 8 · 13 · 18위 = 크록스) */
+export const MOCK_BRANDS = ["나이키", "아디다스", "크록스", "뉴발란스", "○○스포츠"] as const
+
 /** 쪽(1부터)의 결과. 이미지 URL 은 rank 로 고른 그림을 받는 함수가 정한다 */
 export function makeResults(page: number, imageFor: (rank: number) => string): ImageSearchResultItem[] {
   const first = (page - 1) * S05_PAGE_SIZE + 1
@@ -48,7 +55,7 @@ export function makeResults(page: number, imageFor: (rank: number) => string): I
     const fixed = FIRST_PAGE[rank - 1] ?? FIXED_RANKS[rank]
     const ftwrId = fixed ? fixed.ftwrId : String((rank * 37) % 100000).padStart(5, "0")
     const similarity = fixed ? fixed.similarity : Math.round((56.5 - (rank - 20) * 0.018) * 100) / 100
-    out.push({ ftwrId, similarity, image: imageFor(rank) })
+    out.push({ ftwrId, similarity, image: imageFor(rank), brandNm: MOCK_BRANDS[(rank - 1) % MOCK_BRANDS.length] })
   }
   return out
 }
@@ -103,9 +110,9 @@ export function makeInsight(img: {
     searchMethod: "이미지 검색",
     essentialSummary: "필수 문양 상·중 헤링본",
     searchedAt: "07-24 17:41",
-    seenUpTo: 136,
-    seenAt: "07-24 17:52",
-    focusRank: 137,
+    seenUpTo: S05_SEEN_UP_TO,
+    seenAt: S05_SEEN_AT,
+    focusRank: S05_FOCUS_RANK,
     rerankUp: { 130: 4, 138: 11, 142: 2 },
     distribution: distributionBins(),
     topSimilarity: 72,
