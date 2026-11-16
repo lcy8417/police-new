@@ -1,6 +1,13 @@
-import type { CrimeHistoryRow } from "@/entities/crime"
 import type { EssentialFlag, PatternZone } from "@/entities/pattern"
-import type { ExtractState, MatchConditionValues, PaletteKind } from "@/widgets/pattern-code"
+import type {
+  ExtractState,
+  FunnelStep,
+  ImageCodingStatus,
+  MatchConditionValues,
+  PaletteKind,
+  PatternMetaMap,
+  SearchHistoryRow,
+} from "@/widgets/pattern-code"
 
 import type { SCREEN_CASES } from "../frame/dev-screens"
 
@@ -19,17 +26,36 @@ export interface S04Mock {
   zones: NamedZones
   /** AI 통합 추출 결과(이름 · 점수) — services/api.js patternsExtract 응답 모양 */
   extracted: { code: string; score: number }[]
-  history: CrimeHistoryRow[]
+  history: SearchHistoryRow[]
+  /** 문양 카드 덧붙임(AI · 제안 · 수동 · 확신도 · 개수) — 시안 r2 */
+  meta: PatternMetaMap
 }
 
+// 시안 r3 문양 행 그대로: 상 n32_04(AI·확인, 필수, 0.93, 9개) · n21_05(제안 0.61) / 중 n32_04(AI·확인, 필수, 0.88) · s81b(제안? 0.42)
+// / 하 n32_04(제안 0.71, 8개) / 윤곽 s10c(수동)
 const READY_ZONES: NamedZones = {
   top: [
     ["n32_04", 1],
     ["n21_05", 0],
   ],
-  mid: [["n32_04", 1]],
+  mid: [
+    ["n32_04", 1],
+    ["s81b", 0],
+  ],
   bottom: [["n32_04", 0]],
   outline: [["s10c", 0]],
+}
+const READY_META: PatternMetaMap = {
+  top: {
+    n32_04: { status: "ai", confidence: 0.93, count: "9" },
+    n21_05: { status: "suggested", confidence: 0.61, count: "1" },
+  },
+  mid: {
+    n32_04: { status: "ai", confidence: 0.88, count: "9" },
+    s81b: { status: "suggested", confidence: 0.42, count: "1", doubtful: true },
+  },
+  bottom: { n32_04: { status: "suggested", confidence: 0.71, count: "8" } },
+  outline: { s10c: { status: "manual", count: "1" } },
 }
 const EMPTY_ZONES: NamedZones = { top: [], mid: [], bottom: [], outline: [] }
 
@@ -40,20 +66,51 @@ const EXTRACTED = [
   { code: "s81b", score: 0.42 },
 ]
 
-// 이력: 신발 ID 는 문자열(앞자리 0 보존 — 00758), 매칭 없이 저장한 줄(null) 포함
-const HISTORY: CrimeHistoryRow[] = [
-  { searchNo: 572433, frstRegistDt: "2025-07-24 10:12:05", ranking: 3, mtchgId: "00758" },
-  { searchNo: 572420, frstRegistDt: "2025-07-24 09:58:41", ranking: 12, mtchgId: "305659" },
-  { searchNo: 572419, frstRegistDt: "2025-07-24 09:41:30", ranking: 0, mtchgId: null },
+// 이력: 시안 SCAS 열 값(검색번호 · 결과건수 · 검색방법 · 검색일 07-24) + 지금 기능 순위 · 매칭 신발.
+// 신발 ID 는 문자열(앞자리 0 보존 — 00758), 매칭 없이 저장한 줄(null) 포함
+const HISTORY: SearchHistoryRow[] = [
+  { searchNo: 572433, frstRegistDt: "2025-07-24 10:12:05", ranking: 3, mtchgId: "00758", resultCount: 312, method: "이미지검색" },
+  { searchNo: 572420, frstRegistDt: "2025-07-24 09:58:41", ranking: 12, mtchgId: "305659", resultCount: 512, method: "현장문양검색" },
+  { searchNo: 572419, frstRegistDt: "2025-07-24 09:41:30", ranking: 0, mtchgId: null, resultCount: 869, method: "인공지능" },
 ]
 
 export const S04_MOCK: Record<S04Case, S04Mock> = {
-  ready: { status: "ready", extractState: "done", zones: READY_ZONES, extracted: EXTRACTED, history: HISTORY },
-  running: { status: "ready", extractState: "running", zones: READY_ZONES, extracted: [], history: HISTORY },
-  loading: { status: "loading", extractState: "idle", zones: EMPTY_ZONES, extracted: [], history: [] },
-  error: { status: "error", errorAt: "09:41", extractState: "idle", zones: EMPTY_ZONES, extracted: [], history: [] },
-  empty: { status: "empty", extractState: "idle", zones: EMPTY_ZONES, extracted: [], history: [] },
+  ready: { status: "ready", extractState: "done", zones: READY_ZONES, extracted: EXTRACTED, history: HISTORY, meta: READY_META },
+  running: { status: "ready", extractState: "running", zones: READY_ZONES, extracted: [], history: HISTORY, meta: READY_META },
+  loading: { status: "loading", extractState: "idle", zones: EMPTY_ZONES, extracted: [], history: [], meta: {} },
+  error: { status: "error", errorAt: "09:41", extractState: "idle", zones: EMPTY_ZONES, extracted: [], history: [], meta: {} },
+  empty: { status: "empty", extractState: "idle", zones: EMPTY_ZONES, extracted: [], history: [], meta: {} },
 }
+
+/** 시안 이미지 목록 상태(_1 확인완료 · _2 검색 중 · _5 삭제(중복) · 나머지 미코딩) */
+export const S04_IMAGE_STATUSES: Record<string, ImageCodingStatus> = {
+  "00001-25-0649_1": "done",
+  "00001-25-0649_2": "searching",
+  "00001-25-0649_3": "uncoded",
+  "00001-25-0649_4": "uncoded",
+  "00001-25-0649_5": "duplicate",
+  "00001-25-0649_6": "uncoded",
+}
+/** 시안 「12장 중 1장 완료」 · 「… _7 – _12」 */
+export const S04_IMAGE_TOTAL = 12
+export const S04_IMAGE_REST = "… _7 – _12"
+
+/** 시안 영역별 AI 확신도(상 0.93 · 중 0.88 · 하 0.71) */
+export const S04_ZONE_CONFIDENCE = { top: 0.93, mid: 0.88, bottom: 0.71 }
+
+/** 시안 검색 전 미리보기 깔때기 */
+export const S04_FUNNEL: { steps: FunnelStep[]; note: string } = {
+  steps: [
+    { label: "신발 DB", value: "128,406", ratio: 100 },
+    { label: "매칭 조건 통과", value: "121,930", ratio: 95 },
+    { label: "필수 문양 상·중 헤링본", value: "857", ratio: 34 },
+    { label: "먼저 볼 후보(AI 순위)", value: "Top 10", ratio: 12 },
+  ],
+  note: "필수를 하나 더 걸면 857 → 312건. 너무 좁히면 정답이 빠질 수 있어 개수를 먼저 보여 줍니다.",
+}
+
+/** 시안 팔레트 「최근 사용」 줄 */
+export const S04_RECENT = ["n32_04", "n21_05", "s10c", "n21_02", "n73_01"]
 
 /** SCAS 「매칭 조건」 가짜 값(시안 등록기간 2000-01-01 ~ 2025-07-24) */
 export const S04_MATCH_CONDITIONS: MatchConditionValues = {
