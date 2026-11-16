@@ -123,6 +123,7 @@
 | AiSuggestion(S03 aiRow) | grid `1fr auto` · 간격 6 · 11/1.35 · 제목 bold fg · 근거 dim · 버튼 sm 높이 22 안쪽 7 |
 | HeatOverlay | viewBox 0 0 100 264 늘림 · `match`: 상 (48,52 r38×40) 중 (48,136 r34×36 .8) 붉은→주황 번짐 · 하 (42,214 r22) 노랑 · 소실 점선 고리 (86,168 r14×26, danger-fg, 3 3) · `spots`: 원 3개(r26 · 22 · 18) 불투명 .55 · mix-blend screen |
 | Stepper(`.stepper`) | inline-flex 간격 3 · 칸 폭 18(S01 인라인 20) 높이 5 모서리 3 · 남음 line-3 · 끝남 brand-2 · 지금 warn + `0 0 6px warn` |
+| Stepper `labeled`(S02 제목 줄) | inline-flex 간격 4 · 10.5px 400 · 단계 = 점(7px 원 · 1px 테두리, 끝남 · 지금은 채움 · 남음은 비움) + 이름, 색 끝남 brand · 지금 ai(맥박) · 남음 faint · 연결선 14×1 지금 단계로 들어오는 선까지 brand-2, 그 뒤 line-3 |
 
 ## 입력 · 저장 · 오류
 

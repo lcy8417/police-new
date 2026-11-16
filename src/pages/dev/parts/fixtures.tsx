@@ -199,6 +199,15 @@ const BASE_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
   ),
   // Stepper(r2) — S01 사건 진행 단계 막대: 교차 검증 단계(2번째 칸이 지금)
   "S01-44": () => <Stepper steps={["검증요청", "교차 검증", "감정서", "결재"]} current={1} partId="S01-44" />,
+  // Stepper labeled(r2 검수) — S02 제목 줄 단계 띠(접수 완료, 지금 1차 작업)
+  "S02-42": () => (
+    <Stepper
+      variant="labeled"
+      steps={["접수", "1차 작업", "검색·판정", "교차 검증", "감정서", "결재"]}
+      current={1}
+      partId="S02-42"
+    />
+  ),
 };
 
 // 갈래별 그리기를 합친다(잠금, Task 5).
