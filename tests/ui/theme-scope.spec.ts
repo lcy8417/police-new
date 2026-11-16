@@ -48,8 +48,9 @@ test("진열 화면 기본 = scas-light · D2Coding(내장 글꼴 로딩)", asyn
   const shell = page.locator('[data-part="ScasShell"]');
   await expect(shell).toHaveAttribute("data-theme", "scas-light");
   await page.evaluate(() => document.fonts.ready);
+  // r4 로망 앱 틀: 루트는 어두운 바깥 틀(--t-emblem-to), 팔레트 바탕(canvas)은 위 막대를 담은 둥근 내용 판
   const r = await shell.evaluate((el) => ({
-    bg: getComputedStyle(el).backgroundColor,
+    bg: getComputedStyle(el.querySelector("header")!.parentElement!).backgroundColor,
     fg: getComputedStyle(el).color,
     font: getComputedStyle(el).fontFamily,
     loaded: document.fonts.check('12px "Scas D2Coding"', "감정"),
@@ -102,7 +103,11 @@ test("팔레트별 바탕 · 글자 계산값(dark = r3 시안 값)", async ({ p
   for (const theme of THEMES) {
     await page.locator('[data-part="ThemeScope"]').evaluate((el, t) => el.setAttribute("data-theme", t), theme);
     await shell.evaluate((el, t) => el.setAttribute("data-theme", t), theme);
-    const r = await shell.evaluate((el) => ({ bg: getComputedStyle(el).backgroundColor, fg: getComputedStyle(el).color }));
+    // r4: 팔레트 바탕은 둥근 내용 판(위 막대의 부모) — 루트는 어두운 바깥 틀
+    const r = await shell.evaluate((el) => ({
+      bg: getComputedStyle(el.querySelector("header")!.parentElement!).backgroundColor,
+      fg: getComputedStyle(el).color,
+    }));
     expect(r, theme).toEqual(expected[theme]);
   }
 });
