@@ -10,9 +10,25 @@ import {
   type CaseImage,
 } from "@/widgets/case-detail"
 
-import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevViewer } from "../frame"
+import {
+  DevScreenFrame,
+  SCREEN_CASES,
+  devScreen,
+  useDevCase,
+  useDevNavigate,
+  useDevPlus,
+  useDevViewer,
+} from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
-import { DETAIL_FORM, EMPTY_FORM, OFFICE_ITEMS, PENDING_VALUES, makeImages } from "./mock-cases"
+import {
+  DETAIL_FORM,
+  EMPTY_FORM,
+  OFFICE_ITEMS,
+  PENDING_VALUES,
+  S02_DEMO_UPLOAD,
+  S02_PLUS,
+  makeImages,
+} from "./mock-cases"
 
 const info = devScreen("s02")
 
@@ -20,6 +36,7 @@ const info = devScreen("s02")
 export function S02DevPage() {
   const devCase = useDevCase(SCREEN_CASES.s02,"ready")
   const viewer = useDevViewer()
+  const plus = useDevPlus()
   const to = useDevNavigate()
   const [params] = useSearchParams()
   const id = params.get("id")
@@ -27,7 +44,8 @@ export function S02DevPage() {
   const [mode, setMode] = React.useState<"detail" | "register">(id ? "detail" : "register")
   const [form, setForm] = React.useState<CaseDetailForm>(id ? { ...DETAIL_FORM, apprslReqestNo: id } : EMPTY_FORM)
   const [images, setImages] = React.useState<CaseImage[]>(() => (id ? makeImages(id) : []))
-  const [selected, setSelected] = React.useState<string | null>(null)
+  // 시안은 _2(전사판)를 보고 있는 모양
+  const [selected, setSelected] = React.useState<string | null>(id ? `${id}_2` : null)
   const [checked, setChecked] = React.useState<string[]>([])
   const [continuous, setContinuous] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
@@ -40,7 +58,10 @@ export function S02DevPage() {
   }
 
   // 올리는 중 막대: 0 → 100 을 흉내 낸 뒤 목록에 붙인다(가짜 — 서버 호출 없음)
-  const [uploading, setUploading] = React.useState<{ fileName: string; percent: number } | undefined>()
+  // +α 를 켜면 시안처럼 _13 이 68% 올라가는 중인 모양으로 시작한다
+  const [uploading, setUploading] = React.useState<{ fileName: string; percent: number } | undefined>(
+    plus ? S02_DEMO_UPLOAD : undefined
+  )
   const timer = React.useRef<ReturnType<typeof setInterval> | null>(null)
   React.useEffect(() => () => {
     if (timer.current) clearInterval(timer.current)
@@ -142,6 +163,9 @@ export function S02DevPage() {
         }}
         onOpenImageEdit={(imageId) => to("/dev/s03", { id: caseId ?? "", image: imageId })}
         onOpenSearch={() => to("/dev/s04", { id: caseId ?? "" })}
+        showPlus={plus}
+        plus={S02_PLUS}
+        onMockAction={() => toast("시안 — 기능 준비 중")}
       />
     </DevScreenFrame>
   )

@@ -1,8 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { S01DevPage } from "./S01DevPage"
+
+const toastMock = vi.hoisted(() => vi.fn())
+vi.mock("sonner", () => ({ toast: toastMock }))
 
 function Where() {
   const { pathname, search } = useLocation()
@@ -100,13 +103,94 @@ describe("S01DevPage 사건관리 목록", () => {
     expect(names.slice(0, 6)).toEqual(["목록보기", "문양보기", "초기화", "엑셀", "조회", "등록"])
   })
 
-  it("앱에 없는 「엑셀」 · 「문양보기」 는 잠기고 「준비 중」 안내가 붙는다", () => {
+  it("「엑셀」 · 「문양보기」 는 활성 모양이고 누르면 「시안 — 기능 준비 중」 알림(spec §13-4)", () => {
+    toastMock.mockClear()
     renderAt("/dev/s01?case=ready")
-    expect(screen.getByRole("button", { name: "엑셀" })).toBeDisabled()
-    expect(screen.getByRole("button", { name: "엑셀" }).parentElement).toHaveAttribute("title", "준비 중")
-    const pattern = screen.getByText("문양보기")
-    expect(pattern.closest("button")).toBeDisabled()
-    expect(pattern.closest("[title]")).toHaveAttribute("title", "준비 중")
+    expect(screen.getByRole("button", { name: "엑셀" })).toBeEnabled()
+    fireEvent.click(screen.getByRole("button", { name: "엑셀" }))
+    fireEvent.click(screen.getByText("문양보기"))
+    expect(toastMock).toHaveBeenCalledTimes(2)
+    expect(toastMock).toHaveBeenCalledWith("시안 — 기능 준비 중")
+  })
+
+  describe("r2 시안 +α", () => {
+    it("AI 사전 처리 · 역할별 할 일 타일 · 실시간 · 사건 진행 열 · 행 펼침이 시안 문구 그대로 보인다", () => {
+      renderAt("/dev/s01?case=ready&as=analyst")
+      expect(screen.getByText("AI 사전 처리")).toBeInTheDocument()
+      expect(screen.getByText(/이진화 12\/12 · 문양 제안 9\/12 · 검색 Top-10 준비 7\/12/)).toBeInTheDocument()
+      expect(screen.getByText("09:12 공문 접수")).toBeInTheDocument()
+      expect(screen.getByText("교차 검증 요청 받음")).toBeInTheDocument()
+      expect(screen.getByText("실시간 · 09:12 갱신")).toBeInTheDocument()
+      expect(screen.getByText("＋사건 진행")).toBeInTheDocument()
+      expect(screen.getByText("AI 7/12")).toBeInTheDocument()
+      expect(screen.getAllByText("AI✓").length).toBeGreaterThan(0)
+      // 0646 행 펼침: 이미지별 현장 → 이진화 → 1위 후보 + 발견/불발견 칩
+      expect(screen.getByText("감정불능")).toBeInTheDocument()
+      expect(screen.getByText("305659")).toBeInTheDocument()
+      expect(screen.getByText("끝까지 봄")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "사건 열기 (S02)" })).toBeInTheDocument()
+    })
+
+    it("?plus=0 이면 [data-plus] 가 하나도 없고 1차 내용은 그대로", () => {
+      const { container } = renderAt("/dev/s01?case=ready&as=analyst&plus=0")
+      expect(container.querySelectorAll("[data-plus]")).toHaveLength(0)
+      expect(screen.queryByText("AI 사전 처리")).toBeNull()
+      expect(screen.queryByText("＋사건 진행")).toBeNull()
+      expect(screen.queryByText(/실시간/)).toBeNull()
+      expect(screen.getByText("00001-25-0646")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "기본 보기 14열" })).toBeInTheDocument()
+      expect(screen.getByText(/전체 116 중 1-14/)).toBeInTheDocument()
+    })
+
+    it("보는 사람에 따라 타일 · 버튼이 달라진다(시안 data-role)", () => {
+      const { unmount } = renderAt("/dev/s01?case=ready&as=analyst")
+      expect(screen.getByText("이미지 미검색")).toBeInTheDocument()
+      expect(screen.queryByText("결재 대기")).toBeNull()
+      expect(screen.queryByText("우리 청 의뢰")).toBeNull()
+      expect(screen.getAllByRole("button", { name: "검색" }).length).toBeGreaterThan(0)
+      expect(screen.getAllByRole("button", { name: "검증" }).length).toBeGreaterThan(0)
+      unmount()
+
+      const v = renderAt("/dev/s01?case=ready&as=verifier")
+      expect(screen.getByText("결재 대기")).toBeInTheDocument()
+      expect(screen.queryByText("AI 사전 처리")).toBeNull()
+      expect(screen.queryByText("이미지 미검색")).toBeNull()
+      expect(screen.queryByRole("button", { name: "검색" })).toBeNull()
+      expect(screen.queryByRole("button", { name: "검증" })).toBeNull()
+      v.unmount()
+
+      renderAt("/dev/s01?case=ready&as=investigator")
+      expect(screen.getByText("우리 청 의뢰")).toBeInTheDocument()
+      expect(screen.queryByText("결재 대기")).toBeNull()
+      expect(screen.queryByText("AI 7/12")).toBeNull()
+      expect(screen.getByRole("button", { name: "등록" })).toBeInTheDocument()
+    })
+
+    it("검증요청 · 검증은 눌러도 「시안 — 기능 준비 중」 알림만", () => {
+      toastMock.mockClear()
+      renderAt("/dev/s01?case=ready&as=analyst")
+      fireEvent.click(screen.getAllByRole("button", { name: "검증" })[0])
+      expect(toastMock).toHaveBeenCalledWith("시안 — 기능 준비 중")
+    })
+
+    it("움직임 줄이기: 스캔 선은 motion-safe 로만 움직인다(멈춘 모양 = 안 보임)", () => {
+      const { container } = renderAt("/dev/s01?case=ready&as=analyst")
+      const scan = container.querySelector('[data-part="ScanOverlay"]')
+      expect(scan).not.toBeNull()
+      expect(scan!.className).toContain("motion-safe:animate-fx-scan")
+      expect(scan!.className).toContain("opacity-0")
+      expect(container.querySelector('[data-part="AiProgress"][data-part-variant="running"] i')!.className).toContain(
+        "motion-safe:"
+      )
+    })
+
+    it("펼침 줄은 순번 숫자로 접고 편다", () => {
+      renderAt("/dev/s01?case=ready&as=analyst")
+      fireEvent.click(screen.getByRole("button", { name: "00001-25-0646 이미지별 요약 접기" }))
+      expect(screen.queryByText("305659")).toBeNull()
+      fireEvent.click(screen.getByRole("button", { name: "00001-25-0646 이미지별 요약 펼치기" }))
+      expect(screen.getByText("305659")).toBeInTheDocument()
+    })
   })
 
   it("readonly 보기에서 「등록」 버튼이 없다", () => {

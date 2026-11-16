@@ -3,8 +3,23 @@ import { toast } from "sonner"
 
 import { CaseListScreen, type CaseListFilters } from "@/widgets/case-list"
 
-import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevViewer } from "../frame"
-import { EMPTY_FILTERS, S01_PAGE_SIZE, makeCaseRows } from "./mock-cases"
+import {
+  DevScreenFrame,
+  SCREEN_CASES,
+  devScreen,
+  useDevCase,
+  useDevNavigate,
+  useDevPlus,
+  useDevViewer,
+} from "../frame"
+import {
+  EMPTY_FILTERS,
+  S01_AI_PREP,
+  S01_LIVE_AT,
+  S01_PAGE_SIZE,
+  S01_TASKS,
+  makeCaseRows,
+} from "./mock-cases"
 
 const info = devScreen("s01")
 
@@ -12,6 +27,7 @@ const info = devScreen("s01")
 export function S01DevPage() {
   const devCase = useDevCase(SCREEN_CASES.s01,"ready")
   const viewer = useDevViewer()
+  const plus = useDevPlus()
   const to = useDevNavigate()
 
   const allRows = React.useMemo(() => makeCaseRows(), [])
@@ -68,6 +84,11 @@ export function S01DevPage() {
         onRegister={() => to("/dev/s02")}
         onSearchCase={(no) => to("/dev/s04", { id: no })}
         onConfirmCase={(no) => to("/dev/s07", { id: no })}
+        showPlus={plus}
+        aiPrep={S01_AI_PREP}
+        tasks={S01_TASKS}
+        liveAt={S01_LIVE_AT}
+        onMockAction={() => toast("시안 — 기능 준비 중")}
       />
     </DevScreenFrame>
   )
