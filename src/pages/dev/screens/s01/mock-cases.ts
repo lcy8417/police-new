@@ -1,4 +1,10 @@
-import type { CaseListFilters, CaseListRow } from "@/widgets/case-list"
+import type {
+  CaseListAiPrep,
+  CaseListFilters,
+  CaseListRow,
+  CaseListRowSummary,
+  CaseListTasks,
+} from "@/widgets/case-list"
 
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
 
@@ -52,14 +58,69 @@ function thumbFor(i: number): string {
   return thumbs[i % thumbs.length]
 }
 
+// 시안 r3 +α 값: 사건 진행 단계(cs) · 들어온 길(src). 시안 CASES 순서와 같다.
+const STAGES = [-1, -1, 1, 2, 3, 4, 4]
+
+let binThumbs: string[] | null = null
+function binFor(i: number): string {
+  binThumbs ??= THUMB_ZONES.map((z) => fakeSoleUrl({ kind: "bin", zones: [...z] }))
+  return binThumbs[i % binThumbs.length]
+}
+
+/** 시안 0646 펼침: 이미지별 현장 → 이진화 → 1위 후보 */
+function makeSummary(i: number): CaseListRowSummary {
+  const sole = (kind: "scene" | "bin" | "shoe", k: number) =>
+    fakeSoleUrl({ kind, zones: [...THUMB_ZONES[k]] })
+  return {
+    defaultOpen: i === 2,
+    confirmedAt: "07-24 17:35",
+    crossReviewer: "김○○ 경위",
+    images: [
+      { seq: "_1", result: "발견", searchNo: "572420", target: "2 / 500", sceneSrc: sole("scene", 0), binSrc: sole("bin", 0), shoeSrc: sole("shoe", 0), topCandidate: "305659", similarity: "60.8" },
+      { seq: "_2", result: "불발견", searchNo: "572356", target: "0 / 1,204", sceneSrc: sole("scene", 1), binSrc: sole("bin", 1), note: "끝까지 봄" },
+      { seq: "_3", result: "감정불능", searchNo: "—", target: "검색 안 함", sceneSrc: sole("scene", 2), binSrc: sole("bin", 2), note: "족적 30%만 남음" },
+    ],
+  }
+}
+
+/** (+α) 「AI 사전 처리」 타일: 방금 접수된 0649 */
+export const S01_AI_PREP: CaseListAiPrep = {
+  aprthngNo: "00001-25-0649",
+  receivedAt: "09:12",
+  imageCount: 12,
+  binarized: 12,
+  suggested: 9,
+  top10: 7,
+}
+
+/** (+α) 역할별 할 일 타일 숫자(시안 그대로) */
+export const S01_TASKS: CaseListTasks = {
+  awaitingResult: { cases: 14, imagesTotal: 98, imagesChecked: 57 },
+  unsearched: { images: 9, ready: 7, waiting: 2 },
+  crossRequest: { count: 1, detail: "00001-25-0646 · 김○○ → 나" },
+  approval: { count: 3, detail: "가장 오래된 것 2일" },
+  ours: { count: 22, detail: "진행 중 6 · 결재완료 16" },
+}
+
+export const S01_LIVE_AT = "09:12"
+
 /** 시안 7건을 돌려 가며 전체 116건을 만든다. 감정번호는 0649 에서 하나씩 내려간다. */
 export function makeCaseRows(): CaseListRow[] {
   return Array.from({ length: S01_TOTAL }, (_, i) => {
-    const s = SEEDS[i % SEEDS.length]
+    const k = i % SEEDS.length
+    const s = SEEDS[k]
     const confirmed = s.progress.confirmed > 0
     return {
       ...s,
-      aprthngNo: `00001-25-${String(649 - i).padStart(4, "0")}`,
+      stackSrc: s.shoeCount + s.tireCount > 1 ? binFor(i) : undefined,
+      source: k === 6 ? "manual" : "auto",
+      isNew: i === 0,
+      ai: i === 0 ? { state: "running", ready: 7, total: 12 } : { state: "done", ready: s.shoeCount, total: s.shoeCount },
+      stage: STAGES[k],
+      crossReviewer: k === 2 ? "김○○ 경위" : undefined,
+      summary: k === 2 ? makeSummary(i) : undefined,
+      // 첫 7건은 시안 감정번호(0649 · 0647 · 0646 …) 그대로, 그 뒤는 겹치지 않게 0583 에서 내려간다
+      aprthngNo: i < SEEDS.length ? s.aprthngNo : `00001-25-${String(590 - i).padStart(4, "0")}`,
       caseName: i === 5 ? LONG_CASE_NAME : s.caseName,
       processOffice: "경찰청 범죄분석과",
       confirmedAt: confirmed ? s.registeredAt : "",

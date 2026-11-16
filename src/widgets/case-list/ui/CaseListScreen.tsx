@@ -2,27 +2,33 @@ import * as React from "react"
 
 import { FEATURES } from "@/entities/session"
 import { cn } from "@/shared/lib/utils"
+import { AiTag, LiveDot, ScanOverlay } from "@/shared/ui/ai"
 import {
   Button,
   Checkbox,
   Chip,
-  DataGrid,
   Field,
   InlineError,
   Pagination,
   RadioRow,
   Segmented,
-  type DataGridColumn,
 } from "@/shared/ui/kit"
-import { ButtonBar, Panel, SearchForm, type SearchFormRow } from "@/shared/ui/panel"
+import { ButtonBar, Panel, SearchForm, Stepper, type SearchFormRow } from "@/shared/ui/panel"
 import { SoleThumb } from "@/shared/ui/viewer"
 
 import type { CaseListFilters, CaseListRow, CaseListScreenProps } from "../model/types"
+import { CaseTable, type CaseTableColumn } from "./CaseTable"
+import { PlusTiles } from "./PlusTiles"
+import { RowSummary } from "./RowSummary"
 
 // S01 사건관리 목록(SCAS 「족윤적 > 사건관리」 탭). 값만 받아 그린다 — 서버 호출 · 전역 상태 없음.
-// 검색 폼 3열×5행 · 툴바 순서 · 열 순서는 SCAS 그대로(정본 스킬 원칙). 새 열은 넣지 않는다.
+// 검색 폼 3열×5행 · 툴바 순서 · 열 순서는 SCAS 그대로(정본 스킬 원칙). 새 열(사건 진행)은 맨 끝에만 덧붙인다.
+// r2: 시안 r3 의 +α(AI 사전 처리 · 할 일 타일 · 실시간 · 진행 열 · 행 펼침 · AI 표식)는 showPlus 하나로 숨긴다(`data-plus`).
 
 type ViewMode = "basic" | "full"
+
+const STAGE_STEPS = ["검증요청", "교차 검증", "감정서", "결재"]
+const STAGE_LABELS = ["검증요청", "교차 검증", "감정서", "결재", "결재완료"]
 
 const dash = (v: string) => (v === "" ? "—" : v)
 
@@ -76,12 +82,27 @@ function Clip({ text, max }: { text: string; max: string }) {
   )
 }
 
+/** (+α) 사건 진행 열 칸: 단계 막대 + 단계 이름(교차 검증이면 검증자) */
+function StageCell({ row }: { row: CaseListRow }) {
+  const stage = row.stage ?? -1
+  if (stage < 0) return <span className="text-[11px] text-faint">이미지 확인 중</span>
+  return (
+    <div className="grid gap-[3px]">
+      <Stepper steps={STAGE_STEPS} current={stage} width={20} />
+      <span className={cn("text-[11px] leading-[1.2]", stage === 4 ? "text-ok-fg" : "text-fg-2")}>
+        {STAGE_LABELS[Math.min(stage, 4)]}
+        {stage === 1 && row.crossReviewer ? ` · ${row.crossReviewer.split(" ")[0]}` : ""}
+      </span>
+    </div>
+  )
+}
+
 type StringFilterKey = Exclude<
   { [K in keyof CaseListFilters]: CaseListFilters[K] extends string ? K : never }[keyof CaseListFilters],
   "kind"
 >
 
-const FIELD_ARIA =(label: string) => ({ "aria-label": label })
+const FIELD_ARIA = (label: string) => ({ "aria-label": label })
 
 export function CaseListScreen({
   status,
@@ -102,12 +123,25 @@ export function CaseListScreen({
   onRegister,
   onSearchCase,
   onConfirmCase,
+  showPlus = true,
+  aiPrep,
+  tasks,
+  liveAt,
+  onMockAction,
 }: CaseListScreenProps) {
-  // 보기 방식은 저장하지 않는 화면 안 모양이라 위젯 안 상태(spec §6-1)
+  // 보기 방식 · 펼친 행은 저장하지 않는 화면 안 모양이라 위젯 안 상태(spec §6-1)
   const [viewMode, setViewMode] = React.useState<ViewMode>("basic")
+  const [expanded, setExpanded] = React.useState<string | null>(
+    () => rows.find((r) => r.summary?.defaultOpen)?.aprthngNo ?? null
+  )
 
   const canRegister = isAdmin || features.includes(FEATURES.CRIME_REGISTER)
   const canSearch = isAdmin || features.includes(FEATURES.CRIME_SEARCH)
+  // 시안 data-role「analyst admin」: 기술책임자(결재만 하는 사람)에게는 행 끝 버튼을 숨긴다
+  const verifierOnly = !isAdmin && features.includes(FEATURES.REPORT_APPROVE) && !features.includes(FEATURES.EXAM_DECIDE)
+  const canAct = canSearch && !(showPlus && verifierOnly)
+  const has = (code: (typeof FEATURES)[keyof typeof FEATURES]) => isAdmin || features.includes(code)
+  const analystView = has(FEATURES.EXAM_DECIDE)
 
   const set = <K extends keyof CaseListFilters>(key: K, value: CaseListFilters[K]) =>
     onFiltersChange({ ...filters, [key]: value })
@@ -210,51 +244,155 @@ export function CaseListScreen({
     { label: "타기관여부", field: select("otherOrg", "타기관여부", true) },
   ]
 
-  const actionCol: DataGridColumn<CaseListRow> = {
-    key: "act",
-    header: "검색 · 확인 · 검증",
-    render: (r) => (
-      <span className="inline-flex items-center gap-[4px]">
-        {canSearch && r.progress.registered > 0 ? (
-          <Button size="sm" variant="ok" row onClick={() => onSearchCase(r.aprthngNo)}>
-            검색
-          </Button>
-        ) : null}
-        {canSearch && (r.progress.searched > 0 || r.progress.confirmed > 0) ? (
-          <Button size="sm" variant="ok" row onClick={() => onConfirmCase(r.aprthngNo)}>
-            확인
-          </Button>
-        ) : null}
-        {r.progress.registered === 0 && r.progress.searched === 0 ? (
-          <span title="준비 중" className="inline-flex">
-            <Button size="sm" row disabled>
-              검증요청
-            </Button>
-          </span>
-        ) : null}
-      </span>
-    ),
+  // 행 끝 버튼. 시안(+α) 규칙: 검색 = 등록 장수가 있을 때 · 확인 = 검색 장수가 있거나 사건 단계 전 확인 장수가 있을 때 ·
+  // 검증요청 = 검증요청 단계이거나 이미지가 아직 안 움직인 사건 · 검증 = 교차 검증 단계. +α 를 끄면 1차 규칙 그대로.
+  const stageOf = (r: CaseListRow) => r.stage ?? -1
+  const searchBtn = (r: CaseListRow) =>
+    canAct && r.progress.registered > 0 ? (
+      <Button size="sm" variant="ok" row onClick={() => onSearchCase(r.aprthngNo)}>
+        검색
+      </Button>
+    ) : null
+  const confirmBtn = (r: CaseListRow) => {
+    const { searched, confirmed } = r.progress
+    const show = showPlus ? searched > 0 || (confirmed > 0 && stageOf(r) < 0) : searched > 0 || confirmed > 0
+    return canAct && show ? (
+      <Button size="sm" variant="ok" row onClick={() => onConfirmCase(r.aprthngNo)}>
+        확인
+      </Button>
+    ) : null
   }
+  const verifyBtn = (r: CaseListRow) => {
+    if (!showPlus) {
+      return r.progress.registered === 0 && r.progress.searched === 0 ? (
+        <span title="준비 중" className="inline-flex">
+          <Button size="sm" row disabled>
+            검증요청
+          </Button>
+        </span>
+      ) : null
+    }
+    if (!canAct) return null
+    const stage = stageOf(r)
+    if (stage === 0 || (r.progress.registered === 0 && r.progress.searched === 0 && stage < 0)) {
+      return (
+        <Button size="sm" row className="border-violet-line text-violet" onClick={() => onMockAction?.("검증요청")}>
+          검증요청
+        </Button>
+      )
+    }
+    if (stage === 1) {
+      return (
+        <Button
+          size="sm"
+          variant="warn"
+          row
+          title="다른 감정관(교차 검증자)에게만 보임"
+          onClick={() => onMockAction?.("검증")}
+        >
+          검증
+        </Button>
+      )
+    }
+    return null
+  }
+  const spacer = <span className="inline-block w-[36px]" />
 
   const col = (
     key: string,
-    header: string,
+    header: React.ReactNode,
     render: (r: CaseListRow) => React.ReactNode,
-    extra: Partial<DataGridColumn<CaseListRow>> = {}
-  ): DataGridColumn<CaseListRow> => ({ key, header, render, ...extra })
+    extra: Partial<CaseTableColumn<CaseListRow>> = {}
+  ): CaseTableColumn<CaseListRow> => ({ key, header, render, ...extra })
+
+  const actionCol = col("act", "검색 · 확인 · 검증", (r) => (
+    <span className="inline-flex items-center gap-[4px]">
+      {showPlus ? (searchBtn(r) ?? spacer) : searchBtn(r)}
+      {showPlus ? (confirmBtn(r) ?? spacer) : confirmBtn(r)}
+      {verifyBtn(r)}
+    </span>
+  ))
 
   const indexOf = (r: CaseListRow) => rows.indexOf(r) + 1 + (page - 1) * pageSize
-  const idx = col("no", "순번", (r) => <span className="font-code tabular-nums text-dim">{indexOf(r)}</span>)
-  const img = col("img", "이미지", (r) => (
-    <SoleThumb
-      src={r.thumbSrc}
-      alt={`${r.aprthngNo} 이미지`}
-      size="sm"
-      tabIndex={-1}
-      onClick={() => onOpenCase(r.aprthngNo)}
-    />
-  ))
-  const no = col("aprthngNo", "감정번호", (r) => <span className="font-code text-[12px] text-foreground">{r.aprthngNo}</span>)
+  const idx = col("no", "순번", (r) =>
+    showPlus && r.summary ? (
+      <button
+        type="button"
+        aria-expanded={expanded === r.aprthngNo}
+        aria-label={`${r.aprthngNo} 이미지별 요약 ${expanded === r.aprthngNo ? "접기" : "펼치기"}`}
+        onClick={() => setExpanded(expanded === r.aprthngNo ? null : r.aprthngNo)}
+        className="cursor-pointer border-none bg-transparent p-0 font-code tabular-nums text-dim"
+      >
+        {indexOf(r)}
+      </button>
+    ) : (
+      <span className="font-code tabular-nums text-dim">{indexOf(r)}</span>
+    )
+  )
+  const img = col("img", "이미지", (r) => {
+    const thumb = (
+      <SoleThumb
+        src={r.thumbSrc}
+        alt={`${r.aprthngNo} 이미지`}
+        size="sm"
+        tabIndex={-1}
+        onClick={() => onOpenCase(r.aprthngNo)}
+      />
+    )
+    if (!showPlus) return thumb
+    const multi = r.shoeCount + r.tireCount > 1
+    return (
+      <span className="relative inline-block h-[40px] w-[40px] align-middle">
+        {multi && r.stackSrc ? (
+          <span
+            aria-hidden="true"
+            className="absolute left-[8px] top-0 h-[38px] w-[26px] overflow-hidden rounded-[5px] border border-solid border-border bg-white opacity-[.55]"
+          >
+            <img src={r.stackSrc} alt="" className="block size-full object-contain" />
+          </span>
+        ) : null}
+        <SoleThumb
+          src={r.thumbSrc}
+          alt={`${r.aprthngNo} 이미지`}
+          size="sm"
+          tabIndex={-1}
+          onClick={() => onOpenCase(r.aprthngNo)}
+          className="absolute left-0 top-[2px] [box-shadow:2px_0_6px_0_var(--t-ai-tag-drop)]"
+        />
+        {r.isNew ? (
+          <span
+            data-plus
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 top-[2px] h-[38px] w-[26px] overflow-hidden rounded-[5px]"
+          >
+            <ScanOverlay active />
+          </span>
+        ) : null}
+        {analystView && r.ai ? (
+          <AiTag
+            data-plus
+            variant={r.ai.state === "running" ? "progress" : "done"}
+            partId={r.ai.state === "running" ? "S01-17" : undefined}
+            className={cn("absolute -bottom-[5px]", r.ai.state === "running" ? "left-[4px]" : "left-[12px]")}
+          >
+            {r.ai.state === "running" ? `AI ${r.ai.ready}/${r.ai.total}` : "AI✓"}
+          </AiTag>
+        ) : null}
+      </span>
+    )
+  })
+  const no = col("aprthngNo", "감정번호", (r) =>
+    showPlus && r.source ? (
+      <div className="leading-[1.3]">
+        <div className="font-code text-[12px] text-foreground">{r.aprthngNo}</div>
+        <div data-plus className={cn("text-[10.5px]", r.source === "auto" ? "text-brand" : "text-violet")}>
+          ● {r.source === "auto" ? "공문 자동" : "임의 등록"}
+        </div>
+      </div>
+    ) : (
+      <span className="font-code text-[12px] text-foreground">{r.aprthngNo}</span>
+    )
+  )
   const doc = col("docNo", "문서번호", (r) => <span className="font-code text-[11.5px]">{dash(r.docNo)}</span>)
   const name = col("caseName", "사건명", (r) => <Clip text={r.caseName} max="max-w-[16rem]" />)
   const req = col("req", "의뢰관서 (SCAS번호)", (r) => (
@@ -284,8 +422,19 @@ export function CaseListScreen({
   const result = col("caseResult", "사건 결과", (r) => dash(r.caseResult))
   const receiver = col("receiver", "접수자", (r) => dash(r.receiver))
   const author = col("author", "작성자", (r) => dash(r.author))
+  // (+α) 맨 끝에 덧붙이는 사건 진행 열
+  const stageCol = col(
+    "stage",
+    <span className="inline-block w-[106px] whitespace-normal">
+      <span className="text-ai">＋사건 진행</span>
+      <br />
+      <span className="font-normal text-dim">검증요청→교차 검증→감정서→결재</span>
+    </span>,
+    (r) => <StageCell row={r} />,
+    { plus: true, cellClass: "bg-[color-mix(in_srgb,var(--t-ai-bg)_18%,transparent)]" }
+  )
 
-  const columns: DataGridColumn<CaseListRow>[] =
+  const baseColumns: CaseTableColumn<CaseListRow>[] =
     viewMode === "basic"
       ? [
           idx, img, no, doc, name, req, occ, kind, count, sus, reg,
@@ -301,30 +450,11 @@ export function CaseListScreen({
           col("p0", "등록", (r) => <Num v={r.progress.registered} />, { align: "right" }),
           col("p1", "검색", (r) => <Num v={r.progress.searched} tone="text-warn" />, { align: "right" }),
           col("p2", "확인", (r) => <Num v={r.progress.confirmed} tone="text-brand" />, { align: "right" }),
-          col("a1", "검색", (r) =>
-            canSearch && r.progress.registered > 0 ? (
-              <Button size="sm" variant="ok" row onClick={() => onSearchCase(r.aprthngNo)}>
-                검색
-              </Button>
-            ) : null
-          ),
-          col("a2", "확인", (r) =>
-            canSearch && (r.progress.searched > 0 || r.progress.confirmed > 0) ? (
-              <Button size="sm" variant="ok" row onClick={() => onConfirmCase(r.aprthngNo)}>
-                확인
-              </Button>
-            ) : null
-          ),
-          col("a3", "검증", (r) =>
-            r.progress.registered === 0 && r.progress.searched === 0 ? (
-              <span title="준비 중" className="inline-flex">
-                <Button size="sm" row disabled>
-                  검증요청
-                </Button>
-              </span>
-            ) : null
-          ),
+          col("a1", "검색", (r) => searchBtn(r)),
+          col("a2", "확인", (r) => confirmBtn(r)),
+          col("a3", "검증", (r) => verifyBtn(r)),
         ]
+  const columns = showPlus ? [...baseColumns, stageCol] : baseColumns
 
   const showTotal = (status === "ready" || status === "empty") && total !== undefined
 
@@ -332,6 +462,7 @@ export function CaseListScreen({
     <div className="grid gap-[12px]" aria-busy={status === "loading" ? "true" : undefined}>
       <Panel partId="S01-14">
         <SearchForm columns={3} rows={formRows} />
+        {showPlus ? <PlusTiles isAdmin={isAdmin} features={features} aiPrep={aiPrep} tasks={tasks} /> : null}
       </Panel>
 
       <Panel
@@ -340,29 +471,30 @@ export function CaseListScreen({
         actions={
           <>
             {showTotal ? <span className="text-[12px] text-dim">전체 {total}건</span> : null}
+            {showPlus && liveAt ? (
+              <LiveDot data-plus state="busy" label={`실시간 · ${liveAt} 갱신`} className="gap-[5px] text-dim" />
+            ) : null}
             <ButtonBar aria-label="사건관리 목록 도구">
-              {/* 문양보기 · 엑셀은 지금 앱에 없는 기능이라 잠근다(spec §5-2 규칙 3) */}
-              <span title="준비 중" className="mr-[6px] inline-flex">
+              <span className="mr-[6px] inline-flex">
                 <RadioRow
                   name="보기"
                   value="list"
-                  onValueChange={() => undefined}
+                  onValueChange={(v) => {
+                    if (v === "pattern") onMockAction?.("문양보기")
+                  }}
                   options={[
                     { value: "list", label: "목록보기" },
                     { value: "pattern", label: "문양보기" },
                   ]}
-                  disabled
                   className="text-[12px]"
                 />
               </span>
               <Button size="sm" onClick={onReset}>
                 초기화
               </Button>
-              <span title="준비 중" className="inline-flex">
-                <Button size="sm" disabled>
-                  엑셀
-                </Button>
-              </span>
+              <Button size="sm" onClick={() => onMockAction?.("엑셀")}>
+                엑셀
+              </Button>
               <Button size="sm" onClick={onSearch}>
                 조회
               </Button>
@@ -377,7 +509,7 @@ export function CaseListScreen({
                 value={viewMode}
                 onValueChange={(v) => setViewMode(v as ViewMode)}
                 items={[
-                  { value: "basic", label: "기본 보기 14열" },
+                  { value: "basic", label: showPlus ? "기본 보기 15열" : "기본 보기 14열" },
                   { value: "full", label: "SCAS 열 전체 보기 25열" },
                 ]}
               />
@@ -396,10 +528,25 @@ export function CaseListScreen({
         ) : (
           <>
             <div className="overflow-x-auto">
-              <DataGrid
+              <CaseTable
                 columns={columns}
                 rows={status === "empty" ? [] : [...rows]}
                 rowKey={(r) => r.aprthngNo}
+                selectedKey={showPlus ? expanded : null}
+                isNew={showPlus ? (r) => r.isNew === true : undefined}
+                expansion={
+                  showPlus
+                    ? (r) =>
+                        r.summary && expanded === r.aprthngNo ? (
+                          <RowSummary
+                            summary={r.summary}
+                            canAct={canAct}
+                            onOpenCase={() => onOpenCase(r.aprthngNo)}
+                            onConfirmCase={() => onConfirmCase(r.aprthngNo)}
+                          />
+                        ) : null
+                    : undefined
+                }
                 onRowClick={(r) => onOpenCase(r.aprthngNo)}
                 emptyText="결과 없음"
               />

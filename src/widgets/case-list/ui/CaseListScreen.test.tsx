@@ -53,10 +53,31 @@ describe("CaseListScreen", () => {
     expect(screen.queryByRole("button", { name: "확인" })).toBeNull()
   })
 
-  it("「SCAS 열 전체 보기」는 열 25개", () => {
-    const { container } = render(<CaseListScreen {...props()} />)
+  it("「SCAS 열 전체 보기」는 열 25개(+α 를 끈 1차 모양)", () => {
+    const { container } = render(<CaseListScreen {...props({ showPlus: false })} />)
     expect(container.querySelectorAll("thead th")).toHaveLength(14)
     fireEvent.click(screen.getByRole("button", { name: /SCAS 열 전체 보기/ }))
     expect(container.querySelectorAll("thead th")).toHaveLength(25)
+  })
+
+  it("+α 를 켜면 맨 끝에 「사건 진행」 열이 덧붙고(15 · 26열) 끄면 [data-plus] 가 없다", () => {
+    const { container, rerender } = render(<CaseListScreen {...props()} />)
+    expect(container.querySelectorAll("thead th")).toHaveLength(15)
+    expect(screen.getByText("＋사건 진행")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "기본 보기 15열" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: /SCAS 열 전체 보기/ }))
+    expect(container.querySelectorAll("thead th")).toHaveLength(26)
+    rerender(<CaseListScreen {...props({ showPlus: false })} />)
+    expect(container.querySelectorAll("[data-plus]")).toHaveLength(0)
+  })
+
+  it("엑셀 · 문양보기 · 검증요청은 눌리고 onMockAction 으로 이름을 알린다", () => {
+    const onMockAction = vi.fn()
+    const row: CaseListRow = { ...ROW, progress: { registered: 0, searched: 0, confirmed: 0 }, stage: 0 }
+    render(<CaseListScreen {...props({ rows: [row], onMockAction })} />)
+    fireEvent.click(screen.getByRole("button", { name: "엑셀" }))
+    fireEvent.click(screen.getByText("문양보기"))
+    fireEvent.click(screen.getByRole("button", { name: "검증요청" }))
+    expect(onMockAction.mock.calls.map((c) => c[0])).toEqual(["엑셀", "문양보기", "검증요청"])
   })
 })
