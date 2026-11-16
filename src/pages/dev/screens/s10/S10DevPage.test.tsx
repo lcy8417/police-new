@@ -384,6 +384,34 @@ describe("S10 r3 — 빠른 찾기 · 카드 크기 · 열 · 자동 넘기기",
     expect(screen.queryByRole("dialog")).toBeNull()
   })
 
+  it("초점이 「자동」 버튼에 있어도 ← → Space 가 동작하고 Space 로 그 버튼이 다시 눌리지 않는다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    const autoBtn = screen.getByRole("button", { name: "자동" })
+    fireEvent.click(autoBtn)
+    autoBtn.focus()
+    const fire = (k: string, type: "keyDown" | "keyUp" = "keyDown") => fireEvent[type](autoBtn, { key: k })
+    fire("ArrowRight")
+    expect(current()).toBe("303352")
+    fire("ArrowLeft")
+    expect(current()).toBe("00758")
+    fire(" ")
+    expect(screen.getByRole("button", { name: "재생" })).toBeInTheDocument()
+    expect(autoBtn).toHaveAttribute("aria-pressed", "true")
+    expect(fireEvent.keyDown(autoBtn, { key: " " })).toBe(false)
+    expect(fireEvent.keyUp(autoBtn, { key: " " })).toBe(false)
+  })
+
+  it("초점이 「재생/일시정지」 버튼에 있을 때도 ← → 가 동작한다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    const play = screen.getByRole("button", { name: "일시정지" })
+    play.focus()
+    fireEvent.keyDown(play, { key: "ArrowRight" })
+    expect(current()).toBe("303352")
+  })
+
   it("Enter 가 강조된 카드의 창을 연다(자동 넘기기는 열지 않는다)", () => {
     vi.useFakeTimers()
     renderAt("case=ready&as=admin")
@@ -414,6 +442,45 @@ describe("S10 r3 — 빠른 찾기 · 카드 크기 · 열 · 자동 넘기기",
     press("간격 0.5초 줄이기")
     tick(500 * 16)
     expect(screen.getByText(/전체 536 중 17-32/)).toBeInTheDocument()
+  })
+
+  it("자동 모드에서 조건을 바꾸면 강조 위치가 처음으로 돌아가고 자동은 유지된다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    tick(2000 * 3)
+    expect(current()).toBe("303349")
+    search("30335")
+    expect(current()).toBe(Array.from(cards())[0].getAttribute("data-shoe-id"))
+    expect(screen.getByText(/^1 \/ \d+$/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "일시정지" })).toBeInTheDocument()
+  })
+
+  it("자동 모드에서 쪽 넘김을 누르면 그 쪽 첫 카드부터 이어 간다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    tick(2000)
+    fireEvent.click(screen.getByRole("button", { name: /다음/ }))
+    expect(screen.getByText(/전체 536 중 17-32/)).toBeInTheDocument()
+    expect(screen.getByText("17 / 536")).toBeInTheDocument()
+    expect(current()).toBe(cards()[0].getAttribute("data-shoe-id"))
+  })
+
+  it("창이 열려 있는 동안 자동 넘기기는 멈추고, 닫으면 이어 간다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    tick(2000)
+    expect(current()).toBe("303352")
+    fireEvent.click(document.querySelector('[data-shoe-id="303352"]')!)
+    expect(screen.getByRole("dialog")).toBeInTheDocument()
+    tick(10000)
+    fireEvent.click(within(screen.getByRole("dialog")).getAllByRole("button", { name: "닫기" })[0])
+    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(current()).toBe("303352")
+    tick(2000)
+    expect(current()).toBe("303351")
   })
 
   it("마지막 카드에서 멈춘다", () => {

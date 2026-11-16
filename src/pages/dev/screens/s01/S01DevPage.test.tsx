@@ -261,6 +261,16 @@ describe("S01 r3 — 빠른 찾기 · 열 고르기 · 쪽당 행 · 행 높이"
     expect(screen.getByText(/전체 \d+ 중 1-/)).toBeInTheDocument()
   })
 
+  it("내 담당만: 감정관(박○○)은 77건, 수사관(이○○)은 39건", () => {
+    const analyst = renderAt("/dev/s01?case=ready&plus=0&as=analyst")
+    fireEvent.click(screen.getByRole("button", { name: "내 담당만" }))
+    expect(screen.getByText("77 / 전체 116")).toBeInTheDocument()
+    analyst.unmount()
+    renderAt("/dev/s01?case=ready&plus=0&as=investigator")
+    fireEvent.click(screen.getByRole("button", { name: "내 담당만" }))
+    expect(screen.getByText("39 / 전체 116")).toBeInTheDocument()
+  })
+
   it("열 선택: 숨기면 머리가 빠지고 SCAS 순서는 그대로, 감정번호는 고정", () => {
     renderAt("/dev/s01?case=ready&plus=0")
     const heads = () => screen.getAllByRole("columnheader").map((h) => h.textContent)

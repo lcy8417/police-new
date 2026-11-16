@@ -126,7 +126,8 @@ export function makeCaseRows(): CaseListRow[] {
       confirmedAt: confirmed ? s.registeredAt : "",
       caseResult: s.results.found > 0 ? "발견" : confirmed ? "불발견" : "",
       receiver: "박○○",
-      author: "박○○",
+      // 담당 두 사람(감정관 박○○ · 수사관 이○○)이 섞여 「내 담당만」이 보는 사람마다 다른 건수를 낸다(i%3==1 이 이○○ 39건, 나머지 박○○ 77건)
+      author: i % 3 === 1 ? "이○○" : "박○○",
       thumbSrc: thumbFor(i),
     }
   })
