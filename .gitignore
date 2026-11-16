@@ -42,3 +42,6 @@ dist-ssr
 
 # 파이썬 캐시(.claude/hooks · tests/hooks 실행 때 생김)
 __pycache__/
+
+# 실제 현장 족적 사진(매뉴얼 캡처용 — 증거 사진이라 저장소에 올리지 않는다, 2026-11-17)
+samples/
