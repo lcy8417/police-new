@@ -1,6 +1,7 @@
 import * as React from "react"
 import { ArrowRight, Check, Layers, List, Maximize2, RotateCcw, Search, Sparkles } from "lucide-react"
 
+import { PatternPeek, type PatternLibraryItem } from "@/entities/pattern"
 import { cn } from "@/shared/lib/utils"
 import { AiProgress, ScanOverlay } from "@/shared/ui/ai"
 import { Field, Segmented, WorkbenchButton } from "@/shared/ui/kit"
@@ -14,6 +15,7 @@ import {
   viewTuneClass,
   viewTuneLabels,
   type LensSettings,
+  type LensSpot,
   type ViewTune,
 } from "@/shared/ui/viewer"
 
@@ -66,6 +68,10 @@ export function PatternWindow(props: PatternWindowProps) {
   const [tune, setTune] = React.useState<ViewTune>(DEFAULT_VIEW_TUNE)
   const [lens, setLens] = React.useState<LensSettings>(DEFAULT_LENS)
   const [inspecting, setInspecting] = React.useState(false)
+  // 확대 보기 칸: 확대경이 마지막으로 본 자리(마우스를 떼도 유지 · 「고정」이면 멈춤) · 문양 목록에서 마우스를 올린 문양
+  const [spot, setSpot] = React.useState<LensSpot | null>(null)
+  const [pinned, setPinned] = React.useState(false)
+  const [hovered, setHovered] = React.useState<PatternLibraryItem | null>(null)
 
   const weights = React.useMemo(
     () => patternWeights(zones, patternMeta, props.patternKinds, props.weightOverrides),
@@ -96,6 +102,7 @@ export function PatternWindow(props: PatternWindowProps) {
     kind: props.paletteKind,
     onKindChange: props.onPaletteKindChange,
     palette: props.palette,
+    kindCounts: props.paletteCounts,
     zones,
     selectedZone,
     onSelectZone: props.onSelectZone,
@@ -203,6 +210,7 @@ export function PatternWindow(props: PatternWindowProps) {
                   source={props.lensSource}
                   tune={cls}
                   lensSlot="pattern-lens"
+                  onLensMove={pinned ? undefined : setSpot}
                   onSizeStep={lensStep}
                   onDoubleClick={() => setInspecting(true)}
                   className="size-full"
@@ -306,7 +314,17 @@ export function PatternWindow(props: PatternWindowProps) {
           <UnderlineTabs label="문양 · 검색" tabs={sideTabs} value={sideTab} onChange={setSideTab} idPrefix={sideTabsId} />
           <div role="tabpanel" aria-labelledby={`${sideTabsId}-${sideTab}`} className="flex min-h-0 min-w-0 flex-1 flex-col gap-[14px] overflow-y-auto px-[2px]">
             {sideTab === "library" ? (
-              <PatternLibrary {...library} className="flex-1" />
+              <>
+                <PatternPeek
+                  lens={
+                    lens.on
+                      ? { spot, zoom: lens.zoom, source: props.lensSource, tune: cls, pinned, onPinnedChange: setPinned }
+                      : null
+                  }
+                  pattern={hovered}
+                />
+                <PatternLibrary {...library} onHoverItem={(it) => (it ? setHovered(it) : undefined)} className="min-h-[160px] flex-1" />
+              </>
             ) : sideTab === "conditions" ? (
               <>
                 <MatchConditions value={props.matchConditions} onChange={props.onMatchConditionsChange} bare />

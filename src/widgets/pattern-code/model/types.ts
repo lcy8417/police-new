@@ -228,6 +228,8 @@ export interface PatternCodeScreenProps {
   onPaletteKindChange: (kind: PaletteKind) => void
   /** 고른 종류의 문양 그림 경로 */
   palette: readonly string[]
+  /** 종류별 문양 수(창 모드 문양 목록 알약 탭의 개수) */
+  paletteCounts?: Partial<Record<PaletteKind, number>>
   /** SCAS 「코드 설명」 — 마지막으로 고른 문양의 설명(없으면 null) */
   codeNote: { code: string; text: string } | null
 

@@ -103,7 +103,8 @@ r4: 목록 · 앱 틀 생김새는 로망 정본(romang-ui-design)을 따르고 
 | CompareView | viewer | `src/shared/ui/viewer/CompareView.tsx` | (S03 뷰어 B · S06 · S08 나란히 보기) | S03 · S06 · S07 · S08 | [새로] `side` · `overlay` · `slide` | 구현됨 |
 | PointPairs | viewer | `src/shared/ui/viewer/PointPairs.tsx` | (대응점 표시 그림) | S00 · S06 · S08 | [새로] `crime` · `shoe`, 활성 박스 `data-active`. `boxes: PointPairBox[]`(MatchBox와 구조 호환, entities 의존 없음) | 구현됨 |
 | HeatOverlay | viewer | `src/shared/ui/viewer/HeatOverlay.tsx` | (S06 heatSvg · `M.sole` heat) | S00 · S05 · S06 · S07 | [새로] 그림만(`pointer-events-none`, 부모를 꽉 채움, `mix-blend-screen`). `match`(S06 번짐 + 소실 점선 고리) · `spots`(작은 밑창 원 3개 .55) · `opacity` · `children`으로 대체 | 구현됨 |
-| LensBox | viewer | `src/shared/ui/viewer/LensBox.tsx` | (S04 확대경) | S04 · S05 · S06 · S10 | [새로] 마우스 자리 둥근 확대경 — 지름(Shift + 휠 · [ ] 키) · 배율 ×2 · ×3 · ×4, 장식은 `pointer-events-none`, 움직임은 바깥 상자 pointer 이벤트(좌표 계약 안 건드림) · `lensSlot` | 구현됨 |
+| LensBox | viewer | `src/shared/ui/viewer/LensBox.tsx` | (S04 확대경) | S04 · S05 · S06 · S10 | [새로] 마우스 자리 둥근 확대경 — 지름(Shift + 휠 · [ ] 키) · 배율 ×2 · ×3 · ×4, 장식은 `pointer-events-none`, 움직임은 바깥 상자 pointer 이벤트(좌표 계약 안 건드림) · `lensSlot`. 11/17 지름 최소 48(사용자 「더 줄일 수 있게」) · `onLensMove`(보는 자리 비율 좌표 + 상자 크기 → 확대 보기 칸) | 구현됨 |
+| LensView | viewer | `src/shared/ui/viewer/LensView.tsx` | (시안 짝 없음) | S01 사건 창 문양 코드 탭 · 신발 편집 | [새로] 11/17 확대 보기 칸 — LensBox 가 알린 자리(`LensSpot`)를 같은 배율로 칸 한가운데에 그림 · 가운데 점 · 배율 꼬리표. 순수 장식(`pointer-events-none` · 읽지 않음), 위치만 인라인 style | 구현됨 |
 | ViewControls · DEFAULT_VIEW_TUNE · DEFAULT_LENS · GAMMA_VALUE · isViewTuned · LENS_DEFAULT · LENS_MAX · LENS_MIN · LENS_STEP · LENS_ZOOMS · lensOffset · rotateTune · stepLens · stepTune · viewTuneClass · viewTuneLabels | viewer | `src/shared/ui/viewer/ViewControls.tsx` | (S04 보기 조정 막대) | S04 · S05 · S06 · S10 | [새로] 대비 · 밝기 · 감마(`full`) · 반전 · 이진화 · 회전(`rotatable`) · 되돌리기 + 확대경 켜기 · 지름 · 배율. 보기용(저장 안 함), 값 → 두 겹 CSS 필터 클래스(`view-tune.ts` 순수 함수) | 구현됨 |
 | InspectFrame | viewer | `src/shared/ui/viewer/InspectFrame.tsx` | (S04 두 번 눌러 크게 살펴보기) | S04 · S06 · S10 | [새로] 부모를 덮는 먹색 판 — 머리 `meta` · 보기 조정(감마까지) · 휠 확대 · 끌어 이동 · 두 번 누르면 맞춤 · 확대경 · 오른쪽 칸 `aside` · Esc 닫기 | 구현됨 |
 
@@ -145,6 +146,7 @@ r4(2026-11-16 사용자 결정 「로망 컴포넌트 중에 슬라이드 패널
 |---|---|---|---|---|---|---|
 | CaseWindowFrame | panel | `src/shared/ui/panel/window/CaseWindowFrame.tsx` | (로망 `ClientWindowFrame`) | S01 사건 창 | [새로] 내용 판(ScasShell 둥근 판) 위 한 겹: 가림막(누르면 닫힘) + 오른쪽 창(흰 · 모서리 14 · 폭 min(1140, 100%)). `wide`(기본 — 왼쪽 띄움 22 = 목록 판 왼쪽 끝) · 좁게(60). 높이 = 판 안 `sticky` + `100dvh − 88`(11/17 — 진열 막대 30 + 남색 위 막대 48 + 아래 10). 슬롯 `tabs`(창 바로 위 작업 탭 줄, 창 왼쪽 위 모서리 0) · `head` · `rail`(머리 아래 왼쪽 232 + 오른쪽 본문). Esc 닫기(다른 층이 열려 있으면 그 층 몫) · 열 때 창으로 초점 · 닫을 때 연 곳으로 초점 돌려줌. `role="dialog"` + `aria-label` | 구현됨 |
 | WorkTabStrip | panel | `src/shared/ui/panel/window/WorkTabStrip.tsx` | (로망 `WorkTabStrip`) | S01 사건 창 | [새로] 탭 높이 32 · 위 모서리 10 · 12 굵게(글자만 자름, 최대 240) · × 18. 고른 탭 `bg-brand-3 text-paper`, 나머지 `bg-panel/85 text-fg-2`(올리면 `bg-panel`). `role="tablist"` · `aria-selected`. `full`(더 못 엶 — 오른쪽 회색 한 줄 `role="status"`) · `after` | 구현됨 |
+| WorkTabAdd | panel | `src/shared/ui/panel/window/WorkTabAdd.tsx` | (시안 짝 없음) | S01 사건 창 작업 탭 줄 | [새로] 11/17 사용자 「오른쪽에 + 버튼으로 기존 기능들이나 사건들 추가」 — 탭 줄 끝 「+」 28 단추(`bg-panel/85` · 위 모서리 10, `aria-expanded`) → 떠 있는 작은 메뉴(흰 · 모서리 10 · 폭 300 · 그림자 `panel-drop`, `role="dialog"` · `data-state="open"` 이라 창 Esc 보다 먼저): 찾기 칸(kit Field) + 묶음(이름 10.5 굵게 회색) 목록 줄 30(이름 12 굵게 + 아래 10.5 회색 · 오른쪽 꼬리글, 잠긴 줄 흐림 + 까닭 `title`). 값 · 콜백만(무엇을 열지는 부르는 쪽). Esc · 바깥 누름 · 고르면 닫힘 | 구현됨 |
 | WindowRail | panel | `src/shared/ui/panel/window/WindowRail.tsx` | (로망 `HistoryRail` · `DocListRail`) | S01 사건 창 | [새로] 폭 232(`narrow` 208) · `bg-panel-2` · 오른쪽 선. 위 칸 슬롯 `top` · 묶음 머리(이름 + 수, 11.5 굵게) · 줄 = 썸네일 30×44 + 이름 12 굵게 + 아래 10.5 회색 + 오른쪽 `pill`. 고른 줄 `bg-brand-bg` + `aria-current="true"`, 올리면 `bg-strip`. (확장 11/16) 맨 아래 칸 `footer`(위 선 · 바닥 고정 — 사건 창 「+ 사진 추가」 · 끌어 놓기). (확장 11/17 사용자 「기본적으로 접혀있을까?? … 정렬 … 소제목」) `collapsed` = 폭 64 썸네일 줄(썸네일 28×40 + 번호 11 + 귀퉁이 `mark` 15 · `bg-panel-3`) · `onToggle` 「«」/「»」 28 단추(위 칸 오른쪽) · `footerCollapsed`. 펼침 줄 썸네일 28×40 · 이름 12.5 · 알약 칸 폭 60 가운데(길이가 달라도 줄이 맞음). 묶음 머리는 묶음이 둘 이상일 때만(10.5 굵게 회색 + 가는 선 + 수) | 구현됨 |
 | WindowHead | panel | `src/shared/ui/panel/window/WindowHead.tsx` | (로망 `WorkWindowHead` · `HeadTag` · `HeadPill`) | S01 사건 창 | [새로] 어두운 띠 `bg-[var(--t-emblem-to)]` · 머리글자 40 `bg-brand-3` · 이름 17 굵게 · 꼬리표(11.5 굵게 · `paper/14`) · 알약 단추 32(‹ › × 폭 30, 잠김 흐림 .4) · 오른쪽 `end` 자리 · 둘째 줄 `info`. (확장 11/16) ⋯ 메뉴 `menu`(알약 · `paper/70` 글자, 떠 있는 메뉴 = radix DropdownMenu · 흰 · 모서리 10 · 줄 32 · 고른 줄 `bg-brand-bg`, 테마 범위 포털) · 셋째 줄 `flow`(11/16 사용자 「이 단계에서 할 일은 없애고 … 플로우가 이렇다 이정도만. 결재는 없어」 — 위 1px `paper/22` 선 · 칸 12.5 · 번호 테 동그라미 16(끝 = ✓) · 끝 `paper/60` · 아직 `paper/45` · 지금 = 흰 알약 `bg-panel` 굵게 + `aria-current="step"` · 칸 사이 › `paper/35`, 누르지 않는 `<ol>`). (확장 11/17) `onPrev` · `onNext` 를 안 주면 ‹ › 를 그리지 않음(변형 `noNav` — S01 신발 DB 패널 머리) | 구현됨 |
 
@@ -164,6 +166,16 @@ r4(2026-11-16 사용자 「현재 작업 플로우가 어디까지 온지를 로
 부품이 아닌 것(시안 설명 장치): `.pin` · `.pinbox` · `.notes` · `.fit*` · `.scas-pain` · `.toc` · `.frame` · `.viewport` · `M.pin` · `M.apin` · `M.scasShell` · 「보는 사람」 토글. 대조 때 시안 쪽에서 `.pin`을 떼고 `.pinbox` 클래스를 뗀 뒤 읽는다.
 
 업무가 섞여 목록에 올리지 않는 것: `src/shared/ui/retrieval-results-grid.tsx`(신발 ID · 서버 응답 모양 · 점수 정규화 · 0.8/0.6 등급 판정 · 「필수 문양 조정」 문구) → `entities/shoe/ui`로 옮기고 격자 · 막대만 `kit` · `ai`로 분리할 대상. 출입구에 넣지 않는다.
+
+### entities 도메인 표시 부품(11/17 — `src/entities/pattern/ui/`, 배럴 `@/entities/pattern`)
+
+문양 말(부위 · 필수 · 가중치 · AI 점수)을 아는 표시 부품이라 shared 출입구가 아니라 entities 에 둔다(docs/architecture.md §6). 문양 코드 탭(crime 튜플)과 신발 편집(shoe 이름)이 **같은 부품**을 쓰고, 표현 바꾸기는 부르는 위젯이 한다(docs/pattern-data-model.md §2).
+
+| 부품 | 출입구 | 파일 | 원본(data-part) | 쓰는 화면 | 변형 | 상태 |
+|---|---|---|---|---|---|---|
+| PatternZoneBoard | entities | `src/entities/pattern/ui/PatternZoneBoard.tsx` | (사건 창 문양 코드 탭 ZoneBoard 를 옮김) | S01 사건 창 문양 코드 탭 · 신발 편집 | [새로] 4부위 행(머리 46 = 부위 고르기 · 끌어 놓기 · 고른 부위 옅은 brand 판) + 문양 카드(그림 36 → 오른쪽 AI 점수 15 굵게 mono · 개수 ×n 9.5 · 빼기 / 가중치 세그먼트 낮 · 보 · 높 19×18(규칙 값 `bg-fg-2` · 직접 `bg-brand`) · 필수 18). 필수 = 2px `border-danger` + 좌상단 「필수」. 코드 글자 · 확신도 막대 없음(마우스 설명). crime(`onToggleMust` · `onWeight` · `onCount`) · shoe(이름만) 는 콜백 유무로 | 구현됨 |
+| PatternLibrary | entities | `src/entities/pattern/ui/PatternLibrary.tsx` | (사건 창 문양 코드 탭 문양 목록을 옮김) | S01 사건 창 문양 코드 탭 · 살펴보기 판 · 신발 편집 | [새로] 종류 = 알약 탭 한 줄(높이 24 · 고른 탭 `bg-brand-3` · 개수 mono 10, AI 탭 ai 색) + 4칸(살펴보기 5칸) 흰 카드 격자(`bg-picon` · 모서리 9 · 넣은 문양 `border-brand` 2겹 + ✓ 16). 끌어 놓기 · `onHoverItem`(확대 보기 칸) | 구현됨 |
+| PatternPeek | entities | `src/entities/pattern/ui/PatternPeek.tsx` | (시안 짝 없음) | S01 사건 창 문양 코드 탭 · 신발 편집 | [새로] 문양 목록 위 확대 보기 칸 — 확대경 켬 = 「확대 보기 · 고정(WorkbenchButton sm)」 머리 + 두 정사각 칸(왼쪽 먹색 LensView · 오른쪽 마우스 올린 문양 크게) + 이름 줄, 꺼짐 = 문양 미리보기 한 줄(64 칸) | 구현됨 |
 
 ## 같은 부품인데 값이 다른 자리 · 확인 못 한 것
 

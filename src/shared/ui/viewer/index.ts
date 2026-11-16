@@ -7,7 +7,9 @@ export { CompareView, type CompareMode, type CompareViewProps } from "./CompareV
 export { PointPairs, type PointPairBox, type PointPairsProps } from "./PointPairs"
 export { HeatOverlay, type HeatOverlayProps, type HeatVariant } from "./HeatOverlay"
 // 공용 확대경 · 보기 조정 · 크게 살펴보기(11/17 — 문양 코드 · 검색 결과 · 정밀 대조 · 신발 DB 가 함께 쓴다)
-export { LensBox, type LensBoxProps } from "./LensBox"
+export { LensBox, type LensBoxProps, type LensSpot } from "./LensBox"
+// 확대 보기 칸(11/17 — 확대경이 보는 자리를 고정 칸에 같은 배율로)
+export { LensView, type LensViewProps } from "./LensView"
 export { ViewControls, type ViewControlsProps } from "./ViewControls"
 export { InspectFrame, type InspectFrameProps } from "./InspectFrame"
 export {

@@ -84,8 +84,8 @@ export function rotateTune(r: TuneRotate): TuneRotate {
 }
 
 // ── 확대경 ──
-/** 확대경 지름(px) 범위 · 걸음 · 기본 */
-export const LENS_MIN = 96
+/** 확대경 지름(px) 범위 · 걸음 · 기본(11/17 사용자 「더 줄일 수 있게」 — 최솟값 96 → 48) */
+export const LENS_MIN = 48
 export const LENS_MAX = 240
 export const LENS_STEP = 24
 export const LENS_DEFAULT = 144

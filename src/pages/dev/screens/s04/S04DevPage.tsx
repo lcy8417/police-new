@@ -180,6 +180,11 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
     () => (inWindow ? S04_LIBRARY : S04_PALETTE)[paletteKind].map((n) => insertPatternPath(n) as string),
     [paletteKind, inWindow],
   )
+  // 종류별 문양 수(창 모드 알약 탭 개수)
+  const paletteCounts = React.useMemo(
+    () => Object.fromEntries(Object.entries(inWindow ? S04_LIBRARY : S04_PALETTE).map(([k, v]) => [k, v.length])) as Record<PaletteKind, number>,
+    [inWindow],
+  )
   const recentPaths = React.useMemo(() => S04_RECENT.map((n) => insertPatternPath(n) as string), [])
   const extractedView = React.useMemo(
     () => extracted.map((it) => ({ ...it, src: insertPatternPath(it.code) as string })),
@@ -308,6 +313,7 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
       paletteKind={paletteKind}
       onPaletteKindChange={setPaletteKind}
       palette={palette}
+      paletteCounts={paletteCounts}
       codeNote={noteCode ? { code: noteCode, text: S04_CODE_NOTES[noteCode] ?? DEFAULT_CODE_NOTE } : null}
       history={mock.history}
       historyQuery={historyQuery}

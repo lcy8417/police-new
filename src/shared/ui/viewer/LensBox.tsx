@@ -12,6 +12,14 @@ interface LensPoint {
   h: number
 }
 
+/** 확대경이 보고 있는 자리 — 상자 기준 비율 좌표(0~1)와 그때 상자 크기(px). 확대 보기 칸(LensView)이 같은 자리를 그린다 */
+export interface LensSpot {
+  rx: number
+  ry: number
+  w: number
+  h: number
+}
+
 export interface LensBoxProps {
   /** 확대경 켬 */
   enabled: boolean
@@ -29,6 +37,8 @@ export interface LensBoxProps {
   onDoubleClick?: () => void
   /** 확대경 `data-slot`(화면별 시험 이름) */
   lensSlot?: string
+  /** 확대경이 보고 있는 자리가 바뀜(켜져 있고 누르지 않은 채 움직일 때만) — 확대 보기 칸 */
+  onLensMove?: (spot: LensSpot) => void
   className?: string
   children: React.ReactNode
 }
@@ -43,7 +53,7 @@ const typing = (t: EventTarget | null) =>
  * 운영에서 이 상자 안에 들어갈 `PatternCanvas` 의 좌표 판정 · 경계선 끌기를 막지 않는다(docs/api-communication.md §4, 좌표 수학 안 건드림).
  * 지름: Shift + 휠 · [ ] 키(마우스가 상자 위에 있을 때). 위치는 런타임 좌표라 인라인 style(CLAUDE.md 예외), 움직임 효과는 없다.
  */
-export function LensBox({ enabled, size, zoom, source, tune, onSizeStep, onDoubleClick, lensSlot = "viewer-lens", className, children }: LensBoxProps) {
+export function LensBox({ enabled, size, zoom, source, tune, onSizeStep, onDoubleClick, lensSlot = "viewer-lens", onLensMove, className, children }: LensBoxProps) {
   const ref = React.useRef<HTMLDivElement>(null)
   const [at, setAt] = React.useState<LensPoint | null>(null)
   const stepRef = React.useRef(onSizeStep)
@@ -85,7 +95,10 @@ export function LensBox({ enabled, size, zoom, source, tune, onSizeStep, onDoubl
       return
     }
     const r = e.currentTarget.getBoundingClientRect()
-    setAt({ x: e.clientX - r.left, y: e.clientY - r.top, w: r.width, h: r.height })
+    const x = e.clientX - r.left
+    const y = e.clientY - r.top
+    setAt({ x, y, w: r.width, h: r.height })
+    if (onLensMove && r.width > 0 && r.height > 0) onLensMove({ rx: x / r.width, ry: y / r.height, w: r.width, h: r.height })
   }
 
   const off = at ? lensOffset(at.x, at.y, zoom, size) : null

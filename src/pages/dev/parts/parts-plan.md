@@ -113,8 +113,14 @@
 | S01 신발 DB 패널 거르기 한 줄(상태 칩 · 중복 의심 · 필터 ▾ · 찾기 · + 등록 — SCAS 4열 조회 양식 대신, 11/17 갈래 D) | BoardLid · LidChip · LidChipGroup · LidSeparator · LidResetLink · LidSearch | 그대로 | 사건관리 목록 뚜껑과 같은 결, 상세 조건은 접힌 작은 양식(Field · RadioRow · Combobox) |
 | S01 신발 DB 패널 도구 줄 · 신발 편집 판 단추(승인 · 저장 · ‹ › · AI 문양 추출) | WorkbenchButton · Segmented | 그대로 | 자동/수동 · 엑셀 · 엑셀 일괄 등록 · 초기화 뺌 |
 | S01 신발 편집 판 밑창(원본 · Shoerinsics 이진화 · 보기 조정 · 확대경) | LensBox · ViewControls · PatternIcon | 그대로 | 갈래 A 공용 viewer 부품 그대로 — 먹색 작업판(`data-theme="dark"`), 상중하 경계선은 위젯 안 pointer-events-none 장식 |
-| S01 신발 편집 판 위 줄(← 목록 · 기본정보 · 문양정보 탭) · 문양 목록 칸 머리 · 종류 탭 | UnderlineTabs · PaneHead | 그대로 | 문양 코드 탭 결 |
+| S01 신발 편집 판 한 화면(위 한 줄 ← 목록 · 신발ID · ‹ › · 승인 · 저장 + 기본정보 컴팩트 입력 줄 — 기본정보 · 문양정보 탭 없앰, 11/17 사용자 「하나로 등록하잖아」) | WorkbenchButton · Field · PaneHead | 그대로 | 입력 칸은 kit Field 그대로, 먹색 작업판 결 |
 | S01 사건 창 정밀 대조 탭(먹색 작업판 유류 · 발견 칸 보기 조정 · 확대경 · 함께 확대 · 상중하 문양 비교 띠 · AI 대조 · 판정 단추, 11/17 갈래 C) | LensBox · ViewControls · PatternIcon · PointPairs · WorkbenchButton · PaneHead · ConfidenceBar · AiTag | 그대로 | 자동/수동 · 대응 목록 · 정보 탭 뺌. 함께 확대 · 짝 고리 · 구역 선은 위젯 안 pointer-events-none 장식 |
+| S01 문양 코드 탭 · 신발 편집 4부위 문양 행(카드 = 그림 · AI 점수 크게 · 개수 작게 · 가중치 낮 · 보 · 높 세그먼트 · 필수 진한 테 — 코드 글자 · 확신도 막대 · 3칸 미니 막대 없앰) | PatternZoneBoard | 새로 | 도메인 표시 부품 `src/entities/pattern/ui` — crime(필수 · 가중치 · 개수) · shoe(이름만)는 콜백 · 값 유무로 켜고 끔(11/17 사용자 「게이지 이런거 다 버려 공간 낭비야」) |
+| S01 문양 코드 탭 · 신발 편집 · 살펴보기 판 문양 목록(알약 종류 탭 + 개수 · 4칸 흰 카드 격자 · 넣은 문양 진한 테 + ✓) | PatternLibrary | 새로 | 도메인 표시 부품 `src/entities/pattern/ui`(11/17 사용자 「문양 목록이 좀 별로네」) |
+| S01 문양 코드 탭 · 신발 편집 확대 보기 칸(확대경이 본 자리 ↔ 마우스 올린 문양 나란히 · 고정) | PatternPeek | 새로 | 도메인 표시 부품 `src/entities/pattern/ui`(11/17 사용자 「확대경이랑 옆에 문양을 두고 딱 비교할 수 있게」) |
+| 확대 보기 칸 안 확대 그림 | LensView | 새로 | viewer — 확대경이 본 자리를 같은 배율로 고정 칸에(pointer-events-none 장식) |
+| 문양 코드 탭 · 신발 편집 · 검색 결과 · 정밀 대조 확대경(지름 최소 48 · 보는 자리 알림) | LensBox | 확장 | `onLensMove`(비율 좌표 · 상자 크기) — 좌표 계약 안 건드림 |
+| S01 사건 창 작업 탭 줄 오른쪽 끝 「+」(사건 찾아 열기 · 기능 열기 작은 메뉴, 최대 8개 까닭) | WorkTabAdd | 새로 | panel window — 찾기 칸 + 묶음 목록(값 · 콜백만), Esc · 바깥 누름 닫힘(11/17 사용자 「오른쪽에 + 버튼으로 기존 기능들이나 사건들 추가」) |
 
 ## 승인 (spec §8 「만들 부품」 표 = 사용자 승인)
 
@@ -184,3 +190,4 @@
 승인: 11/17 사용자 — PaneHead
 승인: 11/17 사용자 — WorkbenchButton
 승인: 11/17 사용자 — ScasShell(topbar), WindowHead(noNav), ThemeSettings(compact)
+승인: 11/17 사용자 — PatternZoneBoard, PatternLibrary, PatternPeek, LensView, LensBox(onLensMove · 지름 48), WorkTabAdd
