@@ -344,7 +344,8 @@ function ToolButtons({ p, block = false }: { p: CuttingPaneProps; block?: boolea
 /** SCAS 아래 버튼 줄(처음상태 … 상하반전). 이력 칸이 있으면 되돌리기는 이력 머리로 간다(시안) */
 function BottomRow({ p, className, workbench = false }: { p: CuttingPaneProps; className?: string; workbench?: boolean }) {
   const { canEdit } = p.access
-  const undoInHistory = p.plus && p.editHistory !== undefined
+  // 사건 창(workbench)은 편집 이력 칸이 늘 있어(기본 구성) 되돌리기도 이력 머리 하나만 — ?plus=0 에서 둘이 겹치던 것(3회차 검수)
+  const undoInHistory = p.editHistory !== undefined && (p.plus || workbench)
   return (
     <ScasButtonRow
       label="SCAS 아래 버튼 줄"
