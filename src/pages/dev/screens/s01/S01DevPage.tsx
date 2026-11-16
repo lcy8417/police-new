@@ -263,7 +263,7 @@ export function S01DevPage() {
       ) : win.tab === "search" ? (
         <S05Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} inWindow />
       ) : win.tab === "compare" ? (
-        <S06Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} />
+        <S06Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} inWindow />
       ) : (
         <S07Content key={key} devCase="ready" go={windowGo} />
       )

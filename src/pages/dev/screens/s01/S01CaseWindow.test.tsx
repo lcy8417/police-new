@@ -207,6 +207,28 @@ describe("S01 사건 창", () => {
       expect(within(result).getByLabelText("결과 이미지 보기")).toBeInTheDocument()
     })
 
+    it("정밀 대조 탭: 제목 줄 · 닫기 없음, 왼쪽 유류 · 발견 대조(무대 + 바닥 단추) | 오른쪽 「AI 대조 · 대응 목록 · 정보」 탭", () => {
+      renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=1&tab=compare")
+      const d = dialog()
+      expect(within(d).queryByText("현장문양검색결과 상세조회")).toBeNull()
+      expect(within(d).queryByRole("button", { name: /^닫기$/ })).toBeNull()
+      const main = within(d).getByRole("region", { name: "유류 · 발견 대조" })
+      expect(within(main).getByRole("heading", { name: "유류 · 발견 대조" })).toBeInTheDocument()
+      expect(within(main).getByRole("group", { name: "비교" })).toBeInTheDocument()
+      for (const name of ["이전", "다음", "확인대상", "정렬 설정", "근거 이미지 감정서에 첨부"]) {
+        expect(within(main).getByRole("button", { name })).toBeInTheDocument()
+      }
+      expect(main.querySelector("[data-pair-stage]")).not.toBeNull()
+      const side = within(d).getByRole("tablist", { name: "대조 근거 · 정보" })
+      expect(within(side).getAllByRole("tab").map((t) => t.textContent)).toEqual(["AI 대조", "대응 목록10", "정보"])
+      expect(within(d).getByRole("complementary", { name: "+α 정밀 대조" })).toBeInTheDocument()
+      fireEvent.click(within(side).getByRole("tab", { name: /대응 목록/ }))
+      expect(within(within(d).getByLabelText("대응 목록")).getAllByRole("listitem")).toHaveLength(10)
+      fireEvent.click(within(side).getByRole("tab", { name: "정보" }))
+      expect(within(d).getByRole("columnheader", { name: "사건정보" })).toBeInTheDocument()
+      expect(within(d).getByText("유류 이미지 문양")).toBeInTheDocument()
+    })
+
     it("?plus=0: 흐름 줄 · 탭은 그대로 보인다", () => {
       renderAt("/dev/s01?case=ready&plus=0&open=00001-25-0649&img=1&tab=info")
       expect(within(screen.getByRole("list", { name: "사건 진행 흐름" })).getAllByRole("listitem")).toHaveLength(5)
@@ -225,7 +247,7 @@ describe("S01 사건 창", () => {
     fireEvent.click(tabs.getByRole("tab", { name: "검색 결과" }))
     expect(within(dialog()).getByLabelText("결과 이미지 보기")).toBeInTheDocument()
     fireEvent.click(tabs.getByRole("tab", { name: "정밀 대조" }))
-    expect(within(dialog()).getByLabelText("대응 목록")).toBeInTheDocument()
+    expect(within(dialog()).getByRole("region", { name: "유류 · 발견 대조" })).toBeInTheDocument()
     fireEvent.click(tabs.getByRole("tab", { name: /결과 확인/ }))
     expect(query().get("tab")).toBe("confirm")
     expect(within(dialog()).getByLabelText("00001-25-0646_1 검색결과")).toBeInTheDocument()

@@ -62,11 +62,21 @@ function Crop({ view, light }: { view: CropView; light?: boolean }) {
   )
 }
 
-export function PrecisionPanel({ insight, roles }: { insight: MatchInsight; roles: ViewerRoles }) {
+export function PrecisionPanel({
+  insight,
+  roles,
+  bare = false,
+}: {
+  insight: MatchInsight
+  roles: ViewerRoles
+  /** 사건 창 안(11/17) — 탭이 이름을 맡으므로 머리 줄 · 접기 · 점선 테두리 없이, 설명 상자는 회색 한 줄로 */
+  bare?: boolean
+}) {
   const [open, setOpen] = React.useState(true)
   const [mode, setMode] = React.useState<OverlayMode>("overlay")
   const showShoe = mode !== "heat"
   const showHeat = mode !== "pairs"
+  const shown = bare || open
   return (
     <aside
       data-plus
@@ -74,29 +84,38 @@ export function PrecisionPanel({ insight, roles }: { insight: MatchInsight; role
       aria-label="+α 정밀 대조"
       // 넓으면(상자 1120 이상) 시안처럼 오른쪽 칸 + 왼쪽 점선, 좁으면 SCAS 영역 아래로 내려 윗 점선 · 폭 720 까지
       className={cn(
-        "grid max-w-[720px] content-start gap-[9px] border-t border-dashed border-ai-line pt-[10px]",
-        "@min-[1120px]:max-w-none @min-[1120px]:border-t-0 @min-[1120px]:border-l @min-[1120px]:pt-0 @min-[1120px]:pl-[14px]",
+        "grid content-start gap-[9px]",
+        !bare &&
+          "max-w-[720px] border-t border-dashed border-ai-line pt-[10px] @min-[1120px]:max-w-none @min-[1120px]:border-t-0 @min-[1120px]:border-l @min-[1120px]:pt-0 @min-[1120px]:pl-[14px]",
       )}
     >
-      <div className="flex items-center justify-between">
-        <span className={AI_MARK}>● +α 정밀 대조</span>
-        <button
-          type="button"
-          aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-          className="cursor-pointer border-none bg-transparent p-0"
-        >
-          <Chip variant="h19" className="text-[10.5px]">
-            {open ? "덧붙임 · 접기 ▴" : "덧붙임 · 펼치기 ▾"}
-          </Chip>
-        </button>
-      </div>
-      {open ? (
+      {bare ? null : (
+        <div className="flex items-center justify-between">
+          <span className={AI_MARK}>● +α 정밀 대조</span>
+          <button
+            type="button"
+            aria-expanded={open}
+            onClick={() => setOpen((v) => !v)}
+            className="cursor-pointer border-none bg-transparent p-0"
+          >
+            <Chip variant="h19" className="text-[10.5px]">
+              {open ? "덧붙임 · 접기 ▴" : "덧붙임 · 펼치기 ▾"}
+            </Chip>
+          </button>
+        </div>
+      )}
+      {shown ? (
         <>
-          <div className="rounded-[8px] bg-panel-2 px-[9px] py-[7px] text-[11.5px] leading-[1.45] text-muted-foreground">
-            1:1 정밀 대조는 <b className="text-fg-2">「대조」</b>(용의자 신발과 비교) 사건의 주 기능. 이 사건은 「{insight.processType}」이라{" "}
-            <b className="text-fg-2">참고용</b>입니다.
-          </div>
+          {bare ? (
+            <p className="m-0 text-[11px] leading-[1.45] text-muted-foreground">
+              「대조」 사건의 주 기능 — 이 사건은 「{insight.processType}」이라 <b className="text-fg-2">참고용</b>
+            </p>
+          ) : (
+            <div className="rounded-[8px] bg-panel-2 px-[9px] py-[7px] text-[11.5px] leading-[1.45] text-muted-foreground">
+              1:1 정밀 대조는 <b className="text-fg-2">「대조」</b>(용의자 신발과 비교) 사건의 주 기능. 이 사건은 「{insight.processType}」이라{" "}
+              <b className="text-fg-2">참고용</b>입니다.
+            </div>
+          )}
 
           <div className="grid gap-[6px] rounded-[8px] border border-solid border-ai-line bg-[linear-gradient(160deg,var(--t-ai-bg),transparent)] px-[9px] py-[7px]">
             <div className="flex items-center gap-[6px] text-[11.5px]">

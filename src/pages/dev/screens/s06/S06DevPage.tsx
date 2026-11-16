@@ -94,10 +94,12 @@ export interface S06ContentProps {
   imageNo?: string
   /** 화면 옮기기(없으면 진열 주소 이동) — 사건 창은 탭 바꾸기로 받는다 */
   go?: DevGo
+  /** 사건 창 안(11/17) — 겹치는 제목 줄 · 닫기 없이 무대 높이 꽉 · 오른쪽 탭(위젯 `inWindow`) */
+  inWindow?: boolean
 }
 
 /** S06 틀 없는 내용 — 진열 페이지와 사건 창(「정밀 대조」 탭)이 같이 쓴다. `?ftwr=` · `?rank=` 는 주소에서 읽는다 */
-export function S06Content({ devCase: activeCase, imageNo, go }: S06ContentProps) {
+export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06ContentProps) {
   const nav = useDevNavigate()
   const to = go ?? nav
   const { search } = useLocation()
@@ -181,6 +183,7 @@ export function S06Content({ devCase: activeCase, imageNo, go }: S06ContentProps
       onConfirmTarget={() => to("/dev/s07", { ftwr: ftwrId })}
       onClose={() => to("/dev/s05")}
       showPlus={showPlus}
+      inWindow={inWindow}
       insight={insight}
       onPlusAction={(label) => toast("시안 — 기능 준비 중", { description: label })}
       candidates={candidates}

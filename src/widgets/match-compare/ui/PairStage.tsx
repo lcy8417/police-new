@@ -162,6 +162,7 @@ export function PairStage({
   crimeCaption,
   shoeCaption,
   insight,
+  fill = false,
 }: {
   crimeImage: MatchImage
   shoeImage: MatchImage
@@ -173,9 +174,14 @@ export function PairStage({
   crimeCaption: string
   shoeCaption: string
   insight: MatchInsight | null
+  /**
+   * 사건 창 안(11/17) — 부모 칸(높이 · 폭)을 꽉 채우는 가장 큰 크기로. 비율(460:340)은 그대로라 박스 · 선 위치(무대 %)는 같다.
+   * 감싼 상자가 크기 컨테이너(container-type: size)가 되고, 무대 폭 = min(칸 폭, (칸 높이 − 이름 줄 28) × 460/340)
+   */
+  fill?: boolean
 }) {
-  return (
-    <div className="grid w-[460px] max-w-full gap-[4px]">
+  const stage = (
+    <div className={cn("grid gap-[4px]", fill ? "mx-auto w-[min(100cqw,calc((100cqh-28px)*460/340))]" : "w-[460px] max-w-full")}>
       <div className="grid grid-cols-[245fr_205fr] gap-[10px] text-[11.5px] text-muted-foreground">
         <span className="rounded-[4px] bg-strip px-[6px] py-[3px]">유류 이미지</span>
         <span className="rounded-[4px] bg-strip px-[6px] py-[3px]">발견 이미지</span>
@@ -221,4 +227,5 @@ export function PairStage({
       </div>
     </div>
   )
+  return fill ? <div className="size-full min-h-0 [container-type:size]">{stage}</div> : stage
 }
