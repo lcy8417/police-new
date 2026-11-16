@@ -6,8 +6,17 @@ import { passwordRuleError } from "@/entities/session"
 import { USER_FORM_MESSAGES, USER_ID_PATTERN } from "@/features/admin-users"
 import { AdminUsersScreen, type UserDialogState, type UserDraft } from "@/widgets/admin-users-screen"
 
-import { devScreen, DevScreenFrame, SCREEN_CASES, useDevCase, useDevViewer } from "../frame"
-import { MOCK_CURRENT_USER_ID, MOCK_FEATURES, MOCK_ORGS, MOCK_ROLES, MOCK_USERS } from "./mock-cases"
+import { devScreen, DevScreenFrame, SCREEN_CASES, useDevCase, useDevPlus, useDevViewer } from "../frame"
+import {
+  MOCK_ADMIN_HISTORY,
+  MOCK_CURRENT_USER_ID,
+  MOCK_FEATURES,
+  MOCK_ORGS,
+  MOCK_OVERVIEW,
+  MOCK_PERMISSION_NOTES,
+  MOCK_ROLES,
+  MOCK_USERS,
+} from "./mock-cases"
 
 const info = devScreen("s13")
 
@@ -17,6 +26,7 @@ const draftOf = (u: AdminUser): UserDraft => ({ userNm: u.userNm, userSe: u.user
 export function S13DevPage() {
   const activeCase = useDevCase(SCREEN_CASES.s13,"ready")
   const viewer = useDevViewer()
+  const plus = useDevPlus()
   const [users, setUsers] = useState<AdminUser[]>(MOCK_USERS)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(MOCK_USERS[0].userId)
   const [edits, setEdits] = useState<Record<string, Partial<UserDraft>>>({})
@@ -62,6 +72,11 @@ export function S13DevPage() {
   return (
     <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
       <AdminUsersScreen
+        showPlus={plus}
+        overview={MOCK_OVERVIEW}
+        adminHistory={MOCK_ADMIN_HISTORY}
+        permissionNotes={MOCK_PERMISSION_NOTES}
+        onExport={() => toast("시안 — 기능 준비 중")}
         status={status}
         errorAt="14:05"
         onRetry={() => {

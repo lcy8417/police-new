@@ -6,16 +6,19 @@ import { Button, Chip, DataGrid, InlineError, type DataGridColumn } from "@/shar
 import { ButtonBar, Crumb, PageHead, Panel } from "@/shared/ui/panel"
 
 import type { AdminUsersScreenProps } from "../model/types"
+import { AdminHistory, EffectivePermissions, RolePresetTable } from "./PermissionPanels"
 import { UserDetail } from "./UserDetail"
 import { UserDialogs } from "./UserDialogs"
+import { UsersOverviewTiles } from "./UsersOverviewTiles"
 import { UserStatusChip } from "./UserStatusChip"
 
 /**
  * S13 사용자 관리: 왼쪽 사용자 표 + 오른쪽 상세. 서버 호출 · 전역 상태 없이 props 만 그린다.
- * 시안의 운영 상태 타일 · 역할 프리셋 표 · 실제 권한 표 · 관리자 변경 이력 · 신발 DB 분업은 담지 않는다(spec §5-2).
+ * r2(시안 r3 +α, `showPlus`): 관리자 전용 안내 · 엑셀 · 운영 상태 타일 · 「신발 승인 담당 부족」 경고 ·
+ * 역할별 기본 권한 · 사용자별 실제 권한 · 관리자 변경 이력 · 역할 안내 줄. 신발 DB 분업(서버 기능 코드 없음)은 담지 않는다.
  */
 export function AdminUsersScreen(props: AdminUsersScreenProps) {
-  const { status, isAdmin, users, roles, onRetry, errorAt } = props
+  const { status, isAdmin, users, roles, onRetry, errorAt, showPlus = true } = props
 
   if (!isAdmin) {
     return (
@@ -80,14 +83,33 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
     )
   })()
 
+  const ready = status === "ready"
+
   return (
     <div aria-busy={status === "loading"} className="min-w-0 p-[16px]">
+      {showPlus && (
+        <div
+          data-plus
+          className="mb-[12px] flex items-center gap-[8px] rounded-[10px] border border-solid border-warn/35 bg-warn-bg px-[12px] py-[9px] text-[12.5px] text-fg-2"
+        >
+          <b className="text-warn">관리자 전용 메뉴</b> — 다른 역할에게는 메뉴가 보이지 않습니다.
+        </div>
+      )}
       <Crumb items={["족적", "관리", "사용자 관리"]} />
       <PageHead
         title="사용자 관리"
         description="계정마다 역할과 기능 권한을 정하고, 비밀번호 초기화 · 잠금 해제 · 사용 중지를 합니다."
+        actions={
+          showPlus ? (
+            <span data-plus>
+              <Button onClick={props.onExport}>엑셀</Button>
+            </span>
+          ) : undefined
+        }
       />
+      {showPlus && ready && props.overview && <UsersOverviewTiles overview={props.overview} />}
       <div className="grid items-start gap-[12px] xl:grid-cols-[minmax(0,640px)_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-[12px]">
         <section aria-label="사용자 목록" className="min-w-0">
           <Panel
             corners
@@ -107,7 +129,21 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
             {list}
           </Panel>
         </section>
+        {showPlus && ready && (
+          <>
+            <RolePresetTable roles={roles} featureList={props.featureList} />
+            <EffectivePermissions
+              users={users}
+              roles={roles}
+              featureList={props.featureList}
+              selectedUserId={props.selectedUserId}
+              notes={props.permissionNotes ?? []}
+            />
+          </>
+        )}
+        </div>
 
+        <div className="grid min-w-0 gap-[12px]">
         {status === "ready" && selected && props.draft ? (
           <UserDetail
             key={selected.userId}
@@ -130,7 +166,18 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
             <p className="m-0 text-[12.5px] text-dim">왼쪽 표에서 사용자를 고르세요</p>
           </Panel>
         ) : null}
+        {showPlus && ready && props.adminHistory && props.adminHistory.length > 0 && <AdminHistory rows={props.adminHistory} />}
+        </div>
       </div>
+      {showPlus && (
+        <div
+          data-plus
+          className="mt-[12px] inline-flex flex-wrap items-center gap-[8px] rounded-[10px] border border-solid border-border bg-panel px-[12px] py-[8px] text-[12px] text-muted-foreground"
+        >
+          <Chip variant="blue">관리자</Chip> 모든 조작 <span aria-hidden="true">|</span> <Chip>그 밖의 역할</Chip> 메뉴 없음 · 화면 잠김{" "}
+          <span aria-hidden="true">|</span> 본인 계정은 다른 관리자만 변경
+        </div>
+      )}
       <UserDialogs dialog={props.dialog} onChange={props.onDialogChange} onSubmit={props.onDialogSubmit} />
     </div>
   )

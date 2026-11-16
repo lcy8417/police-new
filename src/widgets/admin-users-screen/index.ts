@@ -1,2 +1,11 @@
 export { AdminUsersScreen } from "./ui/AdminUsersScreen"
-export type { AdminUsersScreenProps, CreateUserDraft, UserDialogState, UserDraft } from "./model/types"
+export type {
+  AdminHistoryRow,
+  AdminUsersOverview,
+  AdminUsersScreenProps,
+  CreateUserDraft,
+  OverviewCount,
+  RoleShareTone,
+  UserDialogState,
+  UserDraft,
+} from "./model/types"

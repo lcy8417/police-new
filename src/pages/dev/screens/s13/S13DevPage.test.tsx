@@ -181,3 +181,53 @@ describe("S13 사용자 관리 진열 페이지", () => {
     expect(screen.queryByRole("switch")).toBeNull()
   })
 })
+
+describe("S13 사용자 관리 — r2 시안 구성", () => {
+  it("운영 상태 타일(역할 분포 · 잠긴 계정 · 만료 · 미접속)과 「신발 승인 담당 부족」 경고를 시안 문구로 보인다", () => {
+    admin("ready")
+    const tiles = screen.getByRole("region", { name: "계정 운영 상태" })
+    expect(within(tiles).getByText("역할 분포 · 전체 계정 38명")).toBeInTheDocument()
+    expect(within(tiles).getByText("잠긴 계정")).toBeInTheDocument()
+    expect(within(tiles).getByText("lee0508 · 07-22 18:03 비밀번호 5회 실패")).toBeInTheDocument()
+    expect(within(tiles).getByText("비밀번호 90일 지남")).toBeInTheDocument()
+    expect(within(tiles).getByText("30일 넘게 미접속")).toBeInTheDocument()
+    const warn = tiles.querySelector('[data-warning="approver-shortage"]') as HTMLElement
+    expect(warn).toHaveTextContent("신발 승인 담당 부족")
+    expect(warn).toHaveTextContent("/ 미승인 536건")
+    expect(warn).toHaveTextContent("3월분 미승인 · 하루 약 50매면 약 11일 걸림 · 승인 담당 추가 검토")
+  })
+
+  it("사용자별 실제 권한 표: 서버 기능 12칸, 역할 프리셋과 다른 칸은 주황(han0911 신발 조회)", () => {
+    admin("ready")
+    const eff = screen.getByRole("region", { name: "사용자별 실제 권한" })
+    const han = eff.querySelector('[data-effective-row="han0911"]') as HTMLElement
+    expect(han.querySelectorAll("[data-override]")).toHaveLength(1)
+    expect(han).toHaveTextContent("1칸 다름")
+    const park = eff.querySelector('[data-effective-row="park0412"]') as HTMLElement
+    expect(park).toHaveTextContent("같음")
+    expect(eff.querySelector('[data-effective-row="yoon0203"]')).toHaveTextContent("중지 · 꺼짐")
+    expect(within(eff).getByText(/경북청 신발 조회 협조/)).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: "역할별 기본 권한" })).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: "관리자 변경 이력" })).toHaveTextContent("본인 권한 변경 시도")
+  })
+
+  it("?plus=0 이면 [data-plus] 가 없고 1차 표 · 상세는 그대로다", () => {
+    const { container } = renderAt("?case=ready&as=admin&plus=0")
+    expect(container.querySelectorAll("[data-plus]")).toHaveLength(0)
+    expect(screen.queryByRole("region", { name: "계정 운영 상태" })).toBeNull()
+    expect(screen.getByRole("region", { name: "사용자 목록" })).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: "사용자 상세" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "사용자 추가" })).toBeInTheDocument()
+  })
+
+  it("보는 사람이 관리자일 때만 타일 · 엑셀 · 사용자 추가가 보이고, 감정관이면 가드만 보인다(시안 data-lock=admin)", () => {
+    const { unmount } = admin("ready")
+    expect(screen.getByRole("button", { name: "엑셀" })).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: "계정 운영 상태" })).toBeInTheDocument()
+    unmount()
+    renderAt("?case=ready&as=analyst")
+    expect(screen.getByText("관리자만 볼 수 있습니다")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "엑셀" })).toBeNull()
+    expect(screen.queryByRole("region", { name: "계정 운영 상태" })).toBeNull()
+  })
+})
