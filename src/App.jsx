@@ -1,7 +1,7 @@
 // @MX:DEBT: [AUTO] 레거시 중앙집중형 라우터 - FSD app/ 레이어로 이행 대상이나(docs/architecture.md §4) 아직 이 파일이 Routes 정본. BrowserRouter·SessionProvider는 main.jsx로 이동
 // @MX:CEILING: 라우팅이 FSD app/ 레이어(src/app/)로 이전되기 전까지 유효 — 현재 신규 라우트도 계속 이 파일에 추가됨
 // @MX:UPGRADE: src/app/에 라우터 설정이 이전되고 이 파일의 Routes가 제거되면 완료
-import { lazy, Suspense } from "react";
+import { createElement, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
 import { AppShell } from "@/widgets/app-shell";
 import {
@@ -79,6 +79,24 @@ const PartsGalleryPage = import.meta.env.DEV
   ? lazy(() => import("@/pages/dev/parts").then((m) => ({ default: m.PartsGalleryPage })))
   : null;
 
+// 화면 진열(`/dev`, `/dev/s00` … `/dev/s14`)도 같은 방식: 개발 실행에서만, 로그인 가드 밖.
+const DEV_SCREEN_PAGES = import.meta.env.DEV
+  ? [
+      { path: "/dev", Page: lazy(() => import("@/pages/dev/screens/index").then((m) => ({ default: m.DevIndexPage }))) },
+      { path: "/dev/s00", Page: lazy(() => import("@/pages/dev/screens/s00").then((m) => ({ default: m.S00DevPage }))) },
+      { path: "/dev/s01", Page: lazy(() => import("@/pages/dev/screens/s01").then((m) => ({ default: m.S01DevPage }))) },
+      { path: "/dev/s02", Page: lazy(() => import("@/pages/dev/screens/s02").then((m) => ({ default: m.S02DevPage }))) },
+      { path: "/dev/s03", Page: lazy(() => import("@/pages/dev/screens/s03").then((m) => ({ default: m.S03DevPage }))) },
+      { path: "/dev/s04", Page: lazy(() => import("@/pages/dev/screens/s04").then((m) => ({ default: m.S04DevPage }))) },
+      { path: "/dev/s05", Page: lazy(() => import("@/pages/dev/screens/s05").then((m) => ({ default: m.S05DevPage }))) },
+      { path: "/dev/s06", Page: lazy(() => import("@/pages/dev/screens/s06").then((m) => ({ default: m.S06DevPage }))) },
+      { path: "/dev/s07", Page: lazy(() => import("@/pages/dev/screens/s07").then((m) => ({ default: m.S07DevPage }))) },
+      { path: "/dev/s10", Page: lazy(() => import("@/pages/dev/screens/s10").then((m) => ({ default: m.S10DevPage }))) },
+      { path: "/dev/s13", Page: lazy(() => import("@/pages/dev/screens/s13").then((m) => ({ default: m.S13DevPage }))) },
+      { path: "/dev/s14", Page: lazy(() => import("@/pages/dev/screens/s14").then((m) => ({ default: m.S14DevPage }))) },
+    ]
+  : [];
+
 function App() {
   return (
     <Routes>
@@ -93,6 +111,18 @@ function App() {
           }
         />
       )}
+
+      {DEV_SCREEN_PAGES.map(({ path, Page }) => (
+        <Route
+          key={path}
+          path={path}
+          element={
+            <Suspense fallback={null}>
+              {createElement(Page)}
+            </Suspense>
+          }
+        />
+      ))}
 
       {/* 로그인·비밀번호 변경은 셸(사이드바·상단바) 밖 전체 화면. */}
       <Route path="/login" element={<LoginPage />} />

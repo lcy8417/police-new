@@ -95,11 +95,11 @@
 |---|---|---|---|---|---|---|
 | Panel | panel | `src/shared/ui/panel/Panel.tsx` | `.panel` · `.panel-h` · `.panel-b` | S00–S15 | [새로] `default` · `tc`(모서리 장식, `corners`) · `default-pad` · 머리(제목 · 라벨 · 오른쪽 `actions`) | 검증됨 |
 | ButtonBar | panel | `src/shared/ui/panel/ButtonBar.tsx` | `.panel-h .r` | S00 · S01 · S06–S15 (+ S02 모달 머리 — 표식 `S02-23`) | [새로] `panel-head` · `modal-head` · SCAS 순서 고정(이전 · 다음 · … · 닫기). 오른쪽 붙임 · 세로 가운데(배치)는 미검증 — 아래 「배치 속성은 대조하지 않음」 | 검증됨 |
-| ScasShell | panel | | `M.shell` | S01–S15 | [새로] 위 메뉴 · 탭 줄 · 현재 탭 · 왼쪽 메뉴(`M.scasShell`은 SCAS 비교용이라 원본 아님) — 전환은 검증 후 한 번에 | 후보 |
-| SearchForm | panel | | `.form` | S01 · S02 · S04 · S05 · S10 · S11 · S13 | [새로] 라벨-값 2열 · 3열 · 조회 · 초기화 · 필수 라벨(`.l.req`) | 후보 |
+| ScasShell | panel | `src/shared/ui/panel/ScasShell.tsx` | `M.shell` | S01–S15 | [새로] 위 메뉴 · 탭 줄 · 현재 탭 · 왼쪽 메뉴(`M.scasShell`은 SCAS 비교용이라 원본 아님) — 전환은 검증 후 한 번에 | 구현됨 |
+| SearchForm | panel | `src/shared/ui/panel/SearchForm.tsx` | `.form` | S01 · S02 · S04 · S05 · S10 · S11 · S13 | [새로] 라벨-값 2열 · 3열 · 조회 · 초기화 · 필수 라벨(`.l.req`) | 구현됨 |
 | Stepper | panel | | `.stepper` | S01 (+ S07 · S08 흐름 띠는 표식 때 확인) | [새로] 지금 칸 강조 | 후보 |
-| Crumb | panel | | `.crumb` | S00 · S06–S15 | [새로] — | 후보 |
-| PageHead | panel | | `.page-head` | S06–S08 · S10–S15 | [새로] — | 후보 |
+| Crumb | panel | `src/shared/ui/panel/Crumb.tsx` | `.crumb` | S00 · S06–S15 | [새로] — | 구현됨 |
+| PageHead | panel | `src/shared/ui/panel/PageHead.tsx` | `.page-head` | S06–S08 · S10–S15 | [새로] — | 구현됨 |
 
 부품이 아닌 것(시안 설명 장치): `.pin` · `.pinbox` · `.notes` · `.fit*` · `.scas-pain` · `.toc` · `.frame` · `.viewport` · `M.pin` · `M.apin` · `M.scasShell` · 「보는 사람」 토글. 대조 때 시안 쪽에서 `.pin`을 떼고 `.pinbox` 클래스를 뗀 뒤 읽는다.
 

@@ -53,6 +53,11 @@
   --t-ai-bg-deep: #0b2a26; /* 표 안 작은 AI 표식 배경(S01 인라인 값) */
   --t-ai-tag-drop: rgba(0, 0, 0, 0.6); /* 진행 중 AI 표식 그림자 */
   --t-ai-pulse: rgba(45, 212, 191, 0.55); /* 진행 점 맥박 */
+  --t-emblem-from: #1f3f73; /* ScasShell 상단 방패 바탕 그라데이션 시작(시안 .emblem) */
+  --t-emblem-to: #0b1730; /* 방패 바탕 그라데이션 끝 */
+  --t-emblem-stroke: #7fb6ff; /* 방패 바깥 선 */
+  --t-dot-grid: rgba(74, 158, 255, 0.14); /* 내용 영역 점 격자(.content::before) */
+  --t-glow-orb: rgba(37, 99, 235, 0.1); /* 내용 영역 번짐 빛(.content::after) */
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);

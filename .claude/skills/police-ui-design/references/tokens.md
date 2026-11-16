@@ -77,6 +77,8 @@
 | `--t-corner-glow` | `rgba(59, 130, 246, 0.6)` | Panel `tc` 모서리 `drop-shadow(0 0 4px)` |
 | `--t-ai-tag-drop` | `rgba(0, 0, 0, 0.6)` | AiTag `progress` 그림자 `0 2px 6px` |
 | `--t-ai-pulse` | `rgba(45, 212, 191, 0.55)` | AiTag 맥박 점 키프레임 `ai-pulse` |
+| `--t-emblem-from` · `--t-emblem-to` · `--t-emblem-stroke` | `#1f3f73` · `#0b1730` · `#7fb6ff` | ScasShell 방패 배지 바탕 그라데이션 · 바깥 선(시안 `.emblem`) |
+| `--t-dot-grid` · `--t-glow-orb` | `rgba(74, 158, 255, 0.14)` · `rgba(37, 99, 235, 0.1)` | ScasShell 내용 영역 점 격자 · 번짐 빛(시안 `.content::before/::after`) |
 
 읽는 법: 이 값들은 Tailwind 역할 이름 없이 `[box-shadow:0_0_18px_0_var(--t-brand-glow)]`, `bg-[var(--t-panel-head)]`처럼 쓴다. 여러 부품이 같은 값을 쓰게 되면 역할 이름(예: `--shadow-brand-glow`)으로 올린다.
 
