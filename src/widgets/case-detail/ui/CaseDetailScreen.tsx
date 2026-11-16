@@ -444,7 +444,7 @@ export function CaseDetailScreen({
           </div>
         </section>
 
-        <section aria-label="사건 · 현장 이미지 정보" className="flex min-h-0 min-w-0 flex-col gap-[8px]">
+        <section aria-label="사건 · 현장 이미지 정보" className="@container flex min-h-0 min-w-0 flex-col gap-[8px]">
           <UnderlineTabs
             label="정보"
             tabs={[
@@ -463,7 +463,8 @@ export function CaseDetailScreen({
               formTab === "image" ? (
                 scopeTools
               ) : extra ? (
-                <span data-plus className="text-[11px] text-dim">
+                // 칸이 좁으면(왼쪽 목록 펼침) 탭 줄이 넘치지 않게 안내 글은 숨긴다
+                <span data-plus className="text-[11px] text-dim @max-[560px]:hidden">
                   대부분 공문 그대로 · 수정은 창 머리 ⋯ 메뉴로
                 </span>
               ) : null
