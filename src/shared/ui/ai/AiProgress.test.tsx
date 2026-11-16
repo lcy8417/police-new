@@ -47,6 +47,13 @@ describe("AiProgress", () => {
     expect(animated.every((c) => c.startsWith("motion-safe:"))).toBe(true)
   })
 
+  it("className 은 어느 상태에서든 부품 루트에 붙는다", () => {
+    const { container, rerender } = render(<AiProgress state="running" className="w-[96px]" />)
+    expect(container.querySelector("[data-part=AiProgress]")).toHaveClass("w-[96px]")
+    rerender(<AiProgress state="failed" className="w-[96px]" />)
+    expect(container.querySelector("[data-part=AiProgress]")).toHaveClass("w-[96px]")
+  })
+
   it("partId 는 data-part-id 로", () => {
     render(<AiProgress state="done" partId="S02-30" />)
     expect(screen.getByRole("progressbar")).toHaveAttribute("data-part-id", "S02-30")

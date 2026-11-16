@@ -32,6 +32,32 @@ describe("ConfidenceBar", () => {
     expect(root).toHaveAttribute("data-part-state", "ok")
   })
 
+  it("낮음은 색 말고도 글자 「낮음」(sr-only)과 툴팁으로 알린다, ok 에는 없다", () => {
+    const { container, rerender } = render(<ConfidenceBar value={0.42} scale="unit" threshold={0.5} />)
+    expect(screen.getByText("낮음")).toBeInTheDocument()
+    expect(container.querySelector("[data-part=ConfidenceBar]")).toHaveAttribute("title", "낮음")
+    rerender(<ConfidenceBar value={0.9} scale="unit" threshold={0.5} />)
+    expect(screen.queryByText("낮음")).toBeNull()
+    expect(container.querySelector("[data-part=ConfidenceBar]")).not.toHaveAttribute("title")
+  })
+
+  it("범위 밖 값은 막대와 같은 범위로 잘라 보여 준다", () => {
+    const { rerender } = render(<ConfidenceBar value={150} scale="percent" />)
+    expect(screen.getByText("100%")).toBeInTheDocument()
+    rerender(<ConfidenceBar value={1.7} scale="unit" />)
+    expect(screen.getByText("1.00")).toBeInTheDocument()
+    rerender(<ConfidenceBar value={-5} scale="percent" />)
+    expect(screen.getByText("0%")).toBeInTheDocument()
+  })
+
+  it("NaN 은 「—」, aria-valuenow 없음, 낮음 아님", () => {
+    const { container } = render(<ConfidenceBar value={Number.NaN} scale="percent" threshold={50} />)
+    expect(screen.getByText("—")).toBeInTheDocument()
+    expect(screen.getByRole("meter")).not.toHaveAttribute("aria-valuenow")
+    expect(container.querySelector("[data-part=ConfidenceBar]")).not.toHaveAttribute("data-part-state")
+    expect(screen.queryByText("낮음")).toBeNull()
+  })
+
   it("임계가 없으면 상태 표식 없음", () => {
     const { container } = render(<ConfidenceBar value={0.9} scale="unit" />)
     expect(container.querySelector("[data-part=ConfidenceBar]")).not.toHaveAttribute(

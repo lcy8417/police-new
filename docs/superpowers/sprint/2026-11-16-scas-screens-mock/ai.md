@@ -69,3 +69,8 @@ fixtures-ai 가 가정한 위치 · id (이미 쓰인 id 와 안 겹침; S01-21/
 | AiProgress | done | S01-23 | — |
 | ConfidenceBar | unit(low) | S04-31 | 시안은 `<span>` 래퍼(`display:flex; width:80px`) · 부품은 `div`, 폭은 `w-full`(진열 상자 80px 로 맞춤) |
 | ScanOverlay | — | (없음) | 스캔 키프레임 미적용 시 보이지 않음 |
+
+## 7. 리뷰 수정 반영(보이는 동작 변경)
+
+- LiveDot: 루트가 `inline-flex` 래퍼(점 + 보이는 label 글자 11px muted, 간격 6px)로 바뀜. idle 점은 속이 빈 고리(`border-dim`, 투명) — busy 는 꽉 찬 ai 점 + 맥박. 옆에 같은 뜻 글자가 이미 있는 화면만 `hideLabel`. 따라서 S01-21 대조(점 7px 단독)는 `hideLabel` + 루트 래퍼 차이를 고려해야 함(진열 예시는 `hideLabel` 필요).
+- ConfidenceBar: 낮음일 때 sr-only 「낮음」 + 루트 `title="낮음"`(시안에 보이는 표식 없음). 표시 숫자는 막대와 같은 범위로 자름, NaN 은 「—」(aria-valuenow 없음).
