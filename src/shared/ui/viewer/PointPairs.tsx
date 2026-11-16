@@ -7,7 +7,7 @@ import { partAttrs } from "../part-attrs"
 // 대응점 박스와 번호를 그리는 겹 그림(S00 · S06 · S08). 그림만 — 대응점 편집은 화면에서 한다.
 // 부모(`relative`)의 그림 위에 얹으며, `width` · `height` 는 박스 좌표가 속한 이미지 좌표계 크기(viewBox)다.
 // 루트는 `pointer-events-none` 이고 박스만 눌린다. 표시 크기를 재서 서버로 좌표를 보내는 곳에는 쓰지 않는다(layout.md).
-export interface PointPairsProps extends Omit<React.ComponentProps<"svg">, "children"> {
+export interface PointPairsProps extends Omit<React.ComponentProps<"svg">, "children" | "onSelect"> {
   boxes: MatchBox[]
   /** 어느 쪽 그림인가 — 색만 다르다 */
   side: "crime" | "shoe"
