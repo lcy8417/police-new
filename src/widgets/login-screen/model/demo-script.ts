@@ -1,5 +1,3 @@
-import { FEATURES, type FeatureCode } from "@/entities/session"
-
 import type { DemoScreen } from "./types"
 
 // S00 「AI 감정 시연」 대본 — 시안 s00-login.js 의 STEPS · ZONES · ROWS · METRICS · ITEMS · ROLE_MENUS 값 그대로.
@@ -70,32 +68,3 @@ export const DEMO_REPORT_ITEMS: readonly [string, number][] = [
   ["5. 감정 결과", 78],
   ["6. 감정 의견", 88],
 ]
-
-/** 목표 숫자 3개(시안 핀 1) */
-export const DEMO_TARGETS: readonly [string, string][] = [
-  ["857 → 10", "먼저 볼 후보"],
-  ["상·중·하", "문양 자동 제안"],
-  ["1–8항", "감정서 자동 채움"],
-]
-
-export type DemoRole = "investigator" | "analyst" | "verifier" | "admin"
-
-/** 역할별로 로그인 뒤 처음 열리는 화면(시안 ROLE_MENUS · 라벨은 시안 M.ROLES) */
-export const ROLE_FIRST_SCREENS: readonly { role: DemoRole; label: string; first: string; hint: string }[] = [
-  { role: "investigator", label: "수사관", first: "사건관리 (우리 청 의뢰)", hint: "의뢰·진행 확인" },
-  { role: "analyst", label: "감정관", first: "사건관리 (내 담당)", hint: "검색·판단·교차 검증·감정서" },
-  { role: "verifier", label: "기술책임자", first: "결재 대기함", hint: "감정서 결재" },
-  { role: "admin", label: "관리자", first: "사용자 관리", hint: "계정·권한·기록·모델" },
-]
-
-/**
- * 시안 `data-role` 을 권한 코드로 옮긴 판정: 지금 보는 사람이 어느 역할 줄에 해당하나.
- * 관리자 → 결재(REPORT_APPROVE) → 판정 확정(EXAM_DECIDE) → 사건 등록(CRIME_REGISTER) 순. 어디에도 없으면 null(보기 전용).
- */
-export function currentDemoRole(isAdmin: boolean, features: readonly FeatureCode[]): DemoRole | null {
-  if (isAdmin) return "admin"
-  if (features.includes(FEATURES.REPORT_APPROVE)) return "verifier"
-  if (features.includes(FEATURES.EXAM_DECIDE)) return "analyst"
-  if (features.includes(FEATURES.CRIME_REGISTER)) return "investigator"
-  return null
-}

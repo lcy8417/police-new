@@ -163,12 +163,18 @@ describe("S00 로그인 진열 페이지 — r2 시안 구성", () => {
     Reflect.deleteProperty(document, "timeline")
   })
 
-  it("첫 문장 · 목표 숫자 3개 · AI 감정 시연 6단계를 시안 문구 그대로 보인다", () => {
+  it("홍보성 첫 문장 · 목표 숫자 · 역할별 첫 화면은 없고, 로그인 카드 제목이 화면 첫 제목이다(사용자 피드백 2026-11-16)", () => {
+    renderAt("?case=ready&as=analyst")
+    expect(screen.queryByText(/현장 족적 한 장으로/)).toBeNull()
+    expect(screen.queryByText("857 → 10")).toBeNull()
+    expect(screen.queryByText("감정서 자동 채움")).toBeNull()
+    expect(screen.queryByText(/로그인하면 처음 열리는 화면/)).toBeNull()
+    expect(screen.queryByRole("region", { name: "역할별 첫 화면" })).toBeNull()
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("로그인")
+  })
+
+  it("AI 감정 시연 6단계를 시안 문구 그대로 보인다", () => {
     renderAt("?case=ready")
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("현장 족적 한 장으로신발 검색부터 감정서 초안까지")
-    expect(screen.getByText("857 → 10")).toBeInTheDocument()
-    expect(screen.getByText("문양 자동 제안")).toBeInTheDocument()
-    expect(screen.getByText("감정서 자동 채움")).toBeInTheDocument()
     const demo = screen.getByRole("region", { name: "AI 감정 시연" })
     expect(within(demo).getByText("AI 감정 흐름 — 사건 00001-25-0649 · 현장 이미지 _2")).toBeInTheDocument()
     for (const t of ["현장 족적", "이진화", "문양 추출", "신발 검색", "1:1 정밀 대조", "감정서 초안"]) {
@@ -196,24 +202,6 @@ describe("S00 로그인 진열 페이지 — r2 시안 구성", () => {
     expect(screen.getByText(/조회·다운로드·출력까지 모든 사용 기록이 저장됩니다/)).toBeInTheDocument()
     expect(screen.getByText("분실 시 관리자에게 초기화 요청")).toBeInTheDocument()
     expect(screen.getByText("내부망 연결됨")).toBeInTheDocument()
-  })
-
-  it("역할별 첫 화면 줄의 「지금」 표시가 보는 사람을 따라 옮겨 간다(시안 data-role)", () => {
-    const nowRow = () => document.querySelector("[data-now]")?.closest("[data-role-row]")?.getAttribute("data-role-row")
-    const { unmount } = renderAt("?case=ready&as=analyst")
-    const roles = screen.getByRole("region", { name: "역할별 첫 화면" })
-    expect(within(roles).getByText("→ 사건관리 (내 담당)")).toBeInTheDocument()
-    expect(within(roles).getByText("→ 결재 대기함")).toBeInTheDocument()
-    expect(nowRow()).toBe("analyst")
-    unmount()
-    const second = renderAt("?case=ready&as=admin")
-    expect(nowRow()).toBe("admin")
-    second.unmount()
-    const third = renderAt("?case=ready&as=verifier")
-    expect(nowRow()).toBe("verifier")
-    third.unmount()
-    renderAt("?case=ready&as=readonly")
-    expect(document.querySelector("[data-now]")).toBeNull()
   })
 
   it("움직임 줄이기면 애니메이션을 걸지 않고 다 끝난 모양(1위 · 87% · 초안)으로 멈춘다", () => {

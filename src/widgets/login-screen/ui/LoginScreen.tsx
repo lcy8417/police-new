@@ -6,11 +6,9 @@ import { cn } from "@/shared/lib/utils"
 import { Button, Chip, Field, InlineError } from "@/shared/ui/kit"
 import { Panel } from "@/shared/ui/panel"
 
-import { DEMO_TARGETS } from "../model/demo-script"
 import type { LoginScreenProps } from "../model/types"
 import { LoginBackdrop } from "./LoginBackdrop"
 import { LoginDemo } from "./LoginDemo"
-import { RoleFirstScreens } from "./RoleFirstScreens"
 
 const NETWORK_ERROR = "서버에 연결할 수 없습니다. 잠시 후 다시 시도하세요"
 
@@ -115,33 +113,6 @@ function AgencyBand() {
   )
 }
 
-/** 첫 문장 + 목표 숫자 3개(시안 핀 1) */
-function Intro() {
-  return (
-    <div className="flex items-end gap-[28px]">
-      <div className="min-w-0">
-        <h1 className="m-0 text-[36px] leading-[1.18] font-bold tracking-[-0.02em] [text-wrap:balance]">
-          현장 족적 한 장으로
-          <br />
-          <span className="bg-[linear-gradient(90deg,var(--t-brand),var(--t-ai))] bg-clip-text text-transparent">신발 검색부터 감정서 초안까지</span>
-        </h1>
-        <p className="mt-[10px] mb-0 max-w-[62ch] text-[13.5px] leading-[1.65] text-muted-foreground">
-          SCAS와 같은 메뉴·같은 순서로 일합니다. 이진화·문양 추출·검색·정밀 대조·감정서 초안은 AI가 먼저 해 두고,{" "}
-          <b className="text-fg-2">발견 판단과 서명은 감정관</b>이 합니다.
-        </p>
-      </div>
-      <dl className="m-0 ml-auto grid grid-cols-[repeat(3,auto)] gap-[22px] pb-[4px]">
-        {DEMO_TARGETS.map(([v, t]) => (
-          <div key={t} className="grid gap-[2px]">
-            <dt className="order-2 text-[11px] whitespace-nowrap text-dim">{t}</dt>
-            <dd className="order-1 m-0 font-code text-[20px] font-bold whitespace-nowrap text-foreground">{v}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  )
-}
-
 /**
  * S00 로그인 · 비밀번호 변경(같은 카드의 두 상태). 셸 밖 전체 화면이라 바탕은 이 화면이 그린다.
  * 값은 모두 props(제어형)이고 서버 호출은 없다. 거절 문구는 서버가 준 그대로 보인다.
@@ -166,7 +137,8 @@ export function LoginScreen(props: LoginScreenProps) {
 
   const title = isLogin ? "로그인" : "비밀번호 변경"
   const titleId = `${baseId}-title`
-  const Heading = showPlus ? "h2" : "h1"
+  // 소개 문구를 뺀 뒤로는 로그인 카드 제목이 화면의 첫 제목이다.
+  const Heading = "h1"
 
   const alert =
     message === null ? null : attempts ? (
@@ -359,7 +331,6 @@ export function LoginScreen(props: LoginScreenProps) {
             <AgencyBand />
             <div className="relative z-[1] grid grid-cols-[minmax(0,1fr)_380px] gap-[40px] px-[44px] pt-[26px] pb-[32px]">
               <div data-plus className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-[18px]">
-                <Intro />
                 {props.demoArt && (
                   <LoginDemo art={props.demoArt} onOpenStep={props.onOpenDemoStep} reducedMotion={props.reducedMotion} />
                 )}
@@ -368,10 +339,7 @@ export function LoginScreen(props: LoginScreenProps) {
                   않습니다.
                 </p>
               </div>
-              <div className="grid min-w-0 content-start gap-[14px]">
-                {card}
-                {isLogin && <RoleFirstScreens isAdmin={props.isAdmin ?? false} features={props.features ?? []} />}
-              </div>
+              <div className="grid min-w-0 content-start gap-[14px]">{card}</div>
             </div>
           </div>
         ) : (
