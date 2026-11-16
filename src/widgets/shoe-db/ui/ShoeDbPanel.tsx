@@ -90,7 +90,9 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
   if (dialog) {
     return (
       <ShoeEditor
-        key={`${dialog.mode}-${dialog.form.ftwrId || "new"}`}
+        // 신규 등록은 입력 중인 신발ID 가 바뀌어도 같은 편집 판(키 고정) — 한 글자마다 다시 그려져 초점 · 보기 설정이 사라지던 것(1회차 검수).
+        // 수정은 ID 가 잠겨 있어 ID 로 구분(‹ › 로 다른 신발로 가면 새 판)
+        key={dialog.mode === "new" ? "new" : `edit-${dialog.form.ftwrId}`}
         dialog={dialog}
         canEdit={canEdit}
         isAdmin={isAdmin}
@@ -131,7 +133,7 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
       {label("화류번호", <Field variant="mono" aria-label="화류번호" value={filters.ftwrId} onChange={(e) => set({ ftwrId: e.target.value })} />)}
       {label("상표", <Field aria-label="상표" value={filters.brandCode} onChange={(e) => set({ brandCode: e.target.value })} />)}
       {label("제조사", <Field aria-label="제조사" value={filters.makrCode} onChange={(e) => set({ makrCode: e.target.value })} />)}
-      {label("등록관서", <Combobox items={officeItems} value={filters.office} onValueChange={(office) => set({ office })} placeholder="전체" />)}
+      {label("등록관서", <Combobox aria-label="등록관서" items={officeItems} value={filters.office} onValueChange={(office) => set({ office })} placeholder="전체" />)}
       {label(
         "등록일자",
         <span className="flex min-w-0 items-center gap-[6px]">

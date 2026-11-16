@@ -103,6 +103,8 @@ export function UserDetail({
   const status = userStatus(user)
   const isAdminUser = user.userSe === "ADMIN"
   const infoDirty = draft.userNm.trim() !== user.userNm || draft.userSe !== user.userSe || draft.orgId !== user.orgId
+  // 이름은 필수(기존 사용자 관리와 같은 검사 — 1회차 검수: 빈 이름이 그대로 저장되던 것)
+  const nameEmpty = draft.userNm.trim() === ""
   const rolesDirty = !sameRoles(draft.roles, user.roles)
   const featuresDirty = !sameFeatures(draft.features, user.features)
   // 저장된 소속이 본청인 비직원은 의뢰를 볼 수 없다 · 비직원의 개인 사건 조회는 전국 사건 사진 열람이 된다
@@ -158,7 +160,18 @@ export function UserDetail({
           <label htmlFor={`${baseId}-nm`} className="text-[12.5px] text-muted-foreground">
             이름
           </label>
-          <Field id={`${baseId}-nm`} value={draft.userNm} onChange={(e) => onDraftChange({ userNm: e.target.value })} />
+          <Field
+            id={`${baseId}-nm`}
+            value={draft.userNm}
+            aria-invalid={nameEmpty || undefined}
+            aria-describedby={nameEmpty ? `${baseId}-nm-error` : undefined}
+            onChange={(e) => onDraftChange({ userNm: e.target.value })}
+          />
+          {nameEmpty ? (
+            <p id={`${baseId}-nm-error`} role="alert" className="col-start-2 m-0 text-[11px] text-danger">
+              {USER_FORM_MESSAGES.userNm}
+            </p>
+          ) : null}
           <span className="text-[12.5px] text-muted-foreground">구분</span>
           <span aria-disabled={isSelf || undefined} inert={isSelf} className={isSelf ? "opacity-60" : undefined}>
             <Segmented
@@ -171,8 +184,9 @@ export function UserDetail({
               onValueChange={(v) => !isSelf && onDraftChange({ userSe: v as UserDraft["userSe"] })}
             />
           </span>
-          <span className="text-[12.5px] text-muted-foreground">소속 관서</span>
+          <span id={`${baseId}-org`} className="text-[12.5px] text-muted-foreground">소속 관서</span>
           <Combobox
+            aria-labelledby={`${baseId}-org`}
             items={orgItems}
             value={String(draft.orgId)}
             onValueChange={(v) => onDraftChange({ orgId: Number(v) })}
@@ -182,7 +196,7 @@ export function UserDetail({
         {orgHint && <p className="m-0 text-[11px] text-warn">{USER_FORM_MESSAGES.hqNonStaff}</p>}
         {isSelf && <p className="m-0 text-[11px] text-dim">본인 계정의 구분·사용 여부는 바꿀 수 없습니다.</p>}
         <div className="flex justify-end">
-          <WorkbenchButton size="sm" icon={Save} disabled={!infoDirty} onClick={onSaveInfo}>
+          <WorkbenchButton size="sm" icon={Save} disabled={!infoDirty || nameEmpty} onClick={onSaveInfo}>
             정보 저장
           </WorkbenchButton>
         </div>

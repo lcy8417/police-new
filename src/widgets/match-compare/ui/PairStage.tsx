@@ -98,7 +98,7 @@ function DenseOverlay({ insight, crimeImage, shoeImage }: { insight: MatchInsigh
         const a = crimeToStage(crimeImage, zc.x[1], yc)
         const c = shoeToStage(shoeImage, zs.x[1], ys)
         return (
-          <g key={t} className="font-sans text-[11px] font-bold">
+          <g key={t} className="font-ui text-[11px] font-bold">
             <text x={f(a[0] + 2)} y={f(a[1] + 4)} className="fill-[var(--t-heat-yellow)]" opacity={0.85}>
               {t}
             </text>

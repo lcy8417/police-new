@@ -728,5 +728,5 @@ body,
   background-clip: content-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: #2b3a52;
+  background-color: var(--t-line-3);
 }

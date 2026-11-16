@@ -51,13 +51,13 @@ export function LogFilterBar({ filters, onChange, onReset, users, actions, showP
   return (
     <div role="search" aria-label="사용 기록 필터" className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px] px-[14px] py-[10px]">
       <Labeled label="사용자">
-        <Combobox className="w-[210px]" items={userItems} value={filters.userId} onValueChange={(v) => set("userId", v)} />
+        <Combobox aria-label="사용자" className="w-[210px]" items={userItems} value={filters.userId} onValueChange={(v) => set("userId", v)} />
       </Labeled>
       <Labeled label="기간" htmlFor={`${baseId}-from`}>
         <div className="flex items-center gap-[6px]">
-          <Field id={`${baseId}-from`} type="date" variant="mono" aria-label="시작 날짜" className="w-[140px] [color-scheme:dark]" value={filters.from} max={filters.to || undefined} onChange={(e) => set("from", e.target.value)} />
+          <Field id={`${baseId}-from`} type="date" variant="mono" aria-label="시작 날짜" className="w-[140px]" value={filters.from} max={filters.to || undefined} onChange={(e) => set("from", e.target.value)} />
           <span aria-hidden="true" className="text-dim">~</span>
-          <Field type="date" variant="mono" aria-label="끝 날짜" className="w-[140px] [color-scheme:dark]" value={filters.to} min={filters.from || undefined} onChange={(e) => set("to", e.target.value)} />
+          <Field type="date" variant="mono" aria-label="끝 날짜" className="w-[140px]" value={filters.to} min={filters.from || undefined} onChange={(e) => set("to", e.target.value)} />
         </div>
       </Labeled>
       <Labeled label="결과" eventsOnly>
@@ -70,7 +70,7 @@ export function LogFilterBar({ filters, onChange, onReset, users, actions, showP
         />
       </Labeled>
       <Labeled label="기능" eventsOnly>
-        <Combobox className="w-[200px]" items={actionItems} value={filters.actionCode} onValueChange={(v) => set("actionCode", v)} />
+        <Combobox aria-label="기능" className="w-[200px]" items={actionItems} value={filters.actionCode} onValueChange={(v) => set("actionCode", v)} />
       </Labeled>
       {showPlus && (
         <div data-plus className="min-w-0">

@@ -79,6 +79,13 @@ export function CompareWindow(props: MatchCompareScreenProps) {
   const [showZones, setShowZones] = React.useState(true)
   const [activeIndex, setActiveIndex] = React.useState<number | null>(null)
   const [shoeOpen, setShoeOpen] = React.useState(false)
+  // 「신발 상세」 팝: Esc 로 이것만 닫는다(사건 창은 data-esc-layer 를 보고 그대로 둔다)
+  React.useEffect(() => {
+    if (!shoeOpen) return
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setShoeOpen(false)
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [shoeOpen])
   const [alignOpen, setAlignOpen] = React.useState(false)
 
   const crimeBoxes = React.useMemo(() => matches.map((m) => m.box), [matches])
@@ -141,6 +148,7 @@ export function CompareWindow(props: MatchCompareScreenProps) {
   const shoeDetail = shoeOpen ? (
     <div
       role="dialog"
+      data-esc-layer=""
       aria-label="신발 상세"
       className="absolute top-[8px] right-[8px] z-[5] grid w-[236px] gap-[8px] rounded-[10px] border border-solid border-line-3 bg-panel p-[10px] [box-shadow:0_12px_32px_var(--t-panel-drop)]"
     >

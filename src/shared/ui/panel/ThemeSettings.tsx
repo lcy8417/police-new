@@ -133,6 +133,7 @@ export function ThemeSettings({ className, compact = false }: ThemeSettingsProps
       {open && (
         <section
           id={panelId}
+          data-esc-layer=""
           aria-label="화면 설정"
           className={
             "absolute top-[calc(100%+6px)] right-0 z-50 grid w-[380px] gap-[14px] rounded-[10px] border border-solid border-border " +

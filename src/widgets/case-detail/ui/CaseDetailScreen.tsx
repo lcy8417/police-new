@@ -198,6 +198,7 @@ export function CaseDetailScreen({
       label: "의뢰관서",
       field: canEdit ? (
         <Combobox
+          aria-label="의뢰관서"
           items={officeItems}
           value={form.rqestGrfcNm || null}
           onValueChange={(v) => onFieldChange("rqestGrfcNm", v)}

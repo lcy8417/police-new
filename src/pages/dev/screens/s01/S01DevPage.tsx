@@ -107,8 +107,12 @@ export function S01DevPage() {
   const anyOf = (key: string, test: (v: string) => boolean) => quickValues[key].length === 0 || quickValues[key].some(test)
   const quickMatched = matched.filter(
     (r) =>
-      (needle === "" || [r.aprthngNo, r.docNo, r.caseName].some((t) => t.toLowerCase().includes(needle))) &&
-      anyOf("view", (v) => viewTest(v)(r)) &&
+      // 감정번호 · 문서번호 · 사건명 · SCAS 사건번호, 이미지 번호(`…_2`)로 찾아도 그 사건(1회차 검수)
+      (needle === "" ||
+        [r.aprthngNo, r.docNo, r.caseName, r.scasNo].some((t) => t.toLowerCase().includes(needle)) ||
+        (/_\d+$/.test(needle) && r.aprthngNo.toLowerCase() === needle.replace(/_\d+$/, ""))) &&
+      // 「빠른 보기」 칩은 신규(+α) 기능 — 꺼져 있으면 칩이 안 보이므로 걸러 두었던 값도 쓰지 않는다(1회차 검수)
+      (!plus || anyOf("view", (v) => viewTest(v)(r))) &&
       anyOf("progress", (v) => (v === "registered" ? r.progress.registered > 0 : v === "searched" ? r.progress.searched > 0 : r.progress.confirmed > 0)) &&
       anyOf("result", (v) => resultKey(r) === v) &&
       anyOf("kind", (v) => r.kind === v) &&

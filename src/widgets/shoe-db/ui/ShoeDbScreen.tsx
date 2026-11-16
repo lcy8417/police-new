@@ -145,7 +145,7 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
     },
     { label: "상표", field: text("brandCode", "상표") },
     { label: "승인", field: <RadioRow name="승인" options={APPROVAL_OPTIONS} value={filters.approval} onValueChange={(approval) => set({ approval })} /> },
-    { label: "등록관서", field: <Combobox items={officeItems} value={filters.office} onValueChange={(office) => set({ office })} placeholder="전체" /> },
+    { label: "등록관서", field: <Combobox aria-label="등록관서" items={officeItems} value={filters.office} onValueChange={(office) => set({ office })} placeholder="전체" /> },
     { label: "그룹명", field: text("groupNm", "그룹명") },
     {
       label: "문양 입력",

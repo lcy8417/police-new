@@ -65,6 +65,24 @@ describe("CaseWindowFrame", () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it("1회차 검수 — 손수 만든 겹(data-esc-layer)이 열려 있거나 안쪽에서 Esc 를 이미 받았으면(preventDefault) 닫지 않는다", () => {
+    const onClose = vi.fn()
+    render(
+      <CaseWindowFrame label="사건 창" onClose={onClose}>
+        <div data-esc-layer="" role="dialog" aria-label="자동 설정" />
+      </CaseWindowFrame>
+    )
+    fireEvent.keyDown(document, { key: "Escape" })
+    expect(onClose).not.toHaveBeenCalled()
+    screen.getByRole("dialog", { name: "자동 설정" }).remove()
+    const inner = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })
+    inner.preventDefault()
+    document.dispatchEvent(inner)
+    expect(onClose).not.toHaveBeenCalled()
+    fireEvent.keyDown(document, { key: "Escape" })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
   it("열면 창으로 초점, 닫으면 연 단추로 초점을 돌려준다", () => {
     render(<Host />)
     const opener = screen.getByRole("button", { name: "열기" })

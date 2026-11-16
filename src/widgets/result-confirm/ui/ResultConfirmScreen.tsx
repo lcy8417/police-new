@@ -646,6 +646,7 @@ export function ResultConfirmScreen({
               <span className="text-[12px] text-fg-2">교차 검증자</span>
               <span className="w-[200px]">
                 <Combobox
+                  aria-label="교차 검증자"
                   items={[...plus.reviewers]}
                   value={crossReviewer}
                   onValueChange={(v) => onCrossReviewerChange?.(v)}

@@ -173,7 +173,7 @@ r4(2026-11-16 사용자 「현재 작업 플로우가 어디까지 온지를 로
 
 | 부품 | 출입구 | 파일 | 원본(data-part) | 쓰는 화면 | 변형 | 상태 |
 |---|---|---|---|---|---|---|
-| PatternZoneBoard | entities | `src/entities/pattern/ui/PatternZoneBoard.tsx` | (사건 창 문양 코드 탭 ZoneBoard 를 옮김) | S01 사건 창 문양 코드 탭 · 신발 편집 | [새로] 4부위 행(머리 46 = 부위 고르기 · 끌어 놓기 · 고른 부위 옅은 brand 판) + 문양 카드(그림 36 → 오른쪽 AI 점수 15 굵게 mono · 개수 ×n 9.5 · 빼기 / 가중치 세그먼트 낮 · 보 · 높 19×18(규칙 값 `bg-fg-2` · 직접 `bg-brand`) · 필수 18). 필수 = 2px `border-danger` + 좌상단 「필수」. 코드 글자 · 확신도 막대 없음(마우스 설명). crime(`onToggleMust` · `onWeight` · `onCount`) · shoe(이름만) 는 콜백 유무로 | 구현됨 |
+| PatternZoneBoard | entities | `src/entities/pattern/ui/PatternZoneBoard.tsx` | (사건 창 문양 코드 탭 ZoneBoard 를 옮김) | S01 사건 창 문양 코드 탭 · 신발 편집 | [새로] 4부위 행(머리 46 = 부위 고르기 · 끌어 놓기 · 고른 부위 옅은 brand 판) + 문양 카드(그림 36 → 오른쪽 AI 점수 16 굵게 mono · 개수 ×n 10 · 빼기 / 가중치 세그먼트 낮 · 보 · 높 19×18 글자 11(규칙 값 `bg-fg-2` · 직접 `bg-brand`) · 필수 18). 필수 = 2px `border-danger` + 좌상단 「필수」 10. 부위 이름 13 굵게(R6 단계 — 1회차 검수). 보기 전용(`canEdit` 거짓)이면 우클릭 필수 토글도 막는다. 코드 글자 · 확신도 막대 없음(마우스 설명). crime(`onToggleMust` · `onWeight` · `onCount`) · shoe(이름만) 는 콜백 유무로 | 구현됨 |
 | PatternLibrary | entities | `src/entities/pattern/ui/PatternLibrary.tsx` | (사건 창 문양 코드 탭 문양 목록을 옮김) | S01 사건 창 문양 코드 탭 · 살펴보기 판 · 신발 편집 | [새로] 종류 = 알약 탭 한 줄(높이 24 · 고른 탭 `bg-brand-3` · 개수 mono 10, AI 탭 ai 색) + 4칸(살펴보기 5칸) 흰 카드 격자(`bg-picon` · 모서리 9 · 넣은 문양 `border-brand` 2겹 + ✓ 16). 끌어 놓기 · `onHoverItem`(확대 보기 칸) | 구현됨 |
 | PatternPeek | entities | `src/entities/pattern/ui/PatternPeek.tsx` | (시안 짝 없음) | S01 사건 창 문양 코드 탭 · 신발 편집 | [새로] 문양 목록 위 확대 보기 칸 — 확대경 켬 = 「확대 보기 · 고정(WorkbenchButton sm)」 머리 + 두 정사각 칸(왼쪽 먹색 LensView · 오른쪽 마우스 올린 문양 크게) + 이름 줄, 꺼짐 = 문양 미리보기 한 줄(64 칸) | 구현됨 |
 

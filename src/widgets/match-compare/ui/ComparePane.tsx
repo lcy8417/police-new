@@ -184,7 +184,7 @@ export function ComparePane(props: ComparePaneProps) {
                   aria-hidden="true"
                   data-pin-mark
                   style={{ left: pct(pin.x), top: pct(pin.y) }}
-                  className="pointer-events-none absolute z-[2] size-[18px] -translate-1/2 rounded-full border-2 border-solid border-brand [box-shadow:0_0_0_2px_var(--t-canvas)]"
+                  className="pointer-events-none absolute z-[2] size-[18px] -translate-1/2 rounded-full border-2 border-solid border-brand [box-shadow:0_0_0_2px_var(--t-bg)]"
                 >
                   <i className="absolute top-1/2 left-1/2 size-[4px] -translate-1/2 rounded-full bg-brand" />
                 </span>

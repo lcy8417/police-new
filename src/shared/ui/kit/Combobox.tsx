@@ -23,6 +23,12 @@ export interface ComboboxProps {
   /** 시안 위치 식별자(`data-part-id`) */
   partId?: string
   className?: string
+  /** 입력 칸 id(보이는 `<label htmlFor>` 와 잇기) */
+  id?: string
+  /** 입력 칸 접근성 이름(보이는 라벨이 없을 때) */
+  "aria-label"?: string
+  /** 입력 칸 접근성 이름을 가리키는 요소 id(보이는 라벨 글이 `<label>` 이 아닐 때) */
+  "aria-labelledby"?: string
 }
 
 export function Combobox({
@@ -33,6 +39,9 @@ export function Combobox({
   emptyText = "일치하는 항목 없음",
   partId,
   className,
+  id,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledby,
 }: ComboboxProps) {
   const listId = React.useId()
   // query 가 null 이면 입력 칸에 고른 항목의 이름을 보인다
@@ -72,6 +81,8 @@ export function Combobox({
         choose(item)
       }
     } else if (e.key === "Escape") {
+      // 목록이 열려 있으면 이 Esc 는 목록 닫기 몫 — 바깥 창(사건 창 · 대화상자)이 같이 닫히지 않게 알린다
+      if (open) e.preventDefault()
       setQuery(null)
       setOpen(false)
     }
@@ -80,6 +91,9 @@ export function Combobox({
   return (
     <div {...partAttrs("Combobox", { id: partId })} className={cn("relative min-w-0", className)}>
       <Field
+        id={id}
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledby}
         variant="pick"
         role="combobox"
         aria-expanded={open}

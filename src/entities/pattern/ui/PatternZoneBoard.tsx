@@ -89,7 +89,7 @@ function WeightSegment({
             disabled={disabled || !onChange}
             onClick={() => onChange?.(weight.manual && on ? null : level)}
             className={cn(
-              "m-0 grid h-[18px] w-[19px] cursor-pointer place-items-center border-0 p-0 text-[10.5px] leading-none font-bold transition-colors duration-150 motion-reduce:transition-none disabled:cursor-default focus-visible:outline-1 focus-visible:outline-solid focus-visible:-outline-offset-1 focus-visible:outline-brand",
+              "m-0 grid h-[18px] w-[19px] cursor-pointer place-items-center border-0 p-0 text-[11px] leading-none font-bold transition-colors duration-150 motion-reduce:transition-none disabled:cursor-default focus-visible:outline-1 focus-visible:outline-solid focus-visible:-outline-offset-1 focus-visible:outline-brand",
               on
                 ? weight.manual
                   ? "bg-brand text-paper"
@@ -149,7 +149,7 @@ function PatternCard({
       )}
     >
       {mustOn ? (
-        <span aria-hidden="true" className="pointer-events-none absolute top-0 left-0 z-[1] rounded-tl-[5px] rounded-br-[5px] bg-danger px-[3px] text-[8.5px] leading-[12px] font-bold text-paper">
+        <span aria-hidden="true" className="pointer-events-none absolute top-0 left-0 z-[1] rounded-tl-[5px] rounded-br-[5px] bg-danger px-[3px] text-[10px] leading-[12px] font-bold text-paper">
           필수
         </span>
       ) : null}
@@ -163,7 +163,8 @@ function PatternCard({
           onToggleMust
             ? (e) => {
                 e.preventDefault()
-                onToggleMust()
+                // 보기 전용이면 우클릭으로도 필수를 못 바꾼다(1회차 검수 — 잠긴 단추도 우클릭은 들어옴)
+                if (canEdit) onToggleMust()
               }
             : undefined
         }
@@ -175,12 +176,12 @@ function PatternCard({
         {score !== undefined && status !== "manual" ? (
           <b
             title={`AI 점수 ${score.toFixed(2)}${sug ? " · 확인 전 제안(검색에 안 들어감)" : " · 감정관 확인"}`}
-            className={cn("min-w-[34px] font-code text-[15px] leading-none font-bold tabular-nums", low || doubtful ? "text-warn" : "text-ai")}
+            className={cn("min-w-[34px] font-code text-[16px] leading-none font-bold tabular-nums", low || doubtful ? "text-warn" : "text-ai")}
           >
             {score.toFixed(2)}
           </b>
         ) : (
-          <span className={cn("min-w-[34px] text-[10.5px] font-semibold", status === "manual" ? "text-muted-foreground" : "font-code tracking-[0.08em] text-ai")}>
+          <span className={cn("min-w-[34px] text-[11px] font-semibold", status === "manual" ? "text-muted-foreground" : "font-code tracking-[0.08em] text-ai")}>
             {status === "manual" ? "수동" : "AI"}
           </span>
         )}
@@ -191,7 +192,7 @@ function PatternCard({
             value={count ?? "1"}
             disabled={!canEdit}
             onChange={(e) => onCount(e.target.value)}
-            className="h-[16px] w-[24px] shrink-0 cursor-pointer appearance-none rounded-[4px] border-0 bg-transparent px-0 text-center font-code text-[9.5px] text-muted-foreground tabular-nums hover:bg-panel-3 hover:text-fg-2 disabled:cursor-default disabled:opacity-60"
+            className="h-[16px] w-[24px] shrink-0 cursor-pointer appearance-none rounded-[4px] border-0 bg-transparent px-0 text-center font-code text-[10px] text-muted-foreground tabular-nums hover:bg-panel-3 hover:text-fg-2 disabled:cursor-default disabled:opacity-60"
           >
             {countOptions.map((c) => (
               <option key={c} value={c}>
@@ -312,9 +313,9 @@ export function PatternZoneBoard({
               onClick={() => onSelectZone(zone)}
               className="m-0 grid cursor-pointer justify-items-start gap-[3px] border-0 bg-transparent p-0 pt-[3px] text-left text-foreground focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-brand"
             >
-              <b className={cn("text-[14px] leading-none", on && "text-brand")}>{zoneLabel}</b>
+              <b className={cn("text-[13px] leading-none", on && "text-brand")}>{zoneLabel}</b>
               <span className={cn("text-[10px] leading-[1.3]", on ? "font-semibold text-brand" : "text-muted-foreground")}>{on ? "입력 중" : `${items.length}개`}</span>
-              {outlineAiNote && zone === "outline" ? <span className="text-[9.5px] leading-[1.3] text-muted-foreground">AI 미지원</span> : null}
+              {outlineAiNote && zone === "outline" ? <span className="text-[10px] leading-[1.3] text-muted-foreground">AI 미지원</span> : null}
             </button>
             <div className="flex min-w-0 flex-wrap items-center gap-[6px]">
               {items.map((card, index) => (
@@ -333,14 +334,14 @@ export function PatternZoneBoard({
               ))}
               {items.length === 0 ? (
                 // 빈 부위만 자리 표시 — 문양이 있는 행은 행 전체가 놓는 자리(끌면 「여기에 놓기」)
-                <span className="inline-grid h-[44px] min-w-[132px] place-items-center rounded-[9px] border border-dashed border-line-3 px-[10px] text-[10.5px] text-muted-foreground">
+                <span className="inline-grid h-[44px] min-w-[132px] place-items-center rounded-[9px] border border-dashed border-line-3 px-[10px] text-[11px] text-muted-foreground">
                   {emptyText}
                 </span>
               ) : null}
             </div>
             <span className="pt-[3px]">{zoneNote?.[zone] ?? null}</span>
             {over ? (
-              <span aria-hidden="true" className="pointer-events-none absolute inset-0 grid place-items-center rounded-[10px] bg-canvas/60 text-[12px] font-semibold text-brand">
+              <span aria-hidden="true" className="pointer-events-none absolute inset-0 grid place-items-center rounded-[10px] bg-canvas/60 text-[12.5px] font-semibold text-brand">
                 여기에 놓기
               </span>
             ) : null}

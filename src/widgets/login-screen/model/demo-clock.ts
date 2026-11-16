@@ -52,7 +52,8 @@ export function useDemoAnim<T extends Element>(frames: DemoFrames): (el: T | nul
   return useCallback(
     (el: T | null) => {
       if (!el || origin === null || typeof el.animate !== "function") return undefined
-      const animation = el.animate(resolveTokens(frames.keyframes), { duration: DEMO_CYCLE_MS, iterations: Infinity })
+      // 토큰은 그 요소가 놓인 테마 범위에서 읽는다(문서 뿌리 = 다크 값이라 밝은 테마에서 색이 틀어지던 것 — 1회차 검수)
+      const animation = el.animate(resolveTokens(frames.keyframes, el), { duration: DEMO_CYCLE_MS, iterations: Infinity })
       animation.startTime = origin
       return () => animation.cancel()
     },

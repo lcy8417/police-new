@@ -77,7 +77,8 @@ function PatternCard({
         onClick={onRemove}
         onContextMenu={(e) => {
           e.preventDefault()
-          onToggle()
+          // 보기 전용이면 우클릭으로도 필수를 못 바꾼다(1회차 검수 — 잠긴 단추도 우클릭은 들어옴)
+          if (canEdit) onToggle()
         }}
         className="cursor-pointer border-0 bg-transparent p-0 disabled:cursor-not-allowed"
       >
@@ -244,7 +245,7 @@ export function ZoneRows({
                     onClick={() => onRemovePattern(zone, index)}
                     onContextMenu={(e) => {
                       e.preventDefault()
-                      onToggleEssential(zone, index)
+                      if (canEdit) onToggleEssential(zone, index)
                     }}
                     className={cn(
                       "cursor-pointer rounded-[8px] border border-solid bg-panel-2 p-[6px] disabled:cursor-not-allowed",

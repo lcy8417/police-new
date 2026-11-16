@@ -155,7 +155,8 @@ export function S13DevPage() {
         draft={draft}
         onDraftChange={(patch) => selected && setEdits((prev) => ({ ...prev, [selected.userId]: { ...prev[selected.userId], ...patch } }))}
         onSaveInfo={() => {
-          if (!selected || !draft) return
+          // 이름이 비면 저장하지 않는다(상세 칸이 「이름을 입력하세요」를 보인다)
+          if (!selected || !draft || draft.userNm.trim() === "") return
           const org = MOCK_ORGS.find((o) => o.orgId === draft.orgId)
           patchUser(selected.userId, { userNm: draft.userNm.trim(), userSe: draft.userSe, orgId: draft.orgId, orgNm: org?.orgNm ?? selected.orgNm })
           clearEdit(selected.userId, ["userNm", "userSe", "orgId"])

@@ -1,6 +1,7 @@
 import * as React from "react"
 import { ArrowRight, Settings2, Star, X } from "lucide-react"
 
+import { useReducedMotion } from "@/shared/lib/use-reduced-motion"
 import { cn } from "@/shared/lib/utils"
 import { AiProgress } from "@/shared/ui/ai"
 import { Chip, InlineError, Segmented, WorkbenchButton } from "@/shared/ui/kit"
@@ -75,20 +76,6 @@ const TIP =
 
 const perOf = (c: number | undefined): Per => (c === 1 || c === 3 ? c : 5)
 
-/** 움직임 줄이기 설정 */
-function useReducedMotion(): boolean {
-  const [reduced, setReduced] = React.useState(false)
-  React.useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
-    setReduced(mq.matches)
-    const on = () => setReduced(mq.matches)
-    mq.addEventListener?.("change", on)
-    return () => mq.removeEventListener?.("change", on)
-  }, [])
-  return reduced
-}
-
 /**
  * 사건 창 「검색 결과」 탭(11/17 사용자 「검색 결과도 전문적이게 … 순위가 쭉 나와야해. 1개 3개 5개 보기 … 점수가 잘 나오고, 어느 문양 일치하는지 살짝 상단 …
  * 화류번호 검색 · 유사도 필터 빼 … 본 것 안 본 것은 좋네 … 자동 누르면 … 스크롤 자체가 내려가는거야 … 클릭해서 멈추는 거고 · 속도 · 페이지 넘김」).
@@ -141,7 +128,11 @@ export function SearchWindow(props: SearchResultScreenProps) {
     props.onAutoModeChange?.(mode)
     props.onPlayingChange?.(mode === "auto")
   }
-  const toggleTarget = (t: SearchTarget) => props.onToggleTarget?.(t)
+  // 확인대상 ★ 도 카드를 누른 것과 같이 자동 스크롤을 멈춘다(고르는 동안 목록이 움직이지 않게 — 1회차 검수)
+  const toggleTarget = (t: SearchTarget) => {
+    if (autoMode === "auto") setAuto("manual")
+    props.onToggleTarget?.(t)
+  }
 
   // ── 이어 붙이기 · 지나간 카드 「본 것」 ──
   const askMore = React.useCallback(() => {
@@ -504,6 +495,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
             {settingsOpen ? (
               <div
                 role="dialog"
+                data-esc-layer=""
                 aria-label="자동 설정"
                 className="absolute top-[calc(100%+4px)] right-[8px] z-[25] grid w-[240px] gap-[8px] rounded-[10px] border border-solid border-line-3 bg-panel p-[10px] [box-shadow:0_12px_32px_var(--t-panel-drop)]"
               >

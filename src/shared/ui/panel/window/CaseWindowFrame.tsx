@@ -10,8 +10,12 @@ import { partAttrs } from "../../part-attrs"
 // 진열 막대 30 + 위 막대 48 + 판 아래 띄움 10 = 88 을 뺀다. 판이 화면보다 짧으면 판 높이(max-h-full)까지만.
 // 색만 대응: 가림막 먹 28% → emblem-to 28%, 서랍 그림자 → panel-drop. 업무 말 · 판정은 없다(머리 · 목록 · 본문은 쓰는 쪽이 넣는다).
 
-/** 다른 층(대화상자 · 확인 창 · 떠 있는 고르기)이 열려 있으면 Esc 는 그 층 몫이다 — 맨 위 것부터 하나씩(로망 스킬 6-2) */
-const OTHER_LAYER = '[role="dialog"][data-state="open"], [role="alertdialog"], [data-radix-popper-content-wrapper]'
+/**
+ * 다른 층(대화상자 · 확인 창 · 떠 있는 고르기)이 열려 있으면 Esc 는 그 층 몫이다 — 맨 위 것부터 하나씩(로망 스킬 6-2).
+ * Radix 가 아닌 손수 만든 겹(창 안 「자동 설정」 · 「신발 상세」 팝, 화면 설정 펼침)은 열려 있는 동안 `data-esc-layer` 를 단다(1회차 검수 —
+ * 이 표시가 없어 Esc 한 번에 사건 창까지 닫히던 것). 목록 상자(Combobox)는 Esc 를 받으면 preventDefault 로 알린다.
+ */
+const OTHER_LAYER = '[role="dialog"][data-state="open"], [role="alertdialog"], [data-radix-popper-content-wrapper], [data-esc-layer]'
 
 export interface CaseWindowFrameProps {
   /** 창 이름(화면 읽기) — 「00001-25-0649 주거침입 사건 창」 */
