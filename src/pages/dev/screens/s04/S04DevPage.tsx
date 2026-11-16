@@ -7,32 +7,48 @@ import {
   BoundaryLines,
   PatternCodeScreen,
   patternName,
+  PriceTagBox,
   RoiBox,
+  ZoneConfidenceTags,
   type CrimePatternTuple,
   type CrimeZones,
   type ExtractState,
+  type ImageCodingStatus,
   type MatchConditionValues,
   type PaletteKind,
+  type PatternCardMeta,
+  type PatternMetaMap,
   type ResearchState,
   type SearchImageSource,
+  type SearchMethod,
+  type ZoneConfidenceTag,
 } from "@/widgets/pattern-code"
 
-import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevViewer } from "../frame"
+import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevPlus, useDevViewer } from "../frame"
 import { FakePhoto } from "../mock-assets/FakePhoto"
 import {
   DEFAULT_CODE_NOTE,
   S04_APRTHNG_NO,
   S04_CODE_NOTES,
+  S04_FUNNEL,
+  S04_IMAGE_REST,
+  S04_IMAGE_STATUSES,
+  S04_IMAGE_TOTAL,
   S04_IMAGES,
   S04_MATCH_CONDITIONS,
   S04_MOCK,
   S04_PALETTE,
+  S04_RECENT,
   S04_RESEARCH_MS,
+  S04_ZONE_CONFIDENCE,
   type NamedZones,
   type S04Case,
 } from "./mock-cases"
 
 const info = devScreen("s04")
+
+/** 동작이 아직 없는 신규 버튼(spec §13-4) */
+const notReady = (label: string) => toast("시안 — 기능 준비 중", { description: label })
 
 const ZONE_KEYS: PatternZone[] = ["top", "mid", "bottom", "outline"]
 const BANDS: ZoneBand[] = [
@@ -48,8 +64,20 @@ function hydrate(zones: NamedZones): CrimeZones {
   return out
 }
 
-/** 경계선 캔버스 자리에 넣는 가짜 그림 + 시안 도구 모양(고정 장식, pointer-events-none) */
-function FakePatternCanvas({ source }: { source: SearchImageSource }) {
+/** 시안 영역별 확신도 꼬리표(띠 위치는 BANDS 와 같음) */
+const CONFIDENCE_TAGS: ZoneConfidenceTag[] = BANDS.map((b) => ({
+  key: b.key,
+  label: b.label,
+  from: b.from * 100,
+  to: b.to * 100,
+  confidence: S04_ZONE_CONFIDENCE[b.key],
+}))
+
+/**
+ * 경계선 캔버스 자리에 넣는 가짜 그림 + 시안 도구 모양(고정 장식, pointer-events-none).
+ * 신규 켜기면 띠 글자 대신 영역별 AI 확신도 꼬리표(시안 r3)와 가격표 네모(시안 핀 8)를 얹는다.
+ */
+function FakePatternCanvas({ source, plus }: { source: SearchImageSource; plus: boolean }) {
   return (
     <div className="absolute inset-y-[8px] left-1/2 aspect-[2/3] -translate-x-1/2">
       <FakePhoto
@@ -60,17 +88,34 @@ function FakePatternCanvas({ source }: { source: SearchImageSource }) {
         tag=""
         preserveAspectRatio="xMidYMid meet"
       />
-      <ZoneBands zones={BANDS} />
+      <ZoneBands zones={BANDS} className={plus ? "[&_span]:hidden" : undefined} />
       <BoundaryLines ys={[35, 67]} />
       <RoiBox left={22} top={1} width={56} height={98} />
+      {plus ? (
+        <>
+          <ZoneConfidenceTags tags={CONFIDENCE_TAGS} />
+          <PriceTagBox left={52} top={43} width={14} height={7} />
+        </>
+      ) : null}
     </div>
   )
+}
+
+/** 다음 미코딩 이미지(지금 이미지 제외) */
+function nextUncoded(statuses: Record<string, ImageCodingStatus>, current: string): string | null {
+  return S04_IMAGES.find((no) => no !== current && statuses[no] === "uncoded") ?? null
 }
 
 function S04Stage({ caseName }: { caseName: S04Case }) {
   const mock = S04_MOCK[caseName]
   const viewer = useDevViewer()
+  const plus = useDevPlus()
   const go = useDevNavigate()
+  const [meta, setMeta] = React.useState<PatternMetaMap>(mock.meta)
+  const [imageStatuses, setImageStatuses] = React.useState<Record<string, ImageCodingStatus>>(S04_IMAGE_STATUSES)
+  const [soleText, setSoleText] = React.useState("")
+  const [searchMethod, setSearchMethod] = React.useState<SearchMethod>("image")
+  const [selectedSearchNo, setSelectedSearchNo] = React.useState<number | undefined>(mock.history[0]?.searchNo)
 
   const [aprthngNo, setAprthngNo] = React.useState(S04_APRTHNG_NO)
   const [zones, setZones] = React.useState<NamedZones>(mock.zones)
@@ -105,6 +150,7 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
     () => S04_PALETTE[paletteKind].map((n) => insertPatternPath(n) as string),
     [paletteKind],
   )
+  const recentPaths = React.useMemo(() => S04_RECENT.map((n) => insertPatternPath(n) as string), [])
   const extractedView = React.useMemo(
     () => extracted.map((it) => ({ ...it, src: insertPatternPath(it.code) as string })),
     [extracted],
@@ -112,6 +158,16 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
 
   const updateZone = (zone: PatternZone, fn: (items: NamedZones[PatternZone]) => NamedZones[PatternZone]) =>
     setZones((prev) => ({ ...prev, [zone]: fn(prev[zone]) }))
+
+  /** 문양 카드 덧붙임 한 칸 고치기(이름 기준). patch 가 null 이면 지운다 */
+  const patchMeta = (zone: PatternZone, name: string, patch: Partial<PatternCardMeta> | null) =>
+    setMeta((prev) => {
+      const zoneMeta = { ...(prev[zone] ?? {}) }
+      if (patch === null) delete zoneMeta[name]
+      else zoneMeta[name] = { ...(zoneMeta[name] ?? { status: "manual" }), ...patch }
+      return { ...prev, [zone]: zoneMeta }
+    })
+  const nameAt = (zone: PatternZone, index: number) => zones[zone][index]?.[0] ?? ""
 
   /** 클릭 넣기 · 끌어 놓기 공통 — 같은 부위에 같은 이름이 있으면 넣지 않는다(이름 기준, docs/pattern-data-model.md §2) */
   const insertInto = (zone: PatternZone, src: string) => {
@@ -127,13 +183,15 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
       onRetry={() => go("/dev/s04", { case: "ready" })}
       isAdmin={viewer.isAdmin}
       features={viewer.features}
+      showPlus={plus}
+      onPlusAction={notReady}
       aprthngNo={aprthngNo}
       images={S04_IMAGES}
       onSelectImage={(no) => {
         setAprthngNo(no)
         toast(`${no} 이미지로 바꿨습니다(진열용 — 문양은 같은 가짜 값).`)
       }}
-      canvasSlot={<FakePatternCanvas source={searchImage} />}
+      canvasSlot={<FakePatternCanvas source={searchImage} plus={plus} />}
       searchImage={searchImage}
       onSearchImageChange={setSearchImage}
       extractState={extractState}
@@ -147,7 +205,10 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
       onSelectZone={setSelectedZone}
       onInsertPattern={(src) => insertInto(selectedZone, src)}
       onInsertPatternToZone={insertInto}
-      onRemovePattern={(zone, index) => updateZone(zone, (items) => items.filter((_, i) => i !== index))}
+      onRemovePattern={(zone, index) => {
+        patchMeta(zone, nameAt(zone, index), null)
+        updateZone(zone, (items) => items.filter((_, i) => i !== index))
+      }}
       onToggleEssential={(zone, index) => {
         updateZone(zone, (items) => items.map((t, i) => (i === index ? ([t[0], !t[1]] as const) : t)))
         setResearchState("running")
@@ -157,6 +218,7 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
       onMatchConditionsChange={setMatchConditions}
       onReset={() => {
         setZones(S04_MOCK.empty.zones)
+        setMeta({})
         toast("4부위 문양을 모두 지웠습니다.")
       }}
       paletteKind={paletteKind}
@@ -164,13 +226,55 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
       palette={palette}
       codeNote={noteCode ? { code: noteCode, text: S04_CODE_NOTES[noteCode] ?? DEFAULT_CODE_NOTE } : null}
       history={mock.history}
-      onOpenHistory={(no) => toast(`검색 이력 ${no}을 엽니다(진열용).`)}
+      selectedSearchNo={selectedSearchNo}
+      onOpenHistory={(no) => {
+        setSelectedSearchNo(no)
+        toast(`검색 이력 ${no}을 엽니다(진열용).`)
+      }}
       onSearch={() => {
         toast.success("필수 문양으로 신발을 검색합니다.")
         go("/dev/s05")
       }}
       onOpenResults={() => go("/dev/s05")}
       onClose={() => go("/dev/s02")}
+      // ── 시안 r2 신규(+α) ──
+      editedLook="이진화"
+      priceTagWarning
+      imageStatuses={imageStatuses}
+      imageProgress={{
+        total: S04_IMAGE_TOTAL,
+        done: Object.values(imageStatuses).filter((s) => s === "done").length,
+        rest: S04_IMAGE_REST,
+        next: nextUncoded(imageStatuses, aprthngNo),
+      }}
+      onNextImage={(no) => {
+        // 진열용: 넘어간 이미지를 「검색 중」으로, 떠난 이미지는 그대로 둔다
+        setImageStatuses((prev) => ({ ...prev, [no]: "searching" }))
+        setAprthngNo(no)
+        toast(`${no} 이미지로 넘어갑니다(진열용 — 문양은 같은 가짜 값).`)
+      }}
+      patternMeta={meta}
+      onConfirmSuggestion={(zone, index) => patchMeta(zone, nameAt(zone, index), { status: "ai" })}
+      onConfirmAllSuggestions={() =>
+        setMeta((prev) => {
+          const out: PatternMetaMap = {}
+          for (const z of ZONE_KEYS) {
+            const zoneMeta = prev[z]
+            if (!zoneMeta) continue
+            out[z] = Object.fromEntries(
+              Object.entries(zoneMeta).map(([n, m]) => [n, m.status === "suggested" ? { ...m, status: "ai" as const } : m]),
+            )
+          }
+          return out
+        })
+      }
+      onCountChange={(zone, index, count) => patchMeta(zone, nameAt(zone, index), { count })}
+      soleText={soleText}
+      onSoleTextChange={setSoleText}
+      recentPatterns={recentPaths}
+      searchMethod={searchMethod}
+      onSearchMethodChange={setSearchMethod}
+      funnel={S04_FUNNEL}
     />
   )
 }
