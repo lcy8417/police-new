@@ -242,7 +242,7 @@ export function S01DevPage() {
       if (target) setWindow(stepCaseWindow(win, target.aprthngNo, firstImage(target.aprthngNo)))
     }
     const key = `${win.open}|${win.tab === "confirm" ? "" : img}|${win.tab}`
-    // 단계 띠 · 할 일 · 탭 표시 · S02 값 — 모두 이 사건 행(장수 · 진행 · 결과 · 단계)에서 만든다(case-flow.ts)
+    // 머리 흐름 한 줄 · 탭 표시 · S02 값 — 모두 이 사건 행(장수 · 진행 · 결과 · 단계)에서 만든다(case-flow.ts)
     const flow = caseFlowOf(openRow, images, plus)
     const canEdit = viewer.isAdmin || viewer.features.includes(FEATURES.CRIME_REGISTER)
     const body =
@@ -279,9 +279,6 @@ export function S01DevPage() {
           stageLabel: plus ? stageLabel(openRow.stage) : undefined,
         }}
         stages={flow.stages}
-        currentStage={flow.currentStage}
-        tasks={flow.tasks}
-        savedAt={S01_LIVE_AT}
         tabMarks={tabMarksOf(flow, images, img)}
         menu={[
           ...(canEdit
@@ -299,9 +296,8 @@ export function S01DevPage() {
           ...(plus && canEdit ? [{ label: "수정", onSelect: () => toast("시안 — 기능 준비 중") }] : []),
         ]}
         railFooter={
-          canEdit ? <CaseWindowUpload key={openRow.aprthngNo} aprthngNo={openRow.aprthngNo} imageCount={images.length} plus={plus} /> : undefined
+          canEdit ? <CaseWindowUpload key={openRow.aprthngNo} aprthngNo={openRow.aprthngNo} imageCount={images.length} plus={plus} busy={flow.currentStage === 1} /> : undefined
         }
-        onGo={(t) => setWindow({ ...win, tab: t.tab, img: t.img ?? win.img })}
         images={images}
         selectedImage={img}
         tab={win.tab}

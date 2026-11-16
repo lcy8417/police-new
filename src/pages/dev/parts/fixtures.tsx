@@ -259,7 +259,13 @@ const BASE_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
       title="00001-25-0649"
       subtitle="주거침입"
       tags={["대구청", "07-24 등록", "12장"]}
-      now={{ num: 2, stage: "1차 작업", task: "사건 정보 빈 칸", badge: "지금 할 차례" }}
+      flow={[
+        { label: "접수", state: "done" },
+        { label: "1차 작업", state: "now" },
+        { label: "검색·판정", state: "todo" },
+        { label: "교차 검증", state: "todo" },
+        { label: "감정서", state: "todo" },
+      ]}
       menu={[
         { label: "사건복사", onSelect: noop },
         { label: "수정", onSelect: noop },

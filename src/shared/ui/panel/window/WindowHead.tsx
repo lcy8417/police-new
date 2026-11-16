@@ -7,7 +7,8 @@ import { partAttrs } from "../../part-attrs"
 
 // r4 로망 이식(`shared/ui/panel/head/WorkWindowHead` · `HeadParts` HeadTag · HeadPill): 창 맨 위 어두운 띠.
 // 첫 줄 = 머리글자 40 · 이름 17 굵게 · 꼬리표(11.5 굵게 · 흰 14%) … 오른쪽 `end` · ⋯ · ‹ › ×(알약 32 · 폭 30) / 둘째 줄 = info /
-// 셋째 줄 now = 「⑥ 결재 › 결재 올리기 [지금 할 차례]」(로망 visual-spec 12-6 셋째 줄: 15 굵게 · 마지막 항목 연한 강조 · 위 1px 흰 22% 선).
+// 셋째 줄 flow = 「✓ 접수 › [② 1차 작업] › ③ 검색·판정 …」 — 흐름이 이렇다는 것만 알리는 한 줄(위 1px 흰 22% 선 · 지금 칸만 흰 알약).
+// 11/16 사용자 「이 단계에서 할 일은 없애고 … 그냥 플로우가 이렇다 이정도만」: 로망 단계 띠 · 할 일 상자 대신 이 줄 하나.
 // ⋯ 메뉴 = 로망 머리 ⋯ 단추(HeadPill · 흰 70% 글자) + 떠 있는 메뉴(흰 · 모서리 10 · 줄 높이 32). 메뉴는 radix DropdownMenu(이 앱 radix-ui) — Esc · 화살표 키는 radix 몫.
 // 색만 대응: 먹 2 `bg-ink-2` → `bg-[var(--t-emblem-to)]`, 흰 100 → paper, 흰 14 · 22% → paper/14 · paper/22,
 // 진분홍 머리글자 → brand-3, 연분홍 이름 · 마지막 항목 → paper · brand-line. 어두운 띠 위 키보드 초점은 종이색 테(ScasShell 사이드바와 같음).
@@ -20,18 +21,10 @@ export interface WindowHeadMenuItem {
   danger?: boolean
 }
 
-/** 셋째 줄 — 지금 단계 › 첫 할 일 [꼬리표] */
-export interface WindowHeadNow {
-  /** 단계 번호(1 부터, 동그라미 안 글자) */
-  num: number
-  /** 단계 이름(「결재」) */
-  stage: string
-  /** › 뒤 지금 할 일(「결재 올리기」) — 연한 강조 */
-  task?: string
-  /** 흰 알약(「지금 할 차례」) */
-  badge?: string
-  /** 오른쪽 작은 글자 자리 */
-  right?: ReactNode
+/** 셋째 줄 흐름 한 칸 — 끝(✓ 흐림) · 지금(흰 알약) · 아직(흐림) */
+export interface WindowHeadFlowStep {
+  label: string
+  state: "done" | "now" | "todo"
 }
 
 export interface WindowHeadProps {
@@ -45,8 +38,10 @@ export interface WindowHeadProps {
   tags?: readonly string[]
   /** 둘째 줄 */
   info?: ReactNode
-  /** 셋째 줄(지금 단계) — 없으면 그리지 않음 */
-  now?: WindowHeadNow
+  /** 셋째 줄 흐름(「① 접수 › ② 1차 작업 › …」, 지금 칸만 흰 알약) — 알려 주기만 하고 누르지 않는다. 없으면 그리지 않음 */
+  flow?: readonly WindowHeadFlowStep[]
+  /** 흐름 줄 화면 읽기 이름 */
+  flowLabel?: string
   /** ⋯ 메뉴 — 없거나 비면 단추를 그리지 않음 */
   menu?: readonly WindowHeadMenuItem[]
   /** ‹ › 앞 오른쪽 자리 */
@@ -82,7 +77,8 @@ export function WindowHead({
   subtitle,
   tags,
   info,
-  now,
+  flow,
+  flowLabel = "진행 흐름",
   menu,
   end,
   onPrev,
@@ -161,35 +157,44 @@ export function WindowHead({
         </span>
       </div>
       {info ? <div className="flex basis-full flex-wrap items-center gap-x-2.5 gap-y-1.5 pl-[50px]">{info}</div> : null}
-      {now ? (
-        <div
-          data-slot="window-head-now"
-          className="mt-0.5 flex basis-full flex-wrap items-center gap-x-2 gap-y-1 border-0 border-t border-solid border-paper/22 pt-[9px]"
+      {flow && flow.length > 0 ? (
+        <ol
+          aria-label={flowLabel}
+          data-slot="window-head-flow"
+          className="m-0 mt-0.5 flex basis-full list-none flex-wrap items-center gap-x-1.5 gap-y-1 border-0 border-t border-solid border-paper/22 p-0 pt-2 text-[12.5px]"
         >
-          <b className="flex items-center gap-2 whitespace-nowrap text-[15px] font-bold text-paper">
-            <i
-              aria-hidden="true"
-              className="grid size-5 flex-none place-items-center rounded-full border-[1.5px] border-solid border-paper text-[11px] font-bold not-italic leading-none"
+          {flow.map((s, i) => (
+            <li
+              key={s.label}
+              data-flow-state={s.state}
+              aria-current={s.state === "now" ? "step" : undefined}
+              className="flex items-center gap-1.5 whitespace-nowrap"
             >
-              {now.num}
-            </i>
-            {now.stage}
-            {now.task ? (
-              <>
-                <span aria-hidden="true" className="text-paper/50">
+              {i > 0 ? (
+                <span aria-hidden="true" className="text-paper/35">
                   ›
                 </span>
-                <span className="text-brand-line">{now.task}</span>
-              </>
-            ) : null}
-          </b>
-          {now.badge ? (
-            <span className="whitespace-nowrap rounded-full bg-panel px-[9px] py-0.5 text-[11.5px] font-bold text-[var(--t-emblem-to)]">
-              {now.badge}
-            </span>
-          ) : null}
-          {now.right ? <span className="ml-auto flex items-center gap-2 text-[12px] text-paper/62">{now.right}</span> : null}
-        </div>
+              ) : null}
+              <span
+                className={cn(
+                  "inline-flex h-6 items-center gap-1.5 rounded-full px-2",
+                  s.state === "now" ? "bg-panel font-bold text-[var(--t-emblem-to)]" : s.state === "done" ? "text-paper/60" : "text-paper/45"
+                )}
+              >
+                <i
+                  aria-hidden="true"
+                  className={cn(
+                    "grid size-4 flex-none place-items-center rounded-full border border-solid text-[10px] font-bold not-italic leading-none",
+                    s.state === "now" ? "border-[var(--t-emblem-to)]" : "border-current"
+                  )}
+                >
+                  {s.state === "done" ? "✓" : i + 1}
+                </i>
+                {s.label}
+              </span>
+            </li>
+          ))}
+        </ol>
       ) : null}
     </div>
   )

@@ -10,6 +10,4 @@ export type {
   CaseWindowSummary,
   CaseWindowTab,
   CaseWindowTabMark,
-  CaseWindowTarget,
-  CaseWindowTask,
 } from "./model/types"

@@ -1,31 +1,15 @@
 import type { CaseListRow } from "@/widgets/case-list"
-import type {
-  CaseFlowState,
-  CaseWindowImage,
-  CaseWindowStage,
-  CaseWindowTab,
-  CaseWindowTabMark,
-  CaseWindowTarget,
-  CaseWindowTask,
-} from "@/widgets/case-window"
+import type { CaseWindowImage, CaseWindowStage, CaseWindowTab, CaseWindowTabMark } from "@/widgets/case-window"
 
-// 사건 창 「어디까지 왔나 · 지금 할 일」의 가짜 값 — 목록 행(mock-cases)의 숫자에서만 만들어 서로 맞게 한다(2026-11-16 사용자 「응」).
-// 단계 띠 6칸 · 지금 단계 · 할 일 상자 · 탭 표시 · AI 점검 항목 · S02 사건 정보 빈 칸이 모두 같은 사건 값(장수 · 진행 · 결과 · 단계)에서 나온다.
+// 사건 창 머리 흐름 한 줄 · 탭 표시 · S02 값의 가짜 값 — 목록 행(mock-cases)의 숫자에서만 만들어 서로 맞게 한다.
+// 11/16 사용자 「이 단계에서 할 일은 없애고 … 그냥 플로우가 이렇다 이정도만. 결재는 없어」 — 흐름 5칸, 할 일 상자 없음.
 //
 // 지금 단계(목록 「사건 진행」 = row.stage 와 같은 근거):
 //   stage 없음/-1(이미지 확인 중) → AI 1차 작업이 도는 중이거나 검색 · 확인한 장이 없으면 「1차 작업」, 아니면 「검색·판정」
-//   0 검증요청 · 1 교차 검증 → 「교차 검증」 · 2 감정서 → 「감정서」 · 3 결재 → 「결재」 · 4 결재완료 → 「결재」(다 끝남)
-// 할 일(지금 단계 것만, 순서 = 할 차례, 첫 남은 것이 「지금」):
-//   1차 작업 = 사건 정보 빈 칸 + (+α) AI 1차 작업 점검 항목(같은 사진 의심 · 전사판 반전 · 흐린 사진 · 자 인식) — 번호는 그 사건 장수 안에서만
-//   검색·판정 = 미검색 이미지 n장 · 판정 안 한 이미지 n장 / 교차 검증 = 결과 확인 검토 ✓ · 교차 검증 의견
-//   감정서 = 결과 확인 검토 ✓ · 감정서 쓰기 · 감정서 확인 / 결재 = 결과 확인 검토 ✓ · 감정서 확인 ✓ · 결재 올리기
-//   할 일이 4개를 넘으면 끝난 것부터 뺀다.
+//   0 검증요청 · 1 교차 검증 → 「교차 검증」 · 2 감정서 → 「감정서」 · 3 이상(목록 옛 말 「결재」 · 「결재완료」) → 「감정서」 끝(다 끝남)
 
-/** 6단계 이름(S02 단계 스텝퍼와 같은 말) */
-export const FLOW_STAGES = ["접수", "1차 작업", "검색·판정", "교차 검증", "감정서", "결재"] as const
-
-/** 단계 칸을 누르면 갈 대표 탭 */
-const STAGE_TAB: readonly CaseWindowTab[] = ["info", "edit", "search", "confirm", "confirm", "confirm"]
+/** 흐름 5칸 이름(결재 없음) */
+export const FLOW_STAGES = ["접수", "1차 작업", "검색·판정", "교차 검증", "감정서"] as const
 
 const JUDGED = new Set(["확인", "발견", "불발견", "감정불능"])
 
@@ -33,11 +17,11 @@ const JUDGED = new Set(["확인", "발견", "불발견", "감정불능"])
 export function flowStageOf(row: Pick<CaseListRow, "stage" | "ai" | "progress">): number {
   const s = row.stage ?? -1
   if (s < 0) return row.ai?.state === "running" || row.progress.searched + row.progress.confirmed === 0 ? 1 : 2
-  return [3, 3, 4, 5, 5][s] ?? 5
+  return s <= 1 ? 3 : 4
 }
 
-/** 결재까지 다 끝난 사건(목록 「결재완료」) */
-export const isFlowFinished = (row: Pick<CaseListRow, "stage">) => (row.stage ?? -1) >= 4
+/** 감정서까지 다 끝난 사건 */
+export const isFlowFinished = (row: Pick<CaseListRow, "stage">) => (row.stage ?? -1) >= 3
 
 /** (+α) AI 1차 작업 점검이 찾은 것 — 1차 작업 단계에서만, 번호는 장수 안에서만 */
 export interface AiIssues {
@@ -68,86 +52,19 @@ export const infoBlanksOf = (row: CaseListRow) => (flowStageOf(row) === 1 ? 1 : 
 export interface CaseFlow {
   stages: CaseWindowStage[]
   currentStage: number
-  tasks: CaseWindowTask[]
   infoBlanks: number
   ai: AiIssues | null
 }
 
-const task = (id: string, label: string, note: string, state: CaseFlowState, target: CaseWindowTarget, hint: string, ai = false): CaseWindowTask => ({
-  id,
-  label,
-  note,
-  state,
-  target,
-  hint,
-  ...(ai ? { ai } : {}),
-})
-
-/** 사건 하나의 단계 띠 · 할 일. plus=false 면 AI 출처 할 일을 뺀다(단계 띠 · 사람 할 일은 그대로) */
+/** 사건 하나의 흐름 5칸(끝 · 지금 · 아직) — 다 끝난 사건은 5칸 모두 끝. plus=false 면 AI 점검 값을 비운다 */
 export function caseFlowOf(row: CaseListRow, images: readonly CaseWindowImage[], plus: boolean): CaseFlow {
   const current = flowStageOf(row)
   const finished = isFlowFinished(row)
-  const n = images.length
-  const firstOf = (status: string) => images.find((i) => i.status === status)?.no
-  const unsearched = images.filter((i) => i.status === "등록").length
-  const unjudged = images.filter((i) => i.status === "검색됨").length
-  const judged = images.filter((i) => JUDGED.has(i.status)).length
-  const infoBlanks = infoBlanksOf(row)
-  const ai = aiIssuesOf(row, n)
-  const confirm: CaseWindowTarget = { tab: "confirm" }
-
-  let tasks: CaseWindowTask[]
-  if (current === 1) {
-    tasks = [task("info-blank", "사건 정보 빈 칸", infoBlanks > 0 ? `${infoBlanks}칸 · 채취 방법` : "없음", infoBlanks > 0 ? "pending" : "done", { tab: "info" }, "필수 칸 채우기")]
-    if (plus && ai) {
-      if (ai.duplicate) tasks.push(task("ai-duplicate", "같은 사진?", `_${ai.duplicate[0]} ↔ _${ai.duplicate[1]}`, "pending", { tab: "edit", img: ai.duplicate[1] }, "크기·그림 98% 같음 — 지울지 정하기", true))
-      if (ai.flip.length > 0) tasks.push(task("ai-flip", "전사판 반전", ai.flip.map((x) => `_${x}`).join(" "), "pending", { tab: "edit", img: ai.flip[0] }, "전사판 사진 — 좌우반전 적용", true))
-      if (ai.blur) tasks.push(task("ai-blur", "흐린 사진", `_${ai.blur} · 재촬영?`, "problem", { tab: "edit", img: ai.blur }, "윤곽 판독 어려움 — 보류 · 재촬영 요청", true))
-      tasks.push(task("ai-ruler", "자 인식", `${ai.ruler}/${n}장`, "done", { tab: "edit" }, "기울기 보정값 준비", true))
-    }
-  } else if (current === 2) {
-    tasks = [
-      task("unsearched", "미검색 이미지", `${unsearched}장`, unsearched > 0 ? "pending" : "done", { tab: "search", img: firstOf("등록") }, "검색 안 한 첫 이미지의 검색 결과"),
-      task("unjudged", "판정 안 한 이미지", `${unjudged}장`, unjudged > 0 ? "pending" : "done", { tab: "search", img: firstOf("검색됨") }, "검색만 하고 판정 안 한 첫 이미지"),
-    ]
-  } else if (current === 3) {
-    tasks = [
-      task("review", "결과 확인 검토", "끝", "done", confirm, "사건 전체 결과 확인"),
-      task("cross", "교차 검증 의견", row.crossReviewer ? `${row.crossReviewer} 확인 중` : "검증자 확인 중", "pending", confirm, "교차 검증 의견 받기"),
-    ]
-  } else if (current === 4) {
-    tasks = [
-      task("review", "결과 확인 검토", "끝", "done", confirm, "사건 전체 결과 확인"),
-      task("report-write", "감정서 쓰기", "아직", "pending", confirm, "결과 확인에서 감정서로"),
-      task("report-check", "감정서 확인", "아직", "pending", confirm, "감정서 확인"),
-    ]
-  } else {
-    tasks = [
-      task("review", "결과 확인 검토", "끝", "done", confirm, "사건 전체 결과 확인"),
-      task("report-check", "감정서 확인", "끝", "done", confirm, "감정서 확인"),
-      task("approve", "결재 올리기", finished ? "끝" : "아직", finished ? "done" : "pending", confirm, "결재 올리기"),
-    ]
-  }
-  // 할 일이 4개를 넘으면 끝난 것부터 뺀다
-  if (tasks.length > 4) tasks = [...tasks.filter((t) => t.state !== "done"), ...tasks.filter((t) => t.state === "done")].slice(0, 4)
-  // 첫 남은 할 일 = 지금
-  const first = tasks.find((t) => t.state !== "done")
-  tasks = tasks.map((t) => (t === first ? { ...t, now: true, note: t.note === "아직" ? "지금" : `${t.note} · 지금` } : t))
-  const left = tasks.filter((t) => t.state !== "done").length
-
-  const stages: CaseWindowStage[] = FLOW_STAGES.map((name, i) => {
-    const target: CaseWindowTarget =
-      i === 2 ? { tab: "search", img: firstOf("등록") ?? firstOf("검색됨") } : { tab: STAGE_TAB[i] }
-    if (i < current || (i === current && finished)) return { name, state: "done", note: "끝", target }
-    if (i === current) {
-      return { name, state: "pending", note: left > 0 ? `${left}개 남음` : "끝", dot: tasks.some((t) => t.state === "problem"), target }
-    }
-    // 뒤 단계 — 병렬로 먼저 한 몫이 있으면 그 수를 보인다(1차 작업 중 검색·판정)
-    if (i === 2 && judged > 0) return { name, state: "pending", note: `판정 ${judged}/${n}`, target }
-    return { name, state: "pending", note: "아직", target }
-  })
-
-  return { stages, currentStage: current, tasks, infoBlanks, ai: plus ? ai : null }
+  const stages: CaseWindowStage[] = FLOW_STAGES.map((name, i) => ({
+    name,
+    state: i < current || (i === current && finished) ? "done" : i === current ? "now" : "todo",
+  }))
+  return { stages, currentStage: current, infoBlanks: infoBlanksOf(row), ai: plus ? aiIssuesOf(row, images.length) : null }
 }
 
 /** 의뢰관서 → 사건주소 앞부분(가짜) */

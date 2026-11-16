@@ -7,18 +7,17 @@ import { makeCaseImages, makeCaseRows, stageLabel } from "./mock-cases"
 
 const rows = makeCaseRows()
 const rowOf = (no: string) => rows.find((r) => r.aprthngNo === no) as CaseListRow
-/** 할 일 · AI 점검 · 탭이 가리키는 이미지 번호 전부 */
+/** AI 점검이 가리키는 이미지 번호 전부 */
 const imageRefs = (row: CaseListRow, plus = true) => {
-  const images = makeCaseImages(row)
-  const flow = caseFlowOf(row, images, plus)
-  const notes = flow.tasks.flatMap((t) => [...(t.note.match(/_(\d+)/g) ?? []).map((x) => x.slice(1)), t.target.img ?? "1"])
+  const flow = caseFlowOf(row, makeCaseImages(row), plus)
   const ai = flow.ai ? [...flow.ai.flip, flow.ai.duplicate?.[0], flow.ai.duplicate?.[1], flow.ai.blur].filter(Boolean) : []
-  return [...notes, ...(ai as string[]), ...flow.stages.map((s) => s.target.img ?? "1")].map(Number)
+  return (ai as string[]).map(Number)
 }
 
-describe("사건 창 단계 · 할 일 파생(case-flow)", () => {
-  it("지금 칸은 머리 진행 상태(목록 「사건 진행」)와 같은 말 — 결재 · 감정서 · 교차 검증 · 결재완료", () => {
-    const expected: Record<string, string> = { 결재: "결재", 감정서: "감정서", "교차 검증": "교차 검증", 검증요청: "교차 검증", 결재완료: "결재" }
+describe("사건 창 흐름 파생(case-flow)", () => {
+  it("흐름은 5칸(결재 없음), 지금 칸은 목록 「사건 진행」과 같은 근거 — 옛 결재 · 결재완료는 감정서 끝", () => {
+    expect([...FLOW_STAGES]).toEqual(["접수", "1차 작업", "검색·판정", "교차 검증", "감정서"])
+    const expected: Record<string, string> = { 결재: "감정서", 감정서: "감정서", "교차 검증": "교차 검증", 검증요청: "교차 검증", 결재완료: "감정서" }
     for (const row of rows.slice(0, 7)) {
       const label = stageLabel(row.stage)
       const now = FLOW_STAGES[flowStageOf(row)]
@@ -27,22 +26,14 @@ describe("사건 창 단계 · 할 일 파생(case-flow)", () => {
     }
   })
 
-  it("0633(4장 · 결재): 6칸, 앞 5칸 끝 · 결재가 지금 「1개 남음」, 할 일 = 결과 확인 검토 ✓ · 감정서 확인 ✓ · 결재 올리기(지금)", () => {
+  it("0633(4장 · 다 끝남): 5칸 모두 끝, 지금 칸 없음", () => {
     const row = rowOf("00001-25-0633")
     const flow = caseFlowOf(row, makeCaseImages(row), true)
-    expect(flow.stages.map((s) => s.name)).toEqual([...FLOW_STAGES])
-    expect(flow.currentStage).toBe(5)
-    expect(flow.stages.slice(0, 5).every((s) => s.state === "done")).toBe(true)
-    expect(flow.stages[5]).toMatchObject({ state: "pending", note: "1개 남음" })
-    expect(flow.tasks.map((t) => [t.label, t.state, Boolean(t.now)])).toEqual([
-      ["결과 확인 검토", "done", false],
-      ["감정서 확인", "done", false],
-      ["결재 올리기", "pending", true],
-    ])
+    expect(flow.stages.map((s) => [s.name, s.state])).toEqual(FLOW_STAGES.map((n) => [n, "done"]))
     expect(flow.infoBlanks).toBe(0)
   })
 
-  it("어느 사건이든 할 일 · 단계 · AI 점검의 이미지 번호는 그 사건 장수 안(4장 사건에 _5 이상 없음)", () => {
+  it("어느 사건이든 AI 점검의 이미지 번호는 그 사건 장수 안(4장 사건에 _5 이상 없음)", () => {
     for (const row of rows.slice(0, 7)) {
       const n = row.shoeCount + row.tireCount
       for (const ref of imageRefs(row)) expect(ref).toBeLessThanOrEqual(n)
@@ -55,24 +46,17 @@ describe("사건 창 단계 · 할 일 파생(case-flow)", () => {
     for (const ref of imageRefs(four)) expect(ref).toBeLessThanOrEqual(4)
   })
 
-  it("0649(12장 · AI 1차 작업 중): 1차 작업이 지금, 할 일 = 사건 정보 빈 칸(지금) · AI 같은 사진? · 전사판 반전 · 흐린 사진(문제) — 4개까지", () => {
+  it("0649(12장 · AI 1차 작업 중): 접수 끝 · 1차 작업 지금 · 나머지 아직", () => {
     const row = rowOf("00001-25-0649")
     const flow = caseFlowOf(row, makeCaseImages(row), true)
     expect(flow.currentStage).toBe(1)
-    expect(flow.tasks.map((t) => t.label)).toEqual(["사건 정보 빈 칸", "같은 사진?", "전사판 반전", "흐린 사진"])
-    expect(flow.tasks[0]).toMatchObject({ now: true, target: { tab: "info" } })
-    expect(flow.tasks[1]).toMatchObject({ ai: true, target: { tab: "edit", img: "5" } })
-    expect(flow.tasks[3].state).toBe("problem")
-    expect(flow.stages[1]).toMatchObject({ note: "4개 남음", dot: true })
-    expect(flow.stages[2].note).toBe("판정 1/12")
+    expect(flow.stages.map((s) => s.state)).toEqual(["done", "now", "todo", "todo", "todo"])
   })
 
-  it("?plus=0: AI 출처 할 일 · AI 점검은 빠지고 단계 띠 · 사람 할 일은 그대로", () => {
+  it("?plus=0: AI 점검은 빠지고 흐름 5칸은 그대로", () => {
     const row = rowOf("00001-25-0649")
     const flow = caseFlowOf(row, makeCaseImages(row), false)
-    expect(flow.stages).toHaveLength(6)
-    expect(flow.tasks.map((t) => t.label)).toEqual(["사건 정보 빈 칸"])
-    expect(flow.tasks.some((t) => t.ai)).toBe(false)
+    expect(flow.stages).toHaveLength(5)
     expect(flow.ai).toBeNull()
   })
 

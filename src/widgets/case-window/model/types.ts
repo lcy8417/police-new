@@ -38,43 +38,14 @@ export interface CaseWindowImage {
   thumbSrc?: string
 }
 
-/** 단계 칸 · 할 일 상자 · 탭 표시가 가리키는 자리(탭 + 그 이미지). img 가 없으면 지금 고른 이미지 그대로 */
-export interface CaseWindowTarget {
-  tab: CaseWindowTab
-  img?: string
-}
+/** 흐름 한 칸 상태 — 끝 · 지금 · 아직 */
+export type CaseFlowState = "done" | "now" | "todo"
 
-/** 단계 · 할 일 상태(로망 창 상태 이름) — 끝 · 아직 · 문제 · 해당 없음 */
-export type CaseFlowState = "done" | "pending" | "problem" | "notApplicable"
-
-/** 사건 진행 단계 띠 한 칸(6칸: 접수 · 1차 작업 · 검색·판정 · 교차 검증 · 감정서 · 결재) */
+/** 사건 진행 흐름 한 칸(5칸: 접수 · 1차 작업 · 검색·판정 · 교차 검증 · 감정서 — 11/16 사용자 「결재는 없어」) */
 export interface CaseWindowStage {
   /** 단계 이름 */
   name: string
   state: CaseFlowState
-  /** 칸 아래 작은 글자(「끝」 · 「2개 남음」 · 「아직」) */
-  note: string
-  /** 이 단계에 확인할 문제가 있음(작은 글자 끝 「!」) */
-  dot?: boolean
-  /** 누르면 갈 대표 탭 */
-  target: CaseWindowTarget
-}
-
-/** 「↳ 이 단계 할 일」 상자 하나 */
-export interface CaseWindowTask {
-  id: string
-  label: string
-  /** 상자 안 작은 글자(「지금」 · 「_4 ↔ _5」) */
-  note: string
-  state: CaseFlowState
-  /** 지금 할 것(지금 단계의 첫 남은 할 일) */
-  now?: boolean
-  /** AI 가 찾아 준 할 일 — 이름 앞 AI 표식(신규 끄면 부르는 쪽이 빼서 넘긴다) */
-  ai?: boolean
-  /** 마우스를 올리면 보이는 까닭 */
-  hint: string
-  /** 누르면 갈 자리 */
-  target: CaseWindowTarget
 }
 
 /** 탭 이름 뒤 표시 — done ✓ · problem ! · blanks 노란 빈 칸 수 · notApplicable – · count 흐린 수 */
@@ -117,22 +88,14 @@ export interface CaseWindowProps {
   onCloseOpenCase: (aprthngNo: string) => void
   /** 사건 전체 판정 「결과 확인」(탭 줄 끝) — 보통 onSelectTab("confirm") 과 같다 */
   onConfirmResult: () => void
-  /** 사건 진행 단계 띠 6칸 — 주면 머리 아래 「지금 단계 › 할 일」 줄 · 단계 띠 · 할 일 상자를 그린다 */
+  /** 사건 진행 흐름 5칸 — 주면 머리 셋째 줄에 「✓ 접수 › [② 1차 작업] › …」 한 줄(알려 주기만, 누르지 않음) */
   stages?: readonly CaseWindowStage[]
-  /** 지금 단계(stages 의 번호, 0 부터) */
-  currentStage?: number
-  /** 지금 단계의 할 일 */
-  tasks?: readonly CaseWindowTask[]
-  /** 할 일 줄 오른쪽 저장 상태 「✓ 저장됨 시:분」 */
-  savedAt?: string
   /** 탭 이름 뒤 표시(고른 이미지 기준, 사건 정보는 사건 빈 칸 수) */
   tabMarks?: Partial<Record<CaseWindowTab, CaseWindowTabMark>>
   /** 머리 ⋯ 메뉴(사건복사 · 수정) */
   menu?: readonly CaseWindowMenuItem[]
   /** 왼쪽 목록 맨 아래(사진 추가 · 끌어 놓기) */
   railFooter?: ReactNode
-  /** 단계 칸 · 할 일 상자를 눌렀을 때 — 탭과 이미지를 한 번에 옮긴다 */
-  onGo?: (target: CaseWindowTarget) => void
   /** 본문 — 고른 탭의 화면 내용(부르는 쪽이 넣는다) */
   children: ReactNode
 }

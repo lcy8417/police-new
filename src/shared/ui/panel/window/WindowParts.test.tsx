@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
 import { WindowHead } from "./WindowHead"
@@ -93,21 +93,29 @@ describe("WindowHead", () => {
     expect(onPrev).not.toHaveBeenCalled()
   })
 
-  it("셋째 줄 now 「⑥ 결재 › 결재 올리기 [지금 할 차례]」 · ⋯ 메뉴 항목을 고르면 onSelect", () => {
+  it("셋째 줄 흐름 「✓ 접수 › ✓ 1차 작업 › [3 검색·판정] › 4 교차 검증」(지금 칸 aria-current) · ⋯ 메뉴 항목을 고르면 onSelect", () => {
     const copy = vi.fn()
-    const { container } = render(
+    render(
       <WindowHead
         mark="강"
         title="00001-25-0633"
-        now={{ num: 6, stage: "결재", task: "결재 올리기", badge: "지금 할 차례" }}
+        flow={[
+          { label: "접수", state: "done" },
+          { label: "1차 작업", state: "done" },
+          { label: "검색·판정", state: "now" },
+          { label: "교차 검증", state: "todo" },
+        ]}
         menu={[{ label: "사건복사", onSelect: copy }, { label: "수정", onSelect: () => undefined }]}
         onPrev={() => undefined}
         onNext={() => undefined}
         onClose={() => undefined}
       />
     )
-    const now = container.querySelector('[data-slot="window-head-now"]') as HTMLElement
-    expect(now).toHaveTextContent("6결재›결재 올리기지금 할 차례")
+    const steps = within(screen.getByRole("list", { name: "진행 흐름" })).getAllByRole("listitem")
+    expect(steps.map((s) => s.textContent)).toEqual(["✓접수", "›✓1차 작업", "›3검색·판정", "›4교차 검증"])
+    expect(steps.filter((s) => s.getAttribute("aria-current") === "step")).toEqual([steps[2]])
+    // 알려 주기만 — 누르는 단추가 아니다
+    expect(within(steps[2]).queryByRole("button")).toBeNull()
     const trigger = screen.getByRole("button", { name: "이 창 메뉴" })
     fireEvent.keyDown(trigger, { key: "Enter" })
     const items = screen.getAllByRole("menuitem")
