@@ -99,6 +99,8 @@ const BASE_PART_FIXTURES: PartFixture[] = [
   { id: "S01-17", part: "AiTag", variant: "progress", parentWidth: 40, surface: "panel", ignorePlacement: true, noShot: "표 셀 밖으로 튀어나온 표식: 모서리 뒤로 그림이 비치고 아래쪽을 다음 행이 덮음(측정은 위 주석)" },
   { id: "S01-18", part: "AiTag", variant: "done", parentWidth: 40, surface: "panel", ignorePlacement: true, noShot: "S01-17 과 같다(측정: 모서리 21,23,26 ↔ 5,8,13 · 안쪽 아래 10,38,34 ↔ 11,42,38)" },
   { id: "S02-21", part: "AiTag", variant: "default", parentWidth: 265, surface: "ai", boxClass: "flex items-center" },
+  // Stepper(r2) — S01 사건 목록 「진행」 칸
+  { id: "S01-44", part: "Stepper", parentWidth: 101.94, surface: "panel", boxClass: "grid text-[12px] leading-[normal] text-fg-2" },
 ];
 
 // 갈래별 진열 데이터를 이어 붙인다(잠금, Task 5).

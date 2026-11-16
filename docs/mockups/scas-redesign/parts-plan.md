@@ -19,3 +19,10 @@
 | S04 AI 확신도 막대 | ConfidenceBar | 그대로 | 시안 표식 `data-part-id` 부착(잠금 대조) |
 | S01 밑창 작은 그림 | SoleThumb | 그대로 | 시안 표식 `data-part-id` 부착(잠금 대조) |
 | S04 문양 아이콘 | PatternIcon | 그대로 | 시안 표식 `data-part-id` 부착(잠금 대조) |
+| S01 현황 타일(결과 확인 전 · 교차 검증 · 우리 청 의뢰) | StatTile | 새로 | r2: 시안 표식 `data-part-id` 부착 |
+| S01 사건 진행 단계 막대 | Stepper | 새로 | r2: 시안 표식 `data-part-id` 부착 |
+| S03 AI 제안 줄(기울기 맞추기) | AiSuggestion | 새로 | r2: 시안 표식 `data-part-id` 부착 |
+
+승인: 11/16 소유자 — StatTile
+승인: 11/16 소유자 — Stepper
+승인: 11/16 소유자 — AiSuggestion

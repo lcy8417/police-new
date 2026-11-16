@@ -52,3 +52,17 @@
 5. 공유 부품 요청: Combobox `aria-label`(+ id/라벨 연결) · Checkbox 토큰색(shadcn hex) · Chip 22px green/red 변형 · DataGrid 행 펼침(+ `aria-label`) · Segmented `disabled` · Avatar 크기(44) · DotGrid 인라인 style · 모양 장식(CropFrame 등)과 S06 AlignmentDecor 합치기.
 6. 문서 정리: `parts-plan.md` 「그대로」 행의 자리 글(S01 · S02 → S00–S14).
 7. 기존 앱 파일 접촉 공개: `src/features/admin-users/index.ts` 에 export 만 추가했다(판정 R11) — 기존 앱 파일 중 손댄 유일한 곳이며 동작 변경 없음.
+
+## r2 부품 결과 (R2 갈래: StatTile · CheckList · AiSuggestion · HeatOverlay · Stepper)
+
+화면 갈래는 아래 부품을 출입구에서 가져다 쓴다(`@/shared/ui/ai` · `viewer` · `panel`). 모두 `partId?`를 받고 루트에 `data-part`가 붙는다.
+
+| 부품 | 출입구 | props 요약 | 상태 · 대조 |
+|---|---|---|---|
+| `StatTile` | ai | `label?` `value?` `unit?` `sub?` `tone`(default·ai·warn·danger = 테두리+라벨색) `glow`(default·brand·ai·warn·danger, 안 주면 tone 따름) `size`(md·sm=S09·xs=S14) `valueTone="danger"` `children`(숫자와 보조 글자 사이, 막대 등). label·value 없이 children 만으로 S01 「AI 사전 처리」 카드도 가능 | 검증됨. S01-41·42·43 차이 0 |
+| `CheckList` | ai | `items: { tone: "ok"\|"warn"\|"bad"; text; detail?; action?; icon? }[]` `topLine?`(막대·제목 아래라 첫 줄도 윗선, S02) `dense?`(S07). 글자색은 부모에서 상속(S07·S08 `text-fg-2`는 `className`으로) | 구현됨(시안에 묶음 요소가 없어 짝 대조 없음, 단위 테스트) |
+| `AiSuggestion` | ai | `title` `reason?` `confidence?`(0~1, `lowBelow` 기본 0.8 미만 주황) `actionLabel?`(기본 「적용」) `actionTone?`("warn"=주황 버튼) `onApply?`(없으면 버튼 없음) | 검증됨(S03-41 차이 0). S12 연결 제안 줄(칩 · 두 버튼)은 이 부품이 아니라 화면이 짠다 |
+| `HeatOverlay` | viewer | `variant`(match=S06 번짐+소실 점선 고리 · spots=작은 밑창 원 3개) `opacity?` `children?`(기본 번짐 대체). 부모를 꽉 채우고(`size-full`) `pointer-events-none`, 위치·크기는 부모가 `absolute` 로 준다(S06: left 25% · top 5.33% · 50%×88%) | 구현됨(시안은 호출마다 gradient id 가 다른 인라인 SVG라 짝 대조 없음) |
+| `Stepper` | panel | `steps: string[]` `current`(0부터, 칸 수와 같으면 모두 끝남) `width`(20 기본=S01, 18) | 검증됨(S01-44 차이 0) |
+
+화면 갈래 주의: StatTile·Stepper 의 글자 크기·줄 높이는 부모에서 상속(시안 body 14px/1.6)이라, 타일 줄은 flex 로 두고 높이를 늘어나게 둘 것(타일 안 grid 가 늘어난 높이를 나눠 가진다). 시안 `data-role` 숨김은 부품이 모르므로 화면이 감싼다.

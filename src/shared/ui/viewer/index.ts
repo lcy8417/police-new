@@ -5,3 +5,4 @@ export { PatternIcon, type PatternIconProps, type PatternIconSize } from "./Patt
 export { ZoneBands, type ZoneBand, type ZoneBandsProps } from "./ZoneBands"
 export { CompareView, type CompareMode, type CompareViewProps } from "./CompareView"
 export { PointPairs, type PointPairBox, type PointPairsProps } from "./PointPairs"
+export { HeatOverlay, type HeatOverlayProps, type HeatVariant } from "./HeatOverlay"

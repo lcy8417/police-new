@@ -114,6 +114,16 @@
 | ScanOverlay(`.fx-scan`) | 높이 2 · `top:100%` · 불투명 0 · ai · 그림자 `0 0 12px 3px ai-scan-glow` · absolute inset-x 0 · pointer-events none |
 | LiveDot(`.fx-live`) | 7px 원 ai + 맥박. 부품은 점 옆에 11px muted 글자(기본 보임, `hideLabel`로 숨김) · idle은 속 빈 고리 |
 
+## r2 부품 (시안 `mockup.css` r3 구역에서 읽은 값)
+
+| 부품 | 값 |
+|---|---|
+| StatTile(`.stat`) | grid · 간격 4 · 안쪽 10×12 · 테두리 1 line · 모서리 10 · 바탕 `linear-gradient(160deg, panel-2, panel)` · overflow hidden. 라벨 11.5 mute · 숫자 mono 700 22/1 tabular · 단위 `small` ui 500 11 dim · 보조 10.5 dim. `::after` 90px 원 오른쪽 위 −30 `radial-gradient(glow, transparent 70%)`. `sm`(S09) 안쪽 8×9 · 숫자 19 · 라벨 10.5 · 보조 9.5/1.3, `xs`(S14) 간격 2 · 안쪽 7×10 · 숫자 17. 글자 크기 · 줄 높이는 부모에서 상속(시안 14px/1.6) |
+| CheckList(`.check`) | 줄 grid `18px 1fr auto` · 간격 8 · 안쪽 6(dense 4)×0 · 윗선 line-2(첫 줄 제외) · 11.5/1.4. 표 18px 원 mono 700 10: ok green-bg/ok-fg/ok-line · warn warn-bg/warn/warn-line · bad danger-bg/danger-fg/danger-line |
+| AiSuggestion(S03 aiRow) | grid `1fr auto` · 간격 6 · 11/1.35 · 제목 bold fg · 근거 dim · 버튼 sm 높이 22 안쪽 7 |
+| HeatOverlay | viewBox 0 0 100 264 늘림 · `match`: 상 (48,52 r38×40) 중 (48,136 r34×36 .8) 붉은→주황 번짐 · 하 (42,214 r22) 노랑 · 소실 점선 고리 (86,168 r14×26, danger-fg, 3 3) · `spots`: 원 3개(r26 · 22 · 18) 불투명 .55 · mix-blend screen |
+| Stepper(`.stepper`) | inline-flex 간격 3 · 칸 폭 18(S01 인라인 20) 높이 5 모서리 3 · 남음 line-3 · 끝남 brand-2 · 지금 warn + `0 0 6px warn` |
+
 ## 입력 · 저장 · 오류
 
 **결론: 입력 칸은 빈 칸 · 안내 글자 · 필수 · 확인 필요 · 읽기 전용 · 잠김 · 비활성 버튼까지 시안에 있다. 틀림 · 초점 · 저장 중 · 저장 실패는 시안에 없으므로 쓰기 전에 시안에 먼저 그린다.** 아래 값은 S01 · S02 · S13 시안에서 읽은 계산값(감정관 시점).

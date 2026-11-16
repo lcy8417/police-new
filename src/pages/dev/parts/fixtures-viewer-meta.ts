@@ -16,4 +16,7 @@ export const VIEWER_FIXTURES: PartFixture[] = [
   { id: "S06-31", part: "CompareView", variant: "side", parentWidth: 420, surface: "panel", noMockup: FAKE_ART },
   { id: "S06-32", part: "CompareView", variant: "slide", parentWidth: 420, surface: "panel", noMockup: FAKE_ART },
   { id: "S06-33", part: "PointPairs", variant: "crime", parentWidth: 200, surface: "panel", boxClass: "relative h-[300px]", noMockup: "시안 점 · 상자는 사진 위 인라인 그림 — 따로 짝 표식 자리가 없음" },
+  // r2 — HeatOverlay: 시안은 매 호출 새 그라데이션 id 를 만드는 인라인 SVG(계산값의 url(#id)가 달라짐) + 가짜 그림 바탕이라 짝 대조 없음. 모양은 단위 테스트가 지킴
+  { id: "S06-41", part: "HeatOverlay", variant: "match", parentWidth: 100, surface: "panel", boxClass: "relative h-[264px]", noMockup: "시안은 호출마다 그라데이션 id 가 달라지는 인라인 SVG + 가짜 그림 바탕 — " + FAKE_ART },
+  { id: "S01-45", part: "HeatOverlay", variant: "spots", parentWidth: 100, surface: "panel", boxClass: "relative h-[264px]", noMockup: "시안은 밑창 그림 안에 들어 있는 그룹(별도 요소 아님) — " + FAKE_ART },
 ];
