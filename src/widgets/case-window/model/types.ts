@@ -76,6 +76,8 @@ export interface CaseWindowProps {
   openCases: readonly CaseWindowOpenCase[]
   /** 더 못 여는 까닭(최대 개수 참) — 주면 탭 줄 오른쪽 회색 한 줄 */
   openCasesFull?: string
+  /** 작업 탭 줄 오른쪽 끝 「+」(사건 찾아 열기 · 기능 열기 — 부르는 쪽이 panel `WorkTabAdd` 로 만들어 넘김) */
+  tabAdd?: ReactNode
   /** 목록 순서 앞 · 뒤 사건이 없음(‹ › 잠김) */
   prevOff?: boolean
   nextOff?: boolean

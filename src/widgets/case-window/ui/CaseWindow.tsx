@@ -59,6 +59,7 @@ export function CaseWindow({
   tab,
   openCases,
   openCasesFull,
+  tabAdd,
   prevOff,
   nextOff,
   onClose,
@@ -159,6 +160,7 @@ export function CaseWindow({
           onSelect={onSelectOpenCase}
           onClose={onCloseOpenCase}
           full={openCasesFull}
+          after={tabAdd}
         />
       }
       head={head}

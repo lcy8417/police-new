@@ -20,6 +20,7 @@ export { ThemeSettings, type ThemeSettingsProps } from "./ThemeSettings"
 // r4 창 부품(로망 「거래처 창」 이식)
 export { CaseWindowFrame, type CaseWindowFrameProps } from "./window/CaseWindowFrame"
 export { WorkTabStrip, type WorkTabStripProps, type WorkTabItem } from "./window/WorkTabStrip"
+export { WorkTabAdd, type WorkTabAddProps, type WorkTabAddItem, type WorkTabAddGroup } from "./window/WorkTabAdd"
 export { WindowRail, type WindowRailProps, type WindowRailItem, type WindowRailGroup } from "./window/WindowRail"
 export { WindowHead, type WindowHeadProps, type WindowHeadMenuItem, type WindowHeadFlowStep } from "./window/WindowHead"
 // r4 창 단계 띠 · 할 일 상자 · 밑줄 탭(로망 StageStrip · TaskBoxes · StateBox · UnderlineTabs 이식)

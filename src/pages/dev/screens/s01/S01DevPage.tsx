@@ -4,7 +4,7 @@ import { toast } from "sonner"
 
 import { FEATURES } from "@/entities/session"
 import type { FilterGroup } from "@/shared/ui/kit"
-import { CaseWindowFrame, WindowHead } from "@/shared/ui/panel"
+import { CaseWindowFrame, WindowHead, WorkTabAdd } from "@/shared/ui/panel"
 import { CaseListScreen, type CaseListRow, type CaseListRowHeight } from "@/widgets/case-list"
 import { CaseWindow, type CaseWindowTab } from "@/widgets/case-window"
 
@@ -165,6 +165,8 @@ export function S01DevPage() {
 
   // ── 사건 창(r4 — 행을 누르면 목록 위 오른쪽에 큰 창). 상태는 주소(query) 에 둔다 → case-window-query.ts ──
   const [params, setParams] = useSearchParams()
+  // 작업 탭 줄 「+」 메뉴 찾기 칸
+  const [addQuery, setAddQuery] = React.useState("")
   // 신발 DB 슬라이드 패널(11/17 — 위 막대 「신발 DB」, `?shoe=1`). 열려 있으면 사건 창은 그 뒤에 숨는다(닫으면 다시 보임)
   const shoeOpen = params.get("shoe") === "1"
   const closeShoe = () => {
@@ -255,8 +257,61 @@ export function S01DevPage() {
       ) : (
         <S07Content key={key} devCase="ready" go={windowGo} />
       )
+    // 작업 탭 줄 「+」(11/17 사용자 「오른쪽에 + 버튼으로 기존 기능들이나 사건들 추가」): 사건 찾아 열기 · 기능 열기
+    const needleAdd = addQuery.trim().toLowerCase()
+    const full = win.tabs.length >= MAX_OPEN_CASES
+    const caseHits = (needleAdd === "" ? allRows : allRows.filter((r) => [r.aprthngNo, r.docNo, r.caseName].some((t) => t.toLowerCase().includes(needleAdd)))).slice(0, 6)
+    const shoeInfo = devScreen("s10")
+    const canShoe = !shoeInfo.feature || viewer.isAdmin || viewer.features.includes(shoeInfo.feature)
+    const tabAdd = (
+      <WorkTabAdd
+        label="탭 추가"
+        query={addQuery}
+        onQueryChange={setAddQuery}
+        searchLabel="사건 찾기"
+        placeholder="감정번호 · 문서번호 · 사건명"
+        groups={[
+          {
+            key: "case",
+            title: needleAdd === "" ? "사건 열기 · 목록 앞쪽" : `사건 찾기 ${caseHits.length}건`,
+            empty: "맞는 사건이 없습니다",
+            items: caseHits.map((r) => {
+              const opened = win.tabs.includes(r.aprthngNo)
+              return {
+                id: r.aprthngNo,
+                label: r.aprthngNo,
+                sub: `${r.caseName} · ${r.requestOffice} · ${r.registeredAt}`,
+                end: opened ? "열림" : undefined,
+                disabled: full && !opened,
+                reason: OPEN_CASES_FULL,
+              }
+            }),
+          },
+          {
+            key: "feature",
+            title: "기능 열기",
+            items: [
+              ...(canShoe ? [{ id: "shoe", label: "신발 DB", sub: "신발 찾기 · 등록 · 문양 편집(패널)" }] : []),
+              ...(canEdit ? [{ id: "register", label: "사건 등록", sub: "새 사건 · 현장 이미지 올리기" }] : []),
+            ],
+            empty: "열 수 있는 기능이 없습니다",
+          },
+        ]}
+        note={full ? OPEN_CASES_FULL : `사건 탭은 ${MAX_OPEN_CASES}개까지 · 지금 ${win.tabs.length}개`}
+        onPick={(group, id) => {
+          setAddQuery("")
+          if (group === "case") openWindow(id, win.tab)
+          else if (id === "shoe") {
+            const nextParams = new URLSearchParams(params)
+            nextParams.set("shoe", "1")
+            setParams(nextParams)
+          } else to("/dev/s02")
+        }}
+      />
+    )
     caseWindow = (
       <CaseWindow
+        tabAdd={tabAdd}
         summary={{
           aprthngNo: openRow.aprthngNo,
           caseName: openRow.caseName,

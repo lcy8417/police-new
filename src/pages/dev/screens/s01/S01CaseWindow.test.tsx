@@ -464,6 +464,25 @@ describe("S01 사건 창", () => {
     expect(query().get("tabs")).toBeNull()
   })
 
+  it("작업 탭 줄 「+」: 사건을 찾아 누르면 탭이 더해지고(Esc 는 메뉴만 닫음), 기능 열기 「신발 DB」는 패널을 연다", () => {
+    renderAt("/dev/s01?case=ready&as=admin&open=00001-25-0649&img=1&tab=info")
+    const win = screen.getByRole("dialog", { name: /사건 창$/ })
+    fireEvent.click(screen.getByRole("button", { name: "탭 추가" }))
+    const menu = screen.getByRole("dialog", { name: "탭 추가" })
+    fireEvent.keyDown(document, { key: "Escape" })
+    expect(screen.queryByRole("dialog", { name: "탭 추가" })).toBeNull()
+    expect(win).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "탭 추가" }))
+    fireEvent.change(within(screen.getByRole("dialog", { name: "탭 추가" })).getByRole("textbox", { name: "사건 찾기" }), { target: { value: "0647" } })
+    fireEvent.click(within(screen.getByRole("region", { name: /^사건 찾기/ })).getByRole("button", { name: /00001-25-0647/ }))
+    expect(query().get("tabs")).toBe("00001-25-0649,00001-25-0647")
+    expect(query().get("open")).toBe("00001-25-0647")
+    expect(menu).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "탭 추가" }))
+    fireEvent.click(within(screen.getByRole("region", { name: "기능 열기" })).getByRole("button", { name: /신발 DB/ }))
+    expect(query().get("shoe")).toBe("1")
+  })
+
   it("작업 탭은 8개까지 — 가득이면 회색 한 줄 까닭, 새 사건은 열지 않고 알린다", () => {
     const eight = ["0649", "0647", "0646", "0640", "0633", "0621", "0612", "0583"].map((n) => `00001-25-${n}`).join(",")
     renderAt(`/dev/s01?case=ready&tabs=${eight}`)
