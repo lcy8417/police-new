@@ -53,8 +53,8 @@ describe("S05 검색 결과 진열 페이지", () => {
     expect(last.querySelector("[data-grade]")).toHaveAttribute("data-grade", "danger")
   })
 
-  it("결과형태 1–4열 Segmented 로 열 수가 바뀐다", () => {
-    renderAt("?case=ready")
+  it("결과형태 1–4열 Segmented 로 열 수가 바뀐다(신규 기능 끔 — 1차 기본 4열)", () => {
+    renderAt("?case=ready&plus=0")
     const seg = screen.getByRole("group", { name: "결과형태" })
     expect(seg).toHaveAttribute("data-part", "Segmented")
     expect(within(seg).getAllByRole("button").map((b) => b.textContent)).toEqual(["1열", "2열", "3열", "4열"])
@@ -78,7 +78,9 @@ describe("S05 검색 결과 진열 페이지", () => {
     renderAt("?case=ready")
     expect(document.querySelector('[data-part="Pagination"]')).not.toBeNull()
     expect(screen.getByText("전체 857 중 1-20")).toBeInTheDocument()
-    fireEvent.click(screen.getByRole("button", { name: /다음/ }))
+    // 상세조회 칸(+α)에도 「다음」이 있어 쪽 넘김 안에서 찾는다
+    const pager = document.querySelector('[data-part="Pagination"]') as HTMLElement
+    fireEvent.click(within(pager).getByRole("button", { name: /다음/ }))
     expect(screen.getByText("전체 857 중 21-40")).toBeInTheDocument()
     expect(screen.getByText("#21")).toBeInTheDocument()
   })
@@ -108,18 +110,106 @@ describe("S05 검색 결과 진열 페이지", () => {
     expect(screen.queryByRole("button", { name: "다시" })).toBeNull()
   })
 
-  it("readonly 보기에서 쓰기 버튼(확인대상 등록 류)이 없거나 disabled", () => {
-    renderAt("?case=ready&as=readonly")
+  it("readonly 보기에서 쓰기 버튼(확인대상 등록 류)이 없거나 disabled(신규 기능 끔 — 1차 그대로)", () => {
+    renderAt("?case=ready&as=readonly&plus=0")
     // 이 화면에 지금 기능의 쓰기 동작은 없다. SCAS 「확인대상보기」는 준비 중(비활성)
     expect(screen.getByRole("button", { name: "확인대상보기" })).toBeDisabled()
     expect(screen.queryByRole("button", { name: /저장|등록/ })).toBeNull()
   })
 
-  it("시안의 +α(AI가 먼저 보라는 10건 · 유사도 분포 · 빠른 비교 · 확인대상 ★)는 담지 않는다", () => {
-    renderAt("?case=ready")
+  it("?plus=0 이면 [data-plus] 가 하나도 없고 1차 내용(카드 · 전체 건수 · 쪽 넘김)은 그대로", () => {
+    renderAt("?case=ready&plus=0")
+    expect(document.querySelectorAll("[data-plus]")).toHaveLength(0)
     expect(screen.queryByText(/AI가 먼저 보라는/)).toBeNull()
     expect(screen.queryByText(/유사도 분포/)).toBeNull()
-    expect(screen.queryByText(/빠른 비교/)).toBeNull()
     expect(screen.queryByText("★")).toBeNull()
+    expect(screen.getByText("전체 857건")).toBeInTheDocument()
+    expect(document.querySelectorAll("[data-result-card]")).toHaveLength(20)
+    expect(screen.getByText("No. 00758")).toBeInTheDocument()
+    expect(document.querySelector('[data-part="Pagination"]')).not.toBeNull()
+  })
+})
+
+describe("S05 r2 — 시안 +α", () => {
+  it("대표 +α 가 시안 문구로 보인다(AI 10건 · 유사도 분포 · 본 위치 · 보기 거르기 · 상세조회 칸)", () => {
+    renderAt("?case=ready")
+    expect(screen.getByText("AI가 먼저 보라는 10건")).toBeInTheDocument()
+    expect(document.querySelectorAll("[data-ai-top-item]")).toHaveLength(10)
+    expect(screen.getByText("상·중 헤링본 주기 일치")).toBeInTheDocument()
+    expect(screen.getByText("유사도 분포")).toBeInTheDocument()
+    expect(screen.getByText("136위 / 857건")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "이미 본 것 흐리게" })).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByText("현장문양검색결과 상세조회")).toBeInTheDocument()
+    expect(screen.getByText("1위 / 857건")).toBeInTheDocument()
+  })
+
+  it("+α 를 켜면 결과형태 기본은 「촘촘 8열」이고 1–4열로 바꿀 수 있다", () => {
+    renderAt("?case=ready")
+    const grid = document.querySelector("[data-result-grid]") as HTMLElement
+    expect(grid).toHaveAttribute("data-columns", "8")
+    expect(screen.getByRole("button", { name: "촘촘 8열" })).toHaveAttribute("aria-pressed", "true")
+    fireEvent.click(within(screen.getByRole("group", { name: "결과형태" })).getByRole("button", { name: "4열" }))
+    expect(grid).toHaveAttribute("data-columns", "4")
+  })
+
+  it("「137위부터 이어 보기」 → 137위 쪽으로 가고, 본 위치 선 · 빠른 비교 창이 뜬다", () => {
+    renderAt("?case=ready")
+    fireEvent.click(screen.getByRole("button", { name: "137위부터 이어 보기" }))
+    expect(document.querySelector('[data-result-card][data-rank="137"]')).not.toBeNull()
+    expect(screen.getByText("여기까지 봤음 · 136위 · 07-24 17:52")).toBeInTheDocument()
+    const peek = screen.getByRole("dialog", { name: "빠른 비교" })
+    expect(within(peek).getByText("137위 · 305102 · 58.4%")).toBeInTheDocument()
+    expect(within(peek).getByText("하 부위 다름 → 확인대상 신중")).toBeInTheDocument()
+    // 이미 본 카드(136위 이하)는 흐리게, 137위는 초점
+    expect(document.querySelector('[data-result-card][data-rank="136"]')).toHaveAttribute("data-seen", "true")
+    expect(document.querySelector('[data-result-card][data-rank="137"]')).toHaveAttribute("data-focus", "true")
+  })
+
+  it("카드 ☆ 를 누르면 확인대상 칸에 들어간다(제어형)", () => {
+    renderAt("?case=ready")
+    const box = document.querySelector("[data-target-box]") as HTMLElement
+    expect(within(box).getByText("2건")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "1위 00758 확인대상 넣기" }))
+    expect(within(box).getByText("3건")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "1위 00758 확인대상 빼기" })).toHaveAttribute("aria-pressed", "true")
+  })
+
+  it("보는 사람 — 감정관은 ☆ · 그룹등록 · 확인 막대, 기술책임자는 「기술책임자 · 보기만」 + 잠김", () => {
+    const a = renderAt("?case=ready&as=analyst")
+    expect(screen.getByRole("button", { name: "1위 00758 확인대상 넣기" })).toBeEnabled()
+    expect(screen.getByRole("button", { name: "그룹등록" })).toBeEnabled()
+    expect(screen.getByText("확인대상에 등록하시겠습니까?")).toBeInTheDocument()
+    expect(screen.queryByText("기술책임자 · 보기만")).toBeNull()
+    expect(screen.queryByText("수사관 · 볼 수 없음")).toBeNull()
+    a.unmount()
+
+    renderAt("?case=ready&as=verifier")
+    expect(screen.getByText("기술책임자 · 보기만")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "1위 00758 확인대상 넣기" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "그룹등록" })).toBeDisabled()
+    expect(screen.getAllByRole("button", { name: "확인대상 제외" })[0]).toBeDisabled()
+    expect(screen.queryByText("확인대상에 등록하시겠습니까?")).toBeNull()
+  })
+
+  it("보는 사람 — 수사관에게는 「수사관 · 볼 수 없음」", () => {
+    renderAt("?case=ready&as=investigator")
+    expect(screen.getByText("수사관 · 볼 수 없음")).toBeInTheDocument()
+    expect(screen.queryByText("기술책임자 · 보기만")).toBeNull()
+  })
+
+  it("움직임 줄이기: 움직임은 모두 motion-safe: 로만, 막대는 목표 폭(끝난 모양)", () => {
+    renderAt("?case=ready")
+    fireEvent.click(screen.getByRole("button", { name: "137위부터 이어 보기" }))
+    const animated = Array.from(document.querySelectorAll('[class*="animate-"]')).flatMap((el) =>
+      String(el.getAttribute("class"))
+        .split(/\s+/)
+        .filter((c) => c.includes("animate-")),
+    )
+    expect(animated.length).toBeGreaterThan(0)
+    expect(animated.every((c) => c.startsWith("motion-safe:"))).toBe(true)
+    // 훑기 선(ScanOverlay)이 초점 카드에 있고, 유사도 막대 채움은 인라인 목표 폭
+    expect(document.querySelector('[data-result-card][data-rank="137"] [data-part="ScanOverlay"]')).not.toBeNull()
+    const fill = document.querySelector('[data-result-card][data-rank="137"] [data-part="AiProgress"] i') as HTMLElement
+    expect(fill.style.width).toMatch(/%$/)
   })
 })

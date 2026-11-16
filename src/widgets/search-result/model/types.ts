@@ -18,6 +18,107 @@ export interface ImageSearchResultItem {
 /** 이진화/원본 보기 — 지금 앱의 한국어 리터럴 그대로(imageSearch 가 이 값으로 신발 이미지 폴더 B/Shoerinsics 를 고른다) */
 export type ImageMode = "이진화보기" | "원본보기"
 
+/** +α 「AI가 먼저 보라는 10건」 한 칸(시안 r3 TOP) */
+export interface AiTopItem {
+  /** AI 가 다시 매긴 순위(1부터) */
+  rank: number
+  /** 신발 ID — 문자열 */
+  ftwrId: string
+  /** 유사도 퍼센트(0~100) */
+  similarity: number
+  /** 밑창 그림 URL */
+  image: string
+  /** 부위별 근거 한 줄(예 「상·중 헤링본 주기 일치」) */
+  why: string
+  /** 이미 봄(✓) */
+  seen: boolean
+  /** 일치 부위 히트 겹침 */
+  heat: boolean
+}
+
+/** +α 빠른 비교 창의 부위 한 줄 */
+export interface PeekZone {
+  /** 부위 이름(상 · 중 · 하) */
+  zone: string
+  /** 부위 점수 0~100 */
+  score: number
+  /** 이유 한 줄 */
+  why: string
+}
+
+/** +α 빠른 비교 창(시안 r3 peek) — 초점 카드 옆에 뜬다 */
+export interface QuickPeek {
+  /** 현장 사진 URL */
+  sceneImage: string
+  /** 부위별 점수 */
+  zones: readonly PeekZone[]
+  /** 아래 주황 칩 글자(예 「하 부위 다름 → 확인대상 신중」) */
+  caution: string
+}
+
+/** +α 상세조회 칸(시안 S05 아래 칸) */
+export interface ResultDetailInsight {
+  /** 순위 */
+  rank: number
+  /** 신발 ID — 문자열 */
+  ftwrId: string
+  /** 유사도 퍼센트 */
+  similarity: number
+  /** 유류(현장) 이미지 URL */
+  crimeImage: string
+  /** 발견(신발) 이미지 URL */
+  shoeImage: string
+  /** 측면 이미지 URL */
+  sideImage: string
+  /** 신발정보(SCAS 라벨 순서, 2열로 흐른다) */
+  info: readonly (readonly [string, string])[]
+}
+
+/**
+ * +α(시안 r3) 값 묶음 — `showPlus` 일 때만 보인다. 지금 imageSearch 응답에 없는 값이라 운영 연결 전까지는 진열 페이지만 채운다.
+ * 확인대상(★)은 저장되는 값이라 여기 두지 않고 `targets` prop(제어형)으로 받는다.
+ */
+export interface SearchInsight {
+  /** 검색번호(예 572433) */
+  searchNo: string
+  /** 검색 방법(예 「이미지 검색」) */
+  searchMethod: string
+  /** 필수 문양 요약(예 「필수 문양 상·중 헤링본」) */
+  essentialSummary: string
+  /** 검색 시각 「MM-DD HH:MM」 */
+  searchedAt: string
+  /** 어디까지 봤나(순위) */
+  seenUpTo: number
+  /** 마지막으로 본 시각 「MM-DD HH:MM」 */
+  seenAt: string
+  /** 키보드 초점 카드 순위(빠른 비교 창이 뜨는 카드) */
+  focusRank: number | null
+  /** AI 순위 다시 매김으로 오른 계단(순위 → 몇 계단) */
+  rerankUp: Readonly<Record<number, number>>
+  /** 유사도 분포 막대(앞 순위부터, 퍼센트) */
+  distribution: readonly number[]
+  /** 분포 1위 유사도(퍼센트) */
+  topSimilarity: number
+  /** 분포 꼴찌 유사도(퍼센트) */
+  bottomSimilarity: number
+  /** 이 순위 뒤는 꼬리(분포 아래 안내) */
+  tailFrom: number
+  /** AI가 먼저 보라는 10건 */
+  aiTop: readonly AiTopItem[]
+  /** 빠른 비교 창(초점 카드) */
+  peek: QuickPeek | null
+  /** 상세조회 칸 */
+  detail: ResultDetailInsight | null
+}
+
+/** 확인대상 한 건(+α 카드 ★ · 왼쪽 확인대상 칸) */
+export interface SearchTarget {
+  /** 순위 */
+  rank: number
+  /** 신발 ID — 문자열 */
+  ftwrId: string
+}
+
 export interface SearchResultScreenProps {
   /** 검색 상태. error 는 조회 실패, empty 는 결과 0건(서로 다른 모양) */
   status: ScreenStatus
@@ -49,4 +150,16 @@ export interface SearchResultScreenProps {
   onImageModeChange: (mode: ImageMode) => void
   /** 결과 카드를 누름 — ranking 은 1부터 센 전체 순위 */
   onOpenResult: (item: ImageSearchResultItem, ranking: number) => void
+  /** +α · 실증 요소를 보이나(기본 true). 운영 연결은 false 로 시작 */
+  showPlus?: boolean
+  /** +α 값 묶음(showPlus 일 때만 쓴다) */
+  insight?: SearchInsight
+  /** 확인대상(+α ★ · 확인대상 칸) — 저장되는 값이라 제어형 */
+  targets?: readonly SearchTarget[]
+  /** ★ 누름 — 확인대상 넣기/빼기 */
+  onToggleTarget?: (target: SearchTarget) => void
+  /** 「137위부터 이어 보기」 — 그 순위가 있는 쪽으로 */
+  onResume?: (rank: number) => void
+  /** 동작이 아직 없는 +α 버튼(그룹등록 · 프린트 · 크게 보기 …) — 누른 버튼 글자 */
+  onPlusAction?: (label: string) => void
 }
