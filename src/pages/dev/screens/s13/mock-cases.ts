@@ -1,4 +1,4 @@
-import type { AdminUser, FeatureInfo, Org, RoleInfo } from "@/entities/admin"
+import type { AdminUser, FeatureInfo, Org, RoleCode, RoleInfo } from "@/entities/admin"
 import { FEATURE_LABELS, FEATURE_ORDER, FEATURES } from "@/entities/session"
 import type { AdminHistoryRow, AdminUsersOverview, ShoeDuty } from "@/widgets/admin-users-screen"
 
@@ -40,7 +40,7 @@ export const MOCK_ORGS: Org[] = [
 
 const base: Pick<AdminUser, "lockAt" | "useAt" | "features" | "roles"> = { lockAt: "N", useAt: "Y", features: [], roles: [] }
 
-export const MOCK_USERS: AdminUser[] = [
+const FIRST_USERS: AdminUser[] = [
   { ...base, userId: "park0412", userNm: "박○○ 경위", userSe: "USER", roles: ["EXAMINER"], features: [FEATURES.CRIME_SEARCH, FEATURES.SHOE_VIEW, FEATURES.EXAM_DECIDE], orgId: 1, orgNm: "경찰청 범죄분석과", lastLoginDt: "2026-11-15T17:58:00+09:00" },
   { ...base, userId: "kim0301", userNm: "김○○ 경위", userSe: "USER", roles: ["EXAMINER"], features: [FEATURES.CRIME_SEARCH], orgId: 1, orgNm: "경찰청 범죄분석과", lastLoginDt: "2026-11-15T16:20:00+09:00" },
   // r2: 시안 사용자 jang0105(신발 승인 담당)
@@ -54,6 +54,41 @@ export const MOCK_USERS: AdminUser[] = [
   { ...base, userId: "newbie01", userNm: "정○○ 순경", userSe: "USER", roles: ["INVESTIGATOR"], features: [FEATURES.CASE_STATUS_VIEW], orgId: 1, orgNm: "경찰청 범죄분석과", lastLoginDt: null },
   { ...base, userId: "seo0322", userNm: "서○○ 주무관", userSe: "USER", roles: ["EXAMINER"], features: [FEATURES.SHOE_EDIT, FEATURES.SHOE_VIEW], orgId: 6, orgNm: MOCK_ORGS[5].orgNm, lastLoginDt: null },
 ]
+
+// r3: 시안 칩 숫자(전체 38 · 수사관 18 · 감정관 14 · 기술책임자 3 · 관리자 3 · 사용 34 · 잠금 1 · 중지 3 · 문양 입력 3 · 승인 1 · 등록 1)와
+// 운영 타일 「전체 38명」이 표와 맞도록, 위 10명에 더해 28명을 정해진 규칙으로 만든다(무작위 없음).
+const SURNAMES = ["오", "배", "신", "권", "황", "안", "송", "류", "홍", "전", "고", "문", "양", "손", "조", "백", "허", "유", "남", "심", "노", "하", "곽", "성", "차", "주", "우", "민"]
+const EXTRA_ORGS = [MOCK_ORGS[0], MOCK_ORGS[1], MOCK_ORGS[2], MOCK_ORGS[3]]
+// 28명: 감정관 10 · 수사관 14 · 기술책임자 2 · 관리자 2 (수사관 중 2명은 중지)
+const EXTRA_KINDS: ("EXAMINER" | "INVESTIGATOR" | "REVIEWER" | "ADMIN")[] = [
+  ...Array<"EXAMINER">(10).fill("EXAMINER"),
+  ...Array<"INVESTIGATOR">(14).fill("INVESTIGATOR"),
+  "REVIEWER",
+  "REVIEWER",
+  "ADMIN",
+  "ADMIN",
+]
+const EXTRA_USERS: AdminUser[] = EXTRA_KINDS.map((kind, i) => {
+  const org = EXTRA_ORGS[i % EXTRA_ORGS.length]
+  const isAdmin = kind === "ADMIN"
+  const userId = isAdmin ? `admin${String(i - 24).padStart(2, "0")}` : `user${String(i + 11).padStart(4, "0")}`
+  return {
+    ...base,
+    userId,
+    userNm: isAdmin ? `관리자 ${i - 24}` : `${SURNAMES[i]}○○ ${kind === "REVIEWER" ? "경감" : "경사"}`,
+    userSe: isAdmin ? "ADMIN" : "USER",
+    roles: isAdmin ? [] : [kind as RoleCode],
+    // 수사관 14명(i = 10~23) 중 마지막 2명 = 중지
+    useAt: kind === "INVESTIGATOR" && i >= 22 ? "N" : "Y",
+    features: kind === "INVESTIGATOR" ? [FEATURES.CASE_STATUS_VIEW] : kind === "EXAMINER" ? [FEATURES.CRIME_SEARCH] : [],
+    orgId: org.orgId,
+    orgNm: org.orgNm,
+    lastLoginDt: i % 5 === 4 ? null : `2026-11-${String(10 + (i % 6)).padStart(2, "0")}T${String(9 + (i % 9)).padStart(2, "0")}:${String((i * 7) % 60).padStart(2, "0")}:00+09:00`,
+  }
+})
+
+/** 사용자 38명(시안 「전체 38」). 처음 10명은 1~2차 그대로 */
+export const MOCK_USERS: AdminUser[] = [...FIRST_USERS, ...EXTRA_USERS]
 
 /** 로그인한 관리자(진열) */
 export const MOCK_CURRENT_USER_ID = "admin01"
@@ -88,6 +123,9 @@ export const MOCK_ADMIN_HISTORY: AdminHistoryRow[] = [
 export const MOCK_DUTIES: Record<string, ShoeDuty[]> = {
   park0412: ["SHOE_PATTERN"],
   jang0105: ["SHOE_APPROVE"],
+  // r3: 문양 입력 담당 3명(시안 칩 「문양 입력 3」)
+  user0011: ["SHOE_PATTERN"],
+  user0012: ["SHOE_PATTERN"],
 }
 
 /** 분업을 맡길 수 있는 역할(시안 PRESETS 의 ◇ = 감정관) */

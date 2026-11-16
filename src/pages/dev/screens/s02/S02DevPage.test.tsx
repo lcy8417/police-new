@@ -262,6 +262,18 @@ describe("S02DevPage 사건 상세·등록", () => {
   })
 
   describe("r3 이미지 목록 파일명 검색", () => {
+    it("검색으로 숨겨진 줄의 삭제 체크는 풀려 「삭제」가 보이는 줄만 지운다", () => {
+      renderAt(`${DETAIL}&plus=0`)
+      fireEvent.click(screen.getByRole("checkbox", { name: "00001-25-0649_3.jpg 선택" }))
+      fireEvent.change(screen.getByLabelText("검색어"), { target: { value: "_12" } })
+      expect(screen.getByRole("button", { name: "삭제" })).toBeDisabled()
+      fireEvent.click(screen.getByRole("checkbox", { name: "00001-25-0649_12.jpg 선택" }))
+      fireEvent.click(screen.getByRole("button", { name: "삭제" }))
+      fireEvent.click(screen.getAllByRole("button", { name: "조건 지우기" }).at(-1)!)
+      expect(screen.queryByText("00001-25-0649_12.jpg")).toBeNull()
+      expect(screen.getByText("00001-25-0649_3.jpg")).toBeInTheDocument()
+    })
+
     it("검색하면 목록만 걸러지고, 0건이면 「조건에 맞는 항목 없음」과 「조건 지우기」, ?plus=0 에서도 보인다", () => {
       renderAt(`${DETAIL}&plus=0`)
       const box = screen.getByLabelText("검색어")

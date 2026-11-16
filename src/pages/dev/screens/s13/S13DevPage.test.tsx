@@ -241,6 +241,29 @@ describe("S13 사용자 관리 — r2 시안 구성", () => {
     expect(within(grid).queryByText("park0412")).toBeNull()
   })
 
+  it("r3 칩 숫자가 시안 · 운영 타일(전체 38명)과 같다", () => {
+    admin("ready")
+    expect(MOCK_USERS).toHaveLength(38)
+    const filter = screen.getByRole("search")
+    const chip = (group: string, label: string) =>
+      within(within(filter).getByRole("group", { name: group })).getByRole("button", { name: new RegExp(`^${label}\\s*\\d+$`) }).textContent
+    for (const [g, l, n] of [
+      ["역할", "수사관", "18"],
+      ["역할", "감정관", "14"],
+      ["역할", "기술책임자", "3"],
+      ["역할", "관리자", "3"],
+      ["신발 DB", "등록", "1"],
+      ["신발 DB", "문양 입력", "3"],
+      ["신발 DB", "승인", "1"],
+      ["상태", "사용", "34"],
+      ["상태", "잠금", "1"],
+      ["상태", "중지", "3"],
+    ] as const) {
+      expect(chip(g, l)).toBe(`${l} ${n}`)
+    }
+    expect(within(filter).getByText("38 / 전체 38")).toBeInTheDocument()
+  })
+
   it("r3 상태 · 역할 칩으로 걸러지고, 0건이면 「조건에 맞는 항목 없음」과 「조건 지우기」", () => {
     admin("ready")
     const filter = screen.getByRole("search")
@@ -277,7 +300,7 @@ describe("S13 사용자 관리 — r2 시안 구성", () => {
   it("표 구분 아래 신발 DB 담당 ◇ 칩 · 「소속 관서 · 전체」 · 상세 머리 「그 뒤 실패 n회」", () => {
     admin("ready")
     const grid = screen.getByRole("region", { name: "사용자 목록" })
-    expect(within(grid).getByText("◇ 문양 입력")).toBeInTheDocument()
+    expect(within(grid).getAllByText("◇ 문양 입력")).toHaveLength(3)
     expect(within(grid).getByText("◇ 신발 승인")).toBeInTheDocument()
     expect(within(grid).getByText("◇ 신발 등록")).toBeInTheDocument()
     expect(within(grid).getByRole("button", { name: /소속 관서 · 전체/ })).toBeInTheDocument()

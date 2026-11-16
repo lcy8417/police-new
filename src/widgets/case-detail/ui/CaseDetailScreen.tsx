@@ -102,7 +102,16 @@ export function CaseDetailScreen({
     return q ? sorted.filter((i) => i.fileName.toLowerCase().includes(q)) : sorted
   }, [sorted, imageQuery])
 
-  const toggleChecked = (id: string, on: boolean) =>
+  // 검색어가 바뀌면 숨겨진 줄의 삭제 체크는 풀어, 「삭제」가 보이는 줄만 지우게 한다
+  const changeImageQuery = (next: string) => {
+    onImageQueryChange?.(next)
+    const q = next.trim().toLowerCase()
+    const visible = new Set((q ? sorted.filter((i) => i.fileName.toLowerCase().includes(q)) : sorted).map((i) => i.id))
+    const kept = checkedImageIds.filter((id) => visible.has(id))
+    if (kept.length !== checkedImageIds.length) onCheckedImageIdsChange(kept)
+  }
+
+  const toggleChecked =(id: string, on: boolean) =>
     onCheckedImageIdsChange(on ? [...checkedImageIds, id] : checkedImageIds.filter((x) => x !== id))
 
   const columns: DataGridColumn<CaseImage>[] = [
@@ -407,10 +416,10 @@ export function CaseDetailScreen({
               <div className="px-[6px] py-[6px]">
                 <FilterBar
                   query={imageQuery}
-                  onQueryChange={onImageQueryChange}
+                  onQueryChange={changeImageQuery}
                   filters={[]}
                   onFilterChange={() => undefined}
-                  onClear={() => onImageQueryChange("")}
+                  onClear={() => changeImageQuery("")}
                   resultCount={visibleImages.length}
                   total={sorted.length}
                   searchPlaceholder="파일명 검색"
@@ -423,7 +432,7 @@ export function CaseDetailScreen({
                 <p role="status" className="m-0 mb-[8px] text-[12.5px] text-dim">
                   조건에 맞는 항목 없음
                 </p>
-                <Button size="sm" onClick={() => onImageQueryChange("")}>
+                <Button size="sm" onClick={() => changeImageQuery("")}>
                   조건 지우기
                 </Button>
               </div>
