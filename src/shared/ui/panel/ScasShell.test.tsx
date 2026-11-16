@@ -49,12 +49,32 @@ describe("ScasShell", () => {
     expect(item.closest("a")).toBeNull()
   })
 
-  it("탭 줄에 현재 탭을 표시한다", () => {
-    renderShell({ tabs: ["사건관리", "감정서작성"], tabOn: "감정서작성" })
-    const tabs = screen.getAllByRole("tab")
-    expect(tabs).toHaveLength(2)
-    expect(screen.getByRole("tab", { name: /감정서작성/ })).toHaveAttribute("aria-selected", "true")
-    expect(screen.getByRole("tab", { name: /사건관리/ })).toHaveAttribute("aria-selected", "false")
+  it("r4: 탭 줄(「사건관리 ×」)을 그리지 않는다(로망 앱 틀에 없음)", () => {
+    renderShell()
+    expect(screen.queryByRole("tablist")).toBeNull()
+    expect(screen.queryAllByRole("tab")).toHaveLength(0)
+    expect(screen.queryByText("✕")).toBeNull()
+  })
+
+  it("r4: 사이드바 고른 항목은 aria-current=page · brand-3 채움, 나머지는 종이색 70% 글자", () => {
+    renderShell({ renderLink: ({ href, children, ...rest }) => <a href={href} {...rest}>{children}</a> })
+    const nav = screen.getByRole("navigation", { name: "메뉴" })
+    const current = within(nav).getByRole("link", { name: "사건관리" })
+    expect(current).toHaveAttribute("aria-current", "page")
+    expect(current.className).toContain("bg-brand-3")
+    const other = within(nav).getByRole("link", { name: "사용자 관리" })
+    expect(other).not.toHaveAttribute("aria-current")
+    expect(other.className).toContain("text-paper/70")
+  })
+
+  it("r4: 메뉴 아이콘을 받으면 그 아이콘을 그린다(없으면 기본 문서 아이콘)", () => {
+    const Icon = ({ className }: { className?: string }) => <svg data-testid="menu-icon" className={className} />
+    render(
+      <ScasShell active="사건관리" menu={[{ group: "족윤적", items: [{ label: "사건관리", href: "/a", icon: Icon }] }]} user={USER}>
+        <p>본문</p>
+      </ScasShell>,
+    )
+    expect(screen.getByTestId("menu-icon").getAttribute("class")).toContain("size-[17px]")
   })
 
   it("제목 · 사용자 · 본문을 그린다", () => {

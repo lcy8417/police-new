@@ -1,7 +1,19 @@
 import * as React from "react"
+import {
+  ClipboardCheck,
+  Columns2,
+  Crop,
+  FileText,
+  FolderOpen,
+  Footprints,
+  History,
+  Search,
+  Shapes,
+  Users,
+} from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
-import { ScasShell, ThemeScope, ThemeSettings, type ScasMenuGroup } from "@/shared/ui/panel"
+import { ScasShell, ThemeScope, ThemeSettings, type ScasMenuGroup, type ScasMenuIcon } from "@/shared/ui/panel"
 import { useDisplayPrefs } from "@/shared/lib/display-prefs"
 import { cn } from "@/shared/lib/utils"
 
@@ -21,10 +33,28 @@ export interface DevScreenFrameProps {
 
 // 보는 사람(`as`)과 신규 기능 끄기(`plus=0`)는 화면을 옮겨도 유지한다. 케이스(`case`)는 화면마다 다르므로 넘기지 않는다.
 // 메뉴는 보는 사람의 기능 권한으로 거른다(`widgets/app-shell/model/nav-items.ts` 와 같은 규칙: 권한 없으면 숨김).
+// r4 앱 틀 메뉴 아이콘(로망 사이드바처럼 줄마다 선 아이콘 17px) — 화면별로 뜻이 가까운 lucide 아이콘
+const MENU_ICONS: Partial<Record<(typeof DEV_SCREENS)[number]["id"], ScasMenuIcon>> = {
+  s01: FolderOpen,
+  s02: FileText,
+  s03: Crop,
+  s04: Shapes,
+  s05: Search,
+  s06: Columns2,
+  s07: ClipboardCheck,
+  s10: Footprints,
+  s13: Users,
+  s14: History,
+}
+
 function menuFor(viewer: DevViewerInfo, as: string | null, plusOff: boolean): ScasMenuGroup[] {
   const parts = [as ? `as=${encodeURIComponent(as)}` : "", plusOff ? "plus=0" : ""].filter(Boolean)
   const query = parts.length > 0 ? `?${parts.join("&")}` : ""
-  const toItem = (s: (typeof DEV_SCREENS)[number]) => ({ label: s.title, href: `/dev/${s.id}${query}` })
+  const toItem = (s: (typeof DEV_SCREENS)[number]) => ({
+    label: s.title,
+    href: `/dev/${s.id}${query}`,
+    icon: MENU_ICONS[s.id],
+  })
   const visible = DEV_SCREENS.filter(
     (s) => !s.admin && s.id !== "s00" && (!s.feature || viewer.isAdmin || viewer.features.includes(s.feature)),
   )
