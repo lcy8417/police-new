@@ -134,6 +134,8 @@ export interface SearchRunPattern {
   status?: PatternCardStatus
   /** 그때의 AI 확신도 0~1(AI 문양만) — 다시 불러올 때 규칙 R3 를 그때와 같게 */
   confidence?: number
+  /** 그때의 SCAS 개수(0–9 · 10이상) — 다시 불러올 때 같이(2회차 검수. DB 저장 열은 서버 후속 B13) */
+  count?: PatternCount
 }
 
 /** 검색 결과 상위 한 건(진열 가짜 계산) */
@@ -161,6 +163,8 @@ export interface SearchRun {
    * 없으면 제안 없이 검색한 것
    */
   pending?: Readonly<Partial<Record<PatternZone, readonly { name: string; confidence?: number }[]>>>
+  /** 그때의 밑창 문자열(SCAS 「문자열」 칸 — 없으면 빈 칸). DB 저장 열은 서버 후속 B13 */
+  soleText?: string
   /** 그때의 매칭 조건 */
   conditions: MatchConditionValues
   /** 결과 수(필수 거르기 통과) */

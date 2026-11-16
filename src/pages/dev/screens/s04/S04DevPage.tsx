@@ -290,6 +290,7 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow, caseImages, onPickI
       meta,
       overrides: weightOverrides,
       conditions: matchConditions,
+      soleText,
     })
     setSearchRuns((prev) => [run, ...prev])
     toast.success(`검색 ${searchNo} — 결과 ${run.resultCount.toLocaleString("ko-KR")}건(진열 가짜 계산)`)
@@ -310,7 +311,9 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow, caseImages, onPickI
       const zoneMeta: Record<string, PatternCardMeta> = {}
       const zoneOverrides: Record<string, WeightLevel> = {}
       for (const p of run.zones[z]) {
-        if (p.status && p.status !== "manual") zoneMeta[p.name] = { status: "ai", ...(p.confidence !== undefined ? { confidence: p.confidence } : {}) }
+        const count = p.count !== undefined ? { count: p.count } : {}
+        if (p.status && p.status !== "manual") zoneMeta[p.name] = { status: "ai", ...(p.confidence !== undefined ? { confidence: p.confidence } : {}), ...count }
+        else if (p.count !== undefined) zoneMeta[p.name] = { status: "manual", ...count }
         if (p.manual) zoneOverrides[p.name] = p.weight
       }
       // 그때의 확인 전 AI 제안도 되살린다(검색엔 안 들어갔지만 R5 세 부위 반복이 제안까지 센다 — 2회차 검수)
@@ -327,6 +330,7 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow, caseImages, onPickI
     setWeightOverrides(nextOverrides)
     setMatchConditions(run.conditions)
     setSearchImage(run.source)
+    setSoleText(run.soleText ?? "")
     toast(`검색 ${searchNo} 조건을 다시 불러왔습니다.`)
   }
 

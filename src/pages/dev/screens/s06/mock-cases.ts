@@ -173,7 +173,8 @@ export function makeMatchInsight(img: {
     opinion: "같은 밑창 쪽 근거가 강함 — 판정은 감정관",
     basis: basis.map(({ y0, ...r }) => ({ ...r, crimeCrop: crimeCrop(img.cropCrime, y0), shoeCrop: shoeCrop(img.cropShoe, y0) })),
     sideImage: img.side,
-    caseExtra: { scasNo: "2025-11710", docNo: "SCAS수사부-2944", pickMethod: "전사판채취법" },
+    // 사건 목록 0646 행과 같은 SCAS 사건번호(2회차 검수 가짜 값 통일)
+    caseExtra: { scasNo: "2025-03318", docNo: "SCAS수사부-2944", pickMethod: "전사판채취법" },
     shoeExtra: { kind: "운동화", note: "용의자신발" },
   }
 }

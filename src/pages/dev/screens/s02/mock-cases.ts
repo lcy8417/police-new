@@ -19,7 +19,8 @@ export const DETAIL_FORM: CaseDetailForm = {
   rqestGrfcNm: "대구청 › 동부서",
   crimeNm: "주거침입",
   pickDt: "2025-07-23 08:40",
-  pickPlace: "거실 바닥",
+  // 정밀 대조 · 결과 확인 가짜 값과 같은 채취 장소(2회차 검수 가짜 값 통일)
+  pickPlace: "주방 바닥",
   pickMthCode: "기타",
 }
 

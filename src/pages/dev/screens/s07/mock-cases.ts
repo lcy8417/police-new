@@ -66,7 +66,8 @@ export const OTHER_ZONES: Readonly<Record<string, ZoneTriple>> = {
 }
 
 export const REVIEWERS = [
-  { value: "kim", label: "김○○ 경사 · 감정관" },
+  // 사용자 관리 · 사용 기록 · 사건 목록과 같은 직급(김○○ 경위 — 2회차 검수 가짜 값 통일)
+  { value: "kim", label: "김○○ 경위 · 감정관" },
   { value: "jung", label: "정○○ 경위 · 감정관" },
 ] as const
 

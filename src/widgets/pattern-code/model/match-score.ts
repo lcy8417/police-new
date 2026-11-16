@@ -132,6 +132,7 @@ export function runSnapshot(
       p.status = "ai"
       if (m.confidence !== undefined) p.confidence = m.confidence
     }
+    if (m?.count !== undefined) p.count = m.count
     out[q.zone].push(p)
   }
   return out

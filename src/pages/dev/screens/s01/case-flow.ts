@@ -113,7 +113,7 @@ export function s07FactsOf(row: CaseListRow, flow: CaseFlow) {
     rows: makeConfirmRows(row),
     crossReview,
     /** 요청한 교차 검증자 이름(목록 행 값) — 요청 전이면 없음 */
-    crossReviewer: crossReview === "none" ? undefined : (row.crossReviewer ?? "김○○ 경사"),
+    crossReviewer: crossReview === "none" ? undefined : (row.crossReviewer ?? "김○○ 경위"),
     lockedReason:
       crossReview === "none" ? undefined : flow.currentStage >= 4 ? "교차 검증이 끝나 판정이 잠겼습니다" : "교차 검증 중에는 판정을 바꿀 수 없습니다",
   }

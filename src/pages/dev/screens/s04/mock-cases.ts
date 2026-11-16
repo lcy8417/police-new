@@ -230,6 +230,7 @@ export function fakeSearchRun(args: {
   meta: PatternMetaMap
   overrides: WeightOverrideMap
   conditions: MatchConditionValues
+  soleText?: string
 }): SearchRun {
   const weights = patternWeights(args.zones, args.meta, S04_KINDS, args.overrides)
   const query = searchQuery(args.zones, args.meta, weights)
@@ -241,6 +242,7 @@ export function fakeSearchRun(args: {
     zones: runSnapshot(query, weights, args.meta),
     // 그때의 확인 전 제안(검색엔 안 들어감 — R5 문맥을 되살리려고, 2회차 검수)
     ...pendingOf(args.zones, args.meta),
+    ...(args.soleText ? { soleText: args.soleText } : {}),
     conditions: args.conditions,
     resultCount: ranked.length,
     top: ranked.slice(0, 5).map((h) => ({ ...h, src: soleOf(h.ftwrId) })),
