@@ -1,2 +1,9 @@
 export { LoginScreen } from "./ui/LoginScreen"
-export type { LoginModeProps, LoginScreenProps, PasswordChangeModeProps } from "./model/types"
+export type {
+  DemoScreen,
+  LastLoginInfo,
+  LoginDemoArt,
+  LoginModeProps,
+  LoginScreenProps,
+  PasswordChangeModeProps,
+} from "./model/types"
