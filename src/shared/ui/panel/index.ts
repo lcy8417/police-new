@@ -32,3 +32,5 @@ export {
   type TaskBoxesProps,
 } from "./stage/StageStrip"
 export { UnderlineTabs, TabMark, type UnderlineTabsProps, type TabMarkKind } from "./tabs/UnderlineTabs"
+// 창 안 칸 머리(11/17 — 사건 창 탭 본문 소제목을 파란 띠 대신 밑줄 탭 모양으로)
+export { PaneHead, type PaneHeadProps } from "./pane/PaneHead"

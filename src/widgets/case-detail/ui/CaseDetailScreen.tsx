@@ -15,7 +15,7 @@ import {
   Segmented,
   type DataGridColumn,
 } from "@/shared/ui/kit"
-import { ButtonBar, Panel, SearchForm, Stepper, UnderlineTabs, type SearchFormRow } from "@/shared/ui/panel"
+import { ButtonBar, PaneHead, Panel, SearchForm, Stepper, UnderlineTabs, type SearchFormRow } from "@/shared/ui/panel"
 import { EvidenceImage } from "@/shared/ui/viewer"
 
 import { CaseImageDrop } from "./CaseImageDrop"
@@ -414,12 +414,7 @@ export function CaseDetailScreen({
     return (
       <div data-slot="case-detail-window" className="grid h-full min-h-0 grid-cols-[300px_minmax(0,1fr)] gap-[14px] p-[12px]">
         <section aria-label="족윤적 이미지" className="flex min-h-0 flex-col gap-[8px]">
-          <div className="flex shrink-0 items-end gap-2 border-b border-solid border-border px-1">
-            <h3 className="-mb-px m-0 inline-flex items-center gap-1.5 border-0 border-b-2 border-solid border-brand pt-[7px] pb-2 text-[13px] font-bold text-brand-3">
-              족윤적 이미지
-            </h3>
-            <span className="ml-auto self-center">{imageChip}</span>
-          </div>
+          <PaneHead title="족윤적 이미지" end={imageChip} />
           <div className="min-h-0 flex-1">
             {selected && extra ? (
               <EvidenceWithAi src={selected.src} alt={`${selected.fileName} 미리보기`} caption={selected.fileName} plus={extra} fill />

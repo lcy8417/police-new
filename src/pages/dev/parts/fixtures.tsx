@@ -5,6 +5,7 @@ import { Button, Chip, Field, StatePill } from "@/shared/ui/kit";
 import {
   ButtonBar,
   CaseWindowFrame,
+  PaneHead,
   Panel,
   StageStrip,
   Stepper,
@@ -322,6 +323,19 @@ const BASE_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
       onChange={noop}
       endKey="confirm"
       partId="S01-63"
+    />
+  ),
+  "S01-64": () => (
+    <PaneHead
+      title="현장 이미지 문양"
+      sub="AI 제안 3 · 확인 2"
+      tip="필수 문양만 검색에 쓰입니다 — 바꾸면 결과를 다시 찾습니다"
+      end={
+        <Button size="sm" variant="pri">
+          검색
+        </Button>
+      }
+      partId="S01-64"
     />
   ),
 };
