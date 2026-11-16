@@ -62,6 +62,9 @@ export interface CaseDetailScreenProps {
   /** 추가 · 끌어 놓기로 고른 파일 */
   onFilesAdded: (files: File[]) => void
   onDeleteChecked: () => void
+  /** r3: 이미지 목록 파일명 검색어(제어형, 없으면 검색 칸을 그리지 않는다). 신규(+α) 아님 */
+  imageQuery?: string
+  onImageQueryChange?: (query: string) => void
   /** 올리는 중인 파일(없으면 생략) */
   uploading?: { fileName: string; percent: number }
   /** 폼 위 오류 문구(검증 실패 · 서버 거절 문구 그대로) */

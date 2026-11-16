@@ -9,6 +9,7 @@ import {
   Combobox,
   DataGrid,
   Field,
+  FilterBar,
   InlineError,
   RadioRow,
   Segmented,
@@ -70,6 +71,8 @@ export function CaseDetailScreen({
   showPlus = true,
   plus,
   onMockAction,
+  imageQuery = "",
+  onImageQueryChange,
 }: CaseDetailScreenProps) {
   const fileInput = React.useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = React.useState(false)
@@ -93,6 +96,11 @@ export function CaseDetailScreen({
     [images]
   )
   const selected = sorted.find((i) => i.id === selectedImageId) ?? sorted[0] ?? null
+  // r3: 이미지 목록 파일명 검색(제어형). 큰 그림 · 선택은 전체 기준, 표만 거른다
+  const visibleImages = React.useMemo(() => {
+    const q = imageQuery.trim().toLowerCase()
+    return q ? sorted.filter((i) => i.fileName.toLowerCase().includes(q)) : sorted
+  }, [sorted, imageQuery])
 
   const toggleChecked = (id: string, on: boolean) =>
     onCheckedImageIdsChange(on ? [...checkedImageIds, id] : checkedImageIds.filter((x) => x !== id))
@@ -395,10 +403,35 @@ export function CaseDetailScreen({
                 </>
               ) : null}
             </Band>
+            {onImageQueryChange ? (
+              <div className="px-[6px] py-[6px]">
+                <FilterBar
+                  query={imageQuery}
+                  onQueryChange={onImageQueryChange}
+                  filters={[]}
+                  onFilterChange={() => undefined}
+                  onClear={() => onImageQueryChange("")}
+                  resultCount={visibleImages.length}
+                  total={sorted.length}
+                  searchPlaceholder="파일명 검색"
+                  partId="s02-image-search"
+                />
+              </div>
+            ) : null}
+            {onImageQueryChange && imageQuery.trim() !== "" && visibleImages.length === 0 ? (
+              <div className="px-[14px] py-[18px] text-center">
+                <p role="status" className="m-0 mb-[8px] text-[12.5px] text-dim">
+                  조건에 맞는 항목 없음
+                </p>
+                <Button size="sm" onClick={() => onImageQueryChange("")}>
+                  조건 지우기
+                </Button>
+              </div>
+            ) : (
             <div className="overflow-x-auto">
               <DataGrid
                 columns={columns}
-                rows={sorted}
+                rows={visibleImages}
                 rowKey={(i) => i.id}
                 selectedKey={selected?.id}
                 onRowClick={(i) => onSelectImage(i.id)}
@@ -407,6 +440,7 @@ export function CaseDetailScreen({
                 className={extra ? "[&_td]:h-[30px] [&_td]:px-[6px] [&_th]:h-[28px] [&_th]:px-[6px]" : undefined}
               />
             </div>
+            )}
             {canEdit ? (
               <div
                 onDragOver={(e) => {

@@ -260,4 +260,19 @@ describe("S02DevPage 사건 상세·등록", () => {
     expect(screen.queryByText("00001-25-0649_3.jpg")).toBeNull()
     expect(screen.getByText("00001-25-0649_4.jpg")).toBeInTheDocument()
   })
+
+  describe("r3 이미지 목록 파일명 검색", () => {
+    it("검색하면 목록만 걸러지고, 0건이면 「조건에 맞는 항목 없음」과 「조건 지우기」, ?plus=0 에서도 보인다", () => {
+      renderAt(`${DETAIL}&plus=0`)
+      const box = screen.getByLabelText("검색어")
+      fireEvent.change(box, { target: { value: "_12" } })
+      expect(screen.getByText("00001-25-0649_12.jpg")).toBeInTheDocument()
+      expect(screen.queryByText("00001-25-0649_3.jpg")).toBeNull()
+      fireEvent.change(box, { target: { value: "없는파일" } })
+      expect(screen.getByText("조건에 맞는 항목 없음")).toBeInTheDocument()
+      expect(screen.queryByText("이미지 없음")).toBeNull()
+      fireEvent.click(screen.getAllByRole("button", { name: "조건 지우기" }).at(-1)!)
+      expect(screen.getByText("00001-25-0649_3.jpg")).toBeInTheDocument()
+    })
+  })
 })

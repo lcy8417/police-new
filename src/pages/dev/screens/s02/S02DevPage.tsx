@@ -47,6 +47,7 @@ export function S02DevPage() {
   // 시안은 _2(전사판)를 보고 있는 모양
   const [selected, setSelected] = React.useState<string | null>(id ? `${id}_2` : null)
   const [checked, setChecked] = React.useState<string[]>([])
+  const [imageQuery, setImageQuery] = React.useState("")
   const [continuous, setContinuous] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
 
@@ -144,6 +145,8 @@ export function S02DevPage() {
         checkedImageIds={checked}
         onCheckedImageIdsChange={setChecked}
         onFilesAdded={addFiles}
+        imageQuery={imageQuery}
+        onImageQueryChange={setImageQuery}
         onDeleteChecked={() => {
           setImages((cur) => cur.filter((i) => !checked.includes(i.id)))
           setChecked([])
