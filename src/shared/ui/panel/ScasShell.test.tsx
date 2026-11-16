@@ -87,4 +87,26 @@ describe("ScasShell", () => {
     })
     expect(screen.getByText("사용자 관리").closest("a")).toHaveAttribute("href", "/dev/s13?x=1")
   })
+
+  it("display 가 없으면 범위 속성을 달지 않는다(:root 값 그대로 — 부품 진열 대조용)", () => {
+    const { container } = renderShell()
+    const root = container.querySelector('[data-part="ScasShell"]')!
+    for (const a of ["data-theme", "data-font", "data-scale", "data-motion"]) expect(root).not.toHaveAttribute(a)
+  })
+
+  it("display 를 주면 루트에 범위 속성을 단다(r3)", () => {
+    const { container } = renderShell({
+      display: { theme: "light-soft", font: "noto-sans", scale: "xl", reducedMotion: true },
+    })
+    const root = container.querySelector('[data-part="ScasShell"]')!
+    expect(root).toHaveAttribute("data-theme", "light-soft")
+    expect(root).toHaveAttribute("data-font", "noto-sans")
+    expect(root).toHaveAttribute("data-scale", "xl")
+    expect(root).toHaveAttribute("data-motion", "reduce")
+  })
+
+  it("headerEnd 자리를 위 메뉴 오른쪽 끝에 그린다(r3)", () => {
+    renderShell({ headerEnd: <button type="button">화면 설정</button> })
+    expect(screen.getByRole("button", { name: "화면 설정" })).toBeInTheDocument()
+  })
 })

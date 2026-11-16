@@ -68,6 +68,10 @@
   --t-stat-glow-warn: rgba(245, 158, 11, 0.2);
   --t-stat-glow-danger: rgba(239, 68, 68, 0.2);
   --t-heat-yellow: #facc15; /* HeatOverlay 약한 일치 번짐(시안 S06 heatSvg) */
+  /* 부품 글꼴 목록(시안 --font-ui · --font-mono 그대로). @theme 의 font-ui · font-code 가 이 값을 가리키고,
+     시안 화면 범위([data-font])에서만 다른 글꼴로 바꾼다(설계서 §14-3). */
+  --t-font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --t-font-code: "JetBrains Mono", "D2Coding", ui-monospace, Menlo, monospace;
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -135,6 +139,382 @@
   --sidebar-accent-foreground: var(--t-brand-2);
   --sidebar-border: #1c2636;
   --sidebar-ring: #2563eb;
+}
+
+/* ───────── 시안 화면 범위 팔레트 (설계서 §14-1 · 2, 사용자 결정 2026-11-16 「밝게 3종 + 어둡게 1종」) ─────────
+   :root 값은 그대로 두고(기존 운영 화면 무변경), ScasShell · S00 진열 화면 루트가 다는 data-theme 범위에서만
+   값 토큰 --t-* 를 다시 정의한다. 밝은 팔레트 3종은 :root 의 색 토큰을 빠짐없이 다시 정의한다(다크 값이 새지 않게 —
+   src/shared/ui/palette-contrast.test.ts 가 대비 AA · 색상 계열 · 빠짐을 검사). */
+
+/* 범위 안 shadcn 역할: .dark 는 <html> 에서 이미 계산돼 내려오므로 범위 요소에서 다시 가리켜야 새 값이 걸린다.
+   dark 팔레트에서는 같은 값으로 계산된다(= 변화 없음). */
+[data-theme] {
+  --background: var(--t-bg-2);
+  --foreground: var(--t-fg);
+  --card: var(--t-panel-2);
+  --card-foreground: var(--t-fg);
+  --popover: var(--t-panel-2);
+  --popover-foreground: var(--t-fg);
+  --primary: var(--t-brand-3);
+  --secondary: var(--t-select);
+  --secondary-foreground: var(--t-fg);
+  --muted: var(--t-select);
+  --muted-foreground: var(--t-mute);
+  --accent: var(--t-select);
+  --accent-foreground: var(--t-brand-2);
+  --border: var(--t-line);
+  --input: var(--t-strip);
+  --ring: var(--t-brand-3);
+  --sidebar: var(--t-strip);
+  --sidebar-foreground: var(--t-mute);
+  --sidebar-primary: var(--t-brand-3);
+  --sidebar-accent: var(--t-select);
+  --sidebar-accent-foreground: var(--t-brand-2);
+}
+
+/* 밝은 팔레트 공통: 빨강 역할 · 사이드바 선 · 양식 요소(스크롤바 등) 밝은 모양 */
+[data-theme="scas-light"],
+[data-theme="light-contrast"],
+[data-theme="light-soft"] {
+  color-scheme: light;
+  --destructive: var(--t-danger);
+  --sidebar-border: var(--t-line);
+  --sidebar-ring: var(--t-brand-3);
+}
+
+/* dark — 지금 r3 시안 색 그대로(:root 값을 그대로 물려받는다. 값 토큰을 다시 정의하지 않는다) */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* scas-light(기본) — SCAS 실제 화면 문법: 옅은 회색 바탕 + 흰 패널 · 얇은 회색 선 · 파란 강조 · 표 머리 옅은 회색.
+   SCAS 남색 머리띠(#1f2a5a)는 방패 배지 바탕으로만 쓴다(글자색 토큰을 공유하므로 띠 전체를 남색으로 칠하지 않음). */
+[data-theme="scas-light"] {
+  --t-bg: #eef0f4;
+  --t-bg-2: #f6f7fa;
+  --t-panel: #ffffff;
+  --t-panel-2: #f8f9fb;
+  --t-panel-3: #eef1f6;
+  --t-strip: #f3f5f9;
+  --t-select: #e4eafb;
+  --t-line: #d5d9e2;
+  --t-line-2: #e4e7ee;
+  --t-line-3: #c3c8d2;
+  --t-fg: #1f2430;
+  --t-fg-2: #363c48;
+  --t-mute: #4f5664;
+  --t-dim: #5c6371;
+  --t-faint: #7b8291;
+  --t-brand: #3550c4;
+  --t-brand-2: #2f4bbd;
+  --t-brand-3: #2c45b0;
+  --t-ai: #0b6e64;
+  --t-ai-bg: #e2f4f1;
+  --t-danger: #c0282b;
+  --t-danger-bg: #fdeced;
+  --t-ok: #1a7342;
+  --t-ok-bg: #e5f4eb;
+  --t-warn: #965000;
+  --t-warn-bg: #fdf2df;
+  --t-violet: #6a3dbd;
+  --t-violet-bg: #f1ebfc;
+  --t-brand-bg: #e8edfc;
+  --t-brand-line: #b3c0ee;
+  --t-ai-line: #9dd5cb;
+  --t-ok-line: #a6d6b8;
+  --t-ok-fg: #176a3c;
+  --t-warn-line: #e8c68b;
+  --t-danger-line: #f0b7b9;
+  --t-danger-fg: #ad2023;
+  --t-violet-line: #cdb9f1;
+  --t-brand-glow: rgba(44, 69, 176, 0.18);
+  --t-panel-edge: rgba(255, 255, 255, 0.8);
+  --t-panel-drop: rgba(31, 42, 90, 0.06);
+  --t-panel-head: rgba(233, 236, 243, 0.9);
+  --t-corner-glow: rgba(53, 80, 196, 0.3);
+  --t-ai-bg-deep: #d4eee9;
+  --t-ai-tag-drop: rgba(31, 42, 90, 0.12);
+  --t-ai-pulse: rgba(11, 110, 100, 0.45);
+  --t-picon-bg: #f3f5f8;
+  --t-ai-scan-glow: rgba(11, 110, 100, 0.45);
+  --t-ai-shine: #e6fffb;
+  --t-emblem-from: #3c55c8;
+  --t-emblem-to: #1f2a5a;
+  --t-emblem-stroke: #c9d4ff;
+  --t-dot-grid: rgba(53, 80, 196, 0.05);
+  --t-glow-orb: rgba(53, 80, 196, 0);
+  --t-stat-glow: rgba(53, 80, 196, 0.08);
+  --t-stat-glow-brand: rgba(53, 80, 196, 0.1);
+  --t-stat-glow-ai: rgba(11, 110, 100, 0.1);
+  --t-stat-glow-warn: rgba(150, 80, 0, 0.1);
+  --t-stat-glow-danger: rgba(192, 40, 43, 0.1);
+  --t-heat-yellow: #facc15;
+}
+
+/* light-contrast — 흰 바탕 · 글자/선 더 진하게 · 굵은 초점(저시력 · 장시간 대조용) */
+[data-theme="light-contrast"] {
+  --t-bg: #ffffff;
+  --t-bg-2: #ffffff;
+  --t-panel: #ffffff;
+  --t-panel-2: #f7f8fa;
+  --t-panel-3: #eef0f4;
+  --t-strip: #f2f4f7;
+  --t-select: #dde6ff;
+  --t-line: #8a93a3;
+  --t-line-2: #b6bcc8;
+  --t-line-3: #6f7889;
+  --t-fg: #0b0d12;
+  --t-fg-2: #1c212b;
+  --t-mute: #2f3540;
+  --t-dim: #3a414d;
+  --t-faint: #5a6170;
+  --t-brand: #1f3fae;
+  --t-brand-2: #1b3aa5;
+  --t-brand-3: #1a3596;
+  --t-ai: #00564e;
+  --t-ai-bg: #e0f3ef;
+  --t-danger: #a3141a;
+  --t-danger-bg: #fdebec;
+  --t-ok: #0d5c30;
+  --t-ok-bg: #e2f3e8;
+  --t-warn: #7a3f00;
+  --t-warn-bg: #fdf0d9;
+  --t-violet: #5326a8;
+  --t-violet-bg: #efe8fc;
+  --t-brand-bg: #e6ecff;
+  --t-brand-line: #6f86d6;
+  --t-ai-line: #3f9d90;
+  --t-ok-line: #5daa7c;
+  --t-ok-fg: #0b5229;
+  --t-warn-line: #c79540;
+  --t-danger-line: #d77a7e;
+  --t-danger-fg: #92111a;
+  --t-violet-line: #9d7fe0;
+  --t-brand-glow: rgba(26, 53, 150, 0.2);
+  --t-panel-edge: rgba(255, 255, 255, 0);
+  --t-panel-drop: rgba(11, 13, 18, 0.08);
+  --t-panel-head: rgba(226, 230, 238, 1);
+  --t-corner-glow: rgba(31, 63, 174, 0.4);
+  --t-ai-bg-deep: #cfeae4;
+  --t-ai-tag-drop: rgba(11, 13, 18, 0.15);
+  --t-ai-pulse: rgba(0, 86, 78, 0.5);
+  --t-picon-bg: #f3f5f8;
+  --t-ai-scan-glow: rgba(0, 86, 78, 0.5);
+  --t-ai-shine: #e6fffb;
+  --t-emblem-from: #2c45b0;
+  --t-emblem-to: #141c40;
+  --t-emblem-stroke: #ffffff;
+  --t-dot-grid: rgba(31, 63, 174, 0);
+  --t-glow-orb: rgba(31, 63, 174, 0);
+  --t-stat-glow: rgba(31, 63, 174, 0);
+  --t-stat-glow-brand: rgba(31, 63, 174, 0);
+  --t-stat-glow-ai: rgba(0, 86, 78, 0);
+  --t-stat-glow-warn: rgba(122, 63, 0, 0);
+  --t-stat-glow-danger: rgba(163, 20, 26, 0);
+  --t-heat-yellow: #facc15;
+}
+
+/* 굵은 초점: 키보드로 옮겨 간 자리가 멀리서도 보이게(light-contrast 전용) */
+[data-theme="light-contrast"] :focus-visible {
+  outline: 3px solid var(--t-brand-3) !important;
+  outline-offset: 2px;
+}
+
+/* light-soft — 옅은 회색 바탕 · 채도 낮은 강조(눈부심 적게) */
+[data-theme="light-soft"] {
+  --t-bg: #e6e8ec;
+  --t-bg-2: #eceef1;
+  --t-panel: #f5f6f8;
+  --t-panel-2: #eff1f4;
+  --t-panel-3: #e5e8ed;
+  --t-strip: #e9ecf0;
+  --t-select: #dfe5f3;
+  --t-line: #cdd2db;
+  --t-line-2: #dadee5;
+  --t-line-3: #bcc2cd;
+  --t-fg: #262b34;
+  --t-fg-2: #3a404b;
+  --t-mute: #4c5360;
+  --t-dim: #535a67;
+  --t-faint: #6f7684;
+  --t-brand: #34509e;
+  --t-brand-2: #304b96;
+  --t-brand-3: #2d468c;
+  --t-ai: #116258;
+  --t-ai-bg: #dcefeb;
+  --t-danger: #a8323a;
+  --t-danger-bg: #f7e4e5;
+  --t-ok: #26633f;
+  --t-ok-bg: #dfeee5;
+  --t-warn: #7f4a08;
+  --t-warn-bg: #f6ecda;
+  --t-violet: #5f3e94;
+  --t-violet-bg: #ebe5f5;
+  --t-brand-bg: #e0e6f4;
+  --t-brand-line: #aab8dc;
+  --t-ai-line: #9ccdc4;
+  --t-ok-line: #a7cdb5;
+  --t-ok-fg: #235c3a;
+  --t-warn-line: #dcc18f;
+  --t-danger-line: #e0b0b2;
+  --t-danger-fg: #962a31;
+  --t-violet-line: #c4b5e2;
+  --t-brand-glow: rgba(45, 70, 140, 0.15);
+  --t-panel-edge: rgba(255, 255, 255, 0.5);
+  --t-panel-drop: rgba(38, 43, 52, 0.05);
+  --t-panel-head: rgba(229, 232, 237, 0.9);
+  --t-corner-glow: rgba(52, 80, 158, 0.25);
+  --t-ai-bg-deep: #cfe6e1;
+  --t-ai-tag-drop: rgba(38, 43, 52, 0.1);
+  --t-ai-pulse: rgba(17, 98, 88, 0.4);
+  --t-picon-bg: #f3f5f8;
+  --t-ai-scan-glow: rgba(17, 98, 88, 0.4);
+  --t-ai-shine: #e6fffb;
+  --t-emblem-from: #34509e;
+  --t-emblem-to: #222b4f;
+  --t-emblem-stroke: #c9d4ff;
+  --t-dot-grid: rgba(52, 80, 158, 0.04);
+  --t-glow-orb: rgba(52, 80, 158, 0);
+  --t-stat-glow: rgba(52, 80, 158, 0.06);
+  --t-stat-glow-brand: rgba(52, 80, 158, 0.08);
+  --t-stat-glow-ai: rgba(17, 98, 88, 0.08);
+  --t-stat-glow-warn: rgba(127, 74, 8, 0.08);
+  --t-stat-glow-danger: rgba(168, 50, 58, 0.08);
+  --t-heat-yellow: #facc15;
+}
+
+/* ───────── 시안 화면 범위 글꼴 (설계서 §14-3, 사용자 결정 「여러 개 받아서 선택할 수 있게」) ─────────
+   파일은 src/assets/fonts/<글꼴>/(OFL.txt 동봉, 인터넷 없이 동작). 이름 앞에 "Scas" 를 붙여 PC에 깔린 같은 이름 글꼴 ·
+   Google Fonts 와 섞이지 않게 한다(:root 의 기존 목록 "D2Coding" · "IBM Plex Sans KR" 계산 결과를 바꾸지 않음).
+   보통(400) · 굵게(700)만. 고른 글꼴 파일만 내려받는다(font-display: swap). */
+@font-face {
+  font-family: "Scas D2Coding";
+  src: url("./assets/fonts/d2coding/D2Coding-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scas D2Coding";
+  src: url("./assets/fonts/d2coding/D2Coding-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scas Pretendard";
+  src: url("./assets/fonts/pretendard/Pretendard-Regular.subset.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scas Pretendard";
+  src: url("./assets/fonts/pretendard/Pretendard-Bold.subset.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scas NanumGothic";
+  src: url("./assets/fonts/nanum-gothic/NanumGothic-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scas NanumGothic";
+  src: url("./assets/fonts/nanum-gothic/NanumGothic-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scas NanumBarunGothic";
+  src: url("./assets/fonts/nanum-barun-gothic/NanumBarunGothic-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scas NanumBarunGothic";
+  src: url("./assets/fonts/nanum-barun-gothic/NanumBarunGothic-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scas IBM Plex Sans KR";
+  src: url("./assets/fonts/ibm-plex-sans-kr/IBMPlexSansKR-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scas IBM Plex Sans KR";
+  src: url("./assets/fonts/ibm-plex-sans-kr/IBMPlexSansKR-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scas Noto Sans KR";
+  src: url("./assets/fonts/noto-sans-kr/NotoSansKR-Regular.subset.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Scas Noto Sans KR";
+  src: url("./assets/fonts/noto-sans-kr/NotoSansKR-Bold.subset.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 범위 글꼴: 바탕 글자는 고른 글꼴, 숫자 · 번호처럼 자리 폭이 고정돼야 하는 자리(font-code)는 어느 글꼴을 골라도
+   고정폭 D2Coding(내장 파일). 범위 요소 자체에 글꼴을 걸어 아래로 물려준다. */
+[data-font] {
+  --t-font-code: "Scas D2Coding", "JetBrains Mono", ui-monospace, Menlo, monospace;
+  font-family: var(--t-font-ui);
+}
+[data-font="d2coding"] {
+  --t-font-ui: "Scas D2Coding", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+[data-font="pretendard"] {
+  --t-font-ui: "Scas Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+[data-font="nanum-gothic"] {
+  --t-font-ui: "Scas NanumGothic", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+[data-font="nanum-barun"] {
+  --t-font-ui: "Scas NanumBarunGothic", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+[data-font="ibm-plex"] {
+  --t-font-ui: "Scas IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+[data-font="noto-sans"] {
+  --t-font-ui: "Scas Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+
+/* 글자 크기(설계서 §14-4): 부품 글자가 px 로 고정돼 있어 범위 전체 배율(zoom)로 키운다.
+   범위가 겹치면(틀 + ScasShell) 바깥 한 번만 키운다. */
+[data-scale="lg"] {
+  zoom: 1.125;
+}
+[data-scale="xl"] {
+  zoom: 1.25;
+}
+[data-scale] [data-scale] {
+  zoom: 1;
+}
+
+/* 움직임 줄이기(화면 설정): 시안 규칙과 같다 — 모든 움직임을 끄고 기본(다 끝난) 모양을 남긴다(references/motion.md) */
+[data-motion="reduce"] *,
+[data-motion="reduce"] *::before,
+[data-motion="reduce"] *::after {
+  animation: none !important;
+  transition: none !important;
 }
 
 @theme inline {
@@ -215,8 +595,8 @@
   --color-violet-bg: var(--t-violet-bg);
   /* 부품 글꼴 역할(새 이름 — 시안 --font-ui · --font-mono 와 같은 목록). Tailwind 기본 이름
      --font-mono · --font-sans 는 덮어쓰지 않는다(덮으면 기존 화면의 font-mono 글자가 모두 바뀜, 판정 R33). */
-  --font-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --font-code: "JetBrains Mono", "D2Coding", ui-monospace, Menlo, monospace;
+  --font-ui: var(--t-font-ui);
+  --font-code: var(--t-font-code);
 }
 
 /* AI 표식 진행 점 맥박(시안 mockup.css 의 fx-pulse 와 같은 움직임) */

@@ -102,8 +102,12 @@ describe("@theme 역할(기존 화면 변화 0 — 설계서 §12-2)", () => {
   });
 
   it("부품 글꼴 역할 font-ui · font-code 는 시안 --font-ui · --font-mono 와 같은 글꼴 목록", () => {
+    // r3(설계서 §14-3): 역할은 범위 변수 --t-font-* 를 가리키고, :root 기본값이 시안 목록 그대로다.
     const mock = declsOf(mockupCss, /:root\s*\{([\s\S]*?)\n\}/);
-    expect(theme["--font-ui"]).toBe(mock["--font-ui"]);
-    expect(theme["--font-code"]).toBe(mock["--font-mono"]);
+    const root = declsOf(appCss, /:root\s*\{([\s\S]*?)\n\}/);
+    expect(theme["--font-ui"]).toBe("var(--t-font-ui)");
+    expect(theme["--font-code"]).toBe("var(--t-font-code)");
+    expect(root["--t-font-ui"]).toBe(mock["--font-ui"]);
+    expect(root["--t-font-code"]).toBe(mock["--font-mono"]);
   });
 });
