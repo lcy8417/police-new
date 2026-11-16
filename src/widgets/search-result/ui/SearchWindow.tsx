@@ -411,16 +411,15 @@ export function SearchWindow(props: SearchResultScreenProps) {
           {plus && status === "ready" ? (
             <div className="grid shrink-0 gap-[8px] border-0 border-t border-solid border-border bg-panel px-[10px] py-[8px]">
               <div data-seen-box className="grid gap-[5px]">
-                <span className="flex items-baseline justify-between text-[11px]">
+                {/* R6 1280: 좁은 칸에서 날짜 · 시각이 두 줄로 깨지지 않게 — 날짜는 이름 줄로, 단추는 혼자 한 줄 */}
+                <span className="flex items-baseline gap-[6px] text-[11px]">
                   <b>본 위치</b>
-                  <span className="font-code tabular-nums text-fg-2">{`${seenUpTo} / ${totalCount}`}</span>
+                  <span className="min-w-0 truncate font-code text-[10px] text-muted-foreground">{plus.seenAt}</span>
+                  <span className="ml-auto font-code tabular-nums text-fg-2">{`${seenUpTo} / ${totalCount}`}</span>
                 </span>
-                <span className="flex items-center gap-[6px] text-[10px] text-muted-foreground">
-                  {plus.seenAt}
-                  <WorkbenchButton size="sm" variant="soft" icon={ArrowRight} className="ml-auto" onClick={() => goTo(seenUpTo + 1)}>
-                    {`${seenUpTo + 1}위부터 이어 보기`}
-                  </WorkbenchButton>
-                </span>
+                <WorkbenchButton size="sm" variant="soft" icon={ArrowRight} className="justify-self-end" onClick={() => goTo(seenUpTo + 1)}>
+                  {`${seenUpTo + 1}위부터 이어 보기`}
+                </WorkbenchButton>
               </div>
               <div data-target-box className="grid gap-[3px]">
                 <span className="flex items-baseline justify-between text-[11px]">

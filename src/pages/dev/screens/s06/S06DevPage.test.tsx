@@ -193,17 +193,18 @@ describe("S06 r2 — 시안 +α", () => {
     expect(screen.queryByRole("button", { name: "그룹등록" })).toBeNull()
     expect(screen.queryByRole("button", { name: "근거 이미지 감정서에 첨부" })).toBeNull()
     expect(document.querySelector("[data-confirm-bar]")).toBeNull()
-    expect(screen.getByText("기술책임자: 읽기 전용(결재 참고)")).toBeInTheDocument()
+    // R6: 「결재」 글자 없음 — 감정서 검토 참고
+    expect(screen.getByText("기술책임자: 읽기 전용(감정서 검토 참고)")).toBeInTheDocument()
     expect(screen.queryByText("감정관: 확인대상·그룹등록·감정서 첨부")).toBeNull()
   })
 
   it("보는 사람 — 감정관은 감정관 안내, 수사관은 「이 팝업 없음」 안내", () => {
     const a = renderAt("?case=ready&as=analyst")
     expect(screen.getByText("감정관: 확인대상·그룹등록·감정서 첨부")).toBeInTheDocument()
-    expect(screen.queryByText("기술책임자: 읽기 전용(결재 참고)")).toBeNull()
+    expect(screen.queryByText("기술책임자: 읽기 전용(감정서 검토 참고)")).toBeNull()
     a.unmount()
     renderAt("?case=ready&as=investigator")
-    expect(screen.getByText("수사관: 이 팝업 없음 — 결재완료 감정서로만")).toBeInTheDocument()
+    expect(screen.getByText("수사관: 이 팝업 없음 — 완료된 감정서로만")).toBeInTheDocument()
   })
 
   it("정밀 대조 보기 「대응점 · 겹쳐 보기 · 히트맵」(기본 겹쳐 보기)과 접기", () => {

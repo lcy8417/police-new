@@ -231,8 +231,11 @@ export function PatternWindow(props: PatternWindowProps) {
                 </LensBox>
               </div>
               <div className={cn(BAR, "flex-col items-stretch border-0 border-t border-solid border-border py-[7px]")}>
+                {/* R6 1280: 좁을 때 두 줄로 깨지지 않게 한 줄 + … (전체는 마우스 설명) */}
                 {props.showPlus !== false && props.priceTagWarning ? (
-                  <p className="m-0 text-[10px] leading-[1.4] text-warn">▣ 가격표 자리 — AI가 문양을 못 잡을 수 있습니다</p>
+                  <p title="가격표 자리 — AI가 문양을 못 잡을 수 있습니다" className="m-0 truncate text-[10px] leading-[1.4] text-warn">
+                    ▣ 가격표 자리 — AI가 문양을 못 잡을 수 있습니다
+                  </p>
                 ) : null}
                 <WorkbenchButton
                   variant="soft"

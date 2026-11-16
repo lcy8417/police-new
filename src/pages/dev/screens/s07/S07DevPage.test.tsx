@@ -154,9 +154,9 @@ describe("S07 r2 — 시안 +α", () => {
       .forEach((r) => expect(r).toBeDisabled())
   })
 
-  it("보는 사람 — 수사관에게는 「판정은 결재완료 뒤 공개」", () => {
+  it("보는 사람 — 수사관에게는 「판정은 감정서 완료 뒤 공개」(R6 — 결재 글자 없음)", () => {
     renderAt("?case=ready&as=investigator")
-    expect(screen.getByText("수사관: 판정은 결재완료 뒤 공개")).toBeInTheDocument()
+    expect(screen.getByText("수사관: 판정은 감정서 완료 뒤 공개")).toBeInTheDocument()
     expect(screen.queryByText("기술책임자: 읽기 전용")).toBeNull()
   })
 

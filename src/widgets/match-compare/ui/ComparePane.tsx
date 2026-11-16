@@ -13,7 +13,7 @@ import { viewToRatio, type RatioPoint } from "../model/zoom-link"
 type Look = "rgb" | "sketch"
 
 const BAR = "flex shrink-0 flex-wrap items-center gap-x-[8px] gap-y-[4px] bg-panel px-[10px] py-[5px]"
-const TAG = "pointer-events-none absolute z-[2] rounded-[5px] bg-canvas/90 px-[7px] py-[2px] font-code text-[10px] text-fg-2"
+const TAG = "pointer-events-none absolute z-[2] rounded-[5px] bg-canvas/90 px-[7px] py-[2px] font-code text-[10px] whitespace-nowrap text-fg-2"
 /** 함께 확대 배율 → 고정 클래스(Tailwind 가 읽게 글자 그대로) */
 const PIN_SCALE: Record<LensZoom, string> = { 2: "scale-200", 3: "scale-300", 4: "scale-400" }
 const ZONE_NAMES = ["상", "중", "하"] as const

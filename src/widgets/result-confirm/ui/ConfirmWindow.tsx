@@ -21,7 +21,7 @@ type RowFilter = "all" | "pending"
 
 const OPTIONS: readonly Judgement[] = ["found", "notFound", "unable"]
 /** 표 칸 폭 — 머리 줄과 줄이 같이 쓴다 */
-const COLS = "grid grid-cols-[124px_100px_minmax(188px,1.1fr)_minmax(132px,1fr)_60px_28px] gap-x-3"
+const COLS = "grid grid-cols-[112px_92px_minmax(164px,1.1fr)_minmax(120px,1fr)_56px_24px] gap-x-2.5"
 const NOT_SEARCHED = "검색하지 않은 이미지는 발견 판정을 할 수 없습니다"
 
 const CROSS_PILL: Record<CrossReviewState, { tone: "pending" | "fact" | "done"; text: string }> = {
@@ -127,7 +127,7 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
     table = <ListNote>확인할 이미지가 없습니다</ListNote>
   } else {
     table = (
-      <div role="group" aria-label="이미지별 판정" className="min-w-[680px]">
+      <div role="group" aria-label="이미지별 판정" className="min-w-[640px]">
         <ListHeadRow className={COLS}>
           <span>이미지</span>
           <span>검색</span>

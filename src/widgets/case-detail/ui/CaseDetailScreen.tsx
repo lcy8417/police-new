@@ -491,7 +491,12 @@ export function CaseDetailScreen({
               ) : null
             }
           />
-          <div role="tabpanel" aria-labelledby={`${formTabsId}-${formTab}`} className="flex min-h-0 flex-1 flex-col gap-[8px] overflow-auto">
+          {/* R6 1280: 라벨 칸을 118 로 넓히고 한 줄로(「감정의뢰 담당자」가 두 줄로 깨지지 않게) — 값 칸이 나머지를 나눠 가진다 */}
+          <div
+            role="tabpanel"
+            aria-labelledby={`${formTabsId}-${formTab}`}
+            className="flex min-h-0 flex-1 flex-col gap-[8px] overflow-auto [&_[data-part=SearchForm]>div]:grid-cols-[118px_minmax(0,1fr)_118px_minmax(0,1fr)] [&_[data-part=SearchForm]>div>div:nth-child(odd)]:px-[8px] [&_[data-part=SearchForm]>div>div:nth-child(odd)]:whitespace-nowrap"
+          >
             {errorLine}
             <SearchForm columns={2} rows={formTab === "case" ? caseRows : imageRows} />
           </div>
