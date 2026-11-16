@@ -49,7 +49,7 @@ export function PatternIcon({
       {...partAttrs("PatternIcon", { variant: size, state: selected ? "sel" : ai ? "ai" : undefined, id: partId })}
       title={title ?? name}
       className={cn(
-        // 시안 바탕 #f3f5f8(밝은 종이색)은 토큰이 없어 가장 가까운 white 를 쓴다
+        // 시안 바탕(밝은 종이색)은 토큰이 없어 가장 가까운 white 를 쓴다
         "relative inline-grid place-items-center rounded-[6px] border border-solid border-line-3 bg-white",
         SIZE_CLASS[size],
         selected && "outline-2 outline-offset-1 outline-brand",
