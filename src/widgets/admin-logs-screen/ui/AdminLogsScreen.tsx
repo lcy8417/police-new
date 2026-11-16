@@ -1,10 +1,13 @@
+import { Info } from "lucide-react"
+
 import type { AdminEvent } from "@/entities/admin"
 import { formatKstDateTime } from "@/shared/lib"
-import { DataGrid, InlineError, Pagination, Segmented, type DataGridColumn } from "@/shared/ui/kit"
+import { Button, Chip, DataGrid, InlineError, Pagination, Segmented, type DataGridColumn } from "@/shared/ui/kit"
 import { Crumb, PageHead, Panel } from "@/shared/ui/panel"
 
-import type { AdminLogsScreenProps } from "../model/types"
+import type { AdminActionRow, AdminLogsScreenProps, LogTab } from "../model/types"
 import { LogFilterBar } from "./LogFilterBar"
+import { LogPulseRow, LogSidePanels } from "./LogInsights"
 import { ResultChip } from "./ResultChip"
 import { SessionTable } from "./SessionTable"
 
@@ -29,12 +32,27 @@ const EVENT_COLUMNS: DataGridColumn<AdminEvent>[] = [
   { key: "ms", header: "처리 시간", align: "right", render: (e) => <span className="font-code tabular-nums text-muted-foreground">{e.durationMs === null ? "—" : `${e.durationMs}ms`}</span> },
 ]
 
+// 관리자 행위 탭(신규, 시안 핀 5) 열
+const ADMIN_COLUMNS: DataGridColumn<AdminActionRow>[] = [
+  { key: "at", header: "시각", render: (a) => <span className="font-code text-[12px] tabular-nums">{a.at}</span> },
+  { key: "who", header: "관리자", render: (a) => <span className="font-code text-[11.5px] text-brand">{a.who}</span> },
+  {
+    key: "text",
+    header: "행위",
+    wrap: true,
+    render: (a) => <span className={a.tone === "warn" ? "text-warn" : a.tone === "danger" ? "text-danger" : "text-fg-2"}>{a.text}</span>,
+  },
+]
+
 /**
  * S14 사용·감사 기록: 필터 막대 + 로그인 기록(행을 펼치면 기능 타임라인) · 기능 기록 두 탭, 50개씩 쪽 넘김.
- * 시안의 시간대 차트 · 이상 징후 · 무결성 · 관리자 행위 탭 · 엑셀 · 보존 기간은 담지 않는다(spec §5-2).
+ * r2(시안 r3 +α, `showPlus`): 관리자 전용 안내 · 엑셀 내보내기 · 보존 기간 · 시간대별 사용량 · 이상 징후 · 기록 무결성 ·
+ * 감사 항목 · 내려받기 제한 · 관리자 행위(최근) · 역할 안내 줄. 관리자 행위 탭 · 「대상 번호」 필터(서버 API 없음)는 담지 않는다.
  */
 export function AdminLogsScreen(props: AdminLogsScreenProps) {
-  const { status, errorAt, onRetry, isAdmin, tab } = props
+  const { status, errorAt, onRetry, isAdmin, showPlus = true } = props
+  // 관리자 행위 탭은 신규 요소 — 신규를 끄면 로그인 기록으로 본다
+  const tab = !showPlus && props.tab === "admin" ? "sessions" : props.tab
 
   if (!isAdmin) {
     return (
@@ -48,11 +66,31 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
     )
   }
 
-  const rows = tab === "sessions" ? props.sessions : props.events
+  const adminRows = props.adminActions ?? []
+  const rows: unknown[] = tab === "sessions" ? props.sessions : tab === "events" ? props.events : adminRows
   const hasNext = rows.length >= LOG_PAGE_SIZE
   // 마지막 쪽이면 전체 개수를 알 수 있다(앞 쪽은 꽉 찼으므로)
   const total = hasNext ? undefined : (props.page - 1) * LOG_PAGE_SIZE + rows.length
-  const regionLabel = tab === "sessions" ? "로그인 기록" : "기능 기록"
+  const regionLabel = tab === "sessions" ? "로그인 기록" : tab === "events" ? "기능 기록" : "관리자 행위 기록"
+  const counts = showPlus ? (props.tabCounts ?? null) : null
+  const tabLabel = (label: string, count: number | undefined) => (
+    <>
+      {label}
+      {count !== undefined && (
+        <>
+          {" "}
+          <span data-plus className="tabular-nums text-dim">
+            {count}
+          </span>
+        </>
+      )}
+    </>
+  )
+  const tabItems = [
+    { value: "sessions", label: tabLabel("로그인 기록", counts?.sessions) },
+    { value: "events", label: tabLabel("기능 기록", counts?.events) },
+    ...(showPlus ? [{ value: "admin", label: <span data-plus>{tabLabel("관리자 행위", counts?.admin)}</span> }] : []),
+  ]
 
   const body = (() => {
     if (status === "loading") return <p className="m-0 px-[14px] py-[28px] text-center text-[12.5px] text-dim">불러오는 중…</p>
@@ -65,6 +103,13 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
       )
     }
     const empty = status === "empty"
+    if (tab === "admin") {
+      return (
+        <div data-plus className="overflow-x-auto">
+          <DataGrid columns={ADMIN_COLUMNS} rows={empty ? [] : adminRows} rowKey={(a) => `${a.at}-${a.who}-${a.text}`} />
+        </div>
+      )
+    }
     return tab === "sessions" ? (
       <SessionTable sessions={empty ? [] : props.sessions} timelines={props.timelines} onRetryTimeline={props.onRetryTimeline} expandedSessionIds={props.expandedSessionIds} onToggleSession={props.onToggleSession} />
     ) : (
@@ -74,16 +119,10 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
     )
   })()
 
-  return (
-    <div aria-busy={status === "loading"} className="min-w-0 p-[16px]">
-      <Crumb items={["족적", "관리", "사용 기록"]} />
-      <PageHead title="사용·감사 기록" description="누가 언제 로그인해 어떤 기능을 썼는지, 실패 · 권한 없음 기록까지 확인합니다. 기록은 고칠 수 없습니다." />
+  // 요약 칸은 목록을 불러온 뒤에만(불러오는 중 · 실패에 숫자를 보이지 않는다)
+  const insights = showPlus && (status === "ready" || status === "empty") ? (props.insights ?? null) : null
 
-      <Panel corners className="mb-[12px]">
-        <LogFilterBar filters={props.filters} onChange={props.onFiltersChange} onReset={props.onResetFilters} users={props.users} actions={props.actions} />
-        <p className="m-0 px-[14px] pb-[10px] text-[11px] text-dim">결과 · 기능 필터는 기능 기록 탭에만 적용됩니다.</p>
-      </Panel>
-
+  const table = (
       <section aria-label={regionLabel} className="min-w-0">
         <Panel
           corners
@@ -91,12 +130,9 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
             <>
               <Segmented
                 aria-label="기록 종류"
-                items={[
-                  { value: "sessions", label: "로그인 기록" },
-                  { value: "events", label: "기능 기록" },
-                ]}
+                items={tabItems}
                 value={tab}
-                onValueChange={(v) => props.onTabChange(v as "sessions" | "events")}
+                onValueChange={(v) => props.onTabChange(v as LogTab)}
                 className="my-[6px]"
               />
               <span className="ml-auto text-[12px] text-dim">50개씩 · 최신순</span>
@@ -104,11 +140,89 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
           }
         >
           {body}
+          {showPlus && status === "ready" && (
+            <div data-plus className="px-[14px] pt-[10px] text-center">
+              <Button size="sm" onClick={props.onLoadMore}>
+                더 보기
+              </Button>
+            </div>
+          )}
           {(status === "ready" || (status === "empty" && props.page > 1)) && (
             <Pagination page={props.page} pageSize={LOG_PAGE_SIZE} total={total} hasNext={hasNext} onPageChange={props.onPageChange} />
           )}
         </Panel>
       </section>
+  )
+
+  return (
+    <div aria-busy={status === "loading"} className="min-w-0 p-[16px]">
+      {showPlus && (
+        <div
+          data-plus
+          className="mb-[12px] flex items-center gap-[8px] rounded-[10px] border border-solid border-warn/35 bg-warn-bg px-[12px] py-[9px] text-[12.5px] text-fg-2"
+        >
+          <span>
+            <b className="text-warn">관리자 전용 메뉴</b> — 다른 역할은 메뉴가 없습니다. 내 접속 기록은 오른쪽 위 내 이름 → 「내 접속 기록」에서 봅니다.
+          </span>
+        </div>
+      )}
+      <Crumb items={["족적", "관리", "사용 기록"]} />
+      <PageHead
+        title="사용·감사 기록"
+        description="누가 언제 로그인해 어떤 기능을 썼는지, 실패 · 권한 없음 기록까지 확인합니다. 기록은 고칠 수 없습니다."
+        actions={
+          showPlus ? (
+            <span data-plus>
+              <Button onClick={props.onExport}>엑셀 내보내기</Button>
+            </span>
+          ) : undefined
+        }
+      />
+
+      <Panel corners className="mb-[12px]">
+        <LogFilterBar
+          filters={props.filters}
+          onChange={props.onFiltersChange}
+          onReset={props.onResetFilters}
+          users={props.users}
+          actions={props.actions}
+          showPlus={showPlus}
+        />
+        <p className="m-0 px-[14px] pb-[10px] text-[11px] text-dim">
+          결과 · 기능{showPlus ? " · 대상 번호" : ""} 필터는 기능 기록 탭에만 적용됩니다.
+        </p>
+      </Panel>
+
+      {showPlus && (
+        <div
+          data-plus
+          className="mb-[10px] flex items-center gap-[10px] rounded-[10px] border border-solid border-border bg-strip px-[12px] py-[8px] text-[12px] text-muted-foreground"
+        >
+          <Info aria-hidden="true" className="size-[14px] shrink-0 text-brand" />
+          <span>
+            보존 기간: 접속·사용 기록 <b className="text-fg-2">3년</b>, 관리자 행위 <b className="text-fg-2">5년</b> (예시 — 기관 규정 확인 필요). 지난 기록은 자동으로 보관 저장소로
+            옮겨지고, 내보내기·조회도 이 화면에 다시 기록됩니다.
+          </span>
+        </div>
+      )}
+      {insights && <LogPulseRow insights={insights} />}
+
+      {insights ? (
+        <div className="grid items-start gap-[12px] xl:grid-cols-[minmax(0,1fr)_340px]">
+          {table}
+          <LogSidePanels insights={insights} />
+        </div>
+      ) : (
+        table
+      )}
+      {showPlus && (
+        <div
+          data-plus
+          className="mt-[12px] inline-flex flex-wrap items-center gap-[8px] rounded-[10px] border border-solid border-border bg-panel px-[12px] py-[8px] text-[12px] text-muted-foreground"
+        >
+          <Chip variant="blue">관리자</Chip> 모든 사람의 기록 · 내보내기 <span aria-hidden="true">|</span> <Chip>그 밖의 역할</Chip> 내 접속 기록만
+        </div>
+      )}
     </div>
   )
 }

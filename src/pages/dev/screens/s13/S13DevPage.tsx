@@ -4,10 +4,24 @@ import { toast } from "sonner"
 import type { AdminUser } from "@/entities/admin"
 import { passwordRuleError } from "@/entities/session"
 import { USER_FORM_MESSAGES, USER_ID_PATTERN } from "@/features/admin-users"
-import { AdminUsersScreen, type UserDialogState, type UserDraft } from "@/widgets/admin-users-screen"
+import { AdminUsersScreen, type ShoeDuty, type UserDialogState, type UserDraft } from "@/widgets/admin-users-screen"
 
-import { devScreen, DevScreenFrame, SCREEN_CASES, useDevCase, useDevViewer } from "../frame"
-import { MOCK_CURRENT_USER_ID, MOCK_FEATURES, MOCK_ORGS, MOCK_ROLES, MOCK_USERS } from "./mock-cases"
+import { devScreen, DevScreenFrame, SCREEN_CASES, useDevCase, useDevPlus, useDevViewer } from "../frame"
+import {
+  MOCK_ADMIN_HISTORY,
+  MOCK_CURRENT_USER_ID,
+  MOCK_DUTIES,
+  MOCK_DUTY_ROLE_CODES,
+  MOCK_FEATURES,
+  MOCK_FILTER_SUMMARY,
+  MOCK_LOGIN_META,
+  MOCK_ORGS,
+  MOCK_OVERVIEW,
+  MOCK_PERMISSION_NOTES,
+  MOCK_PRESET_HINT,
+  MOCK_ROLES,
+  MOCK_USERS,
+} from "./mock-cases"
 
 const info = devScreen("s13")
 
@@ -17,6 +31,9 @@ const draftOf = (u: AdminUser): UserDraft => ({ userNm: u.userNm, userSe: u.user
 export function S13DevPage() {
   const activeCase = useDevCase(SCREEN_CASES.s13,"ready")
   const viewer = useDevViewer()
+  const plus = useDevPlus()
+  const [duties, setDuties] = useState<Record<string, ShoeDuty[]>>(MOCK_DUTIES)
+  const [query, setQuery] = useState("")
   const [users, setUsers] = useState<AdminUser[]>(MOCK_USERS)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(MOCK_USERS[0].userId)
   const [edits, setEdits] = useState<Record<string, Partial<UserDraft>>>({})
@@ -57,11 +74,33 @@ export function S13DevPage() {
   }
 
   const status = activeCase
-  const rows = status === "empty" ? [] : users
+  // 아이디 · 이름 검색(신규 필터 칸) — 신규를 끄면 걸지 않는다
+  const q = plus ? query.trim().toLowerCase() : ""
+  const rows = status === "empty" ? [] : users.filter((u) => !q || u.userId.toLowerCase().includes(q) || u.userNm.toLowerCase().includes(q))
 
   return (
     <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
       <AdminUsersScreen
+        showPlus={plus}
+        duties={duties}
+        onToggleDuty={(userId, duty, on) => {
+          setDuties((prev) => {
+            const cur = prev[userId] ?? []
+            return { ...prev, [userId]: on ? [...cur.filter((d) => d !== duty), duty] : cur.filter((d) => d !== duty) }
+          })
+          toast(`신발 DB 분업을 ${on ? "켰습니다" : "껐습니다"}(진열용 — 서버 저장 없음)`)
+        }}
+        dutyRoleCodes={MOCK_DUTY_ROLE_CODES}
+        presetHint={MOCK_PRESET_HINT}
+        filterSummary={MOCK_FILTER_SUMMARY}
+        userQuery={query}
+        onUserQueryChange={setQuery}
+        onOpenOrgFilter={() => toast("시안 — 기능 준비 중")}
+        loginMeta={MOCK_LOGIN_META}
+        overview={MOCK_OVERVIEW}
+        adminHistory={MOCK_ADMIN_HISTORY}
+        permissionNotes={MOCK_PERMISSION_NOTES}
+        onExport={() => toast("시안 — 기능 준비 중")}
         status={status}
         errorAt="14:05"
         onRetry={() => {

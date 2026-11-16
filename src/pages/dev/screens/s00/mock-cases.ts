@@ -13,3 +13,24 @@ export const NETWORK_MESSAGE = "서버에 연결할 수 없습니다. 잠시 후
 
 /** 비밀번호 변경 화면에 보일 계정(이름은 가림) */
 export const MOCK_ACCOUNT = { userNm: "박○○", userId: "park0412" } as const
+
+// ── r2(시안 r3 +α) 예시 값 — 시안 s00-login.js 그대로 ──
+
+/** 연속 실패 잠금 규칙(시안 핀 2): failed = 남은 시도 3회, locked = 0회 */
+export const ATTEMPT_LIMIT = 5
+export const FAILED_REMAINING = 3
+
+/** 지난 로그인 · 그 뒤 실패 횟수(시안 핀 4) */
+export const MOCK_LAST_LOGIN = { at: "2025-07-24 17:58", ip: "10.14.43.***", failCount: 2 } as const
+
+/** 시연 그림의 상 · 중 · 하 무늬(시안 sole zones: dots · herring · grid)와 후보 4켤레 무늬(시안 ZS) */
+export const DEMO_SOLE_ZONES = ["dots", "herring", "grid"] as const
+export const DEMO_CANDIDATE_ZONES = [
+  ["blocks", "wave", "grid"],
+  ["herring", "lines", "blocks"],
+  ["dots", "blocks", "lines"],
+  ["tri", "herring", "grid"],
+] as const
+
+/** 상 · 중 · 하 「AI 제안」 문양 이름(시안 n21_15 타원 배열 · n32_04 헤링본 · n21_05 사각 배열) */
+export const DEMO_PATTERN_NAMES = { top: "n21_15", mid: "n32_04", bottom: "n21_05" } as const

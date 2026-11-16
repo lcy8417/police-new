@@ -19,7 +19,8 @@ import { formatKstDateTime } from "@/shared/lib"
 import { Avatar, Button, Checkbox, Chip, Combobox, Field, Segmented, Switch } from "@/shared/ui/kit"
 import { Panel } from "@/shared/ui/panel"
 
-import type { UserDraft } from "../model/types"
+import { DUTY_COLUMNS, effectiveRow, type DutyColumn } from "../model/effective-permissions"
+import type { ShoeDuty, UserDraft } from "../model/types"
 import { UserStatusChip } from "./UserStatusChip"
 
 interface UserDetailProps {
@@ -36,15 +37,45 @@ interface UserDetailProps {
   onUnlock: () => void
   onResetPassword: () => void
   onSetUseAt: (useAt: "Y" | "N") => void
+  /** 신규(+α) — 역할 프리셋 · 신발 DB 분업 · 「그 뒤 실패 n회」 · 프리셋 비교 칩 */
+  showPlus?: boolean
+  /** 이 사람에게 맡긴 분업(문양 입력 · 신발 승인) */
+  assignedDuties?: ShoeDuty[]
+  onToggleDuty?: (duty: ShoeDuty, on: boolean) => void
+  /** 상세 머리의 PC 주소 · 그 뒤 실패 횟수 */
+  loginMeta?: { ip: string; failCount: number }
+  /** 역할 프리셋 줄 아래 설명 */
+  presetHint?: string
 }
 
-// 구역 한 칸: 작은 영문 느낌의 제목 + 내용(시안 S13 `sec()`).
-function Section({ title, children }: { title: string; children: ReactNode }) {
+// 구역 한 칸: 작은 영문 느낌의 제목 + 내용(시안 S13 `sec()`). aside = 제목 옆 칩(신규).
+function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
   return (
-    <section className="grid gap-[10px] border-t border-solid border-line-2 px-[18px] py-[14px]">
-      <h3 className="m-0 font-code text-[10px] font-semibold tracking-[0.2em] text-dim">{title}</h3>
+    <section aria-label={title} className="grid gap-[10px] border-t border-solid border-line-2 px-[18px] py-[14px]">
+      <h3 className="m-0 flex items-center gap-[6px] font-code text-[10px] font-semibold tracking-[0.2em] text-dim">
+        {title}
+        {aside}
+      </h3>
       {children}
     </section>
+  )
+}
+
+// 분업 스위치 한 줄(시안 tog()): 이름(+신규) · 코드 · 메모 + 스위치
+function DutyToggle({ id, col, checked, onChange }: { id: string; col: DutyColumn; checked: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <li className="flex items-center gap-[10px] border-b border-solid border-line-2 py-[6px]">
+      <span className="grid min-w-0 gap-0">
+        <label htmlFor={id} className="cursor-pointer text-[12.5px] text-fg-2">
+          {col.name}{" "}
+          {col.isNew && <Chip className="h-[17px] border-ai-line bg-ai-bg px-[5px] text-[10px] tracking-normal text-ai">신규</Chip>}
+        </label>
+        <span className="text-[10.5px] text-dim">
+          <span className="font-code">{col.key}</span> · {col.memo}
+        </span>
+      </span>
+      <Switch id={id} className="ml-auto" checked={checked} onCheckedChange={onChange} />
+    </li>
   )
 }
 
@@ -78,6 +109,11 @@ export function UserDetail({
   onUnlock,
   onResetPassword,
   onSetUseAt,
+  showPlus = false,
+  assignedDuties = [],
+  onToggleDuty,
+  loginMeta,
+  presetHint,
 }: UserDetailProps) {
   const baseId = useId()
   const status = userStatus(user)
@@ -89,6 +125,22 @@ export function UserDetail({
   const orgHint = needsOrgAssignment(user, orgs.find((o) => o.orgId === user.orgId)?.orgSe)
   const nationwide = grantsNationwidePhotos(isStaffUser(user), draft.features)
   const roleOrder = roles.map((r) => r.roleCode)
+  // 편집 값 기준 역할 프리셋과 비교(시안 「프리셋과 같음」 칩)
+  const presetDiff = effectiveRow({ ...user, features: draft.features, roles: draft.roles, userSe: draft.userSe }, roles, assignedDuties).diff
+  const presetChip =
+    showPlus && !isAdminUser ? (
+      <span data-plus>
+        {presetDiff === 0 ? (
+          <Chip variant="green-h18" className="tracking-normal">
+            프리셋과 같음
+          </Chip>
+        ) : (
+          <Chip variant="amber-h18" className="tracking-normal">
+            프리셋과 다름 {presetDiff}칸
+          </Chip>
+        )}
+      </span>
+    ) : null
   const orgItems = orgs
     .filter((o) => o.useAt === "Y" || o.orgId === user.orgId)
     .map((o) => ({ value: String(o.orgId), label: o.orgNm }))
@@ -107,6 +159,12 @@ export function UserDetail({
           <span className="break-all font-code text-[12px] text-brand">{user.userId}</span>
           <span className="text-[11.5px] text-dim">
             마지막 로그인 <span className="font-code tabular-nums">{user.lastLoginDt ? formatKstDateTime(user.lastLoginDt) : "기록 없음"}</span>
+            {showPlus && loginMeta && (
+              <span data-plus>
+                {" "}
+                · <span className="font-code">{loginMeta.ip}</span> · 그 뒤 실패 <span className="tabular-nums">{loginMeta.failCount}</span>회
+              </span>
+            )}
           </span>
         </div>
       </header>
@@ -147,6 +205,26 @@ export function UserDetail({
       </Section>
 
       <Section title="역할">
+        {showPlus && (
+          // 시안 「역할 프리셋」: 하나를 고르면 편집 값의 역할이 그 하나로 바뀐다(관리자는 구분을 관리자로). 저장은 아래 버튼 그대로.
+          <div data-plus className="grid gap-[6px]">
+            <span aria-disabled={(isSelf && isAdminUser) || undefined} className="w-fit">
+              <Segmented
+                aria-label="역할 프리셋"
+                items={[...roles.map((r) => ({ value: r.roleCode, label: r.roleNm })), { value: "ADMIN", label: "관리자" }]}
+                value={draft.userSe === "ADMIN" ? "ADMIN" : (draft.roles[0] ?? "")}
+                onValueChange={(v) => {
+                  if (v === "ADMIN") {
+                    if (!isSelf) onDraftChange({ userSe: "ADMIN" })
+                  } else if (!(isSelf && draft.userSe === "ADMIN")) {
+                    onDraftChange({ roles: [v], ...(draft.userSe === "ADMIN" ? { userSe: "USER" as const } : {}) })
+                  }
+                }}
+              />
+            </span>
+            {presetHint && <span className="text-[11.5px] text-dim">{presetHint}</span>}
+          </div>
+        )}
         <ul className="m-0 grid list-none gap-0 divide-y divide-line-2 rounded-[8px] border border-solid border-border bg-strip p-0">
           {roles.map((role) => {
             const id = `${baseId}-role-${role.roleCode}`
@@ -174,7 +252,7 @@ export function UserDetail({
         </div>
       </Section>
 
-      <Section title="기능 권한">
+      <Section title="기능 권한" aside={presetChip}>
         {isAdminUser ? (
           <p className="m-0 flex items-center gap-[8px] rounded-[8px] border border-solid border-brand-line bg-brand-bg px-[14px] py-[10px] text-[13px] text-brand">
             <ShieldCheck aria-hidden="true" className="size-[16px] shrink-0" />
@@ -220,6 +298,35 @@ export function UserDetail({
           </>
         )}
       </Section>
+
+      {showPlus && !isAdminUser && (
+        <div data-plus>
+          <Section
+            title="신발 DB 분업"
+            aside={
+              <Chip variant="h18" className="tracking-normal text-violet">
+                사람마다 지정
+              </Chip>
+            }
+          >
+            <ul className="m-0 grid list-none p-0">
+              {DUTY_COLUMNS.map((col) => {
+                const id = `${baseId}-duty-${col.key}`
+                // 신발 등록 = 서버 기능 SHOE_EDIT(위 기능 권한과 같은 값), 나머지 둘 = 분업 지정(쓰는 쪽 값)
+                const checked = col.key === FEATURES.SHOE_EDIT ? draft.features.includes(FEATURES.SHOE_EDIT) : assignedDuties.includes(col.key as ShoeDuty)
+                const onChange = (on: boolean) =>
+                  col.key === FEATURES.SHOE_EDIT
+                    ? onDraftChange({ features: toggleFeature(draft.features, FEATURES.SHOE_EDIT, on) })
+                    : onToggleDuty?.(col.key as ShoeDuty, on)
+                return <DutyToggle key={col.key} id={id} col={col} checked={checked} onChange={onChange} />
+              })}
+            </ul>
+            <span className="text-[11px] text-dim">
+              한 사람에게 여러 개를 켤 수 있습니다. 신발문양 관리(S10)의 「승인」 버튼은 신발 승인이 켜진 사람에게만 눌립니다.
+            </span>
+          </Section>
+        </div>
+      )}
 
       <Section title="계정 관리">
         <ActionRow
