@@ -78,8 +78,8 @@ export const MOCK_SESSIONS: AdminSession[] = [
   sessionRow(3, "choi0115", "최○○ 경감", "2026-11-15T08:31:00+09:00", { logoutDt: "2026-11-15T11:02:00+09:00", logoutReason: "IDLE", ipAddr: "10.14.41.***", eventCnt: 6 }),
   sessionRow(4, "lee0508", "이○○ 경사", "2026-11-13T17:58:00+09:00", { logoutDt: "2026-11-13T18:03:00+09:00", logoutReason: "EXPIRED", ipAddr: "10.21.8.***", eventCnt: 5, failCnt: 5 }),
   sessionRow(5, "admin01", "시스템 관리자", "2026-11-15T08:51:00+09:00", { eventCnt: 7, ipAddr: "10.14.40.***" }),
-  // 긴 값: 이름 · 아이디 · IP 가 길어도 표 안에서 줄바꿈된다
-  sessionRow(6, "seo0322_temp_dispatch", "서○○ 주무관 (서울특별시경찰청 과학수사과 족적감정팀 파견 담당)", "2026-11-14T09:05:00+09:00", {
+  // 긴 값: 이름 · 아이디 · IP 가 길어도 표 안에서 줄바꿈된다. 아이디는 DB 규칙(영문 · 숫자 · _ 4~20자) 안에서 가장 긴 20자(1회차 검수 — 21자였음)
+  sessionRow(6, "seo0322_tmp_dispatch", "서○○ 주무관 (서울특별시경찰청 과학수사과 족적감정팀 파견 담당)", "2026-11-14T09:05:00+09:00", {
     logoutDt: "2026-11-14T18:20:00+09:00",
     logoutReason: "PASSWORD_RESET",
     ipAddr: "2001:0db8:85a3:0000:0000:8a2e:0370:7334 (사내 VPN 우회 접속)",

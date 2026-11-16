@@ -101,6 +101,12 @@ function WeightSegment({
           </button>
         )
       })}
+      {/* 사람이 고른 값은 색만이 아니라 글자로도(1회차 검수 — 색으로만 규칙/직접을 가르던 것) */}
+      {weight.manual ? (
+        <span aria-hidden="true" title="직접 고른 가중치" className="grid place-items-center border-0 border-l border-solid border-line-3 px-[3px] text-[10px] leading-none font-semibold text-brand">
+          직접
+        </span>
+      ) : null}
     </span>
   )
 }
