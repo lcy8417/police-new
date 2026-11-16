@@ -26,6 +26,15 @@ describe("useDevNavigate", () => {
     expect(q.get("case")).toBeNull()
   })
 
+  it("plus=0 도 유지한다(1 이나 없음은 붙이지 않는다)", () => {
+    const off = setup("/dev/s01?plus=0")
+    act(() => off.result.current.to("/dev/s02"))
+    expect(new URLSearchParams(off.result.current.loc.search).get("plus")).toBe("0")
+    const on = setup("/dev/s01?plus=1")
+    act(() => on.result.current.to("/dev/s02"))
+    expect(on.result.current.loc.search).toBe("")
+  })
+
   it("as 가 없으면 쿼리 없이 옮긴다", () => {
     const { result } = setup("/dev/s01")
     act(() => result.current.to("/dev/s05"))

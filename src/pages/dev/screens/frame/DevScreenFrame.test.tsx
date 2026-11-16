@@ -3,7 +3,8 @@ import { MemoryRouter } from "react-router-dom"
 import { describe, expect, it } from "vitest"
 
 import { DevScreenFrame } from "./DevScreenFrame"
-import { DEV_VIEWERS, useDevViewer } from "./dev-viewers"
+import { DEV_SCREENS } from "./dev-screens"
+import { DEV_VIEWERS, useDevPlus, useDevViewer } from "./dev-viewers"
 import { useDevCase } from "./use-dev-case"
 
 const wrap = (url: string) =>
@@ -37,15 +38,41 @@ describe("useDevViewer", () => {
     expect(result.current.isAdmin).toBe(false)
   })
 
-  it("기본은 investigator", () => {
-    const { result } = renderHook(() => useDevViewer(), { wrapper: wrap("/dev/s01") })
-    expect(result.current).toBe(DEV_VIEWERS.investigator)
-    expect(result.current.features).toEqual(["CRIME_REGISTER", "CRIME_SEARCH", "SHOE_VIEW"])
+  it("기본은 화면 기본 역할(감정관), 사용자 화면은 관리자", () => {
+    const s01 = renderHook(() => useDevViewer(), { wrapper: wrap("/dev/s01") })
+    expect(s01.result.current).toBe(DEV_VIEWERS.analyst)
+    const s13 = renderHook(() => useDevViewer(), { wrapper: wrap("/dev/s13") })
+    expect(s13.result.current).toBe(DEV_VIEWERS.admin)
+  })
+
+  it("역할 5종의 features", () => {
+    expect(DEV_VIEWERS.investigator.features).toEqual(["CRIME_REGISTER", "CASE_STATUS_VIEW", "REPORT_VIEW"])
+    expect(DEV_VIEWERS.analyst.features).toEqual([
+      "CRIME_REGISTER", "CRIME_SEARCH", "SHOE_VIEW", "SHOE_EDIT", "CASE_STATUS_VIEW", "REPORT_VIEW",
+      "EXAM_DECIDE", "CROSS_REVIEW", "REPORT_WRITE", "SHOE_COLLECT_REVIEW",
+    ])
+    expect(DEV_VIEWERS.verifier.features).toEqual([
+      "CRIME_SEARCH", "SHOE_VIEW", "CASE_STATUS_VIEW", "REPORT_VIEW", "REPORT_APPROVE", "REPORT_SEND",
+    ])
+    expect(DEV_VIEWERS.analyst.label).toBe("감정관")
+    expect(DEV_VIEWERS.verifier.who).toBe("최○○ 경감")
+  })
+
+  it("화면 기본 역할: S13 · S14 는 admin, 나머지는 analyst", () => {
+    for (const s of DEV_SCREENS) expect(s.defaultViewer).toBe(s.id === "s13" || s.id === "s14" ? "admin" : "analyst")
   })
 
   it("?as=admin이면 관리자", () => {
     const { result } = renderHook(() => useDevViewer(), { wrapper: wrap("/dev/s01?as=admin") })
     expect(result.current.isAdmin).toBe(true)
+  })
+})
+
+describe("useDevPlus", () => {
+  it("?plus=0 이면 false, 그 외 true", () => {
+    expect(renderHook(() => useDevPlus(), { wrapper: wrap("/dev/s01?plus=0") }).result.current).toBe(false)
+    expect(renderHook(() => useDevPlus(), { wrapper: wrap("/dev/s01") }).result.current).toBe(true)
+    expect(renderHook(() => useDevPlus(), { wrapper: wrap("/dev/s01?plus=1") }).result.current).toBe(true)
   })
 })
 
@@ -113,9 +140,56 @@ describe("DevScreenFrame", () => {
     expect(screen.getByRole("link", { name: "신발 DB" })).toHaveAttribute("href", "/dev/s10?as=readonly")
   })
 
-  it("수사관은 사건 화면과 신발 DB 를 본다", () => {
-    renderAt("/dev/s01?as=investigator")
+  it("감정관은 사건 화면과 신발 DB 를 본다", () => {
+    renderAt("/dev/s01?as=analyst")
     expect(screen.getByRole("link", { name: "정밀 대조" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "신발 DB" })).toBeInTheDocument()
+  })
+
+  it("수사관은 CRIME_SEARCH 가 없어 사건 화면 · 신발 DB 가 숨는다", () => {
+    renderAt("/dev/s01?as=investigator")
+    expect(screen.queryByRole("link", { name: "사건관리" })).toBeNull()
+    expect(screen.queryByRole("link", { name: "정밀 대조" })).toBeNull()
+    expect(screen.queryByRole("link", { name: "신발 DB" })).toBeNull()
+  })
+
+  it("기본 역할(as 없음)이면 감정관 메뉴", () => {
+    renderAt("/dev/s01")
+    expect(screen.getByRole("link", { name: "정밀 대조" })).toBeInTheDocument()
+  })
+
+  it("메뉴 링크가 plus=0 도 유지한다", () => {
+    renderAt("/dev/s01?as=admin&plus=0")
+    expect(screen.getByRole("link", { name: "사용자 관리" })).toHaveAttribute("href", "/dev/s13?as=admin&plus=0")
+  })
+
+  it("막대: 신규 기능 보기 끄기는 as · case 를 유지하고 plus=0 을 붙인다", () => {
+    renderAt("/dev/s01?as=verifier&case=error")
+    const toggle = screen.getByRole("link", { name: /신규 기능 보기/ })
+    expect(toggle).toHaveAttribute("aria-pressed", "true")
+    const href = new URLSearchParams(toggle.getAttribute("href")!.split("?")[1])
+    expect(href.get("plus")).toBe("0")
+    expect(href.get("as")).toBe("verifier")
+    expect(href.get("case")).toBe("error")
+  })
+
+  it("막대: plus=0 에서는 꺼짐 표시이고 누르면 plus 가 빠진다", () => {
+    renderAt("/dev/s01?as=verifier&case=error&plus=0")
+    const toggle = screen.getByRole("link", { name: /신규 기능 보기/ })
+    expect(toggle).toHaveAttribute("aria-pressed", "false")
+    const href = new URLSearchParams(toggle.getAttribute("href")!.split("?")[1])
+    expect(href.get("plus")).toBeNull()
+    expect(href.get("as")).toBe("verifier")
+  })
+
+  it("막대: 보는 사람 링크가 case · plus 를 유지하고 시안 표기(역할 · 이름)를 보인다", () => {
+    renderAt("/dev/s01?case=error&plus=0")
+    const link = screen.getByRole("link", { name: /감정관/ })
+    const href = new URLSearchParams(link.getAttribute("href")!.split("?")[1])
+    expect(href.get("as")).toBe("analyst")
+    expect(href.get("case")).toBe("error")
+    expect(href.get("plus")).toBe("0")
+    expect(link).toHaveAttribute("aria-current", "true")
+    expect(screen.getByText(/박○○ 경위/)).toBeInTheDocument()
   })
 })

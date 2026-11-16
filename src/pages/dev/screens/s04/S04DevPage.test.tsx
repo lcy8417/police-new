@@ -238,8 +238,8 @@ describe("S04DevPage — 문양 코딩 · 검색 조건", () => {
   })
 
   it("「검색」을 누르면 보는 사람을 유지한 채 S05로 간다", () => {
-    renderAt("/dev/s04?case=ready&as=investigator")
+    renderAt("/dev/s04?case=ready&as=analyst")
     fireEvent.click(screen.getByRole("button", { name: "검색" }))
-    expect(screen.getByTestId("landing")).toHaveTextContent("/dev/s05?as=investigator")
+    expect(screen.getByTestId("landing")).toHaveTextContent("/dev/s05?as=analyst")
   })
 })

@@ -154,9 +154,9 @@ describe("S02DevPage 사건 상세·등록", () => {
     const { unmount } = renderAt(`${DETAIL}&as=readonly`)
     expect(screen.queryByRole("button", { name: /문양 상세보기/ })).toBeNull()
     unmount()
-    renderAt(`${DETAIL}&as=investigator`)
+    renderAt(`${DETAIL}&as=analyst`)
     fireEvent.click(screen.getByRole("button", { name: /문양 상세보기/ }))
-    expect(screen.getByTestId("where").textContent).toBe("/dev/s04?id=00001-25-0649&as=investigator")
+    expect(screen.getByTestId("where").textContent).toBe("/dev/s04?id=00001-25-0649&as=analyst")
   })
 
   it("닫기는 사건관리 목록으로 돌아가고 보는 사람을 유지한다", () => {

@@ -83,7 +83,7 @@ describe("S06 상세 조회 · 정밀 대조 진열 페이지", () => {
   })
 
   it("정렬 설정 DialogShell 에서 저장하면 대응 매칭이 보인다", () => {
-    renderAt("?case=no-alignment&as=investigator")
+    renderAt("?case=no-alignment&as=analyst")
     fireEvent.click(screen.getByRole("button", { name: "정렬 설정하러 가기" }))
     const dialog = screen.getByRole("dialog")
     expect(dialog).toHaveAttribute("data-part", "DialogShell")

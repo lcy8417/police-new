@@ -87,8 +87,8 @@ describe("S10 신발문양 관리 진열 페이지", () => {
     expect(button("승인")).toBeNull()
   })
 
-  it("investigator(SHOE_EDIT 없음)도 등록이 없다", () => {
-    renderAt("case=ready&as=investigator")
+  it("verifier(SHOE_EDIT 없음)도 등록이 없다", () => {
+    renderAt("case=ready&as=verifier")
     expect(button("등록")).toBeNull()
   })
 

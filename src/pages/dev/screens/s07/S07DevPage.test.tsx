@@ -31,7 +31,7 @@ describe("S07 검색결과 확인 진열 페이지", () => {
   })
 
   it("판정을 고르고 「결과확인완료」를 누르면 이력에 한 줄이 쌓인다(제어형)", () => {
-    renderAt("?case=ready&ftwr=00758&as=investigator")
+    renderAt("?case=ready&ftwr=00758&as=analyst")
     const b = block("00001-25-0646_1")
     const save = within(b).getByRole("button", { name: "결과확인완료" })
     expect(save).toBeDisabled()
