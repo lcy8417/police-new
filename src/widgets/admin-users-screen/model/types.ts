@@ -71,9 +71,36 @@ export interface AdminHistoryRow {
   tone?: "warn" | "danger"
 }
 
+/** 신발 DB 분업 중 서버 기능 코드가 아직 없는 둘(시안 코드). 신발 등록은 서버 기능 SHOE_EDIT 그대로 */
+export type ShoeDuty = "SHOE_PATTERN" | "SHOE_APPROVE"
+
+/** 위 필터 칸의 칩 숫자(시안 핀 — 전체 계정 기준 집계) */
+export interface UsersFilterSummary {
+  roles: { label: string; count: number; tone?: "blue" | "violet" }[]
+  duties: { label: string; count: number }[]
+  states: { label: string; count: number; tone?: "green" | "amber" }[]
+}
+
 export interface AdminUsersScreenProps {
-  /** 신규(+α) 요소 보이기 — 운영 타일 · 담당 부족 경고 · 역할별 기본 권한 · 실제 권한 표 · 변경 이력 · 엑셀 (기본 true) */
+  /** 신규(+α) 요소 보이기 — 운영 타일 · 담당 부족 경고 · 필터 칸 · 역할 프리셋 · 신발 DB 분업 · 실제 권한 표 · 변경 이력 · 엑셀 (기본 true) */
   showPlus?: boolean
+  /** 사람마다 맡긴 신발 DB 분업(문양 입력 · 신발 승인) — 사용자 ID → 코드. 저장되는 값이라 제어형 */
+  duties?: Record<string, ShoeDuty[]>
+  /** 분업 스위치를 눌렀다 */
+  onToggleDuty?: (userId: string, duty: ShoeDuty, on: boolean) => void
+  /** 분업을 맡길 수 있는 역할 코드(역할별 기본 권한 표의 ◇) */
+  dutyRoleCodes?: string[]
+  /** 역할 프리셋 줄 아래 설명(시안 「감정관 = … / 기술책임자 = …」) */
+  presetHint?: string
+  /** 위 필터 칸 칩 숫자 */
+  filterSummary?: UsersFilterSummary | null
+  /** 아이디 · 이름 검색어(제어형) */
+  userQuery?: string
+  onUserQueryChange?: (value: string) => void
+  /** 사용자 표 머리 「소속 관서 · 전체 ▾」 */
+  onOpenOrgFilter?: () => void
+  /** 상세 머리 「PC 주소 · 그 뒤 실패 n회」 — 사용자 ID → 값 */
+  loginMeta?: Record<string, { ip: string; failCount: number }>
   /** 운영 상태 타일 값. 없으면 타일 줄을 그리지 않는다 */
   overview?: AdminUsersOverview | null
   /** 관리자 변경 이력(최신순) */

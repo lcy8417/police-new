@@ -5,17 +5,21 @@ import { formatKstDateTime } from "@/shared/lib"
 import { Button, Chip, DataGrid, InlineError, type DataGridColumn } from "@/shared/ui/kit"
 import { ButtonBar, Crumb, PageHead, Panel } from "@/shared/ui/panel"
 
+import { DUTY_COLUMNS, dutiesOf } from "../model/effective-permissions"
 import type { AdminUsersScreenProps } from "../model/types"
 import { AdminHistory, EffectivePermissions, RolePresetTable } from "./PermissionPanels"
 import { UserDetail } from "./UserDetail"
 import { UserDialogs } from "./UserDialogs"
+import { UsersFilterPanel } from "./UsersFilterPanel"
 import { UsersOverviewTiles } from "./UsersOverviewTiles"
 import { UserStatusChip } from "./UserStatusChip"
 
 /**
  * S13 사용자 관리: 왼쪽 사용자 표 + 오른쪽 상세. 서버 호출 · 전역 상태 없이 props 만 그린다.
- * r2(시안 r3 +α, `showPlus`): 관리자 전용 안내 · 엑셀 · 운영 상태 타일 · 「신발 승인 담당 부족」 경고 ·
- * 역할별 기본 권한 · 사용자별 실제 권한 · 관리자 변경 이력 · 역할 안내 줄. 신발 DB 분업(서버 기능 코드 없음)은 담지 않는다.
+ * r2(시안 r3 +α, `showPlus`): 관리자 전용 안내 · 엑셀 · 운영 상태 타일 · 「신발 승인 담당 부족」 경고 · 필터 칸 ·
+ * 구분 아래 신발 DB 담당(◇) · 소속 관서 고르기 · 역할별 기본 권한 · 사용자별 실제 권한(9칸) · 관리자 변경 이력 ·
+ * 상세의 역할 프리셋 · 신발 DB 분업 · 「그 뒤 실패 n회」 · 역할 안내 줄.
+ * 신발 DB 분업 중 문양 입력 · 신발 승인은 서버 코드가 아직 없어 쓰는 쪽이 `duties` 로 넘긴다(신발 등록 = 서버 SHOE_EDIT).
  */
 export function AdminUsersScreen(props: AdminUsersScreenProps) {
   const { status, isAdmin, users, roles, onRetry, errorAt, showPlus = true } = props
@@ -33,6 +37,8 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
   }
 
   const roleName = (code: string) => roles.find((r) => r.roleCode === code)?.roleNm ?? code
+  const duties = props.duties ?? {}
+  const dutyName = (code: string) => DUTY_COLUMNS.find((c) => c.key === code)?.name ?? code
   const columns: DataGridColumn<AdminUser>[] = [
     { key: "userId", header: "아이디", render: (u) => <span className="font-code text-brand">{u.userId}</span> },
     { key: "userNm", header: "이름", wrap: true, render: (u) => <span className="break-all">{u.userNm}</span> },
@@ -44,6 +50,14 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
         <span className="flex flex-wrap items-center gap-[4px]">
           <Chip variant={u.userSe === "ADMIN" ? "blue" : "default"}>{u.userSe === "ADMIN" ? "관리자" : "사용자"}</Chip>
           {u.roles.length > 0 && <span className="text-[11.5px] text-muted-foreground">{u.roles.map(roleName).join(" · ")}</span>}
+          {showPlus &&
+            dutiesOf(u, duties[u.userId] ?? []).map((d) => (
+              <span key={d} data-plus className="basis-full">
+                <Chip variant="h18" className="border-violet-line text-violet">
+                  ◇ {dutyName(d)}
+                </Chip>
+              </span>
+            ))}
         </span>
       ),
     },
@@ -108,6 +122,7 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
         }
       />
       {showPlus && ready && props.overview && <UsersOverviewTiles overview={props.overview} />}
+      {showPlus && <UsersFilterPanel summary={props.filterSummary ?? null} query={props.userQuery ?? ""} onQueryChange={props.onUserQueryChange} />}
       <div className="grid items-start gap-[12px] xl:grid-cols-[minmax(0,640px)_minmax(0,1fr)]">
         <div className="grid min-w-0 gap-[12px]">
         <section aria-label="사용자 목록" className="min-w-0">
@@ -117,6 +132,16 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
             actions={
               <>
                 <span className="font-code text-[11px] text-brand">{status === "ready" ? `${users.length}명` : ""}</span>
+                {showPlus && (
+                  <span data-plus className="ml-auto">
+                    <Button size="sm" onClick={props.onOpenOrgFilter} className="w-[170px] justify-between font-normal text-fg-2">
+                      소속 관서 · 전체
+                      <span aria-hidden="true" className="text-dim">
+                        ▾
+                      </span>
+                    </Button>
+                  </span>
+                )}
                 <ButtonBar>
                   <Button size="sm" variant="pri" disabled={status === "loading"} onClick={() => props.onDialogChange({ kind: "create", draft: { userId: "", userNm: "", userSe: "USER", initialPassword: "", features: [] }, error: null })}>
                     <UserPlus aria-hidden="true" className="size-[12px]" />
@@ -131,11 +156,11 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
         </section>
         {showPlus && ready && (
           <>
-            <RolePresetTable roles={roles} featureList={props.featureList} />
+            <RolePresetTable roles={roles} dutyRoleCodes={props.dutyRoleCodes ?? []} />
             <EffectivePermissions
               users={users}
               roles={roles}
-              featureList={props.featureList}
+              duties={duties}
               selectedUserId={props.selectedUserId}
               notes={props.permissionNotes ?? []}
             />
@@ -160,6 +185,11 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
             onUnlock={() => props.onUnlock(selected.userId)}
             onResetPassword={() => props.onDialogChange({ kind: "reset", userId: selected.userId, tempPassword: "", error: null })}
             onSetUseAt={(useAt) => props.onSetUseAt(selected.userId, useAt)}
+            showPlus={showPlus}
+            assignedDuties={duties[selected.userId] ?? []}
+            onToggleDuty={(duty, on) => props.onToggleDuty?.(selected.userId, duty, on)}
+            loginMeta={props.loginMeta?.[selected.userId]}
+            presetHint={props.presetHint}
           />
         ) : status === "ready" ? (
           <Panel corners className="grid place-items-center px-[16px] py-[48px]">

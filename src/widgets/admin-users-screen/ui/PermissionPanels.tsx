@@ -1,94 +1,136 @@
-import type { CSSProperties } from "react"
+import type { ReactNode } from "react"
 
-import type { AdminUser, FeatureInfo, RoleInfo } from "@/entities/admin"
-import { FEATURES, type FeatureCode } from "@/entities/session"
+import type { AdminUser, RoleInfo } from "@/entities/admin"
 import { cn } from "@/shared/lib/utils"
 import { Chip, DataGrid, type DataGridColumn } from "@/shared/ui/kit"
 import { Panel } from "@/shared/ui/panel"
 
-import { effectiveRow, type EffectiveRow } from "../model/effective-permissions"
-import type { AdminHistoryRow } from "../model/types"
+import {
+  DUTY_COLUMNS,
+  PERMISSION_COLUMNS,
+  ROLE_COLUMNS,
+  effectiveRow,
+  roleCellOf,
+  type EffectiveRow,
+  type PermissionCell,
+} from "../model/effective-permissions"
+import type { AdminHistoryRow, ShoeDuty } from "../model/types"
 
-// S13 시안 r3 신규 칸 3개: 역할별 기본 권한(핀 3) · 사용자별 실제 권한(핀 14) · 관리자 변경 이력(핀 10).
-// 기능 칸은 서버 기능 목록 12종 그대로(spec §6-1 — S13 은 서버 목록), 역할은 서버 역할 목록 + 관리자.
+// S13 시안 r3 신규 칸: 역할별 기본 권한(핀 3 · 6) · 사용자별 실제 권한(핀 14) · 관리자 변경 이력(핀 10).
+// 칸은 시안의 9개(역할 기능 6 + 신발 DB 분업 3), 역할은 서버 역할 목록 + 관리자.
 
-/** 좁은 칸 머리용 두 줄 이름(시안 「사건<br>등록」 꼴). 모르는 코드는 서버 이름 그대로 */
-const SHORT: Partial<Record<FeatureCode, [string, string?]>> = {
-  [FEATURES.CRIME_REGISTER]: ["사건", "등록"],
-  [FEATURES.CRIME_SEARCH]: ["사건", "조회"],
-  [FEATURES.SHOE_VIEW]: ["신발", "조회"],
-  [FEATURES.SHOE_EDIT]: ["신발", "등록"],
-  [FEATURES.CASE_STATUS_VIEW]: ["진행", "조회"],
-  [FEATURES.REPORT_VIEW]: ["감정서", "조회"],
-  [FEATURES.EXAM_DECIDE]: ["판정", "확정"],
-  [FEATURES.CROSS_REVIEW]: ["교차", "검증"],
-  [FEATURES.REPORT_WRITE]: ["감정서", "작성"],
-  [FEATURES.REPORT_APPROVE]: ["결재"],
-  [FEATURES.REPORT_SEND]: ["발송"],
-  [FEATURES.SHOE_COLLECT_REVIEW]: ["수집", "검수"],
+const MARK: Record<PermissionCell | "assignable", ReactNode> = {
+  on: (
+    <span className="text-brand" role="img" aria-label="켜짐">
+      ●
+    </span>
+  ),
+  view: (
+    <span className="text-brand" role="img" aria-label="보기만">
+      ◐
+    </span>
+  ),
+  duty: (
+    <span className="text-violet" role="img" aria-label="신발 DB 일 맡음">
+      ◆
+    </span>
+  ),
+  assignable: (
+    <span className="text-violet" role="img" aria-label="사람마다 지정">
+      ◇
+    </span>
+  ),
+  off: (
+    <span className="text-faint" role="img" aria-label="꺼짐">
+      —
+    </span>
+  ),
 }
 
-function ShortName({ f }: { f: FeatureInfo }) {
-  const s = SHORT[f.featureCode]
-  if (!s) return <>{f.featureNm}</>
+function NewChip() {
+  return <Chip className="h-[17px] border-ai-line bg-ai-bg px-[5px] text-[10px] text-ai">신규</Chip>
+}
+
+const TH = "h-[34px] border-b border-solid border-border bg-strip px-[10px] text-[11.5px] font-semibold whitespace-nowrap text-muted-foreground"
+const TD = "h-[44px] border-b border-solid border-line-2 px-[10px]"
+
+function FeatureNameCell({ name, code, isNew }: { name: string; code: string; isNew?: boolean }) {
   return (
-    <>
-      {s[0]}
-      {s[1] && (
-        <>
-          <br />
-          {s[1]}
-        </>
-      )}
-    </>
+    <td className={TD}>
+      <span className="text-foreground">{name}</span> {isNew && <NewChip />}
+      <div className="font-code text-[10.5px] leading-[1.2] text-dim">{code}</div>
+    </td>
   )
 }
 
-const ON = (
-  <span className="text-brand" role="img" aria-label="켜짐">
-    ●
-  </span>
-)
-const OFF = (
-  <span className="text-faint" role="img" aria-label="꺼짐">
-    —
-  </span>
-)
-
-/** 역할별 기본 권한(역할 프리셋) */
-export function RolePresetTable({ roles, featureList }: { roles: RoleInfo[]; featureList: FeatureInfo[] }) {
-  type Row = FeatureInfo
-  const columns: DataGridColumn<Row>[] = [
-    {
-      key: "feature",
-      header: "기능",
-      render: (f) => (
-        <span className="grid leading-[1.25]">
-          <span className="text-foreground">{f.featureNm}</span>
-          <span className="font-code text-[10.5px] text-dim">{f.featureCode}</span>
-        </span>
-      ),
-    },
-    ...roles.map((r) => ({
-      key: r.roleCode,
-      header: r.roleNm,
-      render: (f: Row) => <span className="block text-center text-[14px]">{r.features.includes(f.featureCode) ? ON : OFF}</span>,
-    })),
-    { key: "admin", header: "관리자", render: () => <span className="block text-center text-[14px]">{ON}</span> },
-  ]
+/** 역할별 기본 권한(역할 프리셋) — 시안 PRESETS 표: 역할 기능 6줄 + 분업 구분 줄 + 분업 3줄 */
+export function RolePresetTable({ roles, dutyRoleCodes }: { roles: RoleInfo[]; dutyRoleCodes: string[] }) {
   return (
     <Panel data-plus role="region" aria-label="역할별 기본 권한" label="PRESETS" actions={<h2 className="border-none text-[13px] font-semibold">역할별 기본 권한</h2>}>
       <p className="m-0 px-[14px] pt-[8px] text-[11.5px] text-dim">
-        읽는 법: <span className="text-brand">●</span> 켜짐 · — 꺼짐. 역할을 주면 이 줄의 기능이 함께 켜지고, 사람마다 기능을 더 켤 수 있습니다.
+        읽는 법: <span className="text-brand">●</span> 켜짐 · <span className="text-brand">◐</span> 보기만 · <span className="text-violet">◇</span> 사람마다 지정 · — 꺼짐.
+        역할을 고르면 이 줄대로 스위치가 맞춰지고, 그 뒤 한 칸씩 고칠 수 있습니다.
       </p>
       <div className="overflow-x-auto">
-        <DataGrid columns={columns} rows={featureList} rowKey={(f) => f.featureCode} />
+        <table className="w-full border-collapse text-[12.5px]">
+          <thead>
+            <tr>
+              <th scope="col" className={cn(TH, "text-left")}>
+                기능
+              </th>
+              {roles.map((r) => (
+                <th key={r.roleCode} scope="col" className={cn(TH, "text-center")}>
+                  {r.roleNm}
+                </th>
+              ))}
+              <th scope="col" className={cn(TH, "text-center")}>
+                관리자
+              </th>
+              <th scope="col" className={cn(TH, "text-left")}>
+                메모
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {ROLE_COLUMNS.map((col) => (
+              <tr key={col.key}>
+                <FeatureNameCell name={col.name} code={col.on} isNew={col.isNew} />
+                {roles.map((r) => (
+                  <td key={r.roleCode} className={cn(TD, "text-center text-[14px]")}>
+                    {MARK[roleCellOf(col, new Set(r.features))]}
+                  </td>
+                ))}
+                <td className={cn(TD, "text-center text-[14px]")}>{MARK.on}</td>
+                <td className={cn(TD, "text-[11px] leading-[1.35] whitespace-normal text-dim")}>{col.memo}</td>
+              </tr>
+            ))}
+            <tr>
+              <td colSpan={roles.length + 3} className="h-[28px] bg-strip px-[10px] text-[11.5px] text-violet">
+                신발 DB 분업 — 역할과 따로, 사람마다 지정
+              </td>
+            </tr>
+            {DUTY_COLUMNS.map((col) => (
+              <tr key={col.key}>
+                <FeatureNameCell name={col.name} code={col.key} isNew={col.isNew} />
+                {roles.map((r) => (
+                  <td key={r.roleCode} className={cn(TD, "text-center text-[14px]")}>
+                    {dutyRoleCodes.includes(r.roleCode) ? MARK.assignable : MARK.off}
+                  </td>
+                ))}
+                <td className={cn(TD, "text-center text-[14px]")}>{MARK.on}</td>
+                <td className={cn(TD, "text-[11px] leading-[1.35] whitespace-normal text-dim")}>{col.memo}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </Panel>
   )
 }
 
-const COLS = "grid grid-cols-[104px_58px_repeat(var(--n),minmax(0,1fr))_62px] gap-x-[2px]"
+// 줄: 사용자 112 · 역할 58 · 기능 9칸 · 비교 62(시안 PCOLS)
+const COLS = "grid grid-cols-[112px_58px_repeat(9,minmax(0,1fr))_62px] gap-x-[2px]"
+const FIRST_DUTY = ROLE_COLUMNS.length
 
 function TailOf({ row }: { row: EffectiveRow }) {
   if (row.diff > 0)
@@ -102,27 +144,24 @@ function TailOf({ row }: { row: EffectiveRow }) {
   return <span className="text-[10.5px] text-faint">같음</span>
 }
 
-/** 사용자별 실제 권한 — 줄 = 사람, 칸 = 기능. 프리셋과 다른 칸은 주황 */
+/** 사용자별 실제 권한 — 줄 = 사람, 칸 = 기능 9개. 프리셋과 다른 칸은 주황 */
 export function EffectivePermissions({
   users,
   roles,
-  featureList,
+  duties,
   selectedUserId,
   notes,
 }: {
   users: AdminUser[]
   roles: RoleInfo[]
-  featureList: FeatureInfo[]
+  duties: Record<string, ShoeDuty[]>
   selectedUserId: string | null
   notes: { userId: string; text: string }[]
 }) {
-  const codes = featureList.map((f) => f.featureCode)
-  const rows = users.map((u) => effectiveRow(u, roles, codes))
+  const rows = users.map((u) => effectiveRow(u, roles, duties[u.userId] ?? []))
   const diffUsers = rows.filter((r) => r.diff > 0).length
   const roleName = (u: AdminUser) =>
     u.userSe === "ADMIN" ? "관리자" : u.roles.map((c) => roles.find((r) => r.roleCode === c)?.roleNm ?? c).join(" · ") || "—"
-  // 기능 칸 수(서버 목록 길이)는 실행 중에 정해지는 배치 값이라 변수로 넘긴다
-  const gridVar = { "--n": featureList.length } as CSSProperties
   return (
     <Panel
       data-plus
@@ -139,16 +178,19 @@ export function EffectivePermissions({
       }
     >
       <div className="overflow-x-auto">
-        <div className="min-w-[560px]">
-          <div
-            className={cn(COLS, "items-end border-b border-solid border-line-2 px-[14px] pt-[8px] pb-[6px] text-[10px] leading-[1.2] text-dim")}
-            style={gridVar}
-          >
+        <div className="min-w-[520px]">
+          <div className={cn(COLS, "items-end border-b border-solid border-line-2 px-[14px] pt-[8px] pb-[6px] text-[10px] leading-[1.2] text-dim")}>
             <span>사용자</span>
             <span>역할</span>
-            {featureList.map((f) => (
-              <span key={f.featureCode} title={f.featureNm} className="text-center">
-                <ShortName f={f} />
+            {PERMISSION_COLUMNS.map((col, i) => (
+              <span
+                key={col.key}
+                title={col.name}
+                className={cn("text-center", i === FIRST_DUTY && "border-l border-dashed border-line-3", col.kind === "duty" && "text-violet")}
+              >
+                {col.short[0]}
+                <br />
+                {col.short[1]}
               </span>
             ))}
             <span className="text-right">
@@ -169,20 +211,20 @@ export function EffectivePermissions({
                   sel && "bg-brand/9",
                   row.state !== "active" && "opacity-60",
                 )}
-                style={gridVar}
               >
                 <span className={cn("truncate font-code text-[11.5px]", sel ? "text-foreground" : "text-brand")}>{row.user.userId}</span>
                 <span className="truncate text-[11px] text-muted-foreground">{roleName(row.user)}</span>
-                {row.cells.map((c) => (
+                {row.cells.map((c, i) => (
                   <span
-                    key={c.code}
+                    key={c.key}
                     data-override={c.override ? "" : undefined}
                     className={cn(
                       "grid h-[22px] place-items-center text-[12px]",
+                      i === FIRST_DUTY && "border-l border-dashed border-line-3",
                       c.override && "rounded-[5px] bg-warn-bg outline outline-1 -outline-offset-2 outline-warn",
                     )}
                   >
-                    {c.value === "on" ? ON : OFF}
+                    {MARK[c.value]}
                   </span>
                 ))}
                 <span className="text-right">
@@ -195,7 +237,8 @@ export function EffectivePermissions({
       </div>
       <div className="grid gap-[4px] px-[14px] pt-[8px] pb-[12px] text-[11px] leading-[1.45] text-dim">
         <span>
-          읽는 법: 줄 = 사람, 칸 = 기능. <span className="text-brand">●</span> 켜짐 · — 꺼짐.{" "}
+          읽는 법: 줄 = 사람, 칸 = 기능. <span className="text-brand">●</span> 켜짐 · <span className="text-brand">◐</span> 보기만 ·{" "}
+          <span className="text-violet">◆</span> 신발 DB 일 맡음 · — 꺼짐.{" "}
           <span className="rounded-[3px] px-[3px] text-warn outline outline-1 outline-warn">주황 칸</span> = 역할 프리셋과 다르게 손댄 칸. 흐린 줄 = 잠금·중지.
         </span>
         {notes.map((n) => (

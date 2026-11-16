@@ -6,6 +6,8 @@ export type {
   CreateUserDraft,
   OverviewCount,
   RoleShareTone,
+  ShoeDuty,
+  UsersFilterSummary,
   UserDialogState,
   UserDraft,
 } from "./model/types"
