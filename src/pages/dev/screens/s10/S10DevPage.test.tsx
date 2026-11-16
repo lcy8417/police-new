@@ -235,9 +235,36 @@ describe("S10 신발문양 관리 진열 페이지", () => {
       renderAt("case=ready&as=admin")
       fireEvent.click(screen.getByText("303349"))
       const dialog = screen.getByRole("dialog")
-      fireEvent.click(within(dialog).getByRole("button", { name: "다음" }))
-      expect(toastMock).toHaveBeenCalledWith(PLANNED)
-      for (const n of ["이전", "그룹등록", "승인"]) expect(within(dialog).getByRole("button", { name: n })).toBeInTheDocument()
+      for (const n of ["이전", "다음", "그룹등록", "승인"]) {
+        toastMock.mockClear()
+        fireEvent.click(within(dialog).getByRole("button", { name: n }))
+        expect(toastMock).toHaveBeenCalledTimes(1)
+        expect(toastMock).toHaveBeenCalledWith(PLANNED)
+      }
+    })
+
+    it("?plus=0: 창 두 탭 모두 [data-plus] 0, 이전 · 다음 · 그룹등록 · 승인 없음, 문양 이름은 그대로", () => {
+      renderAt("case=ready&as=admin&plus=0&tab=pattern")
+      fireEvent.click(screen.getByText("303349"))
+      const dialog = screen.getByRole("dialog")
+      const none = () => {
+        expect(plusEls()).toHaveLength(0)
+        for (const n of ["이전", "다음", "그룹등록", "승인"]) expect(within(dialog).queryByRole("button", { name: n })).toBeNull()
+      }
+      none()
+      // 문양 아이콘은 이름을 그대로 보인다(title)
+      expect(dialog.querySelector('[data-part="PatternIcon"][title="n32_04"]')).not.toBeNull()
+      expect(dialog.querySelector('[data-part="PatternIcon"][title="s10c"]')).not.toBeNull()
+      fireEvent.click(within(dialog).getByRole("button", { name: "기본정보" }))
+      none()
+    })
+
+    it("보기 전용 · 기술책임자는 문양정보 탭에 고르기 줄(분류 칩 · 팔레트)이 없다", () => {
+      renderAt("case=ready&as=readonly&tab=pattern")
+      fireEvent.click(screen.getByText("303349"))
+      const dialog = screen.getByRole("dialog")
+      expect(within(dialog).queryByRole("button", { name: /^문양 n/ })).toBeNull()
+      expect(within(dialog).queryByText("내부선")).toBeNull()
     })
   })
 

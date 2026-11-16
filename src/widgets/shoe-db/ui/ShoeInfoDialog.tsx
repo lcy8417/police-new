@@ -136,21 +136,25 @@ export function ShoeInfoDialog({
             </Button>
           </span>
         )}
-        <Button size="sm" onClick={plan("이전")}>
-          이전
-        </Button>
-        <Button size="sm" onClick={plan("다음")}>
-          다음
-        </Button>
-        {canEdit && (
-          <>
-            <Button size="sm" variant="ok" locked={!isAdmin} title="신발 승인 권한이 있는 승인 담당만" onClick={plan("승인")}>
-              승인
+        {showPlus && (
+          <span data-plus="" className="inline-flex items-center gap-[5px]">
+            <Button size="sm" onClick={plan("이전")}>
+              이전
             </Button>
-            <Button size="sm" onClick={plan("그룹등록")}>
-              그룹등록
+            <Button size="sm" onClick={plan("다음")}>
+              다음
             </Button>
-          </>
+            {canEdit && (
+              <>
+                <Button size="sm" variant="ok" locked={!isAdmin} title="신발 승인 권한이 있는 승인 담당만" onClick={plan("승인")}>
+                  승인
+                </Button>
+                <Button size="sm" onClick={plan("그룹등록")}>
+                  그룹등록
+                </Button>
+              </>
+            )}
+          </span>
         )}
       </span>
     </div>
@@ -250,7 +254,7 @@ export function ShoeInfoDialog({
             </div>
           </div>
         )}
-        {showPlus && (
+        {showPlus && canEdit && (
           <div data-plus="" className="grid gap-[6px]">
             <div className="flex flex-wrap gap-[4px]">
               {SHOE_PALETTE_CATEGORIES.map((c) => (
