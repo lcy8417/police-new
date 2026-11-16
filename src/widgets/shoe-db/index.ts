@@ -12,4 +12,7 @@ export type {
   ShoeBacklogInfo,
   ShoeStageSummary,
   ShoeAiDetail,
+  ShoeCardSize,
+  ShoeDbQuickFilter,
+  ShoeDbAutoPlay,
 } from "./model/types"

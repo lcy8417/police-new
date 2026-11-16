@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { S10DevPage } from "./S10DevPage"
 
@@ -166,7 +166,8 @@ describe("S10 신발문양 관리 진열 페이지", () => {
       renderAt("case=ready&as=analyst")
       expect(screen.getByText("AI 0.95")).toBeInTheDocument()
       expect(screen.getByText("AI 읽는 중")).toBeInTheDocument()
-      expect(screen.getByText("중복 의심")).toBeInTheDocument()
+      // r3: 같은 글자가 빠른 찾기 칩에도 있다 — 카드 위 표시는 AiTag
+      expect(document.querySelector('[data-shoe-id="303349"]')).toHaveTextContent("중복 의심")
       expect(screen.getByText("AI 0.61")).toBeInTheDocument()
     })
 
@@ -288,5 +289,231 @@ describe("S10 신발문양 관리 진열 페이지", () => {
     toList()
     expect(screen.getAllByRole("row").length).toBeGreaterThan(10)
     expect(screen.getByText(/한정판 컬러웨이$/)).toBeInTheDocument()
+  })
+})
+
+describe("S10 r3 — 빠른 찾기 · 카드 크기 · 열 · 자동 넘기기", () => {
+  beforeEach(() => window.localStorage.clear())
+  afterEach(() => vi.useRealTimers())
+
+  const cards = () => document.querySelectorAll("[data-shoe-id]")
+  const search = (v: string) => fireEvent.change(screen.getByLabelText("검색어"), { target: { value: v } })
+  const tick = (ms: number) => act(() => void vi.advanceTimersByTime(ms))
+  const current = () => document.querySelector('[data-shoe-id][aria-current="true"]')?.getAttribute("data-shoe-id")
+  const press = (name: string) => fireEvent.click(screen.getByRole("button", { name }))
+  const key = (k: string) => fireEvent.keyDown(document.body, { key: k })
+
+  it("검색: 화류번호 · 모델명 · 상표로 좁히고, 0건이면 「조건에 맞는 항목 없음」 + 「조건 지우기」(결과 없음 · 다시와 다름)", () => {
+    renderAt("case=ready&as=admin")
+    expect(cards()).toHaveLength(16)
+    search("303352")
+    expect(cards()).toHaveLength(1)
+    search("zzzz없는값")
+    expect(screen.getByText("조건에 맞는 항목 없음")).toBeInTheDocument()
+    expect(screen.queryByText("결과 없음")).toBeNull()
+    expect(screen.queryByRole("button", { name: "다시" })).toBeNull()
+    fireEvent.click(screen.getAllByRole("button", { name: "조건 지우기" })[1])
+    expect(screen.queryByText("조건에 맞는 항목 없음")).toBeNull()
+    expect(cards()).toHaveLength(16)
+  })
+
+  it("칩: 상태 · 중복 의심으로 걸러진다", () => {
+    renderAt("case=ready&as=admin")
+    fireEvent.click(within(screen.getByRole("group", { name: "표시" })).getByRole("button", { name: "중복 의심" }))
+    expect(document.querySelector('[data-shoe-id="303349"]')).not.toBeNull()
+    expect(document.querySelector('[data-shoe-id="00758"]')).toBeNull()
+    fireEvent.click(screen.getAllByRole("button", { name: "조건 지우기" })[0])
+    fireEvent.click(within(screen.getByRole("group", { name: "상태" })).getByRole("button", { name: "측면 없음" }))
+    expect(document.querySelector('[data-shoe-id="303346"]')).not.toBeNull()
+    expect(document.querySelector('[data-shoe-id="303349"]')).toBeNull()
+  })
+
+  it("?plus=0: 상태 칩은 없고(신규 값) 검색은 그대로 있다", () => {
+    renderAt("case=ready&as=admin&plus=0")
+    expect(screen.getByLabelText("검색어")).toBeInTheDocument()
+    expect(screen.queryByRole("group", { name: "상태" })).toBeNull()
+    expect(document.querySelectorAll("[data-plus]")).toHaveLength(0)
+  })
+
+  it("카드 크기: 작게 · 보통 · 크게가 한 줄 카드 수(열 수)를 바꾼다", () => {
+    renderAt("case=ready&as=admin")
+    const grid = () => document.querySelector("[data-shoe-id]")!.parentElement!
+    expect(grid().className).toContain("repeat(9,")
+    press("작게")
+    expect(grid().className).toContain("repeat(12,")
+    expect(cards()).toHaveLength(16)
+    press("크게")
+    expect(grid().className).toContain("repeat(6,")
+  })
+
+  it("열 선택(목록보기): 숨기면 머리가 빠지고 순서는 그대로, 화류번호는 고정", () => {
+    renderAt("case=ready&as=admin")
+    toList()
+    const heads = () => screen.getAllByRole("columnheader").map((h) => h.textContent)
+    fireEvent.click(screen.getByRole("button", { name: /열 선택/ }))
+    expect(screen.getByRole("checkbox", { name: /화류번호/ })).toBeDisabled()
+    fireEvent.click(screen.getByRole("checkbox", { name: "모델명" }))
+    expect(heads()).not.toContain("모델명")
+    const h = heads()
+    expect(h.indexOf("화류번호")).toBeLessThan(h.indexOf("그룹명"))
+    expect(h.indexOf("그룹명")).toBeLessThan(h.indexOf("상표코드"))
+  })
+
+  it("자동 모드: 강조 카드가 주기대로 옮겨 가고 창은 열리지 않는다 · 주기 변경 · 일시정지/재개 · Space · ← →", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    expect(current()).toBe("00758")
+    tick(2000)
+    expect(current()).toBe("303352")
+    expect(screen.queryByRole("dialog")).toBeNull()
+    press("1초")
+    tick(1000)
+    expect(current()).toBe("303351")
+    key(" ")
+    expect(screen.getByRole("button", { name: "재생" })).toBeInTheDocument()
+    tick(5000)
+    expect(current()).toBe("303351")
+    key(" ")
+    tick(1000)
+    expect(current()).toBe("303349")
+    key("ArrowLeft")
+    expect(current()).toBe("303351")
+    key("ArrowRight")
+    expect(current()).toBe("303349")
+    expect(screen.queryByRole("dialog")).toBeNull()
+  })
+
+  it("초점이 「자동」 버튼에 있어도 ← → Space 가 동작하고 Space 로 그 버튼이 다시 눌리지 않는다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    const autoBtn = screen.getByRole("button", { name: "자동" })
+    fireEvent.click(autoBtn)
+    autoBtn.focus()
+    const fire = (k: string, type: "keyDown" | "keyUp" = "keyDown") => fireEvent[type](autoBtn, { key: k })
+    fire("ArrowRight")
+    expect(current()).toBe("303352")
+    fire("ArrowLeft")
+    expect(current()).toBe("00758")
+    fire(" ")
+    expect(screen.getByRole("button", { name: "재생" })).toBeInTheDocument()
+    expect(autoBtn).toHaveAttribute("aria-pressed", "true")
+    expect(fireEvent.keyDown(autoBtn, { key: " " })).toBe(false)
+    expect(fireEvent.keyUp(autoBtn, { key: " " })).toBe(false)
+  })
+
+  it("초점이 「재생/일시정지」 버튼에 있을 때도 ← → 가 동작한다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    const play = screen.getByRole("button", { name: "일시정지" })
+    play.focus()
+    fireEvent.keyDown(play, { key: "ArrowRight" })
+    expect(current()).toBe("303352")
+  })
+
+  it("Enter 가 강조된 카드의 창을 연다(자동 넘기기는 열지 않는다)", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    tick(2000)
+    key("Enter")
+    expect(within(screen.getByRole("dialog")).getByLabelText("신발ID")).toHaveValue("303352")
+  })
+
+  it("카드 위에 마우스가 있으면 멈추고, 벗어나면 이어 간다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    const grid = document.querySelector("[data-shoe-id]")!.parentElement!
+    fireEvent.mouseEnter(grid)
+    tick(6000)
+    expect(current()).toBe("00758")
+    fireEvent.mouseLeave(grid)
+    tick(2000)
+    expect(current()).toBe("303352")
+  })
+
+  it("쪽 끝에서 다음 쪽으로 넘어간다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    press("1초")
+    press("간격 0.5초 줄이기")
+    tick(500 * 16)
+    expect(screen.getByText(/전체 536 중 17-32/)).toBeInTheDocument()
+  })
+
+  it("자동 모드에서 조건을 바꾸면 강조 위치가 처음으로 돌아가고 자동은 유지된다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    tick(2000 * 3)
+    expect(current()).toBe("303349")
+    search("30335")
+    expect(current()).toBe(Array.from(cards())[0].getAttribute("data-shoe-id"))
+    expect(screen.getByText(/^1 \/ \d+$/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "일시정지" })).toBeInTheDocument()
+  })
+
+  it("자동 모드에서 쪽 넘김을 누르면 그 쪽 첫 카드부터 이어 간다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    tick(2000)
+    fireEvent.click(screen.getByRole("button", { name: /다음/ }))
+    expect(screen.getByText(/전체 536 중 17-32/)).toBeInTheDocument()
+    expect(screen.getByText("17 / 536")).toBeInTheDocument()
+    expect(current()).toBe(cards()[0].getAttribute("data-shoe-id"))
+  })
+
+  it("창이 열려 있는 동안 자동 넘기기는 멈추고, 닫으면 이어 간다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    tick(2000)
+    expect(current()).toBe("303352")
+    fireEvent.click(document.querySelector('[data-shoe-id="303352"]')!)
+    expect(screen.getByRole("dialog")).toBeInTheDocument()
+    tick(10000)
+    fireEvent.click(within(screen.getByRole("dialog")).getAllByRole("button", { name: "닫기" })[0])
+    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(current()).toBe("303352")
+    tick(2000)
+    expect(current()).toBe("303351")
+  })
+
+  it("마지막 카드에서 멈춘다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    search("30335")
+    const n = cards().length
+    expect(n).toBeGreaterThan(1)
+    press("자동")
+    press("1초")
+    tick(1000 * (n + 3))
+    expect(current()).toBe(Array.from(cards())[n - 1].getAttribute("data-shoe-id"))
+    expect(screen.getByRole("button", { name: "재생" })).toBeInTheDocument()
+    expect(screen.getByText(`${n} / ${n}`)).toBeInTheDocument()
+  })
+
+  it("글자 칸에서는 Space · 방향키를 가로채지 않고, 화면을 떠나면 타이머가 0개", () => {
+    vi.useFakeTimers()
+    const { unmount } = renderAt("case=ready&as=admin")
+    press("자동")
+    fireEvent.keyDown(screen.getByLabelText("검색어"), { key: " " })
+    expect(screen.getByRole("button", { name: "일시정지" })).toBeInTheDocument()
+    unmount()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it("수동으로 돌리면 타이머가 멈춘다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    press("수동")
+    tick(10000)
+    expect(vi.getTimerCount()).toBe(0)
+    expect(current()).toBeUndefined()
   })
 })

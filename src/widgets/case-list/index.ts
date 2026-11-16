@@ -3,6 +3,8 @@ export type {
   CaseListAiPrep,
   CaseListFilters,
   CaseListImageSummary,
+  CaseListQuickFilter,
+  CaseListRowHeight,
   CaseListRow,
   CaseListRowSummary,
   CaseListScreenProps,
