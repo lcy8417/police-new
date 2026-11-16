@@ -5,11 +5,12 @@ import { shouldHandleShortcut, useAutoPlay } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
 import { AiTag, ConfidenceBar } from "@/shared/ui/ai"
 import { AutoPlayControl, Button, Chip, DialogShell, InlineError, Segmented, ViewCountSwitch } from "@/shared/ui/kit"
-import { ButtonBar, PaneHead, Panel, TabMark, UnderlineTabs } from "@/shared/ui/panel"
+import { ButtonBar, Panel } from "@/shared/ui/panel"
 import { PatternIcon } from "@/shared/ui/viewer"
 
 import { viewerRoles } from "../model/roles"
 import type { CompareCount, MatchCompareScreenProps, ZonePatterns } from "../model/types"
+import { CompareWindow } from "./CompareWindow"
 import { MultiStage } from "./MultiStage"
 import { PairStage } from "./PairStage"
 import { PrecisionPanel } from "./PrecisionPanel"
@@ -23,14 +24,8 @@ import { PrecisionPanel } from "./PrecisionPanel"
 // r3(편의 — +α 아님): 비교 「1:1 · 1:3 · 1:5」(1:1 = 2차 PairStage 그대로, 1:3 · 1:5 = 현장 1장 대 후보 n장),
 // 후보 넘기기(이전 · 다음 · ← → · 수동/자동 — 마지막 후보에서 멈춤, 비교 그림 위 마우스 = 잠시 멈춤). 값은 제어형.
 
+// 사건 창(`inWindow`)은 배치가 따로다 → CompareWindow(먹색 작업판 · 함께 확대 · 상중하 문양 비교 띠 · AI 대조 한눈에).
 type Look = "rgb" | "sketch"
-
-/** 사건 창 오른쪽 칸 탭 */
-type WindowSideTab = "ai" | "pairs" | "info"
-
-/** 사건 창 도구 막대: 안의 분할 단추(Segmented)를 단추 sm 높이(24)로 — 비교 · 수동/자동 · 보기 방식 */
-const COMPACT_SEGMENTS =
-  "[&_[data-part=Segmented]]:p-[2px] [&_[data-part=Segmented]_button]:px-[8px] [&_[data-part=Segmented]_button]:py-[2px] [&_[data-part=Segmented]_button]:text-[11.5px] [&_[data-part=ViewCountSwitch]>span]:text-[11.5px]"
 
 // 후보 자동 넘김 시계: 공용 useAutoPlay 를 「주기마다 앞으로 한 걸음」 시계로만 쓴다. 지금 후보는 주소(?ftwr)에서 오므로
 // 화면이 제어형으로 들고, 시계의 칸 번호는 쓰지 않는다. 칸 수를 아주 크게 + 돌아가기라 시계는 끝나지 않는다 —
@@ -139,7 +134,12 @@ function InfoTable({ caseRows, shoeRows }: { caseRows: InfoCell[]; shoeRows: Inf
   )
 }
 
-export function MatchCompareScreen({
+/** 정밀 대조 — 사건 창 안이면 CompareWindow, 아니면 SCAS 상세조회 배치(단독 진열) */
+export function MatchCompareScreen(props: MatchCompareScreenProps) {
+  return props.inWindow ? <CompareWindow {...props} /> : <MatchCompareStandalone {...props} />
+}
+
+function MatchCompareStandalone({
   status,
   errorAt,
   onRetry,
@@ -159,7 +159,6 @@ export function MatchCompareScreen({
   onConfirmTarget,
   onClose,
   showPlus = true,
-  inWindow = false,
   insight,
   onPlusAction,
   candidates = [],
@@ -182,9 +181,6 @@ export function MatchCompareScreen({
   const [activeIndex, setActiveIndex] = React.useState<number | null>(null)
   const [alignOpen, setAlignOpen] = React.useState(false)
   const [asking, setAsking] = React.useState(true)
-  // 사건 창 오른쪽 칸 탭(보기 상태 — 창 배치에서만 쓴다)
-  const [sideTab, setSideTab] = React.useState<WindowSideTab>("ai")
-  const sideTabsId = React.useId()
   const aligned = isAlignmentSet(alignment)
   const action = (label: string) => onPlusAction?.(label)
 
@@ -609,155 +605,6 @@ export function MatchCompareScreen({
       </div>
     </DialogShell>
   )
-
-  // 사건 창 안(11/17 사용자 「컴팩트하면서 고급지게」): 왼쪽 = 칸 머리(비교 1:1 · 1:3 · 1:5) · 도구 한 줄 · 유류 | 발견 무대(남은 높이 꽉) ·
-  // 범례 · 바닥 단추 줄 | 오른쪽 300 칸 밑줄 탭(AI 대조 · 대응 목록 · 정보). 「현장문양검색결과 상세조회」 제목 줄 · 닫기(창 ✕ 가 맡음)는 그리지 않는다.
-  if (inWindow) {
-    const sideTabs: [WindowSideTab, React.ReactNode][] = [
-      ...(plus && status === "ready" ? ([["ai", "AI 대조"]] as [WindowSideTab, React.ReactNode][]) : []),
-      ["pairs", <>대응 목록<TabMark kind="count" count={matches.length} /></>],
-      ["info", "정보"],
-    ]
-    const tab = sideTabs.some(([k]) => k === sideTab) ? sideTab : sideTabs[0][0]
-    const tipParts = [
-      multi ? `현장 1장 대 후보 ${multi}장 · 후보 칸을 누르면 지금 후보(1:1 로 정밀 대조)` : `대응 박스 ${matches.length}개 · 번호가 같은 박스끼리 짝`,
-      canStep && onAutoModeChange ? "← → 후보 · Space 재생/일시정지" : "",
-      plus && !multi ? representativeNote : "",
-    ].filter(Boolean)
-    const holdProps = { onMouseEnter: () => setHold(true), onMouseLeave: () => setHold(false) }
-    let stageArea: React.ReactNode
-    if (status === "loading" || status === "error") stageArea = body
-    else if (multi && candidates.length > 0)
-      stageArea = (
-        <MultiStage
-          count={multi}
-          crimeImage={crimeImage}
-          crimeCaption={caseInfo.aprthngNo ?? ""}
-          look={look}
-          candidates={candidates}
-          currentIndex={currentIndex}
-          onPick={(c) => onCandidateChange?.(c)}
-        />
-      )
-    else if (!aligned) stageArea = noAlignBox("h-full")
-    else stageArea = pairStage(true)
-    return (
-      <>
-        <section aria-label="정밀 대조" data-slot="match-compare-window" className="@container h-full min-h-0 min-w-0 p-[12px]">
-          {/* 좁으면(칸 920 미만 — 1280 · 왼쪽 목록 펼침) 오른쪽 칸을 268 로 */}
-          <div className="grid h-full min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_300px] gap-[14px] @max-[920px]:grid-cols-[minmax(0,1fr)_268px]">
-          <section aria-label="유류 · 발견 대조" className="flex min-h-0 min-w-0 flex-col gap-[8px]">
-            <PaneHead
-              title="유류 · 발견 대조"
-              sub={
-                <span className="font-code">
-                  {`No. ${shoeInfo.ftwrId}`}
-                  {ranking != null ? ` · #${ranking}` : ""}
-                </span>
-              }
-              tip={tipParts.join(". ")}
-              end={
-                status === "ready" && onCompareCountChange ? (
-                  <ViewCountSwitch<CompareCount> label="비교" options={COMPARE_OPTIONS} value={compareCount} onChange={onCompareCountChange} />
-                ) : null
-              }
-              className={COMPACT_SEGMENTS}
-            />
-            {status === "ready" ? (
-              <div data-r3-toolbar className={cn("flex shrink-0 flex-wrap items-center gap-x-[12px] gap-y-[6px]", COMPACT_SEGMENTS)}>
-                {canStep && onAutoModeChange ? (
-                  <AutoPlayControl
-                    mode={autoMode}
-                    onModeChange={onAutoModeChange}
-                    intervalMs={intervalMs}
-                    onIntervalChange={(ms) => onIntervalChange?.(ms)}
-                    playing={playing}
-                    onPlayPause={() => onPlayingChange?.(!playing)}
-                    position={{ index: Math.max(0, currentIndex), total: candidates.length }}
-                    remainingRatio={remainingRatio}
-                  />
-                ) : null}
-                <span className="ml-auto inline-flex flex-wrap items-center gap-[6px]">
-                  {prevNextButtons}
-                  {aligned || multi ? lookSegmented("") : null}
-                  {alignButton}
-                </span>
-              </div>
-            ) : null}
-            <div data-compare-area className={cn("min-h-0 min-w-0 flex-1", multi ? "overflow-y-auto" : "overflow-hidden")} {...holdProps}>
-              {stageArea}
-            </div>
-            {status === "ready" && aligned && !multi ? (
-              <div className="grid shrink-0 gap-[6px]">
-                {legendRow(false)}
-                {zoomRow(true)}
-              </div>
-            ) : null}
-            {/* 바닥 한 줄: 판정 단추(확인대상만 색) · 확인 물음 | 감정서 첨부(정렬 설정은 위 도구 줄 — 불러오기 실패 때만 여기) */}
-            <div className="flex shrink-0 flex-wrap items-center gap-[6px] border-0 border-t border-solid border-border pt-[8px]">
-              {decideButtons}
-              {showPlus && roles.analyst && asking ? (
-                <span data-plus data-confirm-bar className="ml-[4px] inline-flex items-center gap-[6px] text-[11.5px] text-fg-2">
-                  확인대상에 등록할까요?
-                  <Button size="sm" variant="ok" disabled={!canWrite} onClick={onConfirmTarget}>
-                    예
-                  </Button>
-                  <Button size="sm" onClick={() => setAsking(false)}>
-                    아니오
-                  </Button>
-                </span>
-              ) : null}
-              {attachButton ? <span className="ml-auto inline-flex items-center">{attachButton}</span> : null}
-              {status === "ready" ? null : <span className="ml-auto inline-flex items-center">{alignButton}</span>}
-            </div>
-          </section>
-
-          <section aria-label="대조 근거 · 정보" className="flex min-h-0 min-w-0 flex-col gap-[10px]">
-            <UnderlineTabs label="대조 근거 · 정보" tabs={sideTabs} value={tab} onChange={setSideTab} idPrefix={sideTabsId} />
-            <div
-              role="tabpanel"
-              aria-labelledby={`${sideTabsId}-${tab}`}
-              className="flex min-h-0 min-w-0 flex-1 flex-col gap-[12px] overflow-y-auto px-[2px]"
-            >
-              {tab === "ai" && plus ? (
-                <PrecisionPanel insight={plus} roles={roles} bare />
-              ) : tab === "pairs" ? (
-                (pairListOf(true) ?? (
-                  <p className="m-0 text-[11.5px] text-muted-foreground">
-                    {aligned ? "대응 목록을 불러오지 못했습니다." : "정렬을 저장하면 대응 목록이 보입니다."}
-                  </p>
-                ))
-              ) : (
-                <>
-                  {plus ? (
-                    <figure data-plus className="m-0 grid gap-[4px]">
-                      <figcaption className="text-[11px] text-muted-foreground">측면 이미지</figcaption>
-                      <span className="relative block h-[96px] overflow-hidden rounded-[10px] border border-solid border-border bg-canvas">
-                        <img src={plus.sideImage} alt="측면 이미지" className="block size-full object-contain" />
-                      </span>
-                    </figure>
-                  ) : null}
-                  <InfoTable caseRows={caseRows} shoeRows={shoeRows} />
-                  {plus ? (
-                    <span data-plus className="flex flex-wrap items-center gap-[6px] text-[11px] text-muted-foreground">
-                      <Chip>{`처리 구분 ${plus.processType}`}</Chip>
-                      {`목적: ${plus.purpose}`}
-                    </span>
-                  ) : null}
-                  <div className="grid grid-cols-2 gap-[8px]">
-                    <PatternColumn title="유류 이미지 문양" patterns={crimePatterns} />
-                    <PatternColumn title="발견 이미지 문양" patterns={shoePatterns} />
-                  </div>
-                </>
-              )}
-            </div>
-          </section>
-          </div>
-        </section>
-        {alignDialog}
-      </>
-    )
-  }
 
   return (
     <>

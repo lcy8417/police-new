@@ -114,6 +114,7 @@
 | S01 신발 DB 패널 도구 줄 · 신발 편집 판 단추(승인 · 저장 · ‹ › · AI 문양 추출) | WorkbenchButton · Segmented | 그대로 | 자동/수동 · 엑셀 · 엑셀 일괄 등록 · 초기화 뺌 |
 | S01 신발 편집 판 밑창(원본 · Shoerinsics 이진화 · 보기 조정 · 확대경) | LensBox · ViewControls · PatternIcon | 그대로 | 갈래 A 공용 viewer 부품 그대로 — 먹색 작업판(`data-theme="dark"`), 상중하 경계선은 위젯 안 pointer-events-none 장식 |
 | S01 신발 편집 판 위 줄(← 목록 · 기본정보 · 문양정보 탭) · 문양 목록 칸 머리 · 종류 탭 | UnderlineTabs · PaneHead | 그대로 | 문양 코드 탭 결 |
+| S01 사건 창 정밀 대조 탭(먹색 작업판 유류 · 발견 칸 보기 조정 · 확대경 · 함께 확대 · 상중하 문양 비교 띠 · AI 대조 · 판정 단추, 11/17 갈래 C) | LensBox · ViewControls · PatternIcon · PointPairs · WorkbenchButton · PaneHead · ConfidenceBar · AiTag | 그대로 | 자동/수동 · 대응 목록 · 정보 탭 뺌. 함께 확대 · 짝 고리 · 구역 선은 위젯 안 pointer-events-none 장식 |
 
 ## 승인 (spec §8 「만들 부품」 표 = 사용자 승인)
 
