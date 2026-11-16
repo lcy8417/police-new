@@ -84,7 +84,7 @@
 | ScanOverlay | ai | `src/shared/ui/ai/ScanOverlay.tsx` | `.fx-scan` | S01–S07 · S10 · S11 | [새로] 사진 위 훑기(`active`일 때만 렌더, 부모 `relative`) | 구현됨 |
 | LiveDot | ai | `src/shared/ui/ai/LiveDot.tsx` | `.fx-live` | S01–S06 · S08 · S10 · S11 · S14 · S15 | [새로] `busy`(맥박) · `idle`(빈 고리). 점 옆 글자가 기본으로 보임(`hideLabel`로 숨김) | 구현됨 |
 | ConfidenceBar | ai | `src/shared/ui/ai/ConfidenceBar.tsx` | (확신도 · 유사도 막대) | S04 · S05 · S06 · S15 | [새로] 척도 `unit`(0~1) · `percent` · 상태 `low`(임계 미만, `aria-valuetext` 「낮음」) · `ok`(`aria-valuetext`는 숫자만) | 검증됨 |
-| StatTile | ai | `src/shared/ui/ai/StatTile.tsx` | `.stat` | S01 · S09 · S11–S14 | [새로] 라벨 · 숫자 · 단위 · 보조 글자 · `children`(막대). `tone` default · ai · warn · danger(테두리 + 라벨색), `glow` 5가지(모서리 번짐), `size` md · sm(S09) · xs(S14). 라벨 · 숫자 없이 `children`만으로도 가능(S01 AI 카드) | 검증됨 |
+| StatTile | ai | `src/shared/ui/ai/StatTile.tsx` | `.stat` | S01 · S09 · S11–S14 | [새로] 라벨 · 숫자 · 단위 · 보조 글자 · `children`(막대). `tone` default · ai · warn · danger(테두리 + 라벨색), `glow` 5가지(모서리 번짐), `size` md · sm(S09) · xs(S14). 라벨 · 숫자 없이 `children`만으로도 가능(S01 AI 카드)  — 대조한 것은 기본 · `warn` 톤 · 번짐 `brand` 뿐, `ai` · `danger` 톤 · `sm` · `xs` · 나머지 번짐은 값만 옮김(아래 「r2 부품 대조」) | 검증됨 |
 | CheckList | ai | `src/shared/ui/ai/CheckList.tsx` | `.check` | S02 · S07 · S08 · S11 · S14 · S15 | [새로] `items`: `tone` ok ✓ · warn ! · bad ×(글리프 + 읽는 이름) · `text` · `detail` · `action`(값 · 칩 · 버튼) · `icon`. `topLine`(첫 줄 윗선) · `dense`(S07) | 구현됨 |
 | AiSuggestion | ai | `src/shared/ui/ai/AiSuggestion.tsx` | (S02 채취 방법 제안 · S03 AI 제안) | S02 · S03 · S04 · S09 | [새로] 제안 + 근거 + 확신도(`low` 미만 주황) + 「적용」(`onApply` 없으면 버튼 없음, `actionTone="warn"`) | 검증됨 |
 | AiFill | ai | | `.ai-fill` | S09 | [새로] AI가 채운 칸 | 후보 |
@@ -97,7 +97,7 @@
 | ButtonBar | panel | `src/shared/ui/panel/ButtonBar.tsx` | `.panel-h .r` | S00 · S01 · S06–S15 (+ S02 모달 머리 — 표식 `S02-23`) | [새로] `panel-head` · `modal-head` · SCAS 순서 고정(이전 · 다음 · … · 닫기). 오른쪽 붙임 · 세로 가운데(배치)는 미검증 — 아래 「배치 속성은 대조하지 않음」 | 검증됨 |
 | ScasShell | panel | `src/shared/ui/panel/ScasShell.tsx` | `M.shell` | S01–S15 | [새로] 위 메뉴 · 탭 줄 · 현재 탭 · 왼쪽 메뉴(`M.scasShell`은 SCAS 비교용이라 원본 아님) — 전환은 검증 후 한 번에 | 구현됨 |
 | SearchForm | panel | `src/shared/ui/panel/SearchForm.tsx` | `.form` | S01 · S02 · S04 · S05 · S10 · S11 · S13 | [새로] 라벨-값 2열 · 3열 · 조회 · 초기화 · 필수 라벨(`.l.req`) | 구현됨 |
-| Stepper | panel | `src/shared/ui/panel/Stepper.tsx` | `.stepper` | S01 (+ S07 · S08 흐름 띠는 표식 때 확인) | [새로] `steps` · `current`(0부터, 칸 수와 같으면 모두 끝남). 끝남 파랑 · 지금 주황 + 빛 · 남음 회색, `width` 20(S01) · 18(CSS 기본), 읽는 이름에 지금 단계 | 검증됨 |
+| Stepper | panel | `src/shared/ui/panel/Stepper.tsx` | `.stepper` | S01 (+ S07 · S08 흐름 띠는 표식 때 확인) | [새로] 변형 `bar`(기본, S01 5px 막대) · `labeled`(S02 제목 줄: 점 + 이름 + 14px 연결선, 지금 단계 청록 맥박 · `aria-current="step"`). `steps` · `current`(0부터, NaN · ±Infinity 는 첫 칸, 칸 수와 같으면 모두 끝남). 끝남 파랑 · 지금 주황 + 빛 · 남음 회색, `width` 20(S01) · 18(CSS 기본), 읽는 이름에 지금 단계 | 검증됨 |
 | Crumb | panel | `src/shared/ui/panel/Crumb.tsx` | `.crumb` | S00 · S06–S15 | [새로] — | 구현됨 |
 | PageHead | panel | `src/shared/ui/panel/PageHead.tsx` | `.page-head` | S06–S08 · S10–S15 | [새로] — | 구현됨 |
 
@@ -147,9 +147,9 @@
 
 ### r2 부품 대조 (StatTile · CheckList · AiSuggestion · HeatOverlay · Stepper)
 
-대조 통과(계산값 + 스크린샷 차이 0, 예외 없음): S01-41 · S01-43 StatTile(기본 + 막대 자식, 번짐 brand — 안쪽 막대는 AiProgress, 태그만 통일) · S01-42 StatTile `warn` · S01-44 Stepper(교차 검증 칸) · S03-41 AiSuggestion. 상자 맥락: StatTile 은 시안이 flex 줄 높이 98.38 로 늘어나는 자식이라 진열 상자를 `grid h-[98.38px]`로, Stepper 는 시안이 grid 칸이라 상자를 grid 로 만든다(부품이 아니라 부모 맥락).
+대조 통과(계산값 + 스크린샷 차이 0, 예외 없음): S01-41 · S01-43 StatTile(기본 + 막대 자식, 번짐 brand — 안쪽 막대는 AiProgress, 태그만 통일) · S01-42 StatTile `warn` · S01-44 Stepper `bar`(교차 검증 칸) · S02-42 Stepper `labeled`(제목 줄 6단계, 지금 2번째) · S03-41 AiSuggestion. 상자 맥락: StatTile 은 시안이 flex 줄 높이 98.38 로 늘어나는 자식이라 진열 상자를 `grid h-[98.38px]`로, Stepper 는 시안이 grid 칸이라 상자를 grid 로 만든다(부품이 아니라 부모 맥락).
 시안에 짝이 없어 대조하지 못한 것(`noMockup`): CheckList(S02-41 · S07-41 — 시안은 `.check` 줄만 있고 묶음 요소가 없음, 줄 모양은 단위 테스트) · HeatOverlay(S06-41 `match` · S01-45 `spots` — 시안은 호출마다 그라데이션 id 가 다른 인라인 SVG, `spots`는 밑창 그림 안의 그룹). 상태는 구현됨.
-대조하지 못한 변형(값만 옮김): StatTile `ai` 톤 · `danger` 톤 · `sm`(S09) · `xs`(S14) · 번짐 .16/.22 는 5가지(기본 .14 · brand .18 · ai .2 · warn .2 · danger .2)로 모음(시안 화면마다 .14~.22 를 조금씩 달리 줌) · `valueTone="danger"`, AiSuggestion 확신도 · `low` · `actionTone="warn"`(시안 S12 · S03 「반전」), Stepper `width=18`, CheckList 전부.
+대조하지 못한 변형(값만 옮김): **StatTile 은 기본 · `warn` 톤(번짐 `brand` 포함)만 대조했고 나머지는 값만 옮겼다**: `ai` 톤 · `danger` 톤 · `sm`(S09) · `xs`(S14) · 번짐: 시안 화면마다 .14~.22 사이로 조금씩 달리 준 값(.16 · .22 등)을 5가지(기본 .14 · brand .18 · ai .2 · warn .2 · danger .2)로 모음(시안 화면마다 .14~.22 를 조금씩 달리 줌) · `valueTone="danger"`, AiSuggestion 확신도 · `low` · `actionTone="warn"`(시안 S12 · S03 「반전」), Stepper `width=18`, CheckList 전부.
 
 ### 알려진 의도적 차이(되돌리지 말 것)
 

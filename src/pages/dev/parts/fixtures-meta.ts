@@ -101,6 +101,8 @@ const BASE_PART_FIXTURES: PartFixture[] = [
   { id: "S02-21", part: "AiTag", variant: "default", parentWidth: 265, surface: "ai", boxClass: "flex items-center" },
   // Stepper(r2) — S01 사건 목록 「진행」 칸
   { id: "S01-44", part: "Stepper", parentWidth: 101.94, surface: "panel", boxClass: "grid text-[12px] leading-[normal] text-fg-2" },
+  // Stepper labeled(r2 검수) — S02 사건관리 창 제목 줄의 이름 있는 단계 띠
+  { id: "S02-42", part: "Stepper", variant: "labeled", parentWidth: 400, surface: "panel", boxClass: "flex items-center" },
 ];
 
 // 갈래별 진열 데이터를 이어 붙인다(잠금, Task 5).

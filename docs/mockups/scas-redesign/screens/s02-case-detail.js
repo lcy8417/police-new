@@ -107,7 +107,7 @@
 
     /* 제목 줄 단계 표시(r3): 사건이 지금 어디까지 왔는지 — 접수 → 1차 작업 → 이미지별 검색·판정 → 교차 검증 → 감정서 → 결재 */
     const STEPS = ["접수", "1차 작업", "검색·판정", "교차 검증", "감정서", "결재"];
-    const stepper = `<span style="display:inline-flex;align-items:center;gap:4px;margin-left:14px;font-weight:400;font-size:10.5px">${STEPS.map((t, i) => {
+    const stepper = `<span data-part="Stepper" data-part-variant="labeled" data-part-id="S02-42" style="display:inline-flex;align-items:center;gap:4px;margin-left:14px;font-weight:400;font-size:10.5px">${STEPS.map((t, i) => {
       const st = i < 1 ? "done" : i === 1 ? "now" : "";
       const col = st === "done" ? "var(--blue)" : st === "now" ? "var(--teal)" : "var(--faint)";
       return `${i ? `<i style="width:14px;height:1px;background:${i <= 1 ? "var(--blue2)" : "var(--line3)"}"></i>` : ""}<span style="display:inline-flex;align-items:center;gap:4px;color:${col}"><span class="${st === "now" ? "fx-live" : ""}" style="width:7px;height:7px;border-radius:50%;background:${st ? col : "transparent"};border:1px solid ${col}"></span>${t}</span>`;
