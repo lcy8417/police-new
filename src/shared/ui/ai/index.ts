@@ -4,3 +4,6 @@ export { AiProgress, type AiProgressProps, type AiProgressState } from "./AiProg
 export { ConfidenceBar, type ConfidenceBarProps, type ConfidenceScale } from "./ConfidenceBar"
 export { ScanOverlay, type ScanOverlayProps } from "./ScanOverlay"
 export { LiveDot, type LiveDotProps, type LiveDotState } from "./LiveDot"
+export { StatTile, type StatTileProps, type StatTone, type StatGlow, type StatSize } from "./StatTile"
+export { CheckList, type CheckListProps, type CheckItem, type CheckTone } from "./CheckList"
+export { AiSuggestion, type AiSuggestionProps } from "./AiSuggestion"

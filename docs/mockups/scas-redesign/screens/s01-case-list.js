@@ -36,7 +36,7 @@
   /* 사건 층: 검증요청 → 교차 검증 → 감정서 → 결재 */
   const csCell = (c) => {
     if (c.cs < 0) return `<span style="color:var(--faint);font-size:11px">이미지 확인 중</span>`;
-    return `<div style="display:grid;gap:3px"><span class="stepper">${[0, 1, 2, 3].map((i) => `<i style="width:20px" class="${i < c.cs ? "done" : i === c.cs ? "now" : ""}"></i>`).join("")}</span>
+    return `<div style="display:grid;gap:3px"><span class="stepper" ${c.no === "00001-25-0646" ? 'data-part="Stepper" data-part-id="S01-44"' : ""}>${[0, 1, 2, 3].map((i) => `<i style="width:20px" class="${i < c.cs ? "done" : i === c.cs ? "now" : ""}"></i>`).join("")}</span>
       <span style="font-size:11px;color:${c.cs === 4 ? "#4ade80" : "var(--fg2)"};line-height:1.2">${CS[Math.min(c.cs, 4)]}${c.cs === 1 && c.who ? ` · ${c.who}` : ""}</span></div>`;
   };
   /* SCAS 행 버튼 자리(검색 · 확인 · 검증) 그대로 */
@@ -117,9 +117,9 @@
             <span class="fx-bar run" data-part="AiProgress" data-part-variant="running" data-part-id="S01-22"><i style="width:62%"></i></span>
             <span class="s">이진화 12/12 · 문양 제안 9/12 · 검색 Top-10 준비 7/12 — 감정관이 열기 전에 미리</span>
           </div>
-          <div class="stat" style="flex:1;min-width:0"><span class="k">결과 확인 전</span><span class="v">14<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="fx-bar" data-part="AiProgress" data-part-variant="done" data-part-id="S01-23"><i style="width:58%"></i></span><span class="s">이미지 98장 중 확인 57장</span></div>
-          <div class="stat" data-role="analyst admin" style="flex:1;min-width:0;--glow:rgba(74,158,255,.18)"><span class="k">이미지 미검색</span><span class="v">9<small style="font:500 11px var(--font-ui);color:var(--dim)"> 장</small></span><span class="fx-bar"><i style="width:78%"></i></span><span class="s">AI Top-10 준비 7 · 대기 2</span></div>
-          <div class="stat" data-role="analyst admin" style="flex:1;min-width:0;--glow:rgba(245,158,11,.2);border-color:#4d3a12"><span class="k" style="color:var(--amber)">교차 검증 요청 받음</span><span class="v">1<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="s">00001-25-0646 · 김○○ → 나</span></div>
+          <div class="stat" data-part="StatTile" data-part-id="S01-41" style="flex:1;min-width:0"><span class="k">결과 확인 전</span><span class="v">14<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="fx-bar" data-part="AiProgress" data-part-variant="done" data-part-id="S01-23"><i style="width:58%"></i></span><span class="s">이미지 98장 중 확인 57장</span></div>
+          <div class="stat" data-part="StatTile" data-part-id="S01-43" data-role="analyst admin" style="flex:1;min-width:0;--glow:rgba(74,158,255,.18)"><span class="k">이미지 미검색</span><span class="v">9<small style="font:500 11px var(--font-ui);color:var(--dim)"> 장</small></span><span class="fx-bar"><i style="width:78%"></i></span><span class="s">AI Top-10 준비 7 · 대기 2</span></div>
+          <div class="stat" data-part="StatTile" data-part-variant="warn" data-part-id="S01-42" data-role="analyst admin" style="flex:1;min-width:0;--glow:rgba(245,158,11,.2);border-color:#4d3a12"><span class="k" style="color:var(--amber)">교차 검증 요청 받음</span><span class="v">1<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="s">00001-25-0646 · 김○○ → 나</span></div>
           <div class="stat" data-role="verifier admin" style="flex:1;min-width:0"><span class="k">결재 대기</span><span class="v">3<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="s">가장 오래된 것 2일</span></div>
           <div class="stat" data-role="investigator" style="flex:1;min-width:0"><span class="k">우리 청 의뢰</span><span class="v">22<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="s">진행 중 6 · 결재완료 16</span></div>
         </div>

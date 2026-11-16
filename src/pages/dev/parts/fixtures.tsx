@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { AiTag } from "@/shared/ui/ai";
 import { Button, Chip, Field } from "@/shared/ui/kit";
-import { ButtonBar, Panel } from "@/shared/ui/panel";
+import { ButtonBar, Panel, Stepper } from "@/shared/ui/panel";
 
 import { AI_FIXTURE_RENDERS } from "./fixtures-ai";
 import { KIT_FIXTURE_RENDERS } from "./fixtures-kit";
@@ -197,6 +197,8 @@ const BASE_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
       AI 제안
     </AiTag>
   ),
+  // Stepper(r2) — S01 사건 진행 단계 막대: 교차 검증 단계(2번째 칸이 지금)
+  "S01-44": () => <Stepper steps={["검증요청", "교차 검증", "감정서", "결재"]} current={1} partId="S01-44" />,
 };
 
 // 갈래별 그리기를 합친다(잠금, Task 5).

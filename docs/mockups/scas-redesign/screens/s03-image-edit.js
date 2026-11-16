@@ -51,10 +51,10 @@
         <span class="mono" style="position:absolute;left:10px;top:36px;padding:2px 7px;border-radius:5px;background:rgba(11,18,29,.9);color:var(--fg2);font-size:10.5px">원본 3,024 × 4,032 · 100%</span>
       </div>`;
 
-    const aiRow = (t, sub, b) => `<div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center;font-size:11px;line-height:1.35"><span><b style="color:var(--fg)">${t}</b><br><span style="color:var(--dim)">${sub}</span></span>${b}</div>`;
+    const aiRow = (t, sub, b, mk = "") => `<div ${mk} style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center;font-size:11px;line-height:1.35"><span><b style="color:var(--fg)">${t}</b><br><span style="color:var(--dim)">${sub}</span></span>${b}</div>`;
     const sidePanel = `<div style="display:grid;gap:8px;align-content:start">
         <div class="pinbox">${apin(11, "plus")}${side(`<span style="display:flex;align-items:center;gap:6px"><span class="fx-live"></span><span style="color:var(--teal)">AI 제안</span><span style="margin-left:auto;color:var(--dim);font-weight:400;font-size:10px">누르면 반영</span></span>`, `
-          ${aiRow("기울기 맞추기", "족적 축 −4.2°", `<button class="btn sm" style="height:22px;padding:0 7px">맞추기</button>`)}
+          ${aiRow("기울기 맞추기", "족적 축 −4.2°", `<button class="btn sm" style="height:22px;padding:0 7px">맞추기</button>`, 'data-part="AiSuggestion" data-part-id="S03-41"')}
           ${aiRow("족적만 자르기", "여백 6% 남김", `<button class="btn sm" style="height:22px;padding:0 7px">적용</button>`)}
           ${aiRow("좌우반전", "전사판채취법 사진", `<button class="btn sm warn" style="height:22px;padding:0 7px">반전</button>`)}`, "border-color:#1d4a44;background:linear-gradient(160deg,#0d1f21,var(--panel2))")}</div>
         ${side("원본 → 편집본", `<div style="display:grid;grid-template-columns:1fr 14px 1fr;gap:4px;align-items:center">

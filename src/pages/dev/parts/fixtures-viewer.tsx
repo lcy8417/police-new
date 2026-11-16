@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { EvidenceImage, CompareView, PatternIcon, PointPairs, SoleThumb, ZoneBands } from "@/shared/ui/viewer";
+import { EvidenceImage, CompareView, HeatOverlay, PatternIcon, PointPairs, SoleThumb, ZoneBands } from "@/shared/ui/viewer";
 import { fakePhotoUrl } from "@/pages/dev/screens/mock-assets/FakePhoto";
 import { fakeSoleUrl } from "@/pages/dev/screens/mock-assets/FakeSole";
 
@@ -10,6 +10,19 @@ const PHOTO = { zones: ["herring", "grid", "tri"] as const };
 const PATTERN_SRC = "/src/assets/Patterns/전체/n32_04.png"; // 소비 측이 붙인 경로를 그대로 받는다
 
 export const VIEWER_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
+  // r2 — HeatOverlay: 밑창 그림 위에 얹는 모양(가짜 밑창 위)
+  "S06-41": () => (
+    <>
+      <img src={fakeSoleUrl({ kind: "shoe", zones: [...PHOTO.zones] })} alt="밑창(가짜)" className="block size-full" />
+      <HeatOverlay partId="S06-41" className="absolute inset-0" />
+    </>
+  ),
+  "S01-45": () => (
+    <>
+      <img src={fakeSoleUrl({ kind: "shoe", zones: [...PHOTO.zones] })} alt="밑창(가짜)" className="block size-full" />
+      <HeatOverlay variant="spots" partId="S01-45" className="absolute inset-0" />
+    </>
+  ),
   "S05-31": () => (
     <EvidenceImage
       src={fakePhotoUrl({ zones: [...PHOTO.zones], rotate: 0 })}

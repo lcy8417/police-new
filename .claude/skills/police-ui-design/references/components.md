@@ -1,6 +1,6 @@
 # 부품 목록 — 먼저 가져다 쓰는 부품
 
-**결론: 화면을 만들거나 고칠 때 이 표에서 먼저 찾는다. 있으면 그 출입구에서 가져다 쓰고, 없으면 `SKILL.md` 「작업 순서」대로 시안에 먼저 그린 뒤 이 표에 한 줄을 더한다. 지금 시안 대조까지 끝난(검증됨) 부품은 Button · Chip · Field · Panel · ButtonBar · AiTag · Segmented · Avatar · SoleThumb · AiProgress · PatternIcon · ConfidenceBar 12개다(뒤 6개는 잠금 때 대조, 범위는 아래 「잠금 때 대조하지 못한 것」).**
+**결론: 화면을 만들거나 고칠 때 이 표에서 먼저 찾는다. 있으면 그 출입구에서 가져다 쓰고, 없으면 `SKILL.md` 「작업 순서」대로 시안에 먼저 그린 뒤 이 표에 한 줄을 더한다. 지금 시안 대조까지 끝난(검증됨) 부품은 Button · Chip · Field · Panel · ButtonBar · AiTag · Segmented · Avatar · SoleThumb · AiProgress · PatternIcon · ConfidenceBar 12개에 r2 부품 StatTile · Stepper · AiSuggestion을 더한 15개다(Segmented~ConfidenceBar 뒤 6개는 잠금 때 대조, 범위는 아래 「잠금 때 대조하지 못한 것」. r2 3개는 아래 「r2 부품 대조」).**
 
 이 표는 사람과 AI가 같이 읽고, 기계도 읽는다.
 - `scripts/ui/check-parts-catalog.mjs`(`npm run check:ui`): 상태가 구현됨 · 검증됨인 행의 「파일」이 실제로 있는지, 출입구 4개(`src/shared/ui/{kit,viewer,ai,panel}/index.ts`)가 내보내는 모든 이름이 「부품」 열에 있는지 본다.
@@ -71,7 +71,7 @@
 | ZoneBands | viewer | `src/shared/ui/viewer/ZoneBands.tsx` | (S04 상 · 중 · 하 띠) | S04 · S05 · S06 | [새로] 띠 `top` · `mid` · `bottom`(pointer-events-none) | 구현됨 |
 | CompareView | viewer | `src/shared/ui/viewer/CompareView.tsx` | (S03 뷰어 B · S06 · S08 나란히 보기) | S03 · S06 · S07 · S08 | [새로] `side` · `overlay` · `slide` | 구현됨 |
 | PointPairs | viewer | `src/shared/ui/viewer/PointPairs.tsx` | (대응점 표시 그림) | S00 · S06 · S08 | [새로] `crime` · `shoe`, 활성 박스 `data-active`. `boxes: PointPairBox[]`(MatchBox와 구조 호환, entities 의존 없음) | 구현됨 |
-| HeatOverlay | viewer | | (유사 부위 히트 그림) | S00 · S05 · S06 · S07 | [새로] 투명도 | 후보 |
+| HeatOverlay | viewer | `src/shared/ui/viewer/HeatOverlay.tsx` | (S06 heatSvg · `M.sole` heat) | S00 · S05 · S06 · S07 | [새로] 그림만(`pointer-events-none`, 부모를 꽉 채움, `mix-blend-screen`). `match`(S06 번짐 + 소실 점선 고리) · `spots`(작은 밑창 원 3개 .55) · `opacity` · `children`으로 대체 | 구현됨 |
 
 공용화 보류(목록에 올리지 않음): 확대경(Loupe) · 십자선(Crosshair) · 자르기 틀(CropFrame) · 회전 손잡이(RotateHandle) · 미니맵(Minimap) — S03에만 있고 좌표를 다루므로 필요한 화면에서 좌표 계약을 확인한 뒤 추출한다(`layout.md`).
 
@@ -84,9 +84,9 @@
 | ScanOverlay | ai | `src/shared/ui/ai/ScanOverlay.tsx` | `.fx-scan` | S01–S07 · S10 · S11 | [새로] 사진 위 훑기(`active`일 때만 렌더, 부모 `relative`) | 구현됨 |
 | LiveDot | ai | `src/shared/ui/ai/LiveDot.tsx` | `.fx-live` | S01–S06 · S08 · S10 · S11 · S14 · S15 | [새로] `busy`(맥박) · `idle`(빈 고리). 점 옆 글자가 기본으로 보임(`hideLabel`로 숨김) | 구현됨 |
 | ConfidenceBar | ai | `src/shared/ui/ai/ConfidenceBar.tsx` | (확신도 · 유사도 막대) | S04 · S05 · S06 · S15 | [새로] 척도 `unit`(0~1) · `percent` · 상태 `low`(임계 미만, `aria-valuetext` 「낮음」) · `ok`(`aria-valuetext`는 숫자만) | 검증됨 |
-| StatTile | ai | | `.stat` | S01 · S09 · S11–S14 | [새로] 숫자 · 단위 · 빛 | 후보 |
-| CheckList | ai | | `.check` | S02 · S07 · S08 · S11 · S14 · S15 | [새로] ok · warn · bad · 줄 버튼 | 후보 |
-| AiSuggestion | ai | | (S02 채취 방법 제안 · S03 AI 제안) | S02 · S03 · S04 · S09 | [새로] 제안 + 근거 + 「적용」 | 후보 |
+| StatTile | ai | `src/shared/ui/ai/StatTile.tsx` | `.stat` | S01 · S09 · S11–S14 | [새로] 라벨 · 숫자 · 단위 · 보조 글자 · `children`(막대). `tone` default · ai · warn · danger(테두리 + 라벨색), `glow` 5가지(모서리 번짐), `size` md · sm(S09) · xs(S14). 라벨 · 숫자 없이 `children`만으로도 가능(S01 AI 카드) | 검증됨 |
+| CheckList | ai | `src/shared/ui/ai/CheckList.tsx` | `.check` | S02 · S07 · S08 · S11 · S14 · S15 | [새로] `items`: `tone` ok ✓ · warn ! · bad ×(글리프 + 읽는 이름) · `text` · `detail` · `action`(값 · 칩 · 버튼) · `icon`. `topLine`(첫 줄 윗선) · `dense`(S07) | 구현됨 |
+| AiSuggestion | ai | `src/shared/ui/ai/AiSuggestion.tsx` | (S02 채취 방법 제안 · S03 AI 제안) | S02 · S03 · S04 · S09 | [새로] 제안 + 근거 + 확신도(`low` 미만 주황) + 「적용」(`onApply` 없으면 버튼 없음, `actionTone="warn"`) | 검증됨 |
 | AiFill | ai | | `.ai-fill` | S09 | [새로] AI가 채운 칸 | 후보 |
 
 ## panel — SCAS 틀의 배치 껍데기
@@ -97,7 +97,7 @@
 | ButtonBar | panel | `src/shared/ui/panel/ButtonBar.tsx` | `.panel-h .r` | S00 · S01 · S06–S15 (+ S02 모달 머리 — 표식 `S02-23`) | [새로] `panel-head` · `modal-head` · SCAS 순서 고정(이전 · 다음 · … · 닫기). 오른쪽 붙임 · 세로 가운데(배치)는 미검증 — 아래 「배치 속성은 대조하지 않음」 | 검증됨 |
 | ScasShell | panel | `src/shared/ui/panel/ScasShell.tsx` | `M.shell` | S01–S15 | [새로] 위 메뉴 · 탭 줄 · 현재 탭 · 왼쪽 메뉴(`M.scasShell`은 SCAS 비교용이라 원본 아님) — 전환은 검증 후 한 번에 | 구현됨 |
 | SearchForm | panel | `src/shared/ui/panel/SearchForm.tsx` | `.form` | S01 · S02 · S04 · S05 · S10 · S11 · S13 | [새로] 라벨-값 2열 · 3열 · 조회 · 초기화 · 필수 라벨(`.l.req`) | 구현됨 |
-| Stepper | panel | | `.stepper` | S01 (+ S07 · S08 흐름 띠는 표식 때 확인) | [새로] 지금 칸 강조 | 후보 |
+| Stepper | panel | `src/shared/ui/panel/Stepper.tsx` | `.stepper` | S01 (+ S07 · S08 흐름 띠는 표식 때 확인) | [새로] `steps` · `current`(0부터, 칸 수와 같으면 모두 끝남). 끝남 파랑 · 지금 주황 + 빛 · 남음 회색, `width` 20(S01) · 18(CSS 기본), 읽는 이름에 지금 단계 | 검증됨 |
 | Crumb | panel | `src/shared/ui/panel/Crumb.tsx` | `.crumb` | S00 · S06–S15 | [새로] — | 구현됨 |
 | PageHead | panel | `src/shared/ui/panel/PageHead.tsx` | `.page-head` | S06–S08 · S10–S15 | [새로] — | 구현됨 |
 
@@ -144,6 +144,12 @@
 - 이 둘은 진열 화면(`/dev/parts`)에는 나오고 대조(`parts-compare`)에서만 빠졌다(`noMockup` + 이유가 `fixtures-*-meta.ts`에 있음).
 
 시안에 짝이 없어 대조하지 못한 것(`noMockup`): Segmented `scas`(시안에 쓰는 자리 없음) · Combobox(시안에 열린 모양 없음) · StatusDot(시안 `.dot`은 칩 안 점) · DataGrid · Pagination(시안 S01은 「페이지 1 / 9」 입력형) · InlineError(시안에 없음, 그려야 함) · DialogShell(화면 덮개라 진열 상자에 못 넣음 — 대조 생략) · EvidenceImage · CompareView(시안은 SVG 그림, 앱은 가짜 그림) · ZoneBands · PointPairs · ScanOverlay(멈춘 모양이 안 보이는 선). 값은 시안 CSS에서 옮겼고 단위 테스트가 모양 규칙을 지킨다.
+
+### r2 부품 대조 (StatTile · CheckList · AiSuggestion · HeatOverlay · Stepper)
+
+대조 통과(계산값 + 스크린샷 차이 0, 예외 없음): S01-41 · S01-43 StatTile(기본 + 막대 자식, 번짐 brand — 안쪽 막대는 AiProgress, 태그만 통일) · S01-42 StatTile `warn` · S01-44 Stepper(교차 검증 칸) · S03-41 AiSuggestion. 상자 맥락: StatTile 은 시안이 flex 줄 높이 98.38 로 늘어나는 자식이라 진열 상자를 `grid h-[98.38px]`로, Stepper 는 시안이 grid 칸이라 상자를 grid 로 만든다(부품이 아니라 부모 맥락).
+시안에 짝이 없어 대조하지 못한 것(`noMockup`): CheckList(S02-41 · S07-41 — 시안은 `.check` 줄만 있고 묶음 요소가 없음, 줄 모양은 단위 테스트) · HeatOverlay(S06-41 `match` · S01-45 `spots` — 시안은 호출마다 그라데이션 id 가 다른 인라인 SVG, `spots`는 밑창 그림 안의 그룹). 상태는 구현됨.
+대조하지 못한 변형(값만 옮김): StatTile `ai` 톤 · `danger` 톤 · `sm`(S09) · `xs`(S14) · 번짐 .16/.22 는 5가지(기본 .14 · brand .18 · ai .2 · warn .2 · danger .2)로 모음(시안 화면마다 .14~.22 를 조금씩 달리 줌) · `valueTone="danger"`, AiSuggestion 확신도 · `low` · `actionTone="warn"`(시안 S12 · S03 「반전」), Stepper `width=18`, CheckList 전부.
 
 ### 알려진 의도적 차이(되돌리지 말 것)
 

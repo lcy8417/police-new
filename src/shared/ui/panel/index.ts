@@ -5,3 +5,4 @@ export { ScasShell, type ScasShellProps, type ScasMenuGroup, type ScasMenuItem, 
 export { SearchForm, type SearchFormProps, type SearchFormRow } from "./SearchForm"
 export { Crumb, type CrumbProps } from "./Crumb"
 export { PageHead, type PageHeadProps } from "./PageHead"
+export { Stepper, type StepperProps } from "./Stepper"

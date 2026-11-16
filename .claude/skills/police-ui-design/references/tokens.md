@@ -79,6 +79,8 @@
 | `--t-ai-pulse` | `rgba(45, 212, 191, 0.55)` | AiTag 맥박 점 키프레임 `ai-pulse` |
 | `--t-ai-scan-glow` | `rgba(45, 212, 191, 0.6)` | ScanOverlay 스캔선 번짐 `0 0 12px 3px`(시안 `.fx-scan`) |
 | `--t-ai-shine` | `#b9fff4` | AiProgress `running` 반짝임 띠(시안 `.fx-bar.run` 그라데이션 가운데) |
+| `--t-stat-glow` · `-brand` · `-ai` · `-warn` · `-danger` | `rgba(74, 158, 255, 0.14)` · `0.18` · `rgba(45, 212, 191, 0.2)` · `rgba(245, 158, 11, 0.2)` · `rgba(239, 68, 68, 0.2)` | StatTile 모서리 번짐(시안 `.stat::after` 의 `--glow`) |
+| `--t-heat-yellow` | `#facc15` | HeatOverlay `match` 약한 일치 번짐(시안 S06 heatSvg) |
 | `--t-picon-bg` (역할 이름 `--color-picon`, `bg-picon`) | `#f3f5f8` | PatternIcon 바탕 밝은 종이색(시안 `.picon`) |
 | `--t-emblem-from` · `--t-emblem-to` · `--t-emblem-stroke` | `#1f3f73` · `#0b1730` · `#7fb6ff` | ScasShell 방패 배지 바탕 그라데이션 · 바깥 선(시안 `.emblem`) |
 | `--t-dot-grid` · `--t-glow-orb` | `rgba(74, 158, 255, 0.14)` · `rgba(37, 99, 235, 0.1)` | ScasShell 내용 영역 점 격자 · 번짐 빛(시안 `.content::before/::after`) |

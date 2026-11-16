@@ -61,6 +61,13 @@
   --t-emblem-stroke: #7fb6ff; /* 방패 바깥 선 */
   --t-dot-grid: rgba(74, 158, 255, 0.14); /* 내용 영역 점 격자(.content::before) */
   --t-glow-orb: rgba(37, 99, 235, 0.1); /* 내용 영역 번짐 빛(.content::after) */
+  /* StatTile 모서리 번짐(시안 `.stat::after` 의 `--glow`). 기본 · 화면이 `style="--glow:…"` 로 준 5가지 */
+  --t-stat-glow: rgba(74, 158, 255, 0.14); /* 시안 .stat 기본 */
+  --t-stat-glow-brand: rgba(74, 158, 255, 0.18);
+  --t-stat-glow-ai: rgba(45, 212, 191, 0.2);
+  --t-stat-glow-warn: rgba(245, 158, 11, 0.2);
+  --t-stat-glow-danger: rgba(239, 68, 68, 0.2);
+  --t-heat-yellow: #facc15; /* HeatOverlay 약한 일치 번짐(시안 S06 heatSvg) */
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
