@@ -13,6 +13,7 @@
 ## Global Constraints
 
 - 작업 위치: 워크트리 `../police-new-scas-mock`, 브랜치 `feat/scas-screens-mock`(기준 `feat/pilot-db-a`의 이 계획 커밋).
+- 개발 서버 포트: **5210 고정**(`npm run dev -- --port 5210 --strictPort`). 5173 · 5185~5197은 다른 작업이 사용 중이니 띄우거나 끄지 않는다. UI 검사(`check:ui:visual`)는 기존대로 5180.
 - 지금 페이지 · 기능 · 위젯 · 엔티티 파일 무변경. 바뀌어도 되는 경로: `src/widgets/<새 화면 폴더>/**`, `src/pages/dev/**`, `src/shared/ui/{kit,viewer,ai,panel}/**`, `src/shared/lib/screen-status.ts`(새 파일), `src/App.jsx`(진열 라우트 추가만), `src/index.css`(토큰 추가만), `.claude/skills/police-ui-design/**`, `docs/**`, `scripts/ui/**`, `tests/ui/**`, `src/assets/**`(추가만).
 - 색은 토큰만. 새 코드 hex 0 · 인라인 색 0 · 컴포넌트 옆 `.css` 0. 인라인 `style`은 좌표 파생 위치값만.
 - 위젯 · 진열 페이지에서 `backendFetch` · `@/services/*` · `@/entities/*/api` 가져오기 0. 엔티티 **타입**(`@/entities/<x>` 배럴의 type)은 가져와도 된다.
@@ -78,7 +79,7 @@ docs/superpowers/sprint/2026-11-16-scas-screens-mock/*.md     # 갈래 노트
 - [ ] **Step 4: 부품 구현** — 정본 작업 순서(시안 계산값 → 토큰 → `partAttrs`)대로. 시안에 hex만 있는 색은 `src/index.css`에 토큰 추가 + `references/tokens.md` 한 줄. 테스트 통과.
 - [ ] **Step 5: 진열 틀 테스트 먼저** — `frame/DevScreenFrame.test.tsx`: `?case=error면 useDevCase가 error를 준다`, `없는 case 값이면 fallback`, `?as=readonly면 features가 SHOE_VIEW만`. 실패 확인 → 구현 → 통과.
 - [ ] **Step 6: 라우트 · 빈 페이지 11개 · 목차** — 각 `sNN/SNNDevPage.tsx`는 `DevScreenFrame` 안에 「준비 중」 한 줄. 목차는 11개 링크. `src/App.jsx`에 라우트 추가(기존 줄 무변경).
-- [ ] **Step 7: 확인** — `npm run dev` 후 `/dev`, `/dev/s01?case=loading&as=readonly`가 로그인 없이 열림. `npx tsc --noEmit` · `npx vitest run` · `npm run build` · `npm run check:ui:static` 통과.
+- [ ] **Step 7: 확인** — `npm run dev -- --port 5210 --strictPort`(5173 등 51xx는 다른 작업이 사용 중 — 이 워크트리는 **5210 고정**, `vite.config.js`는 바꾸지 않음) 후 `http://localhost:5210/dev`, `/dev/s01?case=loading&as=readonly`가 로그인 없이 열림. `npx tsc --noEmit` · `npx vitest run` · `npm run build` · `npm run check:ui:static` 통과.
 - [ ] **Step 8: 커밋** — `feat(dev): 시안 진열 틀 · ScasShell · SearchForm · Crumb · PageHead`
 
 ---
@@ -244,4 +245,4 @@ docs/superpowers/sprint/2026-11-16-scas-screens-mock/*.md     # 갈래 노트
 - [ ] **Step 5:** 일괄 교차 검수 1회 — 새 검토 에이전트(가장 강한 모델)에게 spec · 이 계획 · 브랜치 diff를 주고 spec §10 · Review Focus 기준 검수. 지적마다 실제 코드와 대조해 오탐 제거 → 진짜 결함은 재현 테스트 먼저 실패 확인 → 한 번에 수정.
 - [ ] **Step 6:** 전체 검증 1회 — `npm run check:ui` · `npx tsc --noEmit` · `npx vitest run` · `npm run build` · 변경 파일 eslint.
 - [ ] **Step 7:** 노트를 모아 사용자 보고(뺀 요소 목록 · 대조 남은 차이 · F 자리표). 커밋 `feat(screens): 11개 화면 시안 연결 · 마감 검수`.
-- [ ] **Step 8:** 사용자에게 `npm run dev` → `http://localhost:5173/dev` 안내.
+- [ ] **Step 8:** 워크트리에서 `npm run dev -- --port 5210 --strictPort`를 백그라운드로 띄우고 사용자에게 `http://localhost:5210/dev` 안내(다른 작업의 5173은 건드리지 않음).
