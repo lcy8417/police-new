@@ -1,6 +1,7 @@
 import type { FeatureCode } from "@/entities/session"
 import type { Shoe } from "@/entities/shoe"
 import type { ScreenStatus } from "@/shared/lib/screen-status"
+import type { FilterGroup } from "@/shared/ui/kit"
 
 /** 검색 폼 값. 라디오는 문자열 한 값, 값이 없으면 빈 문자열. 모두 제어형(화면이 보관하지 않는다). */
 export interface ShoeDbFilters {
@@ -108,6 +109,44 @@ export interface ShoeAiDetail {
   conditions: { ok: string[]; warn?: string }
 }
 
+/** (r3) 카드 크기 */
+export type ShoeCardSize = "작게" | "보통" | "크게"
+
+/** (r3) 목록 위 빠른 찾기 — FilterBar 값 그대로(제어형). 화류번호 · 모델명 · 상표 검색 + 칩 */
+export interface ShoeDbQuickFilter {
+  query: string
+  onQueryChange: (query: string) => void
+  groups: readonly FilterGroup[]
+  onGroupChange: (key: string, values: string[]) => void
+  onClear: () => void
+  /** 걸러진 개수 */
+  resultCount: number
+  /** 거르기 전 개수 */
+  total: number
+}
+
+/**
+ * (r3) 카드 자동 넘기기. 강조 칸만 옮기고 아무것도 열지 않는다(Enter 가 강조된 카드의 창을 연다).
+ * 상태(모드 · 간격 · 재생 · 위치)는 모두 진열 페이지가 `useAutoPlay` 로 들고 있다.
+ */
+export interface ShoeDbAutoPlay {
+  mode: "manual" | "auto"
+  onModeChange: (mode: "manual" | "auto") => void
+  intervalMs: number
+  onIntervalChange: (ms: number) => void
+  playing: boolean
+  onPlayPause: () => void
+  /** 전체(모든 쪽) 안에서의 위치 */
+  position: { index: number; total: number }
+  remainingRatio: number
+  /** 강조할 카드의 화류번호(이 쪽에 없으면 아무것도 강조하지 않는다) */
+  highlightId?: string
+  /** ← → 로 한 칸씩 */
+  onStep: (delta: 1 | -1) => void
+  /** 카드 위에 마우스가 있는 동안 멈춘다 */
+  onHoverChange: (hovering: boolean) => void
+}
+
 export interface ShoeDbScreenProps {
   /** 신규 · 파일럿 요소 보이기(기본 true). 끄면 지금 기능만 남는다 */
   showPlus?: boolean
@@ -157,4 +196,15 @@ export interface ShoeDbScreenProps {
   onReplaceImage: () => void
   /** 이미지 회전 */
   onRotateImage: () => void
+
+  /** (r3) 빠른 찾기 — 없으면 줄이 없다 */
+  quick?: ShoeDbQuickFilter
+  /** (r3) 카드 크기 — onCardSizeChange 가 있을 때 고르기가 보인다 */
+  cardSize?: ShoeCardSize
+  onCardSizeChange?: (size: ShoeCardSize) => void
+  /** (r3) 목록보기 표에서 숨긴 열 key(화류번호는 못 숨김) */
+  hiddenColumns?: readonly string[]
+  onHiddenColumnsChange?: (keys: string[]) => void
+  /** (r3) 카드 자동 넘기기 — 문양보기에서만 */
+  auto?: ShoeDbAutoPlay
 }

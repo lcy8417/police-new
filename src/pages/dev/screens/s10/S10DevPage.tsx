@@ -3,8 +3,11 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import type { Shoe } from "@/entities/shoe";
+import { useAutoPlay } from "@/shared/lib/use-auto-play";
+import type { FilterGroup } from "@/shared/ui/kit";
 import {
   ShoeDbScreen,
+  type ShoeCardSize,
   type ShoeDbFilters,
   type ShoeDbView,
   type ShoeDialogState,
@@ -18,18 +21,28 @@ import {
   useDevPlus,
   useDevViewer,
 } from "../frame";
+import { usePersistedState } from "./use-persisted-state";
 import {
   makeS10AiDetails,
-  makeS10Shoes,
-  S10_CARD_INFO,
+  makeS10AllShoes,
+  makeS10CardInfo,
   S10_STAGE_SUMMARY,
   S10_DUPLICATE_MESSAGE,
   S10_EMPTY_FILTERS,
   S10_OFFICES,
   S10_PAGE_SIZE,
-  S10_TOTAL,
   type S10Case,
 } from "./mock-cases";
+
+const isStringArray = (v: unknown): v is string[] =>
+  Array.isArray(v) && v.every((x) => typeof x === "string");
+const isCardSize = (v: unknown): v is ShoeCardSize =>
+  v === "작게" || v === "보통" || v === "크게";
+const isInterval = (v: unknown): v is number =>
+  typeof v === "number" && v >= 500 && v <= 10000;
+
+type QuickValues = { status: string[]; dup: string[] };
+const EMPTY_QUICK: QuickValues = { status: [], dup: [] };
 
 const info = devScreen("s10");
 
@@ -62,7 +75,8 @@ function S10Body({ caseName }: { caseName: S10Case }) {
   const viewer = useDevViewer();
   const showPlus = useDevPlus();
   const [params] = useSearchParams();
-  const [shoes] = React.useState(makeS10Shoes);
+  const [allShoes] = React.useState(makeS10AllShoes);
+  const cardInfo = React.useMemo(() => makeS10CardInfo(allShoes), [allShoes]);
   const [aiDetails] = React.useState(makeS10AiDetails);
   const [filters, setFilters] =
     React.useState<ShoeDbFilters>(S10_EMPTY_FILTERS);
@@ -91,8 +105,61 @@ function S10Body({ caseName }: { caseName: S10Case }) {
           ? "empty"
           : "ready";
 
+  // ---- r3: 빠른 찾기 · 카드 크기 · 열 · 자동 넘기기(모두 이 페이지가 들고 있다) ----
+  const [query, setQuery] = React.useState("");
+  const [quickValues, setQuickValues] = React.useState<QuickValues>(EMPTY_QUICK);
+  const [cardSize, setCardSize] = usePersistedState<ShoeCardSize>("dev.s10.cardSize", "보통", isCardSize);
+  const [hiddenColumns, setHiddenColumns] = usePersistedState<string[]>("dev.s10.hiddenColumns", [], isStringArray);
+  const [intervalMs, setIntervalMs] = usePersistedState<number>("dev.s10.autoInterval", 2000, isInterval);
+  const [autoMode, setAutoMode] = React.useState<"manual" | "auto">("manual");
+
+  // 작업 상태 칩은 신규(+α) 값이라 신규를 끄면 칩도 거르기도 없다. 화류번호 · 모델명 · 상표 검색은 항상 있다.
+  const needle = query.trim().toLowerCase();
+  const filtered = allShoes.filter((s) => {
+    if (needle !== "" && ![s.ftwrId, s.modlNm, s.brandCode].some((t) => (t ?? "").toLowerCase().includes(needle))) return false;
+    if (!showPlus) return true;
+    const info = cardInfo[s.ftwrId];
+    if (quickValues.status.length > 0 && !(info && quickValues.status.includes(info.status))) return false;
+    if (quickValues.dup.length > 0 && info?.mark !== "dup") return false;
+    return true;
+  });
+  const pageRows = filtered.slice((page - 1) * S10_PAGE_SIZE, page * S10_PAGE_SIZE);
+  const pageOf = (index: number) => Math.floor(index / S10_PAGE_SIZE) + 1;
+
+  const autoEnabled = autoMode === "auto" && view === "pattern" && status === "ready" && dialog === null;
+  const player = useAutoPlay({
+    count: filtered.length,
+    intervalMs,
+    enabled: autoEnabled,
+    onStep: (i) => setPage(pageOf(i)),
+  });
+  const hoverPaused = React.useRef(false);
+
+  // 조건을 바꾸면 쪽은 처음으로, 자동 모드는 수동으로(위치가 새 목록과 어긋나지 않게)
+  const afterFilterChange = () => {
+    setPage(1);
+    setAutoMode("manual");
+  };
+
+  const groups: FilterGroup[] = showPlus
+    ? [
+        {
+          key: "status",
+          label: "상태",
+          value: quickValues.status,
+          options: ["문양 대기", "승인 대기", "측면 없음", "AI 확인 필요"].map((v) => ({ value: v, label: v })),
+        },
+        { key: "dup", label: "표시", value: quickValues.dup, options: [{ value: "dup", label: "중복 의심" }] },
+      ]
+    : [];
+  const clearQuick = () => {
+    setQuery("");
+    setQuickValues(EMPTY_QUICK);
+    afterFilterChange();
+  };
+
   const open = (ftwrId: string) => {
-    const shoe = shoes.find((s) => s.ftwrId === ftwrId);
+    const shoe = allShoes.find((s) => s.ftwrId === ftwrId);
     if (!shoe) return;
     setSelectedId(ftwrId);
     setDialog({
@@ -108,7 +175,7 @@ function S10Body({ caseName }: { caseName: S10Case }) {
     if (dialog.mode === "new") {
       if (id.trim() === "")
         return setDialog({ ...dialog, saveError: "신발ID를 입력하세요" });
-      if (shoes.some((s) => s.ftwrId === id))
+      if (allShoes.some((s) => s.ftwrId === id))
         return setDialog({ ...dialog, saveError: S10_DUPLICATE_MESSAGE });
     }
     toast.success(`저장했습니다 (시안): ${id}`);
@@ -120,7 +187,7 @@ function S10Body({ caseName }: { caseName: S10Case }) {
       showPlus={showPlus}
       onPlusAction={() => toast("시안 — 기능 준비 중")}
       stageSummary={S10_STAGE_SUMMARY}
-      cardInfo={S10_CARD_INFO}
+      cardInfo={cardInfo}
       aiDetails={aiDetails}
       status={status}
       errorAt="14:32"
@@ -134,8 +201,8 @@ function S10Body({ caseName }: { caseName: S10Case }) {
       onReset={() => setFilters(S10_EMPTY_FILTERS)}
       view={view}
       onViewChange={setView}
-      shoes={shoes}
-      total={S10_TOTAL}
+      shoes={pageRows}
+      total={filtered.length}
       page={page}
       pageSize={S10_PAGE_SIZE}
       onPageChange={setPage}
@@ -150,6 +217,50 @@ function S10Body({ caseName }: { caseName: S10Case }) {
       onCloseDialog={() => setDialog(null)}
       onReplaceImage={() => toast("이미지를 고릅니다 (시안)")}
       onRotateImage={() => toast("이미지를 90도 돌립니다 (시안)")}
+      quick={{
+        query,
+        onQueryChange: (q) => {
+          setQuery(q);
+          afterFilterChange();
+        },
+        groups,
+        onGroupChange: (key, values) => {
+          setQuickValues((prev) => ({ ...prev, [key]: values }));
+          afterFilterChange();
+        },
+        onClear: clearQuick,
+        resultCount: filtered.length,
+        total: allShoes.length,
+      }}
+      cardSize={cardSize}
+      onCardSizeChange={setCardSize}
+      hiddenColumns={hiddenColumns}
+      onHiddenColumnsChange={setHiddenColumns}
+      auto={{
+        mode: autoMode,
+        onModeChange: (m) => {
+          // 자동으로 바꾸면 강조된 카드가 있는 쪽으로
+          if (m === "auto") setPage(pageOf(player.index));
+          setAutoMode(m);
+        },
+        intervalMs,
+        onIntervalChange: setIntervalMs,
+        playing: player.playing,
+        onPlayPause: () => (player.playing ? player.pause() : player.play()),
+        position: { index: player.index, total: filtered.length },
+        remainingRatio: intervalMs > 0 ? player.remainingMs / intervalMs : 0,
+        highlightId: filtered[player.index]?.ftwrId,
+        onStep: (delta) => (delta > 0 ? player.next() : player.prev()),
+        onHoverChange: (hovering) => {
+          if (hovering && player.playing) {
+            hoverPaused.current = true;
+            player.pause();
+          } else if (!hovering && hoverPaused.current) {
+            hoverPaused.current = false;
+            player.play();
+          }
+        },
+      }}
     />
   );
 }

@@ -136,3 +136,42 @@ export function makeS10Shoes(): Shoe[] {
     outline: [],
   }))
 }
+
+// ---- r3: 전체 536건(쪽 넘김 · 빠른 찾기 · 자동 넘기기가 실제로 움직이도록) ----
+
+const BRANDS = ["나이키", "아디다스", "뉴발란스", "크록스", "컨버스", "푸마"]
+
+/** 첫 16건은 기존 진열 값 그대로, 나머지는 번호가 내려가는 가짜 신발. 문자열 ID 그대로. */
+export function makeS10AllShoes(): Shoe[] {
+  const base = makeS10Shoes()
+  const imgs = ZONES.map((z) => fakeSoleUrl({ kind: "shoe", zones: z }))
+  const rest = Array.from({ length: S10_TOTAL - base.length }, (_, k): Shoe => {
+    const i = base.length + k
+    return {
+      ftwrId: String(303334 - k),
+      ftwrGroupId: `G${String(i % 90).padStart(3, "0")}`,
+      ftwrGroupNm: `${BRANDS[i % BRANDS.length]}-${String(i % 90).padStart(3, "0")}`,
+      modlNm: `${BRANDS[i % BRANDS.length]} 모델 ${200 + (i % 300)}`,
+      brandCode: `B00${(i % 6) + 1}`,
+      makrCode: `M0${(i % 20) + 10}`,
+      colctPlace: i % 2 === 0 ? "신발닷컴" : "공식몰",
+      colctYear: "2025",
+      image: imgs[i % imgs.length],
+      top: i % 3 === 2 ? [] : ["s21b"],
+      mid: i % 3 === 1 ? ["n32_04"] : [],
+      bottom: i % 3 === 2 ? [] : ["s21b"],
+      outline: [],
+    }
+  })
+  return [...base, ...rest]
+}
+
+/** 카드 작업 상태 · AI 표시: 시안 예시 15건은 그대로, 나머지는 값을 돌려 쓴다 */
+export function makeS10CardInfo(shoes: readonly Shoe[]): Record<string, ShoeCardInfo> {
+  const cycle = Object.values(S10_CARD_INFO)
+  const out: Record<string, ShoeCardInfo> = { ...S10_CARD_INFO }
+  shoes.forEach((s, i) => {
+    if (!out[s.ftwrId]) out[s.ftwrId] = cycle[i % cycle.length]
+  })
+  return out
+}

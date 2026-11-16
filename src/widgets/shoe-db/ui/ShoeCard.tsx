@@ -44,23 +44,33 @@ interface ShoeCardProps {
   hasPattern: boolean
   info?: ShoeCardInfo
   onOpen: (ftwrId: string) => void
+  /** (r3) 사진 칸 높이 클래스 — 카드 크기 */
+  imageClass?: string
+  /** (r3) 자동 넘기기가 가리키는 카드(파란 윤곽 · 열지는 않는다) */
+  highlighted?: boolean
 }
 
-export function ShoeCard({ shoe, selected, hasPattern, info, onOpen }: ShoeCardProps) {
+export function ShoeCard({ shoe, selected, hasPattern, info, onOpen, imageClass = "h-[92px]", highlighted = false }: ShoeCardProps) {
   const status = info ? STATUS_CLASS[info.status] : null
   return (
     // 카드 어디를 눌러도 열린다(시안: 카드 클릭 = 같은 자리 레이어 창). 키보드는 안쪽 버튼의 눌림이 여기로 올라온다.
     <div
       onClick={() => onOpen(shoe.ftwrId)}
+      data-shoe-id={shoe.ftwrId}
+      aria-current={highlighted ? "true" : undefined}
       className={cn(
         "grid min-w-0 cursor-pointer gap-[4px] rounded-[8px] border border-solid p-[4px]",
         selected ? "border-brand bg-brand-bg" : "border-line-2 bg-panel-2",
+        highlighted && "outline-2 outline-offset-1 outline-brand",
       )}
     >
       <button
         type="button"
         aria-label={`${shoe.ftwrId} 열기`}
-        className="relative flex h-[92px] cursor-pointer items-center justify-center overflow-hidden rounded-[6px] border border-solid border-border bg-canvas p-0"
+        className={cn(
+          "relative flex cursor-pointer items-center justify-center overflow-hidden rounded-[6px] border border-solid border-border bg-canvas p-0",
+          imageClass,
+        )}
       >
         {shoe.image && <img src={shoe.image} alt="" className="size-full object-contain" />}
         {info?.mark !== undefined && (

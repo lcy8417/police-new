@@ -3,11 +3,26 @@ import * as React from "react"
 import type { Shoe } from "@/entities/shoe"
 import { cn } from "@/shared/lib/utils"
 import { FEATURES } from "@/entities/session"
-import { Button, Chip, Combobox, DataGrid, Field, InlineError, Pagination, RadioRow, Segmented, type DataGridColumn } from "@/shared/ui/kit"
+import {
+  AutoPlayControl,
+  Button,
+  Chip,
+  ColumnPicker,
+  Combobox,
+  DataGrid,
+  Field,
+  FilterBar,
+  InlineError,
+  Pagination,
+  RadioRow,
+  Segmented,
+  ViewCountSwitch,
+  type DataGridColumn,
+} from "@/shared/ui/kit"
 import { ButtonBar, Crumb, PageHead, Panel, SearchForm, type SearchFormRow } from "@/shared/ui/panel"
 import { SoleThumb } from "@/shared/ui/viewer"
 
-import type { ShoeDbFilters, ShoeDbScreenProps } from "../model/types"
+import type { ShoeCardSize, ShoeDbFilters, ShoeDbScreenProps } from "../model/types"
 import { ShoeCard } from "./ShoeCard"
 import { ShoeInfoDialog } from "./ShoeInfoDialog"
 import { StageStrip } from "./StageStrip"
@@ -35,6 +50,16 @@ const PATTERN_INPUT_OPTIONS = [
   { value: "out", label: "미입력" },
 ]
 
+// (r3) 카드 크기 → 한 줄 카드 수 · 사진 높이(클래스는 통째로 적어야 Tailwind 가 만든다)
+const CARD_SIZES: readonly ShoeCardSize[] = ["작게", "보통", "크게"]
+const CARD_SIZE_STYLE: Record<ShoeCardSize, { grid: string; image: string }> = {
+  작게: { grid: "grid-cols-[repeat(12,minmax(0,1fr))]", image: "h-[64px]" },
+  보통: { grid: "grid-cols-[repeat(9,minmax(0,1fr))]", image: "h-[92px]" },
+  크게: { grid: "grid-cols-[repeat(6,minmax(0,1fr))]", image: "h-[150px]" },
+}
+const LOCKED_COLUMN = "ftwrId"
+const INTERACTIVE = "button, a, input, select, textarea, label, [role='button'], [contenteditable='true']"
+
 const hasPattern = (s: Shoe) => s.top.length + s.mid.length + s.bottom.length + s.outline.length > 0
 
 export function ShoeDbScreen(props: ShoeDbScreenProps) {
@@ -42,6 +67,52 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
   const { view, onViewChange, shoes, total, page, pageSize, onPageChange, selectedId, onOpenShoe, onRegister, dialog } = props
 
   const { showPlus = true, onPlusAction, stageSummary, cardInfo, aiDetails } = props
+  const { quick, cardSize = "보통", onCardSizeChange, hiddenColumns = [], onHiddenColumnsChange, auto } = props
+  const autoOn = auto?.mode === "auto" && view === "pattern" && status === "ready" && !dialog
+  const autoRef = React.useRef(auto)
+  const shoesRef = React.useRef(shoes)
+  const onOpenRef = React.useRef(onOpenShoe)
+  React.useEffect(() => {
+    autoRef.current = auto
+    shoesRef.current = shoes
+    onOpenRef.current = onOpenShoe
+  })
+
+  // (r3) 자동 모드 키: Space 재생/일시정지 · ← → 한 칸 · Enter 강조된 카드 열기. 글자 칸 · 버튼 위에서는 건드리지 않는다.
+  React.useEffect(() => {
+    if (!autoOn) return
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement | null)?.closest?.(INTERACTIVE)) return
+      const a = autoRef.current
+      if (!a) return
+      if (e.key === " ") {
+        e.preventDefault()
+        a.onPlayPause()
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault()
+        a.onStep(1)
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault()
+        a.onStep(-1)
+      } else if (e.key === "Enter" && a.highlightId) {
+        e.preventDefault()
+        onOpenRef.current(a.highlightId)
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [autoOn])
+
+  // 강조된 카드가 보이게 스크롤(jsdom 에는 scrollIntoView 가 없다)
+  const highlightId = autoOn ? auto?.highlightId : undefined
+  const gridRef = React.useRef<HTMLDivElement>(null)
+  React.useEffect(() => {
+    if (!highlightId) return
+    const el = Array.from(gridRef.current?.querySelectorAll<HTMLElement>("[data-shoe-id]") ?? []).find(
+      (n) => n.dataset.shoeId === highlightId,
+    )
+    if (el && typeof el.scrollIntoView === "function") el.scrollIntoView({ block: "nearest" })
+  }, [highlightId])
   // 신발정보관리 창이 뒤 목록 위에 깔릴 칸(시안: 화면 칸 안의 절대 위치)
   const [layerHost, setLayerHost] = React.useState<HTMLDivElement | null>(null)
 
@@ -102,7 +173,7 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
       : []),
   ]
 
-  const columns: DataGridColumn<Shoe>[] = [
+  const allColumns: DataGridColumn<Shoe>[] = [
     {
       key: "image",
       header: "바닥",
@@ -117,6 +188,19 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
     { key: "year", header: "수집연도", render: (s) => s.colctYear ?? "" },
     { key: "pattern", header: "문양", render: (s) => <Chip>{hasPattern(s) ? "입력" : "미입력"}</Chip> },
   ]
+
+  // (r3) 열 고르기: 숨긴 열만 빼고 SCAS 순서 그대로, 화류번호는 못 숨긴다
+  const columns = allColumns.filter((c) => c.key === LOCKED_COLUMN || !hiddenColumns.includes(c.key))
+  const pickerColumns = allColumns.map((c) => ({
+    key: c.key,
+    label: typeof c.header === "string" ? c.header : c.key,
+    locked: c.key === LOCKED_COLUMN,
+  }))
+  const handleColumnsChange = (keys: string[]) =>
+    onHiddenColumnsChange?.(allColumns.filter((c) => !keys.includes(c.key)).map((c) => c.key))
+  const quickActive = quick !== undefined && (quick.query.trim() !== "" || quick.groups.some((g) => g.value.length > 0))
+  const quickEmpty = status === "ready" && quickActive && quick.resultCount === 0
+  const sizeStyle = CARD_SIZE_STYLE[cardSize]
 
   const toolbar = (
     <ButtonBar>
@@ -173,9 +257,24 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
         <InlineError message="신발 목록을 불러오지 못했습니다" at={errorAt} onRetry={onRetry} />
       </div>
     )
+  } else if (quickEmpty) {
+    // 걸러서 0건 — 조회 실패(다시) · 데이터 없음(결과 없음)과 다른 안내
+    body = (
+      <div role="status" className="grid justify-items-center gap-[8px] px-[14px] py-[24px] text-[12.5px] text-muted-foreground">
+        <span>조건에 맞는 항목 없음</span>
+        <Button size="sm" onClick={quick.onClear}>
+          조건 지우기
+        </Button>
+      </div>
+    )
   } else if (view === "pattern" && status === "ready") {
     body = (
-      <div className="grid grid-cols-[repeat(9,minmax(0,1fr))] gap-[8px] px-[14px] py-[10px]">
+      <div
+        ref={gridRef}
+        onMouseEnter={auto ? () => auto.onHoverChange(true) : undefined}
+        onMouseLeave={auto ? () => auto.onHoverChange(false) : undefined}
+        className={cn("grid gap-[8px] px-[14px] py-[10px]", sizeStyle.grid)}
+      >
         {shoes.map((s) => (
           <ShoeCard
             key={s.ftwrId}
@@ -184,6 +283,8 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
             hasPattern={hasPattern(s)}
             info={showPlus ? cardInfo?.[s.ftwrId] : undefined}
             onOpen={onOpenShoe}
+            imageClass={sizeStyle.image}
+            highlighted={autoOn && s.ftwrId === auto?.highlightId}
           />
         ))}
       </div>
@@ -206,6 +307,48 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
             <StageStrip summary={stageSummary} />
           </div>
         )}
+        {(status === "ready" || status === "empty") && (quick || onCardSizeChange || auto || onHiddenColumnsChange) ? (
+          <div className="grid gap-[8px] border-b border-solid border-line-2 px-[14px] py-[8px]">
+            {quick ? (
+              <FilterBar
+                query={quick.query}
+                onQueryChange={quick.onQueryChange}
+                filters={quick.groups}
+                onFilterChange={quick.onGroupChange}
+                onClear={quick.onClear}
+                resultCount={quick.resultCount}
+                total={quick.total}
+                searchPlaceholder="화류번호 · 모델명 · 상표"
+                partId="S10-quick"
+              />
+            ) : null}
+            <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[6px]">
+              {view === "pattern" && onCardSizeChange ? (
+                <ViewCountSwitch label="카드 크기" options={CARD_SIZES} value={cardSize} onChange={onCardSizeChange} />
+              ) : null}
+              {view === "pattern" && auto ? (
+                <AutoPlayControl
+                  mode={auto.mode}
+                  onModeChange={auto.onModeChange}
+                  intervalMs={auto.intervalMs}
+                  onIntervalChange={auto.onIntervalChange}
+                  playing={auto.playing}
+                  onPlayPause={auto.onPlayPause}
+                  position={auto.position}
+                  remainingRatio={auto.remainingRatio}
+                />
+              ) : null}
+              {view === "list" && onHiddenColumnsChange ? (
+                <ColumnPicker
+                  columns={pickerColumns}
+                  visible={columns.map((c) => c.key)}
+                  onChange={handleColumnsChange}
+                  className="ml-auto"
+                />
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         <div className="max-w-full overflow-x-auto">{body}</div>
         {(status === "ready" || status === "empty") && (
           <Pagination total={status === "empty" ? 0 : total} page={page} pageSize={pageSize} hasNext={page * pageSize < total} onPageChange={onPageChange} />
