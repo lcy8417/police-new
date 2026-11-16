@@ -45,10 +45,11 @@ export function CropFrame({ rect, sizeLabel, children }: { rect: PctInset; sizeL
       className="pointer-events-none absolute border-[1.5px] border-solid border-brand [box-shadow:0_0_0_2000px_color-mix(in_srgb,var(--t-bg)_62%,transparent)]"
       style={insetStyle(rect)}
     >
-      <span className="absolute inset-y-0 left-1/3 w-px bg-foreground/30" />
-      <span className="absolute inset-y-0 left-2/3 w-px bg-foreground/30" />
-      <span className="absolute inset-x-0 top-1/3 h-px bg-foreground/30" />
-      <span className="absolute inset-x-0 top-2/3 h-px bg-foreground/30" />
+      {/* 3분할선: 회색 사진 위에서도 보이게 /55(밝은 팔레트에서 /30 은 거의 안 보였다) */}
+      <span className="absolute inset-y-0 left-1/3 w-px bg-foreground/55" />
+      <span className="absolute inset-y-0 left-2/3 w-px bg-foreground/55" />
+      <span className="absolute inset-x-0 top-1/3 h-px bg-foreground/55" />
+      <span className="absolute inset-x-0 top-2/3 h-px bg-foreground/55" />
       {corners.map(([pos, key]) => (
         <span key={key} className={cn("absolute size-[14px] border-[3px] border-solid border-foreground", pos)} />
       ))}
