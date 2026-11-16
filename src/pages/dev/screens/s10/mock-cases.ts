@@ -35,6 +35,29 @@ export const S10_EMPTY_FILTERS: ShoeDbFilters = {
 
 export const S10_DUPLICATE_MESSAGE = "이미 등록된 번호입니다"
 
+// ── 신발 편집 판(11/17 갈래 D) — 전체 문양 목록 · AI 문양 추출 제안 ──
+
+/** 종류 탭 → 문양 그림 폴더(docs/pattern-data-model.md §3 — 「윤곽」만 폴더가 `윤곽선`) */
+const KIND_FOLDER: Record<string, string> = { 무늬: "무늬", 선: "선", 윤곽: "윤곽선", 다각: "다각", 삼각: "삼각", 사각: "사각", 원: "원", 항목: "항목" }
+// 파일 이름만 읽는다(불러오지 않음 — 진열 전용)
+const PATTERN_FILES = Object.keys(import.meta.glob("/src/assets/Patterns/*/*.png"))
+
+/** 종류별 전체 문양 이름(폴더 그대로 · 이름순) — 신발 편집 판 「문양 목록」 */
+export const S10_LIBRARY: Record<string, string[]> = Object.fromEntries(
+  Object.entries(KIND_FOLDER).map(([kind, folder]) => [
+    kind,
+    PATTERN_FILES.filter((f) => f.split("/").at(-2) === folder)
+      .map((f) => (f.split("/").at(-1) ?? "").replace(/\.png$/, ""))
+      .sort(),
+  ]),
+)
+
+/** AI 문양 추출이 제안하는 부위별 문양(진열 값) */
+export const S10_AI_SUGGEST = { top: ["n32_04"], mid: ["n21_05"], bottom: ["n32_04"], outline: ["s10c"] } as const
+
+/** AI 문양 추출 흉내 시간(ms) */
+export const S10_EXTRACT_MS = 1200
+
 const ZONES: ZoneTriple[] = [
   ["herring", "herring", "herring"],
   ["grid", "dots", "grid"],

@@ -48,10 +48,16 @@ interface ShoeCardProps {
   imageClass?: string
   /** (r3) 자동 넘기기가 가리키는 카드(파란 윤곽 · 열지는 않는다) */
   highlighted?: boolean
+  /** (신발 DB 패널) 조용한 카드 — 고르기 네모를 빼고, AI 표식은 사람이 봐야 할 때만(읽는 중 · 중복 의심 · 확신도 낮음) */
+  quiet?: boolean
 }
 
-export function ShoeCard({ shoe, selected, hasPattern, info, onOpen, imageClass = "h-[92px]", highlighted = false }: ShoeCardProps) {
+/** 조용한 카드에서도 남기는 AI 표식 — 사람이 확인해야 하는 것만 */
+const needsEye = (mark: ShoeCardMark) => mark === "scan" || mark === "dup" || mark < 0.7
+
+export function ShoeCard({ shoe, selected, hasPattern, info, onOpen, imageClass = "h-[92px]", highlighted = false, quiet = false }: ShoeCardProps) {
   const status = info ? STATUS_CLASS[info.status] : null
+  const mark = info?.mark !== undefined && (!quiet || needsEye(info.mark)) ? info.mark : undefined
   return (
     // 카드 어디를 눌러도 열린다(시안: 카드 클릭 = 같은 자리 레이어 창). 키보드는 안쪽 버튼의 눌림이 여기로 올라온다.
     <div
@@ -73,14 +79,14 @@ export function ShoeCard({ shoe, selected, hasPattern, info, onOpen, imageClass 
         )}
       >
         {shoe.image && <img src={shoe.image} alt="" className="size-full object-contain" />}
-        {info?.mark !== undefined && (
+        {mark !== undefined && (
           <span data-plus="" className="contents">
-            <CardMark mark={info.mark} />
+            <CardMark mark={mark} />
           </span>
         )}
       </button>
       <span className="flex items-center gap-[4px]">
-        <span aria-hidden="true" className="size-[11px] rounded-[3px] border border-solid border-line-3" />
+        {quiet ? null : <span aria-hidden="true" className="size-[11px] rounded-[3px] border border-solid border-line-3" />}
         <span className="truncate font-code text-[11.5px] text-foreground">{shoe.ftwrId}</span>
       </span>
       {info && status ? (

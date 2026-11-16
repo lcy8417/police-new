@@ -1,5 +1,8 @@
 export { ShoeDbScreen } from "./ui/ShoeDbScreen"
+export { ShoeDbPanel, type ShoeDbPanelProps } from "./ui/ShoeDbPanel"
 export type {
+  ShoeDbPanelExtra,
+  ShoeExtractState,
   ShoeDbScreenProps,
   ShoeDbFilters,
   ShoeDbView,

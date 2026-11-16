@@ -313,11 +313,10 @@ export function S01DevPage() {
     <CaseWindowFrame
       label="신발 DB"
       onClose={closeShoe}
-      head={<WindowHead mark="신" title="신발 DB" subtitle="신발 문양 관리" onClose={closeShoe} />}
+      head={<WindowHead mark="신" title="신발 DB" onClose={closeShoe} />}
     >
-      <div className="p-4">
-        <S10Content caseName="ready" />
-      </div>
+      {/* 패널 머리가 제목 — 본문은 컴팩트 거르기 · 카드 · 큰 편집 판(11/17 갈래 D) */}
+      <S10Content caseName="ready" inPanel />
     </CaseWindowFrame>
   ) : null
 

@@ -44,6 +44,31 @@ export interface ShoeDialogState {
   saveError?: string
   /** 처음 보일 탭(기본 기본정보) */
   initialTab?: "basic" | "pattern"
+  /** (패널 편집 창) AI 문양 추출이 넣은 문양 이름 — 사람이 확인하기 전까지 AI 테로 보인다 */
+  aiNames?: readonly string[]
+}
+
+/** (패널 편집 창) AI 문양 추출 상태 */
+export type ShoeExtractState = "idle" | "running" | "done"
+
+/**
+ * 신발 DB 슬라이드 패널(사건관리 `?shoe=1`) 갈래 — 목록 위 컴팩트 거르기 · 큰 편집 판.
+ * 자동 넘기기 · 엑셀 · 초기화 같은 군더더기는 없다(11/17 사용자 「신발도 자동 이런 건 없어도 되고」).
+ */
+export interface ShoeDbPanelExtra {
+  /** 종류별 전체 문양 이름(문양 목록 탭 · 격자) */
+  library: Record<string, readonly string[]>
+  /** AI 문양 추출 상태 */
+  extractState: ShoeExtractState
+  /** AI 문양 추출(밑창 그림 → 상 · 중 · 하 제안) */
+  onExtract: () => void
+  /** AI 가 넣은 문양을 모두 확인(AI 테 지움) */
+  onConfirmAi: () => void
+  /** 편집 창 이전 · 다음 신발(목록 순서). 없으면 단추가 꺼진다 */
+  onPrevShoe?: () => void
+  onNextShoe?: () => void
+  /** 승인(승인 담당만) */
+  onApprove: () => void
 }
 
 export interface ShoeOfficeItem {

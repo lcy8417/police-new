@@ -110,6 +110,10 @@
 | S01 사건관리 목록 표 줄(행 높이 64 · 촘촘 36) | ListRow | 그대로 | 같은 격자 클래스로 칸 정렬(숫자 오른쪽 · 글자 왼쪽) |
 | S01 사건 진행 단계 알약(이미지 확인 중 · 검증요청 · 교차 검증 · 감정서 · 완료) | StatePill | 그대로 | 「결재」 글자 안 씀(11/17 사용자 「결재는 없어」) |
 | S01 거르기 줄 끝 「+ 등록」 · 행 끝 단계 단추 하나(검색 · 확인 · 검증요청 · 검증) | WorkbenchButton | 그대로 | 등록 primary md, 행 단추 sm |
+| S01 신발 DB 패널 거르기 한 줄(상태 칩 · 중복 의심 · 필터 ▾ · 찾기 · + 등록 — SCAS 4열 조회 양식 대신, 11/17 갈래 D) | BoardLid · LidChip · LidChipGroup · LidSeparator · LidResetLink · LidSearch | 그대로 | 사건관리 목록 뚜껑과 같은 결, 상세 조건은 접힌 작은 양식(Field · RadioRow · Combobox) |
+| S01 신발 DB 패널 도구 줄 · 신발 편집 판 단추(승인 · 저장 · ‹ › · AI 문양 추출) | WorkbenchButton · Segmented | 그대로 | 자동/수동 · 엑셀 · 엑셀 일괄 등록 · 초기화 뺌 |
+| S01 신발 편집 판 밑창(원본 · Shoerinsics 이진화 · 보기 조정 · 확대경) | LensBox · ViewControls · PatternIcon | 그대로 | 갈래 A 공용 viewer 부품 그대로 — 먹색 작업판(`data-theme="dark"`), 상중하 경계선은 위젯 안 pointer-events-none 장식 |
+| S01 신발 편집 판 위 줄(← 목록 · 기본정보 · 문양정보 탭) · 문양 목록 칸 머리 · 종류 탭 | UnderlineTabs · PaneHead | 그대로 | 문양 코드 탭 결 |
 
 ## 승인 (spec §8 「만들 부품」 표 = 사용자 승인)
 
