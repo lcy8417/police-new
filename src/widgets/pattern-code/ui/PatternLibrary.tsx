@@ -4,7 +4,7 @@ import { PatternLibrary as LibraryView, type PatternInsertOrigin, type PatternLi
 import { AiProgress } from "@/shared/ui/ai"
 
 import { PALETTE_KINDS, patternName, ZONE_ROWS } from "../model/constants"
-import type { CrimeZones, ExtractedPatternView, ExtractState, PaletteKind } from "../model/types"
+import type { CrimeZones, ExtractedPatternView, ExtractState, PaletteKind, PatternMetaMap } from "../model/types"
 
 export interface PatternLibraryProps {
   kind: PaletteKind
@@ -22,6 +22,10 @@ export interface PatternLibraryProps {
   onInsert: (src: string, origin?: PatternInsertOrigin) => void
   /** 부위의 문양 빼기 */
   onRemove: (zone: PatternZone, index: number) => void
+  /** 문양 카드 덧붙임(확인 전 AI 제안 가르기) — 제안 문양을 목록에서 누르면 빼지 않고 확인한다(3회차 검수) */
+  patternMeta?: PatternMetaMap
+  /** 확인 전 제안 확인 */
+  onConfirmSuggestion?: (zone: PatternZone, index: number) => void
   canEdit: boolean
   /** AI 추출 결과(「AI」 탭) */
   extracted?: readonly ExtractedPatternView[]
@@ -48,6 +52,8 @@ export function PatternLibrary({
   selectedZone,
   onInsert,
   onRemove,
+  patternMeta,
+  onConfirmSuggestion,
   canEdit,
   extracted,
   extractState,
@@ -71,7 +77,8 @@ export function PatternLibrary({
   const noteOf = (name: string) => (codeNote && codeNote.code === name ? codeNote.text : undefined)
   const toggle = (item: PatternLibraryItem) => {
     const at = names.indexOf(item.name)
-    if (at >= 0) onRemove(selectedZone, at)
+    if (at >= 0 && patternMeta?.[selectedZone]?.[item.name]?.status === "suggested" && onConfirmSuggestion) onConfirmSuggestion(selectedZone, at)
+    else if (at >= 0) onRemove(selectedZone, at)
     else onInsert(item.src, tab === "AI" ? "ai" : "palette")
   }
   const tabs = [

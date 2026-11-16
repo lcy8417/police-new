@@ -24,6 +24,8 @@ export interface PatternPeekProps {
   lens?: PatternPeekLens | null
   /** 문양 목록에서 마우스를 올린 문양 */
   pattern: PatternLibraryItem | null
+  /** 확대경을 대는 그림 이름(기본 「현장」 — 신발 편집은 「밑창」, 3회차 검수) */
+  subject?: string
   className?: string
 }
 
@@ -34,7 +36,7 @@ const CELL = "relative grid aspect-square min-w-0 place-items-center overflow-hi
  * 확대경을 켜면: 왼쪽 = 확대경이 본 자리(같은 배율, 마우스를 떼도 마지막 자리 유지 · 「고정」이면 그 자리에 멈춤) | 오른쪽 = 마우스를 올린 문양 크게.
  * 확대경이 꺼져 있으면 문양 미리보기 한 줄만. 표시만 하고 상태는 부르는 쪽이 든다.
  */
-export function PatternPeek({ lens, pattern, className }: PatternPeekProps) {
+export function PatternPeek({ lens, pattern, subject = "현장", className }: PatternPeekProps) {
   const preview = pattern ? (
     <img src={pattern.src} alt={`${pattern.name} 크게`} className="size-full object-contain p-[6px]" />
   ) : (
@@ -55,7 +57,7 @@ export function PatternPeek({ lens, pattern, className }: PatternPeekProps) {
         <span className="grid min-w-0 gap-[2px]">
           {caption ?? (
             <span className="text-[11px] leading-[1.45] text-muted-foreground">
-              문양에 마우스를 올리면 크게 봅니다. 확대경을 켜면 현장 확대 그림과 나란히 놓입니다.
+              문양에 마우스를 올리면 크게 봅니다. {`확대경을 켜면 ${subject} 확대 그림과 나란히 놓입니다.`}
             </span>
           )}
         </span>
@@ -67,7 +69,7 @@ export function PatternPeek({ lens, pattern, className }: PatternPeekProps) {
     <section aria-label="확대 보기" data-slot="pattern-peek" className={cn("flex shrink-0 flex-col gap-[5px]", className)}>
       <div className="flex items-center gap-[6px]">
         <b className="text-[11.5px] font-bold text-foreground">확대 보기</b>
-        <span className="min-w-0 flex-1 truncate text-[10.5px] text-muted-foreground">현장 ↔ 문양 나란히</span>
+        <span className="min-w-0 flex-1 truncate text-[10.5px] text-muted-foreground">{`${subject} ↔ 문양 나란히`}</span>
         <WorkbenchButton
           size="sm"
           variant="ghost"
@@ -84,7 +86,7 @@ export function PatternPeek({ lens, pattern, className }: PatternPeekProps) {
           {lens.spot ? (
             <LensView spot={lens.spot} zoom={lens.zoom} source={lens.source} tune={lens.tune} slot="pattern-peek-lens" className="absolute inset-0" />
           ) : (
-            <span className="px-[8px] text-center text-[10.5px] leading-[1.4] text-muted-foreground">현장 이미지에 확대경을 대세요</span>
+            <span className="px-[8px] text-center text-[10.5px] leading-[1.4] text-muted-foreground">{`${subject} 이미지에 확대경을 대세요`}</span>
           )}
         </div>
         <div className={cn(CELL, "border-line-3 bg-picon")}>{preview}</div>

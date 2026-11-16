@@ -171,8 +171,9 @@ function PatternCard({
           onToggleMust
             ? (e) => {
                 e.preventDefault()
-                // 보기 전용이면 우클릭으로도 필수를 못 바꾼다(1회차 검수 — 잠긴 단추도 우클릭은 들어옴)
-                if (canEdit) onToggleMust()
+                // 보기 전용이면 우클릭으로도 필수를 못 바꾼다(1회차 검수 — 잠긴 단추도 우클릭은 들어옴).
+                // 확인 전 AI 제안도 못 바꾼다 — 검색에 안 들어가는 카드에 표식 없는 숨은 필수가 켜지던 것(3회차 검수)
+                if (canEdit && !sug) onToggleMust()
               }
             : undefined
         }

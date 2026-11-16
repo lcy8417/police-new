@@ -22,6 +22,7 @@ export type {
   SearchRun,
   SearchRunHit,
   SearchRunPattern,
+  SearchRunPending,
   WeightLevel,
   WeightOverrideMap,
   CrimePatternTuple,

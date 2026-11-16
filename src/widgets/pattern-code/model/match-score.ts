@@ -1,8 +1,11 @@
 import type { PatternZone } from "@/entities/pattern"
 
 import { patternName } from "./constants"
-import type { PatternMetaMap, SearchRunHit, SearchRunPattern } from "./types"
+import type { PatternMetaMap, SearchRunHit, SearchRunPattern, SearchRunPending, WeightOverrideMap } from "./types"
 import { WEIGHT_VALUE, type PatternWeightMap, type ZoneTuples } from "./weight-rules"
+
+/** SCAS 개수 칸 기본값(카드가 값 없을 때 보이는 「1」) */
+const DEFAULT_COUNT = "1"
 
 // 후보 신발 문양 점수(docs/superpowers/specs/2026-11-17-pattern-weight-rule-design.md §4).
 //   필수 문양이 하나라도 같은 부위에 없으면 제외,
@@ -101,15 +104,23 @@ export function rankShoes(query: readonly QueryPattern[], shoes: readonly ShoePa
 export function pendingSnapshot(
   zones: ZoneTuples,
   meta: PatternMetaMap | undefined,
-): Partial<Record<PatternZone, { name: string; confidence?: number }[]>> | undefined {
-  const out: Partial<Record<PatternZone, { name: string; confidence?: number }[]>> = {}
+  overrides?: WeightOverrideMap,
+): Partial<Record<PatternZone, SearchRunPending[]>> | undefined {
+  const out: Partial<Record<PatternZone, SearchRunPending[]>> = {}
   let any = false
   for (const z of ZONES) {
     for (const [path] of zones[z]) {
       const name = patternName(path)
       const m = meta?.[z]?.[name]
       if (m?.status !== "suggested") continue
-      ;(out[z] ??= []).push(m.confidence !== undefined ? { name, confidence: m.confidence } : { name })
+      // 확인 전 제안 카드에 바꿔 둔 직접 가중치 · 개수 · 「AI 제안?」도 남긴다(3회차 검수 — 다시 불러오면 사라지던 것)
+      const p: SearchRunPending = { name }
+      if (m.confidence !== undefined) p.confidence = m.confidence
+      const w = overrides?.[z]?.[name]
+      if (w !== undefined) p.weight = w
+      if (m.count !== undefined && m.count !== DEFAULT_COUNT) p.count = m.count
+      if (m.doubtful) p.doubtful = true
+      ;(out[z] ??= []).push(p)
       any = true
     }
   }
@@ -132,7 +143,8 @@ export function runSnapshot(
       p.status = "ai"
       if (m.confidence !== undefined) p.confidence = m.confidence
     }
-    if (m?.count !== undefined) p.count = m.count
+    // 개수 기본값(「1」)은 남기지 않는다 — 기본을 직접 고른 것과 손대지 않은 것이 다른 조건으로 보이지 않게(3회차 검수)
+    if (m?.count !== undefined && m.count !== DEFAULT_COUNT) p.count = m.count
     out[q.zone].push(p)
   }
   return out

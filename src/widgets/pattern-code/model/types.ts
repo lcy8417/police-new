@@ -138,6 +138,23 @@ export interface SearchRunPattern {
   count?: PatternCount
 }
 
+/**
+ * 이력에 남는 확인 전 AI 제안 한 칸 — 검색에는 안 들어가지만 그때 제안 카드에 사람이 바꿔 둔 값(직접 가중치 · 개수 · 「AI 제안?」)도
+ * 함께 남겨 「다시 불러오기」가 그대로 되살린다(3회차 검수)
+ */
+export interface SearchRunPending {
+  /** 문양 이름(경로 아님) */
+  name: string
+  /** AI 확신도 0~1 */
+  confidence?: number
+  /** 그때 사람이 고른 가중치(없으면 규칙 값) */
+  weight?: WeightLevel
+  /** 그때의 SCAS 개수 */
+  count?: PatternCount
+  /** 「AI 제안?」(엉뚱하게 잡았을 수 있음) 표시 */
+  doubtful?: boolean
+}
+
 /** 검색 결과 상위 한 건(진열 가짜 계산) */
 export interface SearchRunHit {
   /** 신발 ID — 문자열 그대로(앞자리 0 보존) */
@@ -162,7 +179,7 @@ export interface SearchRun {
    * 그때 화면에 있던 확인 전 AI 제안(검색에는 안 들어감 — 가중치 R5 를 같은 문맥으로 되살리려고 남긴다, 2회차 검수).
    * 없으면 제안 없이 검색한 것
    */
-  pending?: Readonly<Partial<Record<PatternZone, readonly { name: string; confidence?: number }[]>>>
+  pending?: Readonly<Partial<Record<PatternZone, readonly SearchRunPending[]>>>
   /** 그때의 밑창 문자열(SCAS 「문자열」 칸 — 없으면 빈 칸). DB 저장 열은 서버 후속 B13 */
   soleText?: string
   /** 그때의 매칭 조건 */

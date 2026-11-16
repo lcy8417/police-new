@@ -216,8 +216,8 @@ export const S04_FAKE_SHOES: ShoePatterns[] = (() => {
   })
 })()
 
-function pendingOf(zones: NamedZones, meta: PatternMetaMap): Pick<SearchRun, "pending"> {
-  const pending = pendingSnapshot(zones, meta)
+function pendingOf(zones: NamedZones, meta: PatternMetaMap, overrides: WeightOverrideMap): Pick<SearchRun, "pending"> {
+  const pending = pendingSnapshot(zones, meta, overrides)
   return pending ? { pending } : {}
 }
 
@@ -241,7 +241,7 @@ export function fakeSearchRun(args: {
     source: args.source,
     zones: runSnapshot(query, weights, args.meta),
     // 그때의 확인 전 제안(검색엔 안 들어감 — R5 문맥을 되살리려고, 2회차 검수)
-    ...pendingOf(args.zones, args.meta),
+    ...pendingOf(args.zones, args.meta, args.overrides),
     ...(args.soleText ? { soleText: args.soleText } : {}),
     conditions: args.conditions,
     resultCount: ranked.length,

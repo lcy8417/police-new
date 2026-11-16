@@ -84,7 +84,8 @@ export function PatternWindow(props: PatternWindowProps) {
         const st = patternMeta?.[zone]?.[patternName(path)]?.status
         if (st === "suggested") acc.sug += 1
         if (st === "ai") acc.ok += 1
-        if (flag) acc.must += 1
+        // 확인 전 제안은 검색에 안 들어가므로 필수 수에도 세지 않는다(3회차 검수)
+        if (flag && st !== "suggested") acc.must += 1
       }
       return acc
     },
@@ -109,6 +110,8 @@ export function PatternWindow(props: PatternWindowProps) {
     onSelectZone: props.onSelectZone,
     onInsert: props.onInsertPattern,
     onRemove: props.onRemovePattern,
+    patternMeta,
+    onConfirmSuggestion: props.onConfirmSuggestion,
     canEdit,
     extracted: props.extracted,
     extractState: props.extractState,

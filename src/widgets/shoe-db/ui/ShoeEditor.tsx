@@ -355,6 +355,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
       <PatternPeek
         lens={lens.on ? { spot, zoom: lens.zoom, source: soleImage(true), tune: cls, pinned, onPinnedChange: setPinned } : null}
         pattern={hovered}
+        subject="밑창"
       />
       <PatternLibrary
         tabs={kinds.map((k) => ({ key: k, label: k, count: library[k]?.length }))}

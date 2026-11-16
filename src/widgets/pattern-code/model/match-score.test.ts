@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { patternScore, queryOfRun, rankShoes, runSnapshot, scoreOf, searchQuery, type QueryPattern, type ShoePatterns } from "./match-score"
+import { patternScore, pendingSnapshot, queryOfRun, rankShoes, runSnapshot, scoreOf, searchQuery, type QueryPattern, type ShoePatterns } from "./match-score"
 import { patternWeights } from "./weight-rules"
 
 // 스펙 2026-11-17-pattern-weight-rule-design §4 예시 계산을 그대로 확인한다.
@@ -111,5 +111,18 @@ describe("searchQuery · runSnapshot", () => {
     })
     // 카드 상태를 주면 AI 문양의 상태 · 확신도도 남긴다(다시 불러올 때 R3 를 그때와 같게)
     expect(runSnapshot(q, w, meta).mid).toEqual([{ name: "s81b", essential: false, weight: "high", manual: true, status: "ai", confidence: 0.42 }])
+  })
+
+  it("3회차 검수 — 확인 전 제안 카드의 직접 가중치 · 개수 · 「AI 제안?」도 이력 pending 에 남고, 개수 기본값 「1」은 남기지 않는다", () => {
+    const zones = { top: [], mid: [["n21_05", 0] as const, ["n32_04", 0] as const], bottom: [], outline: [] }
+    const meta = {
+      mid: {
+        n21_05: { status: "suggested" as const, confidence: 0.6, count: "3" as const, doubtful: true },
+        n32_04: { status: "suggested" as const, count: "1" as const },
+      },
+    }
+    expect(pendingSnapshot(zones, meta, { mid: { n21_05: "high" } })).toEqual({
+      mid: [{ name: "n21_05", confidence: 0.6, weight: "high", count: "3", doubtful: true }, { name: "n32_04" }],
+    })
   })
 })
