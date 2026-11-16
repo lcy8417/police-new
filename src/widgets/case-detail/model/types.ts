@@ -87,6 +87,12 @@ export interface CaseDetailScreenProps {
   plus?: CaseDetailPlus
   /** 아직 기능이 없는 버튼(이전 · 다음 · 수정 · _5 삭제 · 반전 적용)을 눌렀을 때 — 이름을 넘긴다(시안 — 기능 준비 중) */
   onMockAction?: (label: string) => void
+  /**
+   * 사건 창(S01 「사건 정보」 탭) 안에서 그림 — 창이 같은 일을 하는 것을 숨긴다(11/16 사용자 「숨길건 숨기고」):
+   * 머리 줄(제목 · 작은 단계 스텝퍼 · 이전 · 다음 · 사건복사 · 수정 · 닫기 · 「검색 (문양 상세보기) →」) · 이미지 목록 표 · 끌어 놓기 ·
+   * AI 1차 작업 점검 카드 · 접수 경로 줄(배당 절차 · 필수 칸 도넛). 기본 false(단독 진열 = SCAS 원 화면 그대로)
+   */
+  inWindow?: boolean
 }
 
 /** AI 1차 작업 점검 카드의 한 줄 */
@@ -113,6 +119,8 @@ export interface CaseDetailPlus {
   overlay: { areaPercent: number; rulerText: string }
   /** 전사판이라 좌우반전이 필요하다는 안내 칩 */
   flipNote: string
+  /** 전사판 안내 칩을 보일 장(파일 끝 번호 `"2"`). 없으면 늘 보인다(시안) */
+  flipRefs?: readonly string[]
   /** 같은 사진으로 의심되는 장: 파일 끝 번호 `_5` → 짝 `_4` */
   duplicates: Readonly<Record<string, string>>
   /** AI 1차 작업 점검 카드 */

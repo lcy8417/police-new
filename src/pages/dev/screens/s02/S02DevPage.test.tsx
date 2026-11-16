@@ -213,6 +213,16 @@ describe("S02DevPage 사건 상세·등록", () => {
     expect(screen.getByText("00001-25-0649_3.jpg")).toBeInTheDocument()
   })
 
+  it("?copy= 는 그 사건을 복사한 새 등록(번호만 비움 · 이미지 유지) — 사건 창 ⋯ 「사건복사」가 여는 주소", () => {
+    renderAt("/dev/s02?copy=00001-25-0633&case=ready")
+    expect(screen.getByLabelText("사건등록번호")).toHaveValue("")
+    expect(screen.getByText("사건 등록")).toBeInTheDocument()
+    expect(screen.getAllByText("00001-25-0633_1.jpg").length).toBeGreaterThan(0)
+    // 단독 진열은 SCAS 원 화면 그대로 — 이미지 목록 · 머리 도구가 있다
+    expect(screen.getByText("이미지 목록")).toBeInTheDocument()
+    expect(screen.getByLabelText("사건 상세 도구")).toBeInTheDocument()
+  })
+
   it("등록 모드의 「초기화」는 입력을 비운다", () => {
     renderAt("/dev/s02?case=ready")
     fireEvent.change(screen.getByLabelText("사건등록번호"), { target: { value: "X-1" } })

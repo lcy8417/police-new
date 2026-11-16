@@ -49,7 +49,7 @@ describe("S01 사건 창", () => {
     fireEvent.click(screen.getByText("00001-25-0649"))
     expect(screen.getByRole("dialog", { name: "00001-25-0649 주거침입 사건 창" })).toBeInTheDocument()
     const rail = screen.getByRole("navigation", { name: "00001-25-0649 현장 이미지" })
-    expect(within(rail).getAllByRole("button")).toHaveLength(12)
+    expect(rail.querySelectorAll('[data-slot="window-rail-item"]')).toHaveLength(12)
     // 장별 상태는 목록 숫자와 같다: 발견 1 · 검색됨 2 · 등록 9
     expect(within(rail).getAllByText("등록")).toHaveLength(9)
     expect(within(rail).getAllByText("검색됨")).toHaveLength(2)
@@ -63,8 +63,72 @@ describe("S01 사건 창", () => {
       "analyst",
       "ready",
     ])
-    // 본문 = S02 사건 정보 위젯
-    expect(within(dialog()).getByLabelText("사건 상세 도구")).toBeInTheDocument()
+    // 본문 = S02 사건 정보 위젯(창 모드 — 사건정보 폼은 그대로)
+    expect(within(dialog()).getByLabelText("사건등록번호")).toHaveValue("00001-25-0649")
+  })
+
+  describe("단계 띠 · 할 일 · 탭 표시 · 숨김(11/16 사용자 「응」)", () => {
+    it("0633(4장 · 결재): 단계 띠 6칸 · 지금 칸 = 결재(aria-current) = 머리 셋째 줄, 머리 꼬리표엔 단계 글자 없음", () => {
+      const { container } = renderAt("/dev/s01?case=ready&open=00001-25-0633&img=1&tab=info")
+      const cells = within(screen.getByRole("group", { name: "사건 진행 단계" })).getAllByRole("button")
+      expect(cells.map((c) => c.textContent?.replace(/^[✓\d]/, ""))).toEqual([
+        "접수끝",
+        "1차 작업끝",
+        "검색·판정끝",
+        "교차 검증끝",
+        "감정서끝",
+        "결재1개 남음",
+      ])
+      expect(cells.filter((c) => c.getAttribute("aria-current") === "step")).toEqual([cells[5]])
+      expect(container.querySelector('[data-slot="window-head-now"]')).toHaveTextContent("6결재›결재 올리기지금 할 차례")
+      const tags = [...container.querySelectorAll('[data-slot="window-head-tag"]')].map((t) => t.textContent)
+      expect(tags).toEqual(["서울청", "2025-07-21 등록", "4장"])
+      // 4장 사건 — 왼쪽 목록 4줄, 할 일 · 본문에 _5 이상 번호가 없다
+      expect(screen.getByRole("navigation", { name: /현장 이미지/ }).querySelectorAll('[data-slot="window-rail-item"]')).toHaveLength(4)
+      // (맨 아래 사진 추가 칸의 「_5 업로드 중」은 다음 번호라 뺀다)
+      for (const slot of ["case-window-flow", "case-window-panel"]) {
+        expect(container.querySelector(`[data-slot="${slot}"]`)?.textContent).not.toMatch(/_(?:[5-9]|1\d)\b/)
+      }
+    })
+
+    it("할 일 상자를 누르면 그 탭 · 이미지로(0649 「같은 사진?」 → 이미지 편집 _5)", () => {
+      renderAt("/dev/s01?case=ready&open=00001-25-0649&img=1&tab=info")
+      const list = screen.getByRole("list", { name: "이 단계 할 일" })
+      fireEvent.click(within(list).getByRole("button", { name: /같은 사진/ }))
+      expect([query().get("tab"), query().get("img")]).toEqual(["edit", "5"])
+      // 단계 칸 「검색·판정」 → 검색 결과 탭
+      fireEvent.click(within(screen.getByRole("group", { name: "사건 진행 단계" })).getByRole("button", { name: /검색·판정/ }))
+      expect(query().get("tab")).toBe("search")
+    })
+
+    it("탭 표시: 0649 사건 정보 = 노란 빈 칸 1, _5 를 고르면 이미지 편집 !", () => {
+      const { container } = renderAt("/dev/s01?case=ready&open=00001-25-0649&img=5&tab=info")
+      expect(container.querySelector('[data-mark="blanks"]')).toHaveTextContent("1")
+      expect(within(screen.getByRole("tab", { name: /이미지 편집/ })).getByLabelText("확인할 문제")).toBeInTheDocument()
+    })
+
+    it("창 안 S02 에는 머리 줄(사건복사 · 검색 →) · 이미지 목록 · AI 1차 작업 점검 · 접수 경로 줄이 없고, ⋯ 메뉴에 사건복사 · 수정", () => {
+      renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=2&tab=info")
+      const d = dialog()
+      expect(within(d).queryByLabelText("사건 상세 도구")).toBeNull()
+      expect(within(d).queryByRole("button", { name: "사건복사" })).toBeNull()
+      expect(within(d).queryByRole("button", { name: /검색 \(문양 상세보기\)/ })).toBeNull()
+      expect(within(d).queryByText("이미지 목록")).toBeNull()
+      expect(within(d).queryByText("AI 1차 작업 점검")).toBeNull()
+      expect(within(d).queryByText(/배당 절차/)).toBeNull()
+      // 사진 추가 · 끌어 놓기는 왼쪽 목록 맨 아래
+      expect(within(screen.getByRole("navigation", { name: /현장 이미지/ })).getByRole("button", { name: "+ 사진 추가" })).toBeInTheDocument()
+      fireEvent.keyDown(within(d).getByRole("button", { name: "이 창 메뉴" }), { key: "Enter" })
+      expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual(["사건복사", "수정"])
+    })
+
+    it("?plus=0: 단계 띠 · 탭은 보이고 AI 출처 할 일 · AI 표식은 없다", () => {
+      renderAt("/dev/s01?case=ready&plus=0&open=00001-25-0649&img=1&tab=info")
+      expect(screen.getByRole("group", { name: "사건 진행 단계" })).toBeInTheDocument()
+      const list = screen.getByRole("list", { name: "이 단계 할 일" })
+      expect(within(list).getAllByRole("button").map((b) => b.textContent)).toEqual(["1사건 정보 빈 칸1칸 · 채취 방법 · 지금"])
+      expect(within(list).queryByText("AI")).toBeNull()
+    })
   })
 
   it("작업 탭을 바꾸면 그 화면 위젯이 본문에 보인다(S03 · S04 · S05 · S06 · S07)", () => {

@@ -26,6 +26,8 @@ import {
   type DevGo,
 } from "../frame"
 import { S02Content } from "../s02"
+import { CaseWindowUpload } from "./CaseWindowUpload"
+import { caseFlowOf, s02FactsOf, tabMarksOf } from "./case-flow"
 import { S03Content } from "../s03"
 import { S04Content } from "../s04"
 import { S05Content } from "../s05"
@@ -240,9 +242,20 @@ export function S01DevPage() {
       if (target) setWindow(stepCaseWindow(win, target.aprthngNo, firstImage(target.aprthngNo)))
     }
     const key = `${win.open}|${win.tab === "confirm" ? "" : img}|${win.tab}`
+    // 단계 띠 · 할 일 · 탭 표시 · S02 값 — 모두 이 사건 행(장수 · 진행 · 결과 · 단계)에서 만든다(case-flow.ts)
+    const flow = caseFlowOf(openRow, images, plus)
+    const canEdit = viewer.isAdmin || viewer.features.includes(FEATURES.CRIME_REGISTER)
     const body =
       win.tab === "info" ? (
-        <S02Content key={key} devCase="ready" caseId={win.open} imageId={imageNo} go={windowGo} />
+        <S02Content
+          key={key}
+          devCase="ready"
+          caseId={win.open}
+          imageId={imageNo}
+          go={windowGo}
+          inWindow
+          facts={s02FactsOf(openRow, flow, images.length, img)}
+        />
       ) : win.tab === "edit" ? (
         <S03Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} />
       ) : win.tab === "pattern" ? (
@@ -262,9 +275,33 @@ export function S01DevPage() {
           requestOffice: openRow.requestOffice,
           registeredAt: openRow.registeredAt,
           imageCount: images.length,
-          // 사건 진행 단계는 +α — 신규를 끄면 꼬리표를 뺀다
+          // 단계 띠를 주므로 머리 꼬리표의 단계 글자는 위젯이 그리지 않는다(같은 말 중복) — 목록 「사건 진행」 말은 그대로 넘긴다
           stageLabel: plus ? stageLabel(openRow.stage) : undefined,
         }}
+        stages={flow.stages}
+        currentStage={flow.currentStage}
+        tasks={flow.tasks}
+        savedAt={S01_LIVE_AT}
+        tabMarks={tabMarksOf(flow, images, img)}
+        menu={[
+          ...(canEdit
+            ? [
+                {
+                  label: "사건복사",
+                  // 값은 그대로 두고 번호만 비운 새 등록(S02)으로
+                  onSelect: () => {
+                    toast("사건을 복사했습니다. 사건등록번호를 입력하세요")
+                    to("/dev/s02", { copy: openRow.aprthngNo })
+                  },
+                },
+              ]
+            : []),
+          ...(plus && canEdit ? [{ label: "수정", onSelect: () => toast("시안 — 기능 준비 중") }] : []),
+        ]}
+        railFooter={
+          canEdit ? <CaseWindowUpload key={openRow.aprthngNo} aprthngNo={openRow.aprthngNo} imageCount={images.length} plus={plus} /> : undefined
+        }
+        onGo={(t) => setWindow({ ...win, tab: t.tab, img: t.img ?? win.img })}
         images={images}
         selectedImage={img}
         tab={win.tab}

@@ -30,6 +30,7 @@ import {
   S02_PLUS,
   makeImages,
 } from "./mock-cases"
+import { useFakeUpload } from "./use-fake-upload"
 
 const info = devScreen("s02")
 
@@ -41,29 +42,54 @@ export interface S02ContentProps {
   imageId?: string
   /** 화면 옮기기(없으면 진열 주소 이동) — 사건 창은 탭 바꾸기로 받는다 */
   go?: DevGo
+  /** 사건 창(S01 「사건 정보」 탭) 안 — 창이 같은 일을 하는 S02 머리 줄 · 이미지 목록 · AI 점검 카드 · 접수 경로 줄을 숨긴다 */
+  inWindow?: boolean
+  /** 그 사건의 값(사건 창이 목록 행에서 만들어 넘김) — 없으면 시안 0649 예시값 12장 */
+  facts?: S02CaseFacts
+  /** 이 사건을 복사해 새 등록으로 시작(사건 창 ⋯ 「사건복사」 → `/dev/s02?copy=<감정번호>`) */
+  copyOf?: string | null
 }
 
-// S02 사건 상세·등록 진열 페이지. `?id=` 가 있으면 열어 본 사건, 없으면 새 등록.
+/** 사건 창이 넘기는 그 사건의 값 — 장수 · 폼 값 · 잠긴 SCAS 칸 값 · 전사판 장 */
+export interface S02CaseFacts {
+  imageCount: number
+  form: Partial<CaseDetailForm>
+  pending: Readonly<Record<string, string>>
+  flipRefs: readonly string[]
+}
+
+// S02 사건 상세·등록 진열 페이지. `?id=` 가 있으면 열어 본 사건, `?copy=` 면 그 사건을 복사한 새 등록, 없으면 새 등록.
 export function S02DevPage() {
   const devCase = useDevCase(SCREEN_CASES.s02, "ready")
   const [params] = useSearchParams()
   return (
     <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
-      <S02Content devCase={devCase} caseId={params.get("id")} />
+      <S02Content devCase={devCase} caseId={params.get("id")} copyOf={params.get("copy")} />
     </DevScreenFrame>
   )
 }
 
 /** S02 틀 없는 내용 — 진열 페이지와 사건 창(S01 「사건 정보」 탭)이 같이 쓴다 */
-export function S02Content({ devCase, caseId: id, imageId, go }: S02ContentProps) {
+export function S02Content({ devCase, caseId: id, imageId, go, inWindow = false, facts, copyOf }: S02ContentProps) {
   const viewer = useDevViewer()
   const plus = useDevPlus()
   const nav = useDevNavigate()
   const to = go ?? nav
 
+  // 처음 값: 열어 본 사건(그 사건 값이 있으면 덮음) · 복사(번호만 비움) · 새 등록
+  const source = id ?? copyOf ?? null
+  const loadedForm = (no: string): CaseDetailForm => ({ ...DETAIL_FORM, apprslReqestNo: no, ...facts?.form })
+  const loadedImages = (no: string) => makeImages(no, facts?.imageCount)
+  const pendingValues = facts ? { ...PENDING_VALUES, ...facts.pending } : PENDING_VALUES
+  const plusValues = facts
+    ? { ...S02_PLUS, flipRefs: facts.flipRefs, aiCheck: { ...S02_PLUS.aiCheck, imageCount: facts.imageCount } }
+    : S02_PLUS
+
   const [mode, setMode] = React.useState<"detail" | "register">(id ? "detail" : "register")
-  const [form, setForm] = React.useState<CaseDetailForm>(id ? { ...DETAIL_FORM, apprslReqestNo: id } : EMPTY_FORM)
-  const [images, setImages] = React.useState<CaseImage[]>(() => (id ? makeImages(id) : []))
+  const [form, setForm] = React.useState<CaseDetailForm>(() =>
+    id ? loadedForm(id) : copyOf ? { ...loadedForm(copyOf), apprslReqestNo: "" } : EMPTY_FORM
+  )
+  const [images, setImages] = React.useState<CaseImage[]>(() => (source ? loadedImages(source) : []))
   // 시안은 _2(전사판)를 보고 있는 모양
   const [selected, setSelected] = React.useState<string | null>(imageId ?? (id ? `${id}_2` : null))
   const [checked, setChecked] = React.useState<string[]>([])
@@ -79,21 +105,14 @@ export function S02Content({ devCase, caseId: id, imageId, go }: S02ContentProps
   }
 
   // 올리는 중 막대: 0 → 100 을 흉내 낸 뒤 목록에 붙인다(가짜 — 서버 호출 없음)
-  // +α 를 켜면 시안처럼 _13 이 68% 올라가는 중인 모양으로 시작한다
-  const [uploading, setUploading] = React.useState<{ fileName: string; percent: number } | undefined>(
-    plus ? S02_DEMO_UPLOAD : undefined
-  )
-  const timer = React.useRef<ReturnType<typeof setInterval> | null>(null)
-  React.useEffect(() => () => {
-    if (timer.current) clearInterval(timer.current)
-  }, [])
+  // +α 를 켜면 시안처럼 _13 이 68% 올라가는 중인 모양으로 시작한다(사건 창 안에서는 목록 · 끌어 놓기가 창 왼쪽으로 가서 그리지 않는다)
+  const { uploading, start } = useFakeUpload(plus && !inWindow ? S02_DEMO_UPLOAD : undefined)
 
   const addFiles = (files: File[]) => {
-    if (timer.current) return
     const base = form.apprslReqestNo || "새사건"
-    const start = images.reduce((m, i) => Math.max(m, Number(/_(\d+)\./.exec(i.fileName)?.[1] ?? 0)), 0)
+    const last = images.reduce((m, i) => Math.max(m, Number(/_(\d+)\./.exec(i.fileName)?.[1] ?? 0)), 0)
     const added = files.map((f, k) => {
-      const n = start + k + 1
+      const n = last + k + 1
       return {
         id: `${base}_${n}`,
         fileName: `${base}_${n}.jpg`,
@@ -101,21 +120,11 @@ export function S02Content({ devCase, caseId: id, imageId, go }: S02ContentProps
         src: fakePhotoUrl({ seed: n, tag: String(n) }),
       }
     })
-    let percent = 0
-    setUploading({ fileName: added[0].fileName, percent })
-    timer.current = setInterval(() => {
-      percent += 25
-      if (percent < 100) {
-        setUploading({ fileName: added[0].fileName, percent })
-        return
-      }
-      if (timer.current) clearInterval(timer.current)
-      timer.current = null
-      setUploading(undefined)
+    start(added[0].fileName, () => {
       setImages((cur) => [...cur, ...added])
       setError(null)
       toast(`${added.length}장을 추가했습니다(가짜 이미지)`)
-    }, 150)
+    })
   }
 
   // 초기화: 열어 본 사건이면 불러온 값으로 되돌리고, 새 등록이면 비운다
@@ -123,8 +132,8 @@ export function S02Content({ devCase, caseId: id, imageId, go }: S02ContentProps
     setError(null)
     setChecked([])
     if (mode === "detail" && id) {
-      setForm({ ...DETAIL_FORM, apprslReqestNo: id })
-      setImages(makeImages(id))
+      setForm(loadedForm(id))
+      setImages(loadedImages(id))
     } else {
       setForm(EMPTY_FORM)
       setImages([])
@@ -154,7 +163,7 @@ export function S02Content({ devCase, caseId: id, imageId, go }: S02ContentProps
       mode={mode}
       aprthngNo={caseId}
       form={form}
-      pendingValues={PENDING_VALUES}
+      pendingValues={pendingValues}
       uploading={uploading}
       onFieldChange={onFieldChange}
       officeItems={OFFICE_ITEMS}
@@ -186,8 +195,9 @@ export function S02Content({ devCase, caseId: id, imageId, go }: S02ContentProps
       onOpenImageEdit={(imageId) => to("/dev/s03", { id: caseId ?? "", image: imageId })}
       onOpenSearch={() => to("/dev/s04", { id: caseId ?? "" })}
       showPlus={plus}
-      plus={S02_PLUS}
+      plus={plusValues}
       onMockAction={() => toast("시안 — 기능 준비 중")}
+      inWindow={inWindow}
     />
   )
 }

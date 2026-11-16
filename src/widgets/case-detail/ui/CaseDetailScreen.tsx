@@ -15,11 +15,11 @@ import {
   Segmented,
   type DataGridColumn,
 } from "@/shared/ui/kit"
-import { AiProgress } from "@/shared/ui/ai"
 import { ButtonBar, Panel, SearchForm, Stepper, type SearchFormRow } from "@/shared/ui/panel"
 import { EvidenceImage } from "@/shared/ui/viewer"
 
-import { AiCheckCard, DuplicateChip, EvidenceWithAi, MethodSuggestion, SourceLine, UploadHint } from "./PlusParts"
+import { CaseImageDrop } from "./CaseImageDrop"
+import { AiCheckCard, DuplicateChip, EvidenceWithAi, MethodSuggestion, SourceLine } from "./PlusParts"
 
 import { imageSeq } from "../model/validate-case-detail"
 import type { CaseDetailFieldName, CaseDetailScreenProps, CaseImage } from "../model/types"
@@ -73,14 +73,12 @@ export function CaseDetailScreen({
   onMockAction,
   imageQuery = "",
   onImageQueryChange,
+  inWindow = false,
 }: CaseDetailScreenProps) {
   const fileInput = React.useRef<HTMLInputElement>(null)
-  const [dragging, setDragging] = React.useState(false)
   const [applyScope, setApplyScope] = React.useState<"one" | "all">("one")
   const extra = showPlus ? plus : undefined
 
-  // 0~100 밖의 값은 막대가 틀 밖으로 나가지 않게 줄인다
-  const percent = uploading ? Math.min(100, Math.max(0, Math.round(uploading.percent))) : 0
   const canEdit = isAdmin || features.includes(FEATURES.CRIME_REGISTER)
   const canSearch = isAdmin || features.includes(FEATURES.CRIME_SEARCH)
   const has = (code: FeatureCode) => isAdmin || features.includes(code)
@@ -96,6 +94,9 @@ export function CaseDetailScreen({
     [images]
   )
   const selected = sorted.find((i) => i.id === selectedImageId) ?? sorted[0] ?? null
+  // 전사판 안내 칩: flipRefs 를 주면 그 장을 볼 때만(사건 창 — 사건마다 다르다), 안 주면 시안처럼 늘
+  const selectedSeq = selected ? String(imageSeq(selected.fileName)) : ""
+  const showFlip = Boolean(extra) && (!extra?.flipRefs || extra.flipRefs.includes(selectedSeq))
   // r3: 이미지 목록 파일명 검색(제어형). 큰 그림 · 선택은 전체 기준, 표만 거른다
   const visibleImages = React.useMemo(() => {
     const q = imageQuery.trim().toLowerCase()
@@ -253,14 +254,13 @@ export function CaseDetailScreen({
     { label: "화종", span: 3, field: pendingText("화종") },
   ]
 
-  const handleFiles = (list: FileList | null) => {
-    if (canEdit && list && list.length > 0) onFilesAdded(Array.from(list))
+  const handleFiles = (files: File[]) => {
+    if (canEdit) onFilesAdded(files)
   }
 
-  return (
-    <Panel
-      aria-busy={status === "loading" ? "true" : undefined}
-      title={
+  // 사건 창 안에서는 S02 머리 줄(제목 · 작은 단계 스텝퍼 · 이전 · 다음 · 사건복사 · 수정 · 닫기 · 「검색 (문양 상세보기) →」)을 그리지 않는다 —
+  // 창 머리(‹ › ✕ · ⋯ 메뉴) · 단계 띠 · 작업 탭이 같은 일을 한다(11/16 사용자 「숨길건 숨기고」)
+  const headTitle = inWindow ? undefined : (
         <span className="inline-flex items-baseline gap-[8px]">
           {mode === "register" ? "사건 등록" : "사건관리"}
           {mode === "detail" && aprthngNo ? (
@@ -277,8 +277,8 @@ export function CaseDetailScreen({
             />
           ) : null}
         </span>
-      }
-      actions={
+  )
+  const headActions = inWindow ? undefined : (
         <ButtonBar variant="modal-head" aria-label="사건 상세 도구">
           {mode === "detail" ? (
             <>
@@ -352,8 +352,10 @@ export function CaseDetailScreen({
             </>
           ) : null}
         </ButtonBar>
-      }
-    >
+  )
+
+  return (
+    <Panel aria-busy={status === "loading" ? "true" : undefined} title={headTitle} actions={headActions}>
       {status === "loading" ? (
         <p role="status" className="px-[14px] py-[40px] text-center text-[12.5px] text-muted-foreground">
           사건 정보를 불러오는 중…
@@ -389,9 +391,9 @@ export function CaseDetailScreen({
               )}
             </div>
             <div className="flex items-center gap-[6px]">
-              {extra ? (
+              {showFlip ? (
                 <Chip data-plus variant="amber" partId="S02-05">
-                  {extra.flipNote}
+                  {extra?.flipNote}
                 </Chip>
               ) : null}
               <Button size="sm" disabled={!selected} onClick={() => selected && onOpenImageEdit(selected.id)}>
@@ -399,6 +401,9 @@ export function CaseDetailScreen({
               </Button>
             </div>
 
+            {/* 사건 창 안에서는 이미지 목록 표 · 끌어 놓기 · AI 점검 카드를 그리지 않는다 — 창 왼쪽 목록 · 맨 아래 사진 추가 · 할 일 상자가 같은 일을 한다 */}
+            {inWindow ? null : (
+            <>
             <Band title="이미지 목록">
               <span className="font-code text-[11px] tabular-nums text-dim">{sorted.length}장 · 1→{sorted.length}순</span>
               {canEdit ? (
@@ -450,71 +455,21 @@ export function CaseDetailScreen({
               />
             </div>
             )}
-            {canEdit ? (
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  setDragging(true)
-                }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={(e) => {
-                  e.preventDefault()
-                  setDragging(false)
-                  handleFiles(e.dataTransfer.files)
-                }}
-                className={cn(
-                  "grid gap-[5px] rounded-[8px] border border-dashed border-brand-line bg-brand-bg px-[10px] py-[8px] text-[11.5px] text-fg-2",
-                  dragging && "border-brand"
-                )}
-              >
-                <span>⤓ 사진을 끌어 놓으면 여러 장 추가</span>
-                {uploading ? (
-                  <span className="grid gap-[3px]">
-                    <span className="flex justify-between font-code text-[10.5px] text-dim">
-                      <span className="truncate">{uploading.fileName} 업로드 중</span>
-                      <span>{percent}%</span>
-                    </span>
-                    {extra ? (
-                      <AiProgress state="running" value={percent / 100} label="업로드" />
-                    ) : (
-                      <span
-                        role="progressbar"
-                        aria-label="업로드"
-                        aria-valuenow={percent}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        className="h-[4px] overflow-hidden rounded-[2px] bg-line-3"
-                      >
-                        <i className="block h-full bg-brand-2" style={{ width: `${percent}%` }} />
-                      </span>
-                    )}
-                  </span>
-                ) : null}
-                {extra ? <UploadHint /> : null}
-                <input
-                  ref={fileInput}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  hidden
-                  aria-label="이미지 파일 고르기"
-                  onChange={(e) => {
-                    handleFiles(e.target.files)
-                    e.target.value = ""
-                  }}
-                />
-              </div>
+            </>
+            )}
+            {canEdit && !inWindow ? (
+              <CaseImageDrop onFilesAdded={handleFiles} uploading={uploading} plus={Boolean(extra)} inputRef={fileInput} />
             ) : null}
-            {extra && analystView ? <AiCheckCard plus={extra} onMockAction={onMockAction} /> : null}
+            {extra && analystView && !inWindow ? <AiCheckCard plus={extra} onMockAction={onMockAction} /> : null}
           </div>
 
           {/* 오른쪽: 사건정보(지금 앱 입력 7칸) */}
           <div className="grid min-w-0 content-start gap-[8px]">
-            {extra ? <SourceLine plus={extra} /> : null}
+            {extra && !inWindow ? <SourceLine plus={extra} /> : null}
             <Band title="사건정보">
               {extra ? (
                 <span data-plus className="text-[11px] text-dim">
-                  대부분 공문 그대로 · 수정은 「수정」으로
+                  {inWindow ? "대부분 공문 그대로 · 수정은 창 머리 ⋯ 메뉴로" : "대부분 공문 그대로 · 수정은 「수정」으로"}
                 </span>
               ) : null}
             </Band>

@@ -63,13 +63,16 @@ export const OFFICE_ITEMS = [
 // 시안 목록의 파일크기(KB)
 const KB = [5762, 6829, 5001, 4763, 4763, 5871, 5402, 4926, 5120, 4877, 5530, 5310]
 
-/** 일부러 글자 순서(_1 _10 _11 _12 _2 …)로 섞어 둔다 — 화면이 숫자 순서로 정렬하는지 보이게 */
-export function makeImages(caseNo: string): CaseImage[] {
-  const nums = Array.from({ length: 12 }, (_, i) => i + 1).sort((a, b) => String(a).localeCompare(String(b)))
+/**
+ * 일부러 글자 순서(_1 _10 _11 _12 _2 …)로 섞어 둔다 — 화면이 숫자 순서로 정렬하는지 보이게.
+ * count = 장수(기본 시안 12장). 사건 창은 그 사건의 장수를 넘긴다(4장 사건에 _5 이상이 나오지 않게)
+ */
+export function makeImages(caseNo: string, count = 12): CaseImage[] {
+  const nums = Array.from({ length: count }, (_, i) => i + 1).sort((a, b) => String(a).localeCompare(String(b)))
   return nums.map((n) => ({
     id: `${caseNo}_${n}`,
     fileName: `${caseNo}_${n}.jpg`,
-    sizeBytes: KB[n - 1] * 1024,
+    sizeBytes: KB[(n - 1) % KB.length] * 1024,
     src: fakePhotoUrl({ seed: n, tag: String(n), rotate: -4 + (n % 5) }),
   }))
 }
