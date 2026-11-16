@@ -40,6 +40,15 @@ const PILL_TONE: Record<CaseImageStatus, StatePillTone> = {
   감정불능: "fact",
 }
 
+/** 접힌 목록 썸네일 귀퉁이 한 글자(알약 대신) — 등록은 표식 없음. 화면 읽기는 줄 이름 「_1 · 발견」이 말한다 */
+const MARK: Partial<Record<CaseImageStatus, string>> = {
+  발견: "✓",
+  확인: "✓",
+  검색됨: "검",
+  불발견: "불",
+  감정불능: "–",
+}
+
 /** 위 칸 요약 순서 */
 const STATUS_ORDER: readonly CaseImageStatus[] = ["발견", "불발견", "감정불능", "확인", "검색됨", "등록"]
 
@@ -69,18 +78,22 @@ export function CaseWindow({
   const baseId = React.useId()
   const tabIdPrefix = `${baseId}-tab`
   const current = images.find((i) => i.no === selectedImage) ?? null
+  // 왼쪽 이미지 목록은 기본 접힘(11/17 사용자 「왼쪽 사이드바 기본적으로 접혀있을까??」) — 창 안 보기 상태라 위젯이 든다
+  const [railCollapsed, setRailCollapsed] = React.useState(true)
 
   const groups: WindowRailGroup[] = (["신발", "타이어"] as const)
     .map((kind) => ({
       name: kind,
       items: images
         .filter((i) => i.kind === kind)
+        // 이미지 감정번호(00001-25-0649_1)는 창 머리 감정번호 + 줄 번호와 같은 말이라 줄에 쓰지 않는다
         .map((i) => ({
           id: i.no,
           name: `_${i.no}`,
-          sub: i.imageNo,
+          ariaLabel: `_${i.no} · ${i.status}`,
           thumbSrc: i.thumbSrc,
           pill: <StatePill tone={PILL_TONE[i.status]}>{i.status}</StatePill>,
+          mark: MARK[i.status],
         })),
     }))
     .filter((g) => g.items.length > 0)
@@ -155,12 +168,37 @@ export function CaseWindow({
           groups={groups}
           selectedId={selectedImage}
           onSelect={onSelectImage}
+          collapsed={railCollapsed}
+          onToggle={() => setRailCollapsed((v) => !v)}
           footer={railFooter}
+          footerCollapsed={
+            railFooter ? (
+              <button
+                type="button"
+                aria-label="사진 추가 — 목록 펼치기"
+                title="사진 추가"
+                onClick={() => setRailCollapsed(false)}
+                className="m-0 grid size-8 cursor-pointer place-items-center rounded-[8px] border border-dashed border-line-3 bg-panel p-0 text-[16px] leading-none text-fg-2 hover:bg-strip focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-brand"
+              >
+                +
+              </button>
+            ) : undefined
+          }
           top={
-            <p className="m-0 text-[11px] leading-[1.5] text-muted-foreground">
-              <b className="text-[12px] font-bold text-foreground">현장 이미지 {images.length}장</b>
-              {counts.length > 0 ? <span className="block">{counts.map(([s, n]) => `${s} ${n}`).join(" · ")}</span> : null}
-            </p>
+            <div className="flex flex-col gap-1.5">
+              <b className="text-[13px] font-bold leading-7 text-foreground">
+                이미지 <span className="font-code">{images.length}</span>
+              </b>
+              {counts.length > 0 ? (
+                <span className="flex flex-wrap gap-1">
+                  {counts.map(([s, n]) => (
+                    <span key={s} className="whitespace-nowrap rounded-full bg-strip px-1.5 text-[10.5px] leading-[18px] text-muted-foreground">
+                      {s} <b className="font-code font-bold text-fg-2">{n}</b>
+                    </span>
+                  ))}
+                </span>
+              ) : null}
+            </div>
           }
         />
       }

@@ -92,6 +92,7 @@
 | S01 사건 창 어두운 머리 | WindowHead | 새로 | 로망 이식(`head/WorkWindowHead` · `HeadParts`) — 머리글자 · 이름 · 꼬리표 · ‹ › ✕, ⋯ 메뉴는 뺌 |
 | S01 사건 창 머리 셋째 줄 흐름 「✓ 접수 › [② 1차 작업] › … › ⑤ 감정서」 · ⋯ 메뉴(사건복사 · 수정) | WindowHead | 확장 | `flow`(알려 주기만 — 11/16 사용자 「할 일은 없애고 … 플로우가 이렇다 이정도만. 결재는 없어」로 옛 `now` 「⑥ 결재 › 결재 올리기」 대신) · 로망 menu 이식 |
 | S01 사건 창 왼쪽 목록 맨 아래 「+ 사진 추가」 · 끌어 놓기 | WindowRail | 확장 | `footer` 슬롯(11/16 — S02 이미지 목록 표를 창 안에서 숨기고 옮김) |
+| S01 사건 창 왼쪽 목록 기본 접힘(폭 64 썸네일 줄) · 알약 칸 정렬 · 묶음 머리 정리 | WindowRail | 확장 | `collapsed` · `onToggle` · `footerCollapsed` · 줄 `mark`, 알약 칸 폭 60 가운데, 묶음 머리는 둘 이상일 때만(11/17 사용자 「왼쪽 사이드바 기본적으로 접혀있을까?? … 정렬이 맘에 안들고, 이 소제목도 맘에 안들어」) |
 | (부품 진열만) 단계 띠 | StageStrip | 새로 | 로망 `stage/StageStrip` box 이식 — 진열 S01-61. 11/16 사용자 「이 단계에서 할 일은 없애고」로 사건 창에서는 뺐다(머리 흐름 한 줄로) |
 | (부품 진열만) 「↳ 이 단계 할 일」 상자 줄 | TaskBoxes | 새로 | 로망 `TaskBoxes` 「↳」 줄 이식 — 진열 S01-62. 사건 창에서는 뺐다(위와 같은 까닭) |
 | S01 사건 창 단계 · 할 일 번호 동그라미 | StepNum | 새로 | 로망 `stage/StateBox` 이식 |
@@ -157,6 +158,7 @@
 승인: 11/16 사용자 — WindowRail
 승인: 11/16 사용자 — WindowHead
 승인: 11/16 사용자 — WindowHead(now · menu), WindowRail(footer)
+승인: 11/17 사용자 — WindowRail(collapsed)
 승인: 11/16 사용자 — StageStrip
 승인: 11/16 사용자 — TaskBoxes
 승인: 11/16 사용자 — StepNum

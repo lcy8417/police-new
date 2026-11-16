@@ -49,11 +49,13 @@ describe("S01 사건 창", () => {
     fireEvent.click(screen.getByText("00001-25-0649"))
     expect(screen.getByRole("dialog", { name: "00001-25-0649 주거침입 사건 창" })).toBeInTheDocument()
     const rail = screen.getByRole("navigation", { name: "00001-25-0649 현장 이미지" })
-    expect(rail.querySelectorAll('[data-slot="window-rail-item"]')).toHaveLength(12)
-    // 장별 상태는 목록 숫자와 같다: 발견 1 · 검색됨 2 · 등록 9
-    expect(within(rail).getAllByText("등록")).toHaveLength(9)
-    expect(within(rail).getAllByText("검색됨")).toHaveLength(2)
-    expect(within(rail).getAllByRole("button")[0]).toHaveAttribute("aria-current", "true")
+    const rows = [...rail.querySelectorAll('[data-slot="window-rail-item"]')]
+    expect(rows).toHaveLength(12)
+    // 장별 상태는 목록 숫자와 같다: 발견 1 · 검색됨 2 · 등록 9 (기본 접힘이라 줄 이름 「_n · 상태」로 센다)
+    const names = rows.map((r) => r.getAttribute("aria-label") ?? "")
+    expect(names.filter((n) => n.endsWith("· 등록"))).toHaveLength(9)
+    expect(names.filter((n) => n.endsWith("· 검색됨"))).toHaveLength(2)
+    expect(rows[0]).toHaveAttribute("aria-current", "true")
     const q = query()
     expect([q.get("open"), q.get("img"), q.get("tab"), q.get("tabs"), q.get("as"), q.get("case")]).toEqual([
       "00001-25-0649",
@@ -78,9 +80,10 @@ describe("S01 사건 창", () => {
       const tags = [...container.querySelectorAll('[data-slot="window-head-tag"]')].map((t) => t.textContent)
       expect(tags).toEqual(["서울청", "2025-07-21 등록", "4장"])
       // 4장 사건 — 왼쪽 목록 4줄, 본문에 _5 이상 번호가 없고, 다 끝난 사건이라 「올리는 중」도 없다
-      const rail = screen.getByRole("navigation", { name: /현장 이미지/ })
-      expect(rail.querySelectorAll('[data-slot="window-rail-item"]')).toHaveLength(4)
-      expect(within(rail).queryByText(/업로드 중/)).toBeNull()
+      expect(screen.getByRole("navigation", { name: /현장 이미지/ }).querySelectorAll('[data-slot="window-rail-item"]')).toHaveLength(4)
+      // (펼쳐서 맨 아래 칸까지 본다)
+      fireEvent.click(screen.getByRole("button", { name: "이미지 목록 펼치기" }))
+      expect(within(screen.getByRole("navigation", { name: /현장 이미지/ })).queryByText(/업로드 중/)).toBeNull()
       expect(container.querySelector('[data-slot="case-window-panel"]')?.textContent).not.toMatch(/_(?:[5-9]|1\d)\b/)
     })
 
@@ -106,7 +109,8 @@ describe("S01 사건 창", () => {
       expect(within(d).queryByText("이미지 목록")).toBeNull()
       expect(within(d).queryByText("AI 1차 작업 점검")).toBeNull()
       expect(within(d).queryByText(/배당 절차/)).toBeNull()
-      // 사진 추가 · 끌어 놓기는 왼쪽 목록 맨 아래
+      // 사진 추가 · 끌어 놓기는 왼쪽 목록 맨 아래 — 기본 접힘이면 「+」, 누르면 펼쳐져 사진 추가 칸이 보인다
+      fireEvent.click(within(screen.getByRole("navigation", { name: /현장 이미지/ })).getByRole("button", { name: "사진 추가 — 목록 펼치기" }))
       expect(within(screen.getByRole("navigation", { name: /현장 이미지/ })).getByRole("button", { name: "+ 사진 추가" })).toBeInTheDocument()
       fireEvent.keyDown(within(d).getByRole("button", { name: "이 창 메뉴" }), { key: "Enter" })
       expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual(["사건복사", "수정"])
@@ -138,7 +142,7 @@ describe("S01 사건 창", () => {
 
   it("왼쪽 목록 줄을 누르면 그 이미지로(img)", () => {
     renderAt("/dev/s01?case=ready&open=00001-25-0649")
-    fireEvent.click(within(screen.getByRole("navigation", { name: /현장 이미지/ })).getAllByRole("button")[4])
+    fireEvent.click(screen.getByRole("navigation", { name: /현장 이미지/ }).querySelectorAll('[data-slot="window-rail-item"]')[4])
     expect(query().get("img")).toBe("5")
   })
 
@@ -236,6 +240,6 @@ describe("S01 사건 창", () => {
     renderAt("/dev/s01?case=ready&open=00001-25-0646&img=3&tab=search&tabs=00001-25-0649,00001-25-0646")
     expect(screen.getByRole("dialog", { name: "00001-25-0646 주거침입 사건 창" })).toBeInTheDocument()
     expect(workTab("00001-25-0649 · 주거침입")).toHaveAttribute("aria-selected", "false")
-    expect(within(screen.getByRole("navigation", { name: /현장 이미지/ })).getAllByRole("button")[2]).toHaveAttribute("aria-current", "true")
+    expect(screen.getByRole("navigation", { name: /현장 이미지/ }).querySelectorAll('[data-slot="window-rail-item"]')[2]).toHaveAttribute("aria-current", "true")
   })
 })

@@ -67,16 +67,28 @@ describe("CaseWindow", () => {
     expect(within(dialog).getByRole("tabpanel")).toHaveTextContent("본문 내용")
   })
 
-  it("왼쪽 목록: 줄 수 = 장수, 신발 · 타이어 묶음, 고른 줄 aria-current, 누르면 그 이미지", () => {
+  it("왼쪽 목록: 기본 접힘(썸네일 줄) — 줄 수 = 장수, 줄 이름에 상태, 고른 줄 aria-current, 누르면 그 이미지", () => {
     const props = setup()
     const rail = screen.getByRole("navigation", { name: "00001-25-0649 현장 이미지" })
-    const rows = within(rail).getAllByRole("button")
+    expect(rail).toHaveAttribute("data-collapsed")
+    const rows = [...rail.querySelectorAll<HTMLElement>('[data-slot="window-rail-item"]')]
     expect(rows).toHaveLength(3)
-    expect(within(rail).getByText("타이어")).toBeInTheDocument()
+    expect(rows[0]).toHaveAccessibleName("_1 · 발견")
     expect(rows[1]).toHaveAttribute("aria-current", "true")
-    expect(rows[0]).toHaveTextContent("발견")
     fireEvent.click(rows[2])
     expect(props.onSelectImage).toHaveBeenCalledWith("3")
+  })
+
+  it("왼쪽 목록 「»」로 펼치면 폭 232 · 알약 · 묶음 머리(신발 · 타이어 둘이라 보임), 「«」로 다시 접힘", () => {
+    setup()
+    fireEvent.click(screen.getByRole("button", { name: "이미지 목록 펼치기" }))
+    const rail = screen.getByRole("navigation", { name: "00001-25-0649 현장 이미지" })
+    expect(rail).not.toHaveAttribute("data-collapsed")
+    expect(rail.className).toContain("w-[232px]")
+    expect(within(rail).getByText("타이어")).toBeInTheDocument()
+    expect(rail.querySelector('[data-slot="window-rail-item"]')).toHaveTextContent("발견")
+    fireEvent.click(within(rail).getByRole("button", { name: "이미지 목록 접기" }))
+    expect(screen.getByRole("navigation", { name: "00001-25-0649 현장 이미지" })).toHaveAttribute("data-collapsed")
   })
 
   it("작업 탭: 이미지 탭 5개 + 끝의 사건 단위 「결과 확인」", () => {
@@ -131,6 +143,8 @@ describe("CaseWindow", () => {
       fireEvent.keyDown(screen.getByRole("button", { name: "이 창 메뉴" }), { key: "Enter" })
       fireEvent.click(screen.getByRole("menuitem", { name: "사건복사" }))
       expect(copy).toHaveBeenCalled()
+      // 접힌 목록 아래 「+」 → 펼쳐지며 맨 아래 칸이 보인다
+      fireEvent.click(screen.getByRole("button", { name: "사진 추가 — 목록 펼치기" }))
       expect(container.querySelector('[data-slot="window-rail-footer"]')).toHaveTextContent("+ 사진 추가")
     })
   })
