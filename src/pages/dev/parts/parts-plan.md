@@ -90,6 +90,13 @@
 | S01 사건 창 위 작업 탭 줄 | WorkTabStrip | 새로 | 로망 이식(`window/WorkTabStrip`) — 고른 탭 bg-brand-3, 최대 8개 까닭 한 줄 |
 | S01 사건 창 왼쪽 이미지 목록 | WindowRail | 새로 | 로망 `qa/HistoryRail`(시안 office-qa `.rail .ritem`) · `doc/DocListRail` 생김새 — 줄 = 썸네일 + 이름 + 알약, 고른 줄 bg-brand-bg + aria-current |
 | S01 사건 창 어두운 머리 | WindowHead | 새로 | 로망 이식(`head/WorkWindowHead` · `HeadParts`) — 머리글자 · 이름 · 꼬리표 · ‹ › ✕, ⋯ 메뉴는 뺌 |
+| S01 사건 창 머리 셋째 줄 「⑥ 결재 › 결재 올리기 [지금 할 차례]」 · ⋯ 메뉴(사건복사 · 수정) | WindowHead | 확장 | 로망 `WorkWindowHead` now · menu 이식(11/16 사용자 「응」) |
+| S01 사건 창 왼쪽 목록 맨 아래 「+ 사진 추가」 · 끌어 놓기 | WindowRail | 확장 | `footer` 슬롯(11/16 — S02 이미지 목록 표를 창 안에서 숨기고 옮김) |
+| S01 사건 창 단계 띠 6칸(접수 … 결재) | StageStrip | 새로 | 로망 `stage/StageStrip` box 이식 — 진열 S01-61 |
+| S01 사건 창 「↳ 이 단계 할 일」 상자 줄 | TaskBoxes | 새로 | 로망 `TaskBoxes` 「↳」 줄 이식 — 진열 S01-62 |
+| S01 사건 창 단계 · 할 일 번호 동그라미 | StepNum | 새로 | 로망 `stage/StateBox` 이식 |
+| S01 사건 창 작업 탭 줄 | UnderlineTabs | 새로 | 로망 `tabs/UnderlineTabs` window 이식(글자 13) — 진열 S01-63 |
+| S01 사건 창 탭 이름 뒤 ✓ · 노란 수 · ! | TabMark | 새로 | 로망 `TabMark` 이식 — 진열 S01-63 안 |
 
 ## 승인 (spec §8 「만들 부품」 표 = 사용자 승인)
 
@@ -149,3 +156,9 @@
 승인: 11/16 사용자 — WorkTabStrip
 승인: 11/16 사용자 — WindowRail
 승인: 11/16 사용자 — WindowHead
+승인: 11/16 사용자 — WindowHead(now · menu), WindowRail(footer)
+승인: 11/16 사용자 — StageStrip
+승인: 11/16 사용자 — TaskBoxes
+승인: 11/16 사용자 — StepNum
+승인: 11/16 사용자 — UnderlineTabs
+승인: 11/16 사용자 — TabMark

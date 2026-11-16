@@ -53,6 +53,13 @@ describe("WindowRail", () => {
     expect(onSelect).toHaveBeenCalledWith("2")
   })
 
+  it("footer 를 주면 맨 아래 칸에 그린다", () => {
+    const { container } = render(
+      <WindowRail label="목록" groups={[{ items: [] }]} selectedId={null} onSelect={() => undefined} footer={<button type="button">+ 사진 추가</button>} />
+    )
+    expect(container.querySelector('[data-slot="window-rail-footer"]')).toHaveTextContent("+ 사진 추가")
+  })
+
   it("narrow 면 폭 208", () => {
     render(<WindowRail label="목록" groups={[{ items: [] }]} selectedId={null} onSelect={() => undefined} narrow />)
     expect(screen.getByRole("navigation").className).toContain("w-[208px]")
@@ -84,5 +91,33 @@ describe("WindowHead", () => {
     expect(onNext).toHaveBeenCalledTimes(1)
     expect(onClose).toHaveBeenCalledTimes(1)
     expect(onPrev).not.toHaveBeenCalled()
+  })
+
+  it("셋째 줄 now 「⑥ 결재 › 결재 올리기 [지금 할 차례]」 · ⋯ 메뉴 항목을 고르면 onSelect", () => {
+    const copy = vi.fn()
+    const { container } = render(
+      <WindowHead
+        mark="강"
+        title="00001-25-0633"
+        now={{ num: 6, stage: "결재", task: "결재 올리기", badge: "지금 할 차례" }}
+        menu={[{ label: "사건복사", onSelect: copy }, { label: "수정", onSelect: () => undefined }]}
+        onPrev={() => undefined}
+        onNext={() => undefined}
+        onClose={() => undefined}
+      />
+    )
+    const now = container.querySelector('[data-slot="window-head-now"]') as HTMLElement
+    expect(now).toHaveTextContent("6결재›결재 올리기지금 할 차례")
+    const trigger = screen.getByRole("button", { name: "이 창 메뉴" })
+    fireEvent.keyDown(trigger, { key: "Enter" })
+    const items = screen.getAllByRole("menuitem")
+    expect(items.map((i) => i.textContent)).toEqual(["사건복사", "수정"])
+    fireEvent.click(items[0])
+    expect(copy).toHaveBeenCalledTimes(1)
+  })
+
+  it("menu 가 없으면 ⋯ 단추가 없다", () => {
+    render(<WindowHead mark="a" title="x" onPrev={() => undefined} onNext={() => undefined} onClose={() => undefined} />)
+    expect(screen.queryByRole("button", { name: "이 창 메뉴" })).toBeNull()
   })
 })

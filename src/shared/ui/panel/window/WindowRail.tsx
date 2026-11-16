@@ -37,6 +37,8 @@ export interface WindowRailProps {
   onSelect: (id: string) => void
   /** 위 칸 슬롯(요약 한 줄 등) — 아래 선으로 나눈다 */
   top?: ReactNode
+  /** 맨 아래 칸 슬롯(사진 추가 · 끌어 놓기 등) — 위 선으로 나누고 목록이 길어도 바닥에 붙는다 */
+  footer?: ReactNode
   /** 폭 208(기본 232) */
   narrow?: boolean
   /** 위치 식별자(`data-part-id`) */
@@ -46,7 +48,7 @@ export interface WindowRailProps {
 const FOCUS =
   "focus-visible:outline-2 focus-visible:outline-solid focus-visible:-outline-offset-2 focus-visible:outline-brand"
 
-export function WindowRail({ label, groups, selectedId, onSelect, top, narrow = false, partId }: WindowRailProps) {
+export function WindowRail({ label, groups, selectedId, onSelect, top, footer, narrow = false, partId }: WindowRailProps) {
   return (
     <nav
       {...partAttrs("WindowRail", { variant: narrow ? "narrow" : undefined, id: partId })}
@@ -106,6 +108,11 @@ export function WindowRail({ label, groups, selectedId, onSelect, top, narrow = 
           </div>
         ))}
       </div>
+      {footer ? (
+        <div data-slot="window-rail-footer" className="flex shrink-0 flex-col gap-2 border-t border-solid border-border px-3 pt-2.5 pb-3">
+          {footer}
+        </div>
+      ) : null}
     </nav>
   )
 }

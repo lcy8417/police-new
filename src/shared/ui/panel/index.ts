@@ -19,4 +19,16 @@ export { ThemeSettings, type ThemeSettingsProps } from "./ThemeSettings"
 export { CaseWindowFrame, type CaseWindowFrameProps } from "./window/CaseWindowFrame"
 export { WorkTabStrip, type WorkTabStripProps, type WorkTabItem } from "./window/WorkTabStrip"
 export { WindowRail, type WindowRailProps, type WindowRailItem, type WindowRailGroup } from "./window/WindowRail"
-export { WindowHead, type WindowHeadProps } from "./window/WindowHead"
+export { WindowHead, type WindowHeadProps, type WindowHeadMenuItem, type WindowHeadNow } from "./window/WindowHead"
+// r4 창 단계 띠 · 할 일 상자 · 밑줄 탭(로망 StageStrip · TaskBoxes · StateBox · UnderlineTabs 이식)
+export { StepNum } from "./stage/StateBox"
+export type { PanelState } from "./stage/state-tone"
+export {
+  StageStrip,
+  TaskBoxes,
+  type StageStripItem,
+  type StageStripProps,
+  type TaskBoxItem,
+  type TaskBoxesProps,
+} from "./stage/StageStrip"
+export { UnderlineTabs, TabMark, type UnderlineTabsProps, type TabMarkKind } from "./tabs/UnderlineTabs"

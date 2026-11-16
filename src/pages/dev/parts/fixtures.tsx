@@ -2,7 +2,19 @@ import type { ReactNode } from "react";
 
 import { AiTag } from "@/shared/ui/ai";
 import { Button, Chip, Field, StatePill } from "@/shared/ui/kit";
-import { ButtonBar, CaseWindowFrame, Panel, Stepper, WindowHead, WindowRail, WorkTabStrip } from "@/shared/ui/panel";
+import {
+  ButtonBar,
+  CaseWindowFrame,
+  Panel,
+  StageStrip,
+  Stepper,
+  TabMark,
+  TaskBoxes,
+  UnderlineTabs,
+  WindowHead,
+  WindowRail,
+  WorkTabStrip,
+} from "@/shared/ui/panel";
 
 import { AI_FIXTURE_RENDERS } from "./fixtures-ai";
 import { KIT_FIXTURE_RENDERS } from "./fixtures-kit";
@@ -246,12 +258,64 @@ const BASE_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
       mark="주"
       title="00001-25-0649"
       subtitle="주거침입"
-      tags={["대구청", "07-24 등록", "12장", "이미지 확인 중"]}
+      tags={["대구청", "07-24 등록", "12장"]}
+      now={{ num: 2, stage: "1차 작업", task: "사건 정보 빈 칸", badge: "지금 할 차례" }}
+      menu={[
+        { label: "사건복사", onSelect: noop },
+        { label: "수정", onSelect: noop },
+      ]}
       onPrev={noop}
       onNext={noop}
       prevOff
       onClose={noop}
       partId="S01-99"
+    />
+  ),
+  // r4 창 단계 · 탭 부품(로망 이식) — 진열만(noMockup). 상태 다섯(끝 · 문제 · 지금 · 아직 · 마지막)을 한 띠에
+  "S01-61": () => (
+    <StageStrip
+      label="진열 — 사건 진행 단계"
+      items={[
+        { key: 0, state: "done", label: "접수", note: "끝" },
+        { key: 1, state: "problem", label: "1차 작업", note: "확인 2개", dot: true },
+        { key: 2, state: "pending", label: "검색·판정", note: "2개 남음", now: true },
+        { key: 3, state: "pending", label: "교차 검증", note: "아직" },
+        { key: 4, state: "notApplicable", label: "감정서", note: "해당 없음" },
+        { key: 5, state: "pending", label: "결재", note: "아직", final: true },
+      ]}
+      onPick={noop}
+      partId="S01-61"
+    />
+  ),
+  "S01-62": () => (
+    <TaskBoxes
+      label="이 단계 할 일"
+      items={[
+        { key: "a", state: "done", label: "미검색 이미지", note: "0장", hint: "검색 결과" },
+        { key: "b", state: "pending", label: "판정 안 한 이미지", note: "2장 · 지금", hint: "검색 결과", now: true, current: true },
+        { key: "c", state: "problem", label: "흐린 사진", note: "_9", hint: "이미지 편집", badge: "! 재촬영?" },
+        { key: "d", state: "pending", label: "결과 확인", note: "아직", hint: "결과 확인" },
+      ]}
+      onPress={noop}
+      right={<span className="text-[11px] text-muted-foreground">✓ 저장됨 09:12</span>}
+      partId="S01-62"
+    />
+  ),
+  "S01-63": () => (
+    <UnderlineTabs
+      label="진열 — 작업"
+      tabs={[
+        ["info", <>사건 정보<TabMark kind="blanks" count={1} /></>],
+        ["edit", <>이미지 편집<TabMark kind="problem" /></>],
+        ["pattern", <>문양 코드<TabMark kind="done" /></>],
+        ["search", "검색 결과"],
+        ["compare", <>정밀 대조<TabMark kind="notApplicable" /></>],
+        ["confirm", <>결과 확인<TabMark kind="count" count={3} /></>],
+      ]}
+      value="info"
+      onChange={noop}
+      endKey="confirm"
+      partId="S01-63"
     />
   ),
 };

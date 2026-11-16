@@ -53,6 +53,8 @@ export interface PartFixture {
 
 const NO_MOCKUP_WINDOW = "r4 로망 창 부품 이식 — r3 시안에 짝이 없다(생김새 정본은 로망 ClientWindowFrame · WorkTabStrip · HistoryRail · WorkWindowHead, 색만 경찰 토큰). 진열만 한다";
 
+const NO_MOCKUP_STAGE = "r4 로망 창 단계 띠 · 할 일 상자 · 밑줄 탭 이식 — r3 시안에 짝이 없다(생김새 정본은 로망 StageStrip · TaskBoxes · UnderlineTabs, 색만 경찰 토큰). 진열만 한다";
+
 // 부품이 구현되면 한 줄씩 늘린다. 변형마다 대표 1개(같은 변형의 다른 자리 id 는 값이 같아 생략).
 const BASE_PART_FIXTURES: PartFixture[] = [
   // Button
@@ -111,6 +113,10 @@ const BASE_PART_FIXTURES: PartFixture[] = [
   { id: "S01-97", part: "WorkTabStrip", parentWidth: 640, surface: "canvas", noMockup: NO_MOCKUP_WINDOW },
   { id: "S01-98", part: "WindowRail", parentWidth: 232, surface: "panel", boxClass: "flex h-[260px]", noMockup: NO_MOCKUP_WINDOW },
   { id: "S01-99", part: "WindowHead", parentWidth: 900, surface: "panel", noMockup: NO_MOCKUP_WINDOW },
+  // r4 창 단계 · 탭 부품(로망 「수임 진행 중」 창 앞칸 이식) — 진열만
+  { id: "S01-61", part: "StageStrip", parentWidth: 1100, surface: "panel", noMockup: NO_MOCKUP_STAGE },
+  { id: "S01-62", part: "TaskBoxes", parentWidth: 1100, surface: "panel", noMockup: NO_MOCKUP_STAGE },
+  { id: "S01-63", part: "UnderlineTabs", variant: "window", parentWidth: 900, surface: "panel", noMockup: NO_MOCKUP_STAGE },
 ];
 
 // 갈래별 진열 데이터를 이어 붙인다(잠금, Task 5).
