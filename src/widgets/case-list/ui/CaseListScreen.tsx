@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, FileSpreadsheet, Plus, SlidersHorizontal } from "lucide-react"
 
 import { FEATURES } from "@/entities/session"
 import { cn } from "@/shared/lib/utils"
@@ -25,6 +25,7 @@ import {
   Segmented,
   StatePill,
   ViewCountSwitch,
+  WorkbenchButton,
   type FilterGroup,
 } from "@/shared/ui/kit"
 import { ButtonBar, SearchForm, Stepper, type SearchFormRow } from "@/shared/ui/panel"
@@ -53,6 +54,8 @@ const STAGE_LABELS = ["검증요청", "교차 검증", "감정서", "결재", "�
 const ROW_BTN = "h-7 rounded-[8px] px-2.5 text-[11.5px]"
 // 화면 머리 줄 단추 — 같은 높이 28
 const HEAD_BTN = "h-7 rounded-[8px] px-2.5 text-[12px]"
+/** 뚜껑에서 뺀 묶음(사건결과 · 처리 구분) — 걸러진 값은 그대로 유지된다 */
+const LID_HIDDEN_GROUPS: readonly string[] = ["result", "kind"]
 // 행 끝 빈 자리(단추 하나 폭) — 단추 열이 줄마다 같은 자리에 오게
 const SPACER = <span className="inline-block w-[44px]" />
 
@@ -424,8 +427,10 @@ export function CaseListScreen({
       <span className="font-code tabular-nums text-dim">{indexOf(r)}</span>
     )
   )
-  // 표 칸 썸네일은 행 높이(36)에 맞춰 21×30 으로 줄인다(SoleThumb sm 26×38 의 크기만 덮어씀)
-  const THUMB = "h-[30px] w-[21px]"
+  // 표 칸 썸네일(11/17 사용자 「이미지가 좀 잘 보여야 … 저렇게 작으면 안 보이잖아 … 테이블을 뚱뚱하게 세로」):
+  // 보통 행(64) = 36×52, 촘촘 행(36) = 21×30 (SoleThumb sm 의 크기만 덮어씀)
+  const tall = rowHeight !== "촘촘"
+  const THUMB = tall ? "h-[52px] w-[36px]" : "h-[30px] w-[21px]"
   const img = col("img", "이미지", (r) => {
     const thumb = (
       <SoleThumb
@@ -440,11 +445,15 @@ export function CaseListScreen({
     if (!showPlus) return thumb
     const multi = r.shoeCount + r.tireCount > 1
     return (
-      <span className="relative inline-block h-[32px] w-[32px] align-middle">
+      <span className={cn("relative inline-block align-middle", tall ? "h-[54px] w-[48px]" : "h-[32px] w-[32px]")}>
         {multi && r.stackSrc ? (
           <span
             aria-hidden="true"
-            className="absolute top-0 left-[7px] h-[30px] w-[21px] overflow-hidden rounded-[5px] border border-solid border-border bg-paper opacity-[.55]"
+            className={cn(
+              "absolute top-0 overflow-hidden rounded-[5px] border border-solid border-border bg-paper opacity-[.55]",
+              tall ? "left-[10px]" : "left-[7px]",
+              THUMB
+            )}
           >
             <img src={r.stackSrc} alt="" className="block size-full object-contain" />
           </span>
@@ -461,7 +470,7 @@ export function CaseListScreen({
           <span
             data-plus
             aria-hidden="true"
-            className="pointer-events-none absolute top-[1px] left-0 h-[30px] w-[21px] overflow-hidden rounded-[5px]"
+            className={cn("pointer-events-none absolute top-[1px] left-0 overflow-hidden rounded-[5px]", THUMB)}
           >
             <ScanOverlay active />
           </span>
@@ -479,22 +488,23 @@ export function CaseListScreen({
       </span>
     )
   })
-  // 들어온 길(+α)은 번호 아래 작은 한 줄 — 옆에 두면 표가 가로로 넘친다(1440 기준)
-  const no = col("aprthngNo", "감정번호", (r) =>
-    showPlus && r.source ? (
-      <span className="grid leading-[1.25]">
-        <span className="font-code text-[12px] font-semibold text-foreground">{r.aprthngNo}</span>
+  // 감정번호 칸 = 번호 + 사건명(둘째 줄) + 들어온 길(+α, 보통 행이면 셋째 줄) — 사건명 열은 기본 숨김(11/17 「중요한 것만」)
+  const no = col("aprthngNo", "감정번호 · 사건명", (r) => (
+    <span className="grid leading-[1.3]">
+      <span className="font-code text-[12.5px] font-semibold text-foreground">{r.aprthngNo}</span>
+      <span className="max-w-[12rem] truncate text-[12px] text-fg-2" title={r.caseName}>
+        {r.caseName}
+      </span>
+      {showPlus && r.source && tall ? (
         <span data-plus className="text-[10.5px] text-muted-foreground">
           <span aria-hidden="true" className={r.source === "auto" ? "text-brand" : "text-violet"}>
             ●{" "}
           </span>
           {r.source === "auto" ? "공문 자동" : "임의 등록"}
         </span>
-      </span>
-    ) : (
-      <span className="font-code text-[12px] font-semibold text-foreground">{r.aprthngNo}</span>
-    )
-  )
+      ) : null}
+    </span>
+  ), { label: "감정번호" })
   const doc = col("docNo", "문서번호", (r) => <span className="font-code text-[11.5px]">{dash(r.docNo)}</span>)
   // 1440 폭에서 표가 판 안에 들어오게 긴 글 칸은 좁게 자르고 전체는 title 로(로망 목록 = 고정 폭 · 말줄임)
   const name = col("caseName", "사건명", (r) => <Clip text={r.caseName} max="max-w-[6rem]" />)
@@ -613,19 +623,15 @@ export function CaseListScreen({
               clearLabel="검색어 지우기"
             />
           ) : null}
-          <Button
-            size="sm"
-            className={cn(HEAD_BTN, "gap-1", detailOpen && "border-brand-line bg-brand-bg text-brand-3")}
+          <WorkbenchButton
+            icon={SlidersHorizontal}
+            className={detailOpen ? "border-brand-line bg-brand-bg" : undefined}
             aria-expanded={detailOpen}
             aria-controls={detailId}
             onClick={() => setDetailOpen((o) => !o)}
           >
             상세 검색
-            <ChevronDown
-              aria-hidden
-              className={cn("size-3.5 transition-transform motion-reduce:transition-none", detailOpen && "rotate-180")}
-            />
-          </Button>
+          </WorkbenchButton>
           <span aria-hidden="true" className="mx-[2px] h-[18px] w-px bg-line-3" />
           <span className="mr-[4px] inline-flex shrink-0 whitespace-nowrap [&>*]:flex-nowrap">
             <RadioRow
@@ -644,14 +650,14 @@ export function CaseListScreen({
             />
           </span>
           {mockActive ? (
-            <Button size="sm" className={HEAD_BTN} onClick={() => onMockAction?.("엑셀")}>
+            <WorkbenchButton variant="ghost" icon={FileSpreadsheet} onClick={() => onMockAction?.("엑셀")}>
               엑셀
-            </Button>
+            </WorkbenchButton>
           ) : (
             <span title={NOT_READY} className="inline-flex">
-              <Button size="sm" className={HEAD_BTN} disabled>
+              <WorkbenchButton variant="ghost" icon={FileSpreadsheet} disabled>
                 엑셀
-              </Button>
+              </WorkbenchButton>
             </span>
           )}
           {onHiddenColumnsChange && listed ? (
@@ -660,9 +666,9 @@ export function CaseListScreen({
             </span>
           ) : null}
           {canRegister ? (
-            <Button size="sm" variant="pri" className={HEAD_BTN} onClick={onRegister}>
+            <WorkbenchButton variant="primary" icon={Plus} onClick={onRegister}>
               등록
-            </Button>
+            </WorkbenchButton>
           ) : null}
         </ButtonBar>
       </div>
@@ -679,8 +685,9 @@ export function CaseListScreen({
               <LidSeparator data-plus />
             </>
           ) : null}
+          {/* 11/17 사용자 「필요한 것만 컴팩트하게」: 뚜껑엔 진행 상태 · 담당만 — 사건결과 · 처리 구분은 상세 검색 쪽 일 */}
           {quick
-            ? quick.groups.map((g, i) => (
+            ? quick.groups.filter((g) => !LID_HIDDEN_GROUPS.includes(g.key)).map((g, i) => (
                 <React.Fragment key={g.key}>
                   {i > 0 ? <LidSeparator /> : null}
                   {/* 칩 글자가 뜻을 말하는 묶음(진행 상태 · 사건결과)은 보이는 이름을 생략해 뚜껑을 한 줄로 — 「현장 · 대조」만 이름이 필요 */}

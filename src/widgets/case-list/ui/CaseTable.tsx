@@ -121,7 +121,8 @@ export function CaseTable<Row>({
                     {...(c.plus ? { "data-plus": "" } : {})}
                     className={cn(
                       "whitespace-nowrap border-b border-solid border-border px-[4px] py-0 text-fg-2",
-                      compact ? "h-[30px]" : "h-[36px]",
+                      // 보통 행은 썸네일(36×52)이 잘 보이게 64(11/17 「테이블을 뚱뚱하게 세로」), 촘촘은 36
+                      compact ? "h-[36px]" : "h-[64px]",
                       c.align === "right" && "text-right",
                       selected ? "bg-brand-bg" : "group-hover:bg-brand-bg/60",
                       // 방금 들어온 행: 옅은 청록 바탕(끝 60% 에서 투명) + 첫 칸 왼쪽 청록 줄

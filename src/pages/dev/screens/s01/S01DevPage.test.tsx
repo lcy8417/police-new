@@ -276,17 +276,12 @@ describe("S01 r3 — 빠른 찾기 · 열 고르기 · 쪽당 행 · 행 높이"
     expect(screen.getByText(/전체 116 중 1-20/)).toBeInTheDocument()
   })
 
-  it("칩: 처리 구분 「대조」 · 사건결과 · 내 담당만이 걸러 낸다", () => {
+  it("뚜껑 칩(11/17 컴팩트): 진행 상태 · 담당만 — 사건결과 · 처리 구분은 뚜껑에 없고, 내 담당만이 걸러 낸다", () => {
     renderAt("/dev/s01?case=ready&plus=0&as=analyst")
-    const group = (name: string) => screen.getByRole("group", { name })
-    fireEvent.click(within(group("처리 구분")).getByRole("button", { name: "대조" }))
-    expect(screen.getByText("00001-25-0640")).toBeInTheDocument()
-    expect(screen.queryByText("00001-25-0646")).toBeNull()
-    fireEvent.click(screen.getAllByRole("button", { name: "조건 지우기" })[0])
-    fireEvent.click(within(group("사건결과")).getByRole("button", { name: "결과 전" }))
-    expect(screen.getByText("00001-25-0647")).toBeInTheDocument()
-    expect(screen.queryByText("00001-25-0646")).toBeNull()
-    fireEvent.click(within(group("담당")).getByRole("button", { name: "내 담당만" }))
+    const lid = within(screen.getByRole("search", { name: "사건 목록 거르기" }))
+    expect(lid.queryByRole("group", { name: "처리 구분" })).toBeNull()
+    expect(lid.queryByRole("group", { name: "사건결과" })).toBeNull()
+    fireEvent.click(within(lid.getByRole("group", { name: "담당" })).getByRole("button", { name: "내 담당만" }))
     expect(screen.getByText(/전체 \d+ 중 1-/)).toBeInTheDocument()
   })
 
@@ -307,13 +302,14 @@ describe("S01 r3 — 빠른 찾기 · 열 고르기 · 쪽당 행 · 행 높이"
     const locked = screen.getByRole("checkbox", { name: /감정번호/ })
     expect(locked).toBeDisabled()
     expect(locked).toBeChecked()
-    fireEvent.click(screen.getByRole("checkbox", { name: "문서번호" }))
+    // 11/17 기본 숨김: 문서번호 · 사건명(감정번호 칸 둘째 줄) · 발생관서 · 처리 구분 · 용의자
     expect(heads()).not.toContain("문서번호")
-    expect(heads().indexOf("감정번호")).toBeLessThan(heads().indexOf("사건명"))
     fireEvent.click(screen.getByRole("checkbox", { name: "문서번호" }))
     const h = heads()
-    expect(h.indexOf("감정번호")).toBeLessThan(h.indexOf("문서번호"))
-    expect(h.indexOf("문서번호")).toBeLessThan(h.indexOf("사건명"))
+    expect(h.indexOf("감정번호 · 사건명")).toBeLessThan(h.indexOf("문서번호"))
+    expect(h.indexOf("문서번호")).toBeLessThan(h.indexOf("의뢰관서"))
+    fireEvent.click(screen.getByRole("checkbox", { name: "문서번호" }))
+    expect(heads()).not.toContain("문서번호")
   })
 
   it("쪽당 행 10 · 20 · 50: 렌더 행 수가 바뀐다", () => {
@@ -326,11 +322,11 @@ describe("S01 r3 — 빠른 찾기 · 열 고르기 · 쪽당 행 · 행 높이"
     expect(bodyRows()).toHaveLength(50)
   })
 
-  it("행 높이 촘촘: 칸 높이 클래스가 바뀐다(r4 로망 표: 보통 36 · 촘촘 30)", () => {
+  it("행 높이 촘촘: 칸 높이 클래스가 바뀐다(11/17 보통 64 — 썸네일 크게 · 촘촘 36)", () => {
     const { container } = renderAt("/dev/s01?case=ready&plus=0")
-    expect(container.querySelector("tbody td")?.className).toContain("h-[36px]")
+    expect(container.querySelector("tbody td")?.className).toContain("h-[64px]")
     fireEvent.click(screen.getByRole("button", { name: "촘촘" }))
-    expect(container.querySelector("tbody td")?.className).toContain("h-[30px]")
+    expect(container.querySelector("tbody td")?.className).toContain("h-[36px]")
   })
 
   it("열 · 쪽당 행 · 행 높이는 기억되고 다시 열면 그대로", () => {
@@ -341,7 +337,8 @@ describe("S01 r3 — 빠른 찾기 · 열 고르기 · 쪽당 행 · 행 높이"
     first.unmount()
     renderAt("/dev/s01?case=ready&plus=0")
     expect(bodyRows()).toHaveLength(10)
-    expect(screen.getAllByRole("columnheader").map((h) => h.textContent)).not.toContain("문서번호")
+    // 기본 숨김이던 문서번호를 켠 것이 기억된다
+    expect(screen.getAllByRole("columnheader").map((h) => h.textContent)).toContain("문서번호")
   })
 
   it("r4 빠른 보기 칩 3개: 건수를 보이고, 누르면 목록이 그 사건만으로 걸러진다(다시 누르면 풀림)", () => {

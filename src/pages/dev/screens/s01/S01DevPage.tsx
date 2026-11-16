@@ -95,7 +95,14 @@ export function S01DevPage() {
   const [page, setPage] = React.useState(1)
   const [query, setQuery] = React.useState("")
   const [quickValues, setQuickValues] = React.useState<QuickValues>(EMPTY_QUICK)
-  const [hiddenColumns, setHiddenColumns] = useRememberedState<string[]>("s01", "hiddenColumns", [], isStringArray)
+  // 11/17 사용자 「중요한 거 제외하고 나머지는 안 보이는 게」: 문서번호 · 사건명(감정번호 칸 둘째 줄로) · 발생관서 · 처리 구분 · 용의자는 기본 숨김
+  // (열 선택으로 다시 켤 수 있다). 예전에 기억된 빈 목록이 새 기본값을 덮지 않게 저장 이름을 바꿈
+  const [hiddenColumns, setHiddenColumns] = useRememberedState<string[]>(
+    "s01",
+    "hiddenColumns-v2",
+    ["docNo", "caseName", "occ", "kind", "sus"],
+    isStringArray
+  )
   const [pageSize, setPageSize] = useRememberedState<number>("s01", "pageSize", S01_PAGE_SIZE, isPageSize)
   const [rowHeight, setRowHeight] = useRememberedState<CaseListRowHeight>("s01", "rowHeight", "보통", isRowHeight)
 
