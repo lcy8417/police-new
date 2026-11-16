@@ -116,4 +116,23 @@ describe("Combobox", () => {
     expect(input).toHaveAttribute("aria-activedescendant", options[1].id)
     expect(options[0].id).not.toBe(options[1].id)
   })
+
+  it("방향키로 옮긴 칸을 목록 안에 보이게 끌어온다(2회차 검수)", () => {
+    // jsdom 에는 scrollIntoView 가 없다 — 잠깐 심어 부른 칸을 센다
+    const scrolled: string[] = []
+    const proto = HTMLElement.prototype as { scrollIntoView?: unknown }
+    const had = proto.scrollIntoView
+    proto.scrollIntoView = function (this: HTMLElement) {
+      scrolled.push(this.id)
+    }
+    try {
+      const { input } = setup()
+      fireEvent.focus(input)
+      fireEvent.keyDown(input, { key: "ArrowDown" })
+      const options = screen.getAllByRole("option")
+      expect(scrolled.at(-1)).toBe(options[1].id)
+    } finally {
+      proto.scrollIntoView = had
+    }
+  })
 })

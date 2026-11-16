@@ -1,7 +1,6 @@
 import * as React from "react"
 
 import { cn } from "@/shared/lib/utils"
-import { AiProgress } from "@/shared/ui/ai"
 import { Button } from "@/shared/ui/kit"
 
 import { UploadHint } from "./PlusParts"
@@ -67,20 +66,17 @@ export function CaseImageDrop({ onFilesAdded, uploading, plus = false, compact =
             <span className="truncate">{uploading.fileName} 업로드 중</span>
             <span>{percent}%</span>
           </span>
-          {plus ? (
-            <AiProgress state="running" value={percent / 100} label="업로드" />
-          ) : (
-            <span
-              role="progressbar"
-              aria-label="업로드"
-              aria-valuenow={percent}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              className="h-[4px] overflow-hidden rounded-[2px] bg-line-3"
-            >
-              <i className="block h-full bg-brand-2" style={{ width: `${percent}%` }} />
-            </span>
-          )}
+          {/* 업로드는 AI 일이 아니다 — AI 진행 막대(보라 · 훑기) 대신 일반 막대(2회차 검수, motion.md) */}
+          <span
+            role="progressbar"
+            aria-label="업로드"
+            aria-valuenow={percent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            className="h-[4px] overflow-hidden rounded-[2px] bg-line-3"
+          >
+            <i className="block h-full bg-brand-2 motion-safe:transition-[width] motion-safe:duration-200" style={{ width: `${percent}%` }} />
+          </span>
         </span>
       ) : null}
       {plus && !compact ? <UploadHint /> : null}

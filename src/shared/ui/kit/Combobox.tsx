@@ -60,6 +60,12 @@ export function Combobox({
   const activeIdx = Math.max(0, Math.min(active, matches.length - 1))
   const optionId = (i: number) => `${listId}-opt-${i}`
 
+  // 방향키로 옮긴 칸이 목록 밖으로 나가면 보이게 끌어온다(보이지 않는 칸을 Enter 로 고르던 것 — 2회차 검수)
+  React.useEffect(() => {
+    if (!open) return
+    document.getElementById(`${listId}-opt-${activeIdx}`)?.scrollIntoView?.({ block: "nearest" })
+  }, [open, activeIdx, listId])
+
   const choose = (item: ComboboxItem) => {
     onValueChange(item.value)
     setQuery(null)

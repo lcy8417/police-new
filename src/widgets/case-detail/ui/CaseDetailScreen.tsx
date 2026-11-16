@@ -242,7 +242,8 @@ export function CaseDetailScreen({
               </Chip>
             ) : null}
           </span>
-          {extra && form.pickMthCode === "기타" ? (
+          {/* 사건 창 안에서는 AI 제안 상자를 두지 않는다(창의 AI 는 문양 추출만 — 결정 기록 §3-3, 2회차 검수) */}
+          {extra && !inWindow && form.pickMthCode === "기타" ? (
             <MethodSuggestion
               suggestion={extra.methodSuggestion}
               canApply={canEdit}
@@ -367,15 +368,18 @@ export function CaseDetailScreen({
   ) : null
   const scopeTools = extra ? (
     <span data-plus className="flex items-center gap-[6px]">
-      <Segmented
-        aria-label="적용 범위"
-        value={applyScope}
-        onValueChange={(v) => setApplyScope(v as "one" | "all")}
-        items={[
-          { value: "one", label: "이 이미지만" },
-          { value: "all", label: "선택한 이미지 모두 적용" },
-        ]}
-      />
+      {/* 「선택한 이미지 모두 적용」은 여러 장을 고르는 표가 있을 때만 — 사건 창은 그 표가 없어 뺀다(2회차 검수) */}
+      {inWindow ? null : (
+        <Segmented
+          aria-label="적용 범위"
+          value={applyScope}
+          onValueChange={(v) => setApplyScope(v as "one" | "all")}
+          items={[
+            { value: "one", label: "이 이미지만" },
+            { value: "all", label: "선택한 이미지 모두 적용" },
+          ]}
+        />
+      )}
       {inWindow ? (
         <WorkbenchButton size="sm" icon={PencilLine} disabled={!canEdit} title={canEdit ? undefined : "수정 권한 없음"} onClick={() => onMockAction?.("수정")}>
           수정

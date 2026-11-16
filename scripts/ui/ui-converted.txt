@@ -1,3 +1,6 @@
 # 부품 전환이 끝난 파일 목록(한 줄에 glob 하나, # 은 주석).
 # 여기 있는 파일은 출입구 위반과 날것 컨트롤을 오류(error)로 막는다.
 src/pages/dev/**
+# 2회차 검수 — 날것 컨트롤이 없는 새 위젯부터 올린다(나머지 위젯 · entities/pattern/ui 는 kit 부품으로 바꾼 뒤 차례로)
+src/widgets/case-list/**
+src/widgets/admin-users-screen/**

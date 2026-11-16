@@ -1,7 +1,7 @@
 import * as React from "react"
 
 import { cn } from "@/shared/lib/utils"
-import { AiProgress, AiTag } from "@/shared/ui/ai"
+import { AiTag } from "@/shared/ui/ai"
 
 import type { ShoeStageSummary } from "../model/types"
 
@@ -69,7 +69,17 @@ export function StageStrip({ summary }: { summary: ShoeStageSummary }) {
             {backlog.todayDone} / {backlog.todayLimit}매
           </b>
         </span>
-        <AiProgress state="running" value={backlog.todayDone / backlog.todayLimit} label="오늘 승인 진행" className="h-[5px]" />
+        {/* 사람이 하는 승인 진행 — AI 진행 막대(훑기) 대신 일반 막대(2회차 검수, motion.md) */}
+        <span
+          role="progressbar"
+          aria-label="오늘 승인 진행"
+          aria-valuenow={backlog.todayDone}
+          aria-valuemin={0}
+          aria-valuemax={backlog.todayLimit}
+          className="h-[5px] overflow-hidden rounded-[3px] bg-line-3"
+        >
+          <i className="block h-full bg-brand-2" style={{ width: `${Math.min(100, (backlog.todayDone / backlog.todayLimit) * 100)}%` }} />
+        </span>
         <span className="text-dim">{backlog.note}</span>
       </span>
     </div>

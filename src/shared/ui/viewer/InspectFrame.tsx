@@ -9,6 +9,9 @@ import { stepLens, viewTuneClass, viewTuneLabels, type LensSettings, type ViewTu
 import { ViewControls } from "./ViewControls"
 
 /** 확대 범위(%) · 걸음 — 100 = 맞춤 */
+/** 초점이 갈 수 있는 것(초점 가두기) */
+const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+
 const ZOOM_MIN = 100
 const ZOOM_MAX = 400
 const ZOOM_STEP = 25
@@ -63,6 +66,7 @@ export function InspectFrame({
   const drag = React.useRef<{ x: number; y: number; px: number; py: number } | null>(null)
   const stageRef = React.useRef<HTMLDivElement>(null)
   const closeRef = React.useRef<HTMLButtonElement>(null)
+  const rootRef = React.useRef<HTMLDivElement>(null)
   const onCloseRef = React.useRef(onClose)
   React.useEffect(() => {
     onCloseRef.current = onClose
@@ -80,11 +84,27 @@ export function InspectFrame({
     setPan({ x: 0, y: 0 })
   }
 
-  // 열면 닫기 단추로 초점, 닫히면 연 자리로. Esc 는 먼저 받아 사건 창이 닫히지 않게 한다(capture + preventDefault)
+  // 열면 닫기 단추로 초점, 닫히면 연 자리로. Esc 는 먼저 받아 사건 창이 닫히지 않게 한다(capture + preventDefault).
+  // 모달이므로 Tab 은 이 판 안에서만 돌고(초점 가두기), 같은 칸의 가려진 형제는 inert 로 잠근다(2회차 검수 — Tab 으로 뒤 조작부에 들어가던 것)
   React.useEffect(() => {
+    const root = rootRef.current
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
     closeRef.current?.focus({ preventScroll: true })
+    const siblings = root?.parentElement ? Array.from(root.parentElement.children).filter((el) => el !== root && !el.hasAttribute("inert")) : []
+    for (const el of siblings) el.setAttribute("inert", "")
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Tab" && root) {
+        const items = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !el.hasAttribute("disabled"))
+        if (items.length === 0) return
+        const first = items[0]
+        const last = items[items.length - 1]
+        const at = document.activeElement
+        if (e.shiftKey ? at === first || !root.contains(at) : at === last || !root.contains(at)) {
+          e.preventDefault()
+          ;(e.shiftKey ? last : first).focus()
+        }
+        return
+      }
       if (e.key !== "Escape") return
       e.preventDefault()
       e.stopPropagation()
@@ -93,6 +113,7 @@ export function InspectFrame({
     document.addEventListener("keydown", onKey, true)
     return () => {
       document.removeEventListener("keydown", onKey, true)
+      for (const el of siblings) el.removeAttribute("inert")
       if (opener && opener.isConnected) opener.focus({ preventScroll: true })
     }
   }, [])
@@ -116,6 +137,7 @@ export function InspectFrame({
 
   return (
     <div
+      ref={rootRef}
       role="dialog"
       aria-modal="true"
       aria-label={`이미지 ${title}`}

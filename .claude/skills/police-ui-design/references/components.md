@@ -106,7 +106,7 @@ r4: 목록 · 앱 틀 생김새는 로망 정본(romang-ui-design)을 따르고 
 | LensBox | viewer | `src/shared/ui/viewer/LensBox.tsx` | (S04 확대경) | S04 · S05 · S06 · S10 | [새로] 마우스 자리 둥근 확대경 — 지름(Shift + 휠 · [ ] 키) · 배율 ×2 · ×3 · ×4, 장식은 `pointer-events-none`, 움직임은 바깥 상자 pointer 이벤트(좌표 계약 안 건드림) · `lensSlot`. 11/17 지름 최소 48(사용자 「더 줄일 수 있게」) · `onLensMove`(보는 자리 비율 좌표 + 상자 크기 → 확대 보기 칸) | 구현됨 |
 | LensView | viewer | `src/shared/ui/viewer/LensView.tsx` | (시안 짝 없음) | S01 사건 창 문양 코드 탭 · 신발 편집 | [새로] 11/17 확대 보기 칸 — LensBox 가 알린 자리(`LensSpot`)를 같은 배율로 칸 한가운데에 그림 · 가운데 점 · 배율 꼬리표. 순수 장식(`pointer-events-none` · 읽지 않음), 위치만 인라인 style | 구현됨 |
 | ViewControls · DEFAULT_VIEW_TUNE · DEFAULT_LENS · GAMMA_VALUE · isViewTuned · LENS_DEFAULT · LENS_MAX · LENS_MIN · LENS_STEP · LENS_ZOOMS · lensOffset · rotateTune · stepLens · stepTune · viewTuneClass · viewTuneLabels | viewer | `src/shared/ui/viewer/ViewControls.tsx` | (S04 보기 조정 막대) | S04 · S05 · S06 · S10 | [새로] 대비 · 밝기 · 감마(`full`) · 반전 · 이진화 · 회전(`rotatable`) · 되돌리기 + 확대경 켜기 · 지름 · 배율. 보기용(저장 안 함), 값 → 두 겹 CSS 필터 클래스(`view-tune.ts` 순수 함수) | 구현됨 |
-| InspectFrame | viewer | `src/shared/ui/viewer/InspectFrame.tsx` | (S04 두 번 눌러 크게 살펴보기) | S04 · S06 · S10 | [새로] 부모를 덮는 먹색 판 — 머리 `meta` · 보기 조정(감마까지) · 휠 확대 · 끌어 이동 · 두 번 누르면 맞춤 · 확대경 · 오른쪽 칸 `aside` · Esc 닫기 | 구현됨 |
+| InspectFrame | viewer | `src/shared/ui/viewer/InspectFrame.tsx` | (S04 두 번 눌러 크게 살펴보기) | S04(지금 쓰는 곳) · S06 · S10(연결 예정) | [새로] 부모를 덮는 먹색 판(모달) — 머리 `meta` · 보기 조정(감마까지) · 휠 확대 · 끌어 이동 · 두 번 누르면 맞춤 · 확대경 · 오른쪽 칸 `aside` · Esc 닫기 · Tab 은 판 안에서만 돌고 같은 칸의 가려진 형제는 inert | 구현됨 |
 
 공용화 보류(목록에 올리지 않음): 확대경(Loupe) · 십자선(Crosshair) · 자르기 틀(CropFrame) · 회전 손잡이(RotateHandle) · 미니맵(Minimap) — S03에만 있고 좌표를 다루므로 필요한 화면에서 좌표 계약을 확인한 뒤 추출한다(`layout.md`).
 

@@ -221,7 +221,8 @@ export function SearchCard({ art }: { art: LoginDemoArt }) {
             ● RERANK
           </span>
         </div>
-        <div className="relative" style={{ height: RANK_ROW_H * DEMO_RANK_ROWS.length }}>
+        {/* 높이 = 줄 높이 44 × 5줄(RANK_ROW_H × DEMO_RANK_ROWS.length) — 고정 상수라 인라인 style 대신 클래스(2회차 검수) */}
+        <div className="relative h-[220px]">
           {DEMO_RANK_ROWS.map((r, i) => (
             <RankRow key={r.no} row={r} src={shoeOf(i)} />
           ))}

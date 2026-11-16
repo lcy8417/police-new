@@ -1,8 +1,7 @@
 import * as React from "react"
 
 import { cn } from "@/shared/lib/utils"
-import { LiveDot } from "@/shared/ui/ai"
-import { Button, Chip, Field, Segmented } from "@/shared/ui/kit"
+import { Button, Chip, Field, Segmented, StatusDot } from "@/shared/ui/kit"
 import { CompareView, EvidenceImage, type CompareMode, type EvidenceLook } from "@/shared/ui/viewer"
 
 import { DEFAULT_VIEW_ADJUSTMENTS, lookFor, SCAS_BOTTOM_BUTTONS, type ScasBottomButton } from "../model/constants"
@@ -326,10 +325,8 @@ export function ViewerPane({
           onValueChange={(v) => setMode(v as CompareMode)}
           className="[&_button]:px-[9px] [&_button]:py-[3px] [&_button]:text-[11.5px]"
         />
-        <span className="ml-auto inline-flex items-center gap-[5px] text-[11px] text-ai">
-          <LiveDot state="busy" label="십자선 함께 움직임" hideLabel />
-          <span aria-hidden="true">십자선 함께 움직임</span>
-        </span>
+        {/* 십자선 연동은 AI 가 아니다 — AI 실시간 점 대신 일반 상태 점(2회차 검수) */}
+        <StatusDot tone="ok" label="십자선 함께 움직임" className="ml-auto text-[11px]" />
       </div>
 
       {mode === "side" ? (

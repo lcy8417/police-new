@@ -48,8 +48,9 @@ describe("S02DevPage 사건 상세·등록", () => {
       expect(screen.getByText(/자 인식 11\/12장/)).toBeInTheDocument()
       expect(screen.getByText("필수 14 / 15")).toBeInTheDocument()
       expect(screen.getByText("공문 자동 접수 · 07-24 09:10")).toBeInTheDocument()
+      // 자 인식 · 족적 영역 겹침은 「AI 표시」를 골라야 보인다(2회차 검수)
+      fireEvent.click(screen.getByRole("button", { name: "AI 표시" }))
       expect(screen.getByText("자 인식 · 1px=0.12mm")).toBeInTheDocument()
-      expect(screen.getByRole("button", { name: "AI 표시" })).toBeInTheDocument()
       expect(screen.getByText("올리자마자 AI가 중복·전사판·화질·자를 점검합니다")).toBeInTheDocument()
       expect(screen.getByText("중복? _4")).toBeInTheDocument()
       expect(screen.getByText("전사판채취법")).toBeInTheDocument()
@@ -103,17 +104,19 @@ describe("S02DevPage 사건 상세·등록", () => {
       expect(screen.queryByText("근거: 전사지 경계 · 뒤집힌 글자 · 신뢰 0.91")).toBeNull()
     })
 
-    it("「원본 / 이진화 / AI 표시」를 바꾸면 이진화에서 AI 겹침이 빠지고 필터가 걸린다", () => {
+    it("「원본 / 이진화 / AI 표시」: AI 겹침은 「AI 표시」에서만, 이진화는 필터. AI 가 일하지 않으면 훑기 선 없음(2회차 검수)", () => {
       const { container } = renderAt(`${DETAIL}&as=analyst`)
-      expect(container.querySelector('[data-part="ScanOverlay"]')).not.toBeNull()
-      fireEvent.click(screen.getByRole("button", { name: "이진화" }))
+      expect(screen.queryByText(/족적 영역/)).toBeNull()
+      fireEvent.click(screen.getByRole("button", { name: "AI 표시" }))
+      expect(screen.getByText(/족적 영역/)).toBeInTheDocument()
       expect(container.querySelector('[data-part="ScanOverlay"]')).toBeNull()
+      fireEvent.click(screen.getByRole("button", { name: "이진화" }))
+      expect(screen.queryByText(/족적 영역/)).toBeNull()
       expect(container.querySelector('[data-part="EvidenceImage"]')).toHaveAttribute("data-part-variant", "binary")
     })
 
-    it("움직임 줄이기: 스캔 선 · 업로드 막대는 motion-safe 로만 움직인다", () => {
-      const { container } = renderAt(`${DETAIL}&as=analyst`)
-      expect(container.querySelector('[data-part="ScanOverlay"]')!.className).toContain("motion-safe:animate-fx-scan")
+    it("움직임 줄이기: 업로드 막대는 motion-safe 로만 움직인다", () => {
+      renderAt(`${DETAIL}&as=analyst`)
       const upload = screen.getByRole("progressbar", { name: "업로드" })
       expect(upload.querySelector("i")!.className).toContain("motion-safe:")
       expect(upload).toHaveAttribute("aria-valuenow", "68")

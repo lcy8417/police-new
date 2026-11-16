@@ -66,6 +66,15 @@ describe("신발 DB 패널(S10Content inPanel)", () => {
     }
   })
 
+  it("2회차 검수 — 편집 판에서 Esc 는 편집 판만 닫는다(패널은 data-esc-layer 를 보고 그대로)", () => {
+    renderPanel()
+    fireEvent.click(screen.getByRole("button", { name: "303351 열기" }))
+    expect(document.querySelector('[data-slot="shoe-editor"]')).toHaveAttribute("data-esc-layer")
+    fireEvent.keyDown(document, { key: "Escape" })
+    expect(screen.queryByRole("region", { name: "기본정보" })).toBeNull()
+    expect(screen.getByRole("search", { name: "신발 거르기" })).toBeInTheDocument()
+  })
+
   it("2회차 검수 — 상세 필터는 「조회」를 눌러야 목록에 걸리고, 「조건 지우기」로 풀린다", () => {
     renderPanel()
     fireEvent.click(screen.getByRole("button", { name: /^필터/ }))

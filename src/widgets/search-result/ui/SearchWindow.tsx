@@ -253,12 +253,23 @@ export function SearchWindow(props: SearchResultScreenProps) {
   }
   React.useEffect(() => () => window.clearTimeout(peekTimer.current), [])
 
-  // ⚙ 설정 팝: Esc 로 닫기
+  // ⚙ 설정 팝: Esc · 바깥 누름으로 닫기(바깥을 눌러도 목록 위를 계속 가리던 것 — 2회차 검수). ⚙ 단추 누름은 그 단추가 여닫는다
+  const settingsRef = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {
     if (!settingsOpen) return
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSettingsOpen(false)
+    const onDown = (e: PointerEvent) => {
+      const t = e.target
+      if (!(t instanceof Node) || settingsRef.current?.contains(t)) return
+      if (t instanceof Element && t.closest('[aria-label="자동 설정"]')) return
+      setSettingsOpen(false)
+    }
     window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
+    document.addEventListener("pointerdown", onDown)
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      document.removeEventListener("pointerdown", onDown)
+    }
   }, [settingsOpen])
 
   // ── 목록 ──
@@ -495,6 +506,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
             </span>
             {settingsOpen ? (
               <div
+                ref={settingsRef}
                 role="dialog"
                 data-esc-layer=""
                 aria-label="자동 설정"

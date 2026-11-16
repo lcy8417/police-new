@@ -118,7 +118,7 @@ describe("S01 사건 창", () => {
       expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual(["사건복사", "수정"])
     })
 
-    it("사건 정보 탭: 왼쪽 족윤적 이미지 | 오른쪽 「사건정보 · 현장 이미지 정보」 탭(한 번에 한 표), 현장 이미지 탭에서만 적용 범위 도구", () => {
+    it("사건 정보 탭: 왼쪽 족윤적 이미지 | 오른쪽 「사건정보 · 현장 이미지 정보」 탭(한 번에 한 표), 여러 장 적용 범위 · 채취법 AI 제안은 창에 없음(2회차 검수)", () => {
       renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=2&tab=info")
       const d = dialog()
       expect(within(d).getByRole("region", { name: "족윤적 이미지" })).toBeInTheDocument()
@@ -131,7 +131,10 @@ describe("S01 사건 창", () => {
       fireEvent.click(tabs[1])
       expect(within(d).queryByLabelText("사건등록번호")).toBeNull()
       expect(within(d).getByLabelText("채취 장소")).toBeInTheDocument()
-      expect(within(d).getByRole("group", { name: "적용 범위" })).toBeInTheDocument()
+      // 여러 장을 고르는 표가 없으니 「선택한 이미지 모두 적용」도 없다 · 창의 AI 는 문양 추출만(채취법 AI 제안 없음)
+      expect(within(d).queryByRole("group", { name: "적용 범위" })).toBeNull()
+      expect(within(d).queryByRole("button", { name: "적용" })).toBeNull()
+      expect(within(d).getByRole("button", { name: "수정" })).toBeInTheDocument()
       // 저장 줄은 두 탭 공통 바닥
       expect(within(d).getByRole("button", { name: "저장" })).toBeInTheDocument()
     })

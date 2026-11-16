@@ -1,8 +1,8 @@
 import type { ReactNode } from "react"
 
 import { cn } from "@/shared/lib/utils"
-import { CheckList, LiveDot } from "@/shared/ui/ai"
-import { BoardFrame, StatePill } from "@/shared/ui/kit"
+import { CheckList } from "@/shared/ui/ai"
+import { BoardFrame, StatePill, StatusDot } from "@/shared/ui/kit"
 import { PaneHead } from "@/shared/ui/panel"
 
 import type { AdminLogsInsights, AuditKindTone, LogAlert } from "../model/types"
@@ -115,7 +115,8 @@ function ActivityPanel({ activity }: { activity: AdminLogsInsights["activity"] }
       title="시간대별 사용량 · 오늘"
       end={
         <span className="inline-flex items-center gap-[5px] text-[11px] text-dim">
-          <LiveDot state="busy" label="기능 기록 실시간" hideLabel />
+          {/* 실시간 기록은 AI 가 아니다 — AI 실시간 점(맥박) 대신 일반 상태 점(2회차 검수) */}
+          <StatusDot tone="ok" label="실시간" className="text-[11px]" />
           기능 기록 <b className="tabular-nums text-foreground">{activity.total}</b>건
         </span>
       }

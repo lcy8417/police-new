@@ -122,6 +122,22 @@ export function ShoeEditor(props: ShoeEditorProps) {
   const aiMarks = dialog.aiMarks
   const suggestedCount = PATTERN_ZONES.reduce((n, z) => n + form[z.zone].filter((name) => aiMarks?.[z.zone]?.[name] === "suggested").length, 0)
   const extracting = extractState === "running"
+
+  // Esc = 편집 판만 닫고 목록으로(바깥 신발 DB 패널은 data-esc-layer 를 보고 그대로 — 한 층씩, 2회차 검수).
+  // 안쪽 층(고르기 목록 · 크게 살펴보기)이 먼저 받은 Esc 는 건드리지 않는다
+  const closeRef = React.useRef(props.onClose)
+  React.useEffect(() => {
+    closeRef.current = props.onClose
+  }, [props.onClose])
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return
+      e.preventDefault()
+      closeRef.current()
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [])
   const cls = viewTuneClass(tune)
   const tuneLabels = viewTuneLabels(tune)
   const zoneLabel = PATTERN_ZONES.find((z) => z.zone === zone)?.label ?? ""
@@ -357,7 +373,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
   )
 
   return (
-    <section aria-label={isNew ? "신발 등록" : `신발 ${form.ftwrId} 편집`} data-slot="shoe-editor" className="flex h-full min-h-0 flex-col">
+    <section aria-label={isNew ? "신발 등록" : `신발 ${form.ftwrId} 편집`} data-slot="shoe-editor" data-esc-layer="" className="flex h-full min-h-0 flex-col">
       {head}
       {info}
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_280px] gap-[12px] p-[12px]">

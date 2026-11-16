@@ -70,7 +70,7 @@ function conditionLine(run: SearchRun): string {
 export function SearchRunList({ runs, currentNo, onRestore, onOpen, canEdit, limit = 5 }: SearchRunListProps) {
   const [all, setAll] = React.useState(false)
   if (runs.length === 0) {
-    return <p className="m-0 py-[16px] text-center text-[11.5px] text-muted-foreground">아직 검색하지 않았습니다.</p>
+    return <p className="m-0 py-[16px] text-center text-[11px] text-muted-foreground">아직 검색하지 않았습니다.</p>
   }
   const shown = all ? runs : runs.slice(0, limit)
   return (
@@ -87,9 +87,10 @@ export function SearchRunList({ runs, currentNo, onRestore, onOpen, canEdit, lim
               className={cn("flex flex-col gap-[6px] rounded-[9px] border border-solid px-[8px] py-[7px]", now ? "border-brand-line bg-brand-bg/40" : "border-border bg-panel")}
             >
               <div className="flex min-w-0 items-center gap-[6px]">
-                <b className="font-code text-[11.5px] font-semibold text-foreground">#{run.searchNo}</b>
-                <span className="font-code text-[10.5px] text-muted-foreground">{run.at.slice(5, 16).replace("-", "/")}</span>
-                <span className="text-[10.5px] text-fg-2">{SOURCE_LABEL[run.source]}</span>
+                {/* 글자 단계(tokens.md R6): 보조 11 · 표식 10 — 2회차 검수 */}
+                <b className="font-code text-[11px] font-semibold text-foreground">#{run.searchNo}</b>
+                <span className="font-code text-[10px] text-muted-foreground">{run.at.slice(5, 16).replace("-", "/")}</span>
+                <span className="text-[10px] text-fg-2">{SOURCE_LABEL[run.source]}</span>
                 {now ? <span className="text-[10px] font-semibold text-brand">지금</span> : null}
                 <span className="ml-auto font-code text-[11px] text-fg-2 tabular-nums">{run.resultCount.toLocaleString("ko-KR")}건</span>
               </div>
@@ -102,11 +103,11 @@ export function SearchRunList({ runs, currentNo, onRestore, onOpen, canEdit, lim
                     ))}
                   </span>
                 ))}
-                {used.length === 0 ? <span className="text-[10.5px] text-muted-foreground">문양 없이(이미지만)</span> : null}
+                {used.length === 0 ? <span className="text-[11px] text-muted-foreground">문양 없이(이미지만)</span> : null}
               </div>
               <ol aria-label="상위 결과" className="m-0 flex list-none gap-[4px] p-0">
                 {run.top.length === 0 ? (
-                  <li className="text-[10.5px] text-muted-foreground">결과 없음</li>
+                  <li className="text-[11px] text-muted-foreground">결과 없음</li>
                 ) : (
                   run.top.map((h, i) => (
                     <li

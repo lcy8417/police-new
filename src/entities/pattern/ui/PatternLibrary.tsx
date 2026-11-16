@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Check } from "lucide-react"
 
+import { handleRovingKey } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
 import { PatternIcon } from "@/shared/ui/viewer"
 
@@ -83,7 +84,7 @@ function LibraryTile({
       {score !== undefined ? (
         <span
           className={cn(
-            "absolute bottom-[2px] left-[3px] rounded-[3px] bg-canvas/85 px-[2px] font-code text-[9.5px] leading-[12px] font-semibold tabular-nums",
+            "absolute bottom-[2px] left-[3px] rounded-[3px] bg-canvas/85 px-[2px] font-code text-[10px] leading-[12px] font-semibold tabular-nums",
             score < 0.5 ? "text-warn" : "text-ai"
           )}
         >
@@ -129,7 +130,7 @@ export function PatternLibrary({
         title={`넣을 부위: ${zoneLabel} — 4부위 행을 눌러 바꿉니다`}
         className="flex shrink-0 flex-wrap gap-[4px]"
       >
-        {tabs.map((t) => {
+        {tabs.map((t, i) => {
           const on = t.key === tab
           return (
             <button
@@ -138,9 +139,12 @@ export function PatternLibrary({
               role="tab"
               id={`${tabsId}-${t.key}`}
               aria-selected={on}
+              // 고른 탭만 Tab 순서에, ← → · Home · End 로 옮기며 고른다(WAI-ARIA 탭 패턴 — 2회차 검수)
+              tabIndex={on || (!tabs.some((x) => x.key === tab) && i === 0) ? 0 : -1}
+              onKeyDown={(e) => handleRovingKey(e, i, tabs.length, (to) => onTabChange(tabs[to].key))}
               onClick={() => onTabChange(t.key)}
               className={cn(
-                "inline-flex h-[24px] shrink-0 cursor-pointer items-center gap-[4px] rounded-full border border-solid px-[9px] text-[11.5px] font-semibold whitespace-nowrap transition-colors duration-150 motion-reduce:transition-none",
+                "inline-flex h-[24px] shrink-0 cursor-pointer items-center gap-[4px] rounded-full border border-solid px-[9px] text-[11px] font-semibold whitespace-nowrap transition-colors duration-150 motion-reduce:transition-none",
                 FOCUS,
                 on ? "border-brand-3 bg-brand-3 text-paper" : "border-line-3 bg-panel text-fg-2 hover:border-brand-line hover:text-foreground",
                 t.ai && "font-code tracking-[0.06em]",

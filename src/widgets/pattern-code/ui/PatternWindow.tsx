@@ -3,7 +3,7 @@ import { ArrowRight, Check, Layers, List, Maximize2, RotateCcw, Search, Sparkles
 
 import { PatternPeek, type PatternLibraryItem } from "@/entities/pattern"
 import { cn } from "@/shared/lib/utils"
-import { AiProgress, ScanOverlay } from "@/shared/ui/ai"
+import { ScanOverlay } from "@/shared/ui/ai"
 import { Field, Segmented, WorkbenchButton } from "@/shared/ui/kit"
 import { PaneHead, TabMark, UnderlineTabs } from "@/shared/ui/panel"
 import {
@@ -127,9 +127,9 @@ export function PatternWindow(props: PatternWindowProps) {
 
   const research =
     props.researchState === "running" ? (
+      // 재검색은 이 탭의 AI 일(문양 추출 — 결정 기록 §3-3)이 아니다 — AI 진행 막대 대신 글자만(2회차 검수, motion.md)
       <span role="status" className="flex min-w-[140px] flex-1 items-center gap-[6px] text-[11px] text-muted-foreground">
         <span className="whitespace-nowrap">결과 갱신 중…</span>
-        <AiProgress state="running" label="검색 결과 갱신" className="flex-1" />
       </span>
     ) : (
       <span role="status" className="min-w-0 truncate text-[11px] text-muted-foreground">

@@ -14,7 +14,7 @@ export const PEEK_H = 300
 const TAG = "pointer-events-none absolute top-[4px] left-[4px] rounded-[4px] bg-canvas/85 px-[5px] py-[1px] font-code text-[10px] text-fg-2"
 
 function PatternRow({ items }: { items: ZonePatternSet["patterns"] | undefined }) {
-  if (!items || items.length === 0) return <span className="text-[10.5px] text-faint">—</span>
+  if (!items || items.length === 0) return <span className="text-[10px] text-faint">—</span>
   return (
     <span className="flex flex-wrap gap-[3px]">
       {items.map((p) => (
@@ -69,9 +69,10 @@ export function PeekPop({
       style={{ left, top, width: PEEK_W }}
     >
       <div className="flex items-baseline gap-[8px]">
-        <b className="font-code text-[12px] tabular-nums">{`${rank}위`}</b>
-        <span className="font-code text-[11.5px] text-fg-2">{item.ftwrId}</span>
-        <b className="ml-auto font-code text-[18px] leading-none tabular-nums">
+        {/* 글자 단계(tokens.md R6): 순위 꼬리표 13 · 보조 11 · 숫자 16 — 2회차 검수 */}
+        <b className="font-code text-[13px] tabular-nums">{`${rank}위`}</b>
+        <span className="font-code text-[11px] text-fg-2">{item.ftwrId}</span>
+        <b className="ml-auto font-code text-[16px] leading-none tabular-nums">
           {value === null ? "—" : value.toFixed(1)}
           <span className="ml-[1px] text-[11px] font-semibold text-muted-foreground">%</span>
         </b>
@@ -92,7 +93,7 @@ export function PeekPop({
                 <b className="w-[14px]">{z.zone}</b>
                 <ConfidenceBar value={z.score} scale="percent" threshold={ZONE_MATCH} label={`${z.zone} 부위 점수`} className="flex-1" />
               </span>
-              <span className="truncate pl-[20px] text-[10.5px] text-muted-foreground">{z.why}</span>
+              <span className="truncate pl-[20px] text-[11px] text-muted-foreground">{z.why}</span>
             </div>
           ))}
           {zones.length === 0 ? <span className="text-[11px] text-muted-foreground">{`유사도 ${formatSimilarity(value)}`}</span> : null}
@@ -112,7 +113,7 @@ export function PeekPop({
           ))}
         </div>
       ) : null}
-      <span className="text-[10.5px] text-muted-foreground">Enter 정밀 대조 · S 확인대상</span>
+      <span className="text-[10px] text-muted-foreground">Enter 정밀 대조 · S 확인대상</span>
     </div>
   )
 }

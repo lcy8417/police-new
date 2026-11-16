@@ -323,7 +323,8 @@ describe("S03DevPage — 시안 r2 신규 기능 · 연출", () => {
   it("움직임 줄이기: ready 의 AI 움직임(훑기 선 · 실시간 점)은 motion-safe: 로만 걸려 멈추면 끝난 모양이다", () => {
     const { container } = renderAt("/dev/s03?case=ready")
     const animated = Array.from(container.querySelectorAll("[class*='animate-']"))
-    expect(animated.length).toBeGreaterThanOrEqual(3)
+    // (2회차 검수: 십자선 연동 표시는 AI 가 아니라 실시간 점을 뺐다 — 남은 AI 움직임만 센다)
+    expect(animated.length).toBeGreaterThanOrEqual(2)
     for (const el of animated) {
       const bare = el
         .getAttribute("class")!

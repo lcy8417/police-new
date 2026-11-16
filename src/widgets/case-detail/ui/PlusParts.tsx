@@ -61,6 +61,7 @@ export function EvidenceWithAi({
   caption,
   plus,
   fill = false,
+  scanning = false,
 }: {
   src: string
   alt: string
@@ -68,13 +69,16 @@ export function EvidenceWithAi({
   plus: CaseDetailPlus
   /** 높이를 부모에 맞춰 꽉 채움(사건 창 — 11/17) — 기본은 시안 높이 300 */
   fill?: boolean
+  /** AI 가 지금 이 사진을 분석하는 중인가 — 그때만 훑기 선이 돈다(motion.md 「AI 가 실제로 일하는 자리에만」). 기본 아님 */
+  scanning?: boolean
 }) {
   const [view, setView] = React.useState<View>("raw")
   const look: EvidenceLook = view === "binary" ? "binary" : "raw"
   return (
     // 시안: 왼쪽 칸 폭 전체 · 높이 300(2:3 틀 대신)
+    // AI 겹침(족적 영역 · 자 인식)은 「AI 표시」를 골랐을 때만 — 원본은 사진 그대로(2회차 검수 — 원본에서도 늘 겹치고 훑기 선이 돌던 것)
     <EvidenceImage src={src} alt={alt} caption={caption} ruler look={look} className={fill ? "aspect-auto h-full" : "aspect-auto h-[300px]"}>
-      {view !== "binary" ? (
+      {view === "ai" ? (
         <>
           <span
             data-plus
@@ -99,7 +103,7 @@ export function EvidenceWithAi({
             족적 영역 {plus.overlay.areaPercent}%
           </span>
           <span data-plus>
-            <ScanOverlay active />
+            <ScanOverlay active={scanning} />
           </span>
         </>
       ) : null}

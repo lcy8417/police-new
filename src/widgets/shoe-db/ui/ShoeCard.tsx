@@ -28,7 +28,8 @@ function CardMark({ mark }: { mark: ShoeCardMark }) {
     )
   }
   if (mark === "dup") {
-    return <AiTag variant="progress" className={cn(TAG_POS, WARN_TAG)}>중복 의심</AiTag>
+    // 정적 경고 — 맥박 점(진행 중 표시)을 쓰지 않는다(2회차 검수, motion.md)
+    return <AiTag className={cn(TAG_POS, WARN_TAG)}>중복 의심</AiTag>
   }
   const low = mark < 0.7
   return (

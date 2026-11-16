@@ -510,8 +510,22 @@ export interface CuttingPreview {
 
 /** 작업대 위 미리보기 판 — 그 단계 그림 + 위 띠(이름 · 여기까지 되돌리기 · 닫기). 캔버스 좌표 판정에 끼지 않게 판 전체가 덮는다 */
 function PreviewOverlay({ preview, canEdit, onClose, onRevert }: { preview: CuttingPreview; canEdit: boolean; onClose: () => void; onRevert?: () => void }) {
+  // Esc = 미리보기만 닫는다(바깥 사건 창은 data-esc-layer 를 보고 그대로 — 2회차 검수)
+  const closeRef = React.useRef(onClose)
+  React.useEffect(() => {
+    closeRef.current = onClose
+  }, [onClose])
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return
+      e.preventDefault()
+      closeRef.current()
+    }
+    document.addEventListener("keydown", onKey)
+    return () => document.removeEventListener("keydown", onKey)
+  }, [])
   return (
-    <div role="region" aria-label="편집 이력 미리보기" className="absolute inset-0 z-[2] flex flex-col overflow-hidden rounded-[10px] bg-canvas">
+    <div role="region" data-esc-layer="" aria-label="편집 이력 미리보기" className="absolute inset-0 z-[2] flex flex-col overflow-hidden rounded-[10px] bg-canvas">
       <div className="flex shrink-0 items-center gap-[8px] border-0 border-b border-solid border-border bg-panel px-[12px] py-[7px]">
         <Eye aria-hidden="true" className="size-[15px] text-brand" strokeWidth={1.9} />
         <b className="text-[12.5px] font-bold text-foreground">
