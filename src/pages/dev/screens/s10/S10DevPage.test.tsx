@@ -222,6 +222,21 @@ describe("S10 신발문양 관리 진열 페이지", () => {
       expect(within(dialog).getByText(/AI 확인 필요 2건/)).toBeInTheDocument()
     })
 
+    it("신발정보관리 창: 레이어 형태 · 머리에 아이디·칩·안내문 · 탭 줄 끝 닫기", () => {
+      renderAt("case=ready&as=analyst&tab=pattern")
+      fireEvent.click(screen.getByText("303349"))
+      const dialog = screen.getByRole("dialog")
+      expect(dialog).toHaveAttribute("data-part-variant", "layer")
+      expect(within(dialog).getByText("뒤 목록은 그대로 깔려 있음 · Esc 닫기")).toBeInTheDocument()
+      const head = within(dialog).getByText("신발정보관리").parentElement as HTMLElement
+      expect(within(head).getByText("303349")).toBeInTheDocument()
+      expect(within(head).getByText("AI 확인 필요")).toBeInTheDocument()
+      const close = within(dialog).getAllByRole("button", { name: "닫기" })
+      expect(close).toHaveLength(2) // 머리 ✕ + 탭 줄 끝 닫기
+      fireEvent.click(close[1])
+      expect(screen.queryByRole("dialog")).toBeNull()
+    })
+
     it("역할: 기술책임자 · 보기 전용에는 인공지능문양관리 · 모두에 넣기가 없다", () => {
       renderAt("case=ready&as=verifier&tab=pattern")
       fireEvent.click(screen.getByText("303349"))

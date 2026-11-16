@@ -15,6 +15,8 @@ import type { ShoeAiDetail, ShoeDialogState, ShoeWorkStatus } from "../model/typ
 // 신규(showPlus): 문양정보 탭의 AI 1차 입력 · 확신도 · 가림 · 중복 의심 · 고르기 줄 · 진행 · 승인 조건.
 interface ShoeInfoDialogProps {
   dialog: ShoeDialogState
+  /** 창이 깔릴 칸(뒤 목록이 있는 화면 칸) */
+  container?: HTMLElement | null
   canEdit: boolean
   isAdmin: boolean
   /** 인공지능문양관리 — 문양 수집 검수 권한(SHOE_COLLECT_REVIEW) */
@@ -83,6 +85,7 @@ function SoleAiOverlay({ detail }: { detail: ShoeAiDetail }) {
 
 export function ShoeInfoDialog({
   dialog,
+  container,
   canEdit,
   isAdmin,
   canAiReview,
@@ -122,12 +125,6 @@ export function ShoeInfoDialog({
           { value: "pattern", label: "문양정보" },
         ]}
       />
-      {showPlus && workStatus && (
-        <span data-plus="" className="inline-flex items-center gap-[6px]">
-          <span className="font-code text-[12px] text-brand">{form.ftwrId}</span>
-          {workStatus === "AI 확인 필요" && <Chip variant="amber">{workStatus}</Chip>}
-        </span>
-      )}
       <span className="ml-auto flex flex-wrap items-center gap-[5px]">
         {showPlus && canAiReview && (
           <span data-plus="" className="inline-flex">
@@ -154,6 +151,9 @@ export function ShoeInfoDialog({
                 </Button>
               </>
             )}
+            <Button size="sm" onClick={onClose}>
+              닫기
+            </Button>
           </span>
         )}
       </span>
@@ -323,7 +323,17 @@ export function ShoeInfoDialog({
         if (!open) onClose()
       }}
       title="신발정보관리"
-      size="large"
+      variant="layer"
+      container={container}
+      titleExtra={
+        showPlus && workStatus ? (
+          <span data-plus="" className="inline-flex items-center gap-[10px]">
+            <span className="font-code text-[12px] text-brand">{form.ftwrId}</span>
+            {workStatus === "AI 확인 필요" && <Chip variant="amber">{workStatus}</Chip>}
+          </span>
+        ) : null
+      }
+      headerRight={<span className="text-[11px] text-dim">뒤 목록은 그대로 깔려 있음 · Esc 닫기</span>}
       actions={
         canEdit && tab === "basic" ? (
           <ButtonBar variant="modal-head">

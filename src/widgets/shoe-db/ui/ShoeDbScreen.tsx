@@ -1,6 +1,7 @@
 import * as React from "react"
 
 import type { Shoe } from "@/entities/shoe"
+import { cn } from "@/shared/lib/utils"
 import { FEATURES } from "@/entities/session"
 import { Button, Chip, Combobox, DataGrid, Field, InlineError, Pagination, RadioRow, Segmented, type DataGridColumn } from "@/shared/ui/kit"
 import { ButtonBar, Crumb, PageHead, Panel, SearchForm, type SearchFormRow } from "@/shared/ui/panel"
@@ -41,6 +42,8 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
   const { view, onViewChange, shoes, total, page, pageSize, onPageChange, selectedId, onOpenShoe, onRegister, dialog } = props
 
   const { showPlus = true, onPlusAction, stageSummary, cardInfo, aiDetails } = props
+  // 신발정보관리 창이 뒤 목록 위에 깔릴 칸(시안: 화면 칸 안의 절대 위치)
+  const [layerHost, setLayerHost] = React.useState<HTMLDivElement | null>(null)
 
   const canEdit = isAdmin || features.includes(FEATURES.SHOE_EDIT)
   const canAiReview = isAdmin || features.includes(FEATURES.SHOE_COLLECT_REVIEW)
@@ -191,7 +194,7 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
   }
 
   return (
-    <div aria-busy={status === "loading"} className="grid gap-[10px]">
+    <div ref={setLayerHost} aria-busy={status === "loading"} className={cn("relative grid content-start gap-[10px]", dialog && "min-h-[1240px]")}>
       <PageHead title="신발문양 관리" />
       <Crumb items={["족윤적", "문양관리", "신발문양 관리"]} />
       <Panel variant="tc">
@@ -211,6 +214,7 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
       {dialog && (
         <ShoeInfoDialog
           dialog={dialog}
+          container={layerHost}
           canEdit={canEdit}
           isAdmin={isAdmin}
           canAiReview={canAiReview}

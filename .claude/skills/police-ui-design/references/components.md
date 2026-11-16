@@ -34,7 +34,7 @@
 | TooltipProvider | kit | `src/shared/ui/tooltip.tsx` | (시안 title 속성) | 다수 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
 | DataGrid | kit | `src/shared/ui/kit/DataGrid.tsx` | `.grid` | S01 · S02 · S04 · S07–S09 · S11–S15 | [새로] 열 정의 · 선택 행(`aria-selected`) · 빈 목록 문구. `tr.fx-new` 새 행 강조는 아직 없음 | 구현됨 |
 | Pagination | kit | `src/shared/ui/kit/Pagination.tsx` | (목록 아래 쪽수) | S01 · S05 · S10 | [새로] 「전체 n 중 a-b」 / total 없으면 「a-b」 · 이전 · 다음. 「더 보기」(S14) · « » 이동은 없음 | 구현됨 |
-| DialogShell | kit | `src/shared/ui/kit/DialogShell.tsx` | (레이어 팝업 머리 · 몸 · 발) | S02–S10 중 표식 때 확정 | [새로] 기본 · `large`(폭 90%). shadcn dialog 감쌈. 기본 폭 720은 임시값 | 구현됨 |
+| DialogShell | kit | `src/shared/ui/kit/DialogShell.tsx` | (레이어 팝업 머리 · 몸 · 발) | S02–S10 중 표식 때 확정 | [새로] 기본 · `large`(폭 90%) · `layer`(시안 S10: `container` 칸 안 절대 위치 왼 150 · 위 480 · 폭 880, 덮개는 그 칸만, 머리 ✕). 슬롯 `titleExtra` · `headerRight`. shadcn dialog 감쌈. 기본 폭 720은 임시값 | 구현됨 |
 | Dialog | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
 | DialogClose | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
 | DialogContent | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
