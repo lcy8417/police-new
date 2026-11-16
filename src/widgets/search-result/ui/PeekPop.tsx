@@ -62,7 +62,8 @@ export function PeekPop({
   return (
     <div
       data-quick-peek
-      role="dialog"
+      // 누를 것 없는 마우스 올림 설명이라 대화상자가 아니다(1회차 검수)
+      role="tooltip"
       aria-label={`빠른 비교 ${rank}위 ${item.ftwrId}`}
       className="pointer-events-none absolute z-[20] grid gap-[8px] rounded-[10px] border border-solid border-line-3 bg-panel p-[10px] text-foreground [box-shadow:0_18px_44px_0_var(--t-panel-drop)]"
       style={{ left, top, width: PEEK_W }}

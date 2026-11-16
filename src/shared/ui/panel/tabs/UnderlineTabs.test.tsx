@@ -30,6 +30,32 @@ describe("UnderlineTabs", () => {
     fireEvent.click(screen.getByRole("tab", { name: "이미지 편집" }))
     expect(onChange).toHaveBeenCalledWith("edit")
   })
+
+  it("1회차 검수 — 고른 탭만 Tab 순서(roving tabIndex), ← → · Home · End 로 옮겨 고른다", () => {
+    const onChange = vi.fn()
+    render(
+      <UnderlineTabs
+        label="작업"
+        tabs={[
+          ["info", "사건 정보"],
+          ["edit", "이미지 편집"],
+          ["confirm", "결과 확인"],
+        ]}
+        value="info"
+        onChange={onChange}
+      />
+    )
+    const info = screen.getByRole("tab", { name: "사건 정보" })
+    expect(info).toHaveAttribute("tabindex", "0")
+    expect(screen.getByRole("tab", { name: "이미지 편집" })).toHaveAttribute("tabindex", "-1")
+    fireEvent.keyDown(info, { key: "ArrowRight" })
+    expect(onChange).toHaveBeenLastCalledWith("edit")
+    expect(screen.getByRole("tab", { name: "이미지 편집" })).toHaveFocus()
+    fireEvent.keyDown(info, { key: "ArrowLeft" })
+    expect(onChange).toHaveBeenLastCalledWith("confirm")
+    fireEvent.keyDown(info, { key: "End" })
+    expect(onChange).toHaveBeenLastCalledWith("confirm")
+  })
 })
 
 describe("TabMark", () => {

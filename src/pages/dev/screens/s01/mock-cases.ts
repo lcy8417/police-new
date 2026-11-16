@@ -180,7 +180,15 @@ export function makeCaseRows(): CaseListRow[] {
       caseName: i === 5 ? LONG_CASE_NAME : s.caseName,
       processOffice: "경찰청 범죄분석과",
       confirmedAt: confirmed ? s.registeredAt : "",
-      caseResult: s.results.found > 0 ? "발견" : confirmed ? "불발견" : "",
+      // 발견이 하나라도 있으면 발견, 확인한 장이 모두 감정불능이면 감정불능(1회차 검수 — 불발견으로 세던 것), 그 밖 확인 끝은 불발견
+      caseResult:
+        s.results.found > 0
+          ? "발견"
+          : confirmed && s.results.missed === 0 && s.results.unable > 0
+            ? "감정불능"
+            : confirmed
+              ? "불발견"
+              : "",
       receiver: "박○○",
       // 담당 두 사람(감정관 박○○ · 수사관 이○○)이 섞여 「내 담당만」이 보는 사람마다 다른 건수를 낸다(i%3==1 이 이○○ 39건, 나머지 박○○ 77건)
       author: i % 3 === 1 ? "이○○" : "박○○",

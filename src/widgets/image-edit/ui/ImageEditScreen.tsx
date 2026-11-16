@@ -59,7 +59,8 @@ export function ImageEditScreen(props: ImageEditScreenProps) {
   // (11/17 사용자 「편집 이력만 남겨 AI 제안 빼 … 편집 이력은 당연 미리보기 가능해야하고. 각각 리스트마다」)
   if (props.inWindow) {
     const history = props.editHistory
-    const side = showPlus && history !== undefined
+    // 오른쪽 편집 이력은 사건 창 기본 구성(11/17 「편집 이력만 남겨」) — 신규(+α)를 꺼도 남는다(1회차 검수)
+    const side = history !== undefined
     const original = props.beforeAfter?.original
     const shown = previewNo !== null && history && previewNo <= (history.at(-1)?.no ?? 0) ? previewNo : null
     const previewEntry = shown === null ? undefined : shown === 0 ? { no: 0, label: "받은 원본" } : history?.find((h) => h.no === shown)

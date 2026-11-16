@@ -1,3 +1,4 @@
+import type * as React from "react"
 import type { ReactNode } from "react"
 
 import { cn } from "@/shared/lib/utils"
@@ -34,6 +35,23 @@ export interface UnderlineTabsProps<K extends string> {
 
 /** [UI] 밑줄 탭 줄(window 변형) — 고른 탭 = brand 밑줄 2px + brand-3 글자 */
 export function UnderlineTabs<K extends string>({ label, tabs, value, onChange, lead, endKey, idPrefix, end, partId }: UnderlineTabsProps<K>) {
+  // 키보드(WAI-ARIA 탭 패턴 — 1회차 검수): 고른 탭만 Tab 순서에 들고(roving tabIndex), ← → · Home · End 로 옮기며 바로 고른다
+  const keys = tabs.map(([key]) => key)
+  const focusKey = value !== undefined && keys.includes(value) ? value : keys[0]
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, key: K) => {
+    const at = keys.indexOf(key)
+    const to =
+      event.key === "ArrowRight" ? (at + 1) % keys.length
+      : event.key === "ArrowLeft" ? (at - 1 + keys.length) % keys.length
+      : event.key === "Home" ? 0
+      : event.key === "End" ? keys.length - 1
+      : -1
+    if (to < 0 || keys.length === 0) return
+    event.preventDefault()
+    onChange(keys[to])
+    const buttons = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+    buttons?.[to]?.focus()
+  }
   const list = (
     <div
       {...(end ? {} : partAttrs("UnderlineTabs", { variant: "window", id: partId }))}
@@ -55,8 +73,10 @@ export function UnderlineTabs<K extends string>({ label, tabs, value, onChange, 
             role="tab"
             id={idPrefix ? `${idPrefix}-${key}` : undefined}
             aria-selected={on}
+            tabIndex={key === focusKey ? 0 : -1}
             data-slot="panel-tab"
             onClick={() => onChange(key)}
+            onKeyDown={(e) => handleKeyDown(e, key)}
             className={cn(
               "-mb-px inline-flex shrink-0 cursor-pointer items-center whitespace-nowrap border-0 border-b-2 border-solid bg-transparent px-2.5 pt-[7px] pb-2 text-[13px] font-bold transition-colors duration-150 motion-reduce:transition-none",
               FOCUS,

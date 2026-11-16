@@ -193,13 +193,14 @@ function ToolOptions(p: CuttingPaneProps & { bare?: boolean; quiet?: boolean }) 
 const fmt = (n: number) => n.toLocaleString("ko-KR")
 
 /** 좌표 캔버스 칸(슬롯) + 위 꼬리표. 겹 장식은 모두 pointer-events-none. 크기는 부르는 쪽이 `className` 으로 */
-function CanvasBox({ p, className }: { p: CuttingPaneProps; className: string }) {
-  const tags = p.plus ? p.canvasTags : undefined
+function CanvasBox({ p, className, inWindow = false }: { p: CuttingPaneProps; className: string; inWindow?: boolean }) {
+  // 사건 창(11/17 「1차 편집만 · AI 제안 빼」): AI 가 실제로 일할 때(노이즈제거)만 훑기 — 늘 도는 훑기 · AI 족적 축 꼬리표는 그리지 않는다(1회차 검수)
+  const tags = p.plus && !inWindow ? p.canvasTags : undefined
   return (
     <div className={cn("relative min-w-0 overflow-hidden rounded-[10px] border border-solid border-border bg-canvas", className)}>
       {p.canvasSlot}
       <ScanOverlay active={p.denoiseState === "running"} />
-      {p.plus ? (
+      {p.plus && !inWindow ? (
         // 시안: A 캔버스는 AI가 족적 축을 읽는 동안 4.5초 주기로 훑는다
         <ScanOverlay active data-plus="" className="motion-safe:[animation-duration:4.5s]" />
       ) : null}
@@ -606,7 +607,7 @@ export function CuttingWindow(
             <WorkbenchActions p={p} />
           </div>
           <div className="relative min-h-0 flex-1 p-[14px]">
-            <CanvasBox p={p} className="h-full border-line-3 [box-shadow:0_8px_24px_var(--t-panel-drop)]" />
+            <CanvasBox p={p} inWindow className="h-full border-line-3 [box-shadow:0_8px_24px_var(--t-panel-drop)]" />
             {p.preview ? (
               <div className="absolute inset-[14px]">
                 <PreviewOverlay

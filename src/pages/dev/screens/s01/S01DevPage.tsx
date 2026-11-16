@@ -162,6 +162,7 @@ export function S01DevPage() {
       options: [
         { value: "발견", label: "발견" },
         { value: "불발견", label: "불발견" },
+        { value: "감정불능", label: "감정불능" },
         { value: "none", label: "결과 전" },
       ],
     },

@@ -137,19 +137,20 @@ export function PatternWindow(props: PatternWindowProps) {
       </span>
     )
 
-  // 좁은 창(1280 + 왼쪽 목록 펼침)에서는 앞말(문양 · 검색)과 탭 뒤 수를 숨겨 세 탭이 한 줄에 들게 한다
+  // 좁은 창(1280 + 왼쪽 목록 펼침 — 안쪽 폭 약 884)에서는 앞말(문양 · 검색)과 탭 뒤 수를 숨겨 세 탭이 한 줄에 들게 한다.
+  // 기준 920(1회차 검수: 860 이면 1280 + 목록 펼침에서 발동하지 않아 오른쪽 탭이 잘림)
   // 탭 안은 flex 라 낱말 사이 빈칸이 접히므로 보이는 글은 앞말 끝 빈칸(U+00A0)으로 띄우고, 이름은 숨은 글로 그대로 준다
   const tabName = (lead: string, word: string) => (
     <>
       <span aria-hidden="true">
-        <span className="@max-[860px]:hidden">{`${lead} `}</span>
+        <span className="@max-[920px]:hidden">{`${lead} `}</span>
         {word}
       </span>
       <span className="sr-only">{`${lead} ${word}`}</span>
     </>
   )
   const countMark = (n: number) => (
-    <span className="@max-[860px]:hidden">
+    <span className="@max-[920px]:hidden">
       <TabMark kind="count" count={n} />
     </span>
   )
@@ -172,8 +173,8 @@ export function PatternWindow(props: PatternWindowProps) {
       data-slot="pattern-code-window"
       className="@container relative flex h-full min-h-0 min-w-0 flex-col gap-[8px] p-[12px]"
     >
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_280px] @max-[860px]:grid-cols-[minmax(0,1fr)_240px]">
-        <div className="flex min-h-0 min-w-0 flex-col gap-[8px] pr-[14px] @max-[860px]:pr-[10px]">
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_280px] @max-[920px]:grid-cols-[minmax(0,1fr)_240px]">
+        <div className="flex min-h-0 min-w-0 flex-col gap-[8px] pr-[14px] @max-[920px]:pr-[10px]">
           <PaneHead
             title="문양 코딩"
             tip="현장 이미지를 두 번 누르면 크게 살펴봅니다. 문양은 오른쪽 목록에서 누르거나 끌어 넣고, 카드에서 필수 · 가중치를 정합니다. 확인 전 AI 제안은 검색에 들어가지 않습니다."
@@ -182,7 +183,7 @@ export function PatternWindow(props: PatternWindowProps) {
           <div
             data-theme="dark"
             data-slot="pattern-workbench"
-            className="grid min-h-0 flex-1 grid-cols-[252px_minmax(0,1fr)] overflow-hidden rounded-[12px] border border-solid border-border bg-panel text-foreground [box-shadow:0_6px_18px_var(--t-panel-drop)] @max-[860px]:grid-cols-[216px_minmax(0,1fr)]"
+            className="grid min-h-0 flex-1 grid-cols-[252px_minmax(0,1fr)] overflow-hidden rounded-[12px] border border-solid border-border bg-panel text-foreground [box-shadow:0_6px_18px_var(--t-panel-drop)] @max-[920px]:grid-cols-[216px_minmax(0,1fr)]"
           >
             {/* 왼쪽: 현장 이미지 — 보기 조정 · 확대경 · 두 번 눌러 크게 */}
             <section aria-label="현장 이미지" className="flex min-h-0 min-w-0 flex-col border-0 border-r border-solid border-border">
@@ -266,7 +267,7 @@ export function PatternWindow(props: PatternWindowProps) {
                       disabled={!canEdit || counts.sug === 0 || !props.onConfirmAllSuggestions}
                       onClick={props.onConfirmAllSuggestions}
                     >
-                      <span className="@max-[860px]:sr-only">제안 모두 확인</span>
+                      <span className="@max-[920px]:sr-only">제안 모두 확인</span>
                     </WorkbenchButton>
                   ) : null}
                   <WorkbenchButton
@@ -281,7 +282,7 @@ export function PatternWindow(props: PatternWindowProps) {
                   </WorkbenchButton>
                 </span>
               </div>
-              <div className="flex min-h-0 flex-1 flex-col gap-[8px] overflow-y-auto p-[10px] @max-[860px]:p-[8px]">
+              <div className="flex min-h-0 flex-1 flex-col gap-[8px] overflow-y-auto p-[10px] @max-[920px]:p-[8px]">
                 <ZoneBoard
                   zones={zones}
                   selectedZone={selectedZone}
@@ -315,7 +316,7 @@ export function PatternWindow(props: PatternWindowProps) {
         </div>
 
         {/* 오른쪽 보조 칸 — 밝은 바탕, 왼쪽 가는 선 */}
-        <section aria-label="문양 · 검색" className="flex min-h-0 min-w-0 flex-col gap-[10px] border-0 border-l border-solid border-border pl-[14px] @max-[860px]:pl-[10px]">
+        <section aria-label="문양 · 검색" className="flex min-h-0 min-w-0 flex-col gap-[10px] border-0 border-l border-solid border-border pl-[14px] @max-[920px]:pl-[10px]">
           <UnderlineTabs label="문양 · 검색" tabs={sideTabs} value={sideTab} onChange={setSideTab} idPrefix={sideTabsId} />
           <div role="tabpanel" aria-labelledby={`${sideTabsId}-${sideTab}`} className="flex min-h-0 min-w-0 flex-1 flex-col gap-[14px] overflow-y-auto px-[2px]">
             {sideTab === "library" ? (
