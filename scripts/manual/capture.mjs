@@ -1,7 +1,7 @@
 // 매뉴얼용 자동 캡처 — 진열 화면(개발 서버)을 헤드리스 Chromium 으로 열어 매뉴얼 목차 순서대로 찍는다.
 //
 // 실행:  node scripts/manual/capture.mjs [--out <폴더>] [--base <주소>] [--only <파일 이름 앞부분>]
-//   --out   기본 docs/manual/captures/ (.gitignore — 실제 현장 족적 사진이 찍히므로 저장소에 올리지 않는다)
+//   --out   기본 ../output/manual/captures/ (저장소 밖 — 실제 현장 족적 사진이 찍히므로 저장소에 두지 않는다)
 //   --base  기본 http://localhost:5210 (npm run dev 로 띄운 개발 서버. 진열 화면 /dev/* 는 개발 서버에만 있다)
 //   --only  예 `--only 3-4` 면 3-4 로 시작하는 캡처만
 //
@@ -25,7 +25,7 @@ function arg(name, fallback) {
   return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : fallback
 }
 
-const OUT = path.resolve(ROOT, arg("out", "docs/manual/captures"))
+const OUT = path.resolve(ROOT, arg("out", "../output/manual/captures"))
 const BASE = arg("base", "http://localhost:5210").replace(/\/$/, "")
 const ONLY = arg("only", "")
 const VIEWPORT = { width: 1440, height: 900 }
@@ -87,7 +87,7 @@ const CAPTURES = [
   {
     file: "1-2-password-change.png",
     title: "비밀번호 바꾸기",
-    desc: "처음 로그인하거나 90일이 지나면 새 비밀번호를 정한다",
+    desc: "처음 로그인하거나 관리자가 비밀번호를 초기화하면 새 비밀번호를 정한다",
     path: "/dev/s00?case=password-change",
     marks: [
       ["현재 비밀번호", role("textbox", /현재 비밀번호/)],
@@ -432,6 +432,8 @@ const CAPTURES = [
     path: win("confirm"),
     marks: [
       ["결과 확인 탭", role("tab", /^결과 확인/, dialogOf)],
+      ["이미지별 판정(발견 · 불발견 · 감정불능)", role("group", "_1 판정", dialogOf)],
+      ["사건 결론", role("complementary", "사건 결론 칸", dialogOf)],
       ["교차 검증 요청", btn("교차 검증 요청", dialogOf)],
       ["감정서로", btn("감정서로", dialogOf)],
     ],
@@ -469,7 +471,16 @@ const CAPTURES = [
       await click(p, btn("다음", (q) => q.getByRole("dialog", { name: "신발 DB" })), 500)
       await click(p, btn("205423 열기"), 800)
     },
-    marks: [["편집 판", (p) => p.getByRole("dialog").last()]],
+    marks: [
+      ["기본정보", role("region", "기본정보")],
+      ["원본 · Shoerinsics", role("group", "밑창 그림 종류")],
+      ["밑창 그림", role("region", "밑창 그림")],
+      ["AI 문양 추출", btn("AI 문양 추출")],
+      ["부위별 문양", role("region", "부위별 문양")],
+      ["문양 고르기", role("complementary", "문양 고르기")],
+      ["승인", btn("승인")],
+      ["저장", btn("저장", (p) => p.getByRole("dialog", { name: "신발 DB" }))],
+    ],
   },
 
   // 5장 사용자 관리
@@ -497,6 +508,39 @@ const CAPTURES = [
       ["역할 저장", btn("역할 저장")],
       ["기능 권한", role("region", "기능 권한")],
       ["바꾼 권한", role("switch", "사건 등록")],
+    ],
+  },
+
+  {
+    file: "5-3-unlock-reset.png",
+    title: "잠금 해제 · 비밀번호 초기화",
+    desc: "잠긴 사용자(lee0508)를 고르면 상세 아래에 잠금 해제 · 비밀번호 초기화 · 사용 중지",
+    path: "/dev/s13?as=admin",
+    steps: async (p) => {
+      await click(p, (q) => q.getByRole("table", { name: "사용자 표" }).getByText("lee0508", { exact: true }).first(), 600)
+      await btn("비밀번호 초기화")(p).scrollIntoViewIfNeeded()
+      await pause(p, 300)
+    },
+    marks: [
+      ["신발 DB 분업", (p) => p.getByRole("region", { name: "사용자 상세" }).getByText("신발 DB 분업", { exact: true }).first()],
+      ["비밀번호 초기화", btn("비밀번호 초기화")],
+      ["잠금 해제", btn("잠금 해제")],
+      ["사용 중지", btn("사용 중지")],
+    ],
+  },
+  {
+    file: "5-4-password-reset-dialog.png",
+    title: "비밀번호 초기화 창",
+    desc: "임시 비밀번호를 정하면 그 사용자의 열린 로그인이 모두 끝나고, 다음 로그인 때 새 비밀번호를 정하게 된다",
+    path: "/dev/s13?as=admin",
+    steps: async (p) => {
+      await click(p, (q) => q.getByRole("table", { name: "사용자 표" }).getByText("lee0508", { exact: true }).first(), 600)
+      await btn("비밀번호 초기화")(p).scrollIntoViewIfNeeded()
+      await click(p, btn("비밀번호 초기화"), 600)
+    },
+    marks: [
+      ["임시 비밀번호", role("textbox", /임시 비밀번호/)],
+      ["초기화", btn("초기화", (p) => p.getByRole("dialog").last())],
     ],
   },
 
@@ -533,11 +577,17 @@ const CAPTURES = [
     title: "가중치 규칙",
     desc: "문양 코드 → 검색 조건 탭 — 규칙 요약(R1~R5)과 매칭 조건",
     path: win("pattern"),
-    steps: async (p) => click(p, role("tab", "검색 조건", dialogOf), 600),
+    // 탭을 연 뒤 칸 안을 내려 R1~R5 · 「규칙 기본값으로」까지 보이게 한다(기본 위치에서는 R3 아래가 잘림)
+    steps: async (p) => {
+      await click(p, role("tab", "검색 조건", dialogOf), 600)
+      await role("region", "가중치 규칙", dialogOf)(p).locator("button").last().scrollIntoViewIfNeeded()
+      await pause(p, 300)
+    },
     marks: [
       ["검색 조건 탭", role("tab", "검색 조건", dialogOf)],
       ["가중치 규칙", role("region", "가중치 규칙", dialogOf)],
       ["매칭 조건", role("region", "매칭 조건", dialogOf)],
+      ["규칙 기본값으로", btn("규칙 기본값으로", dialogOf)],
     ],
   },
 ]
