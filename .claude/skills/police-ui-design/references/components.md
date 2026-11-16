@@ -65,6 +65,32 @@
 | GlowOrb | kit | `src/shared/ui/glow-fx.tsx` | `.content` | S01–S15 | [기존] 기존 부품 재내보내기 — 시안 대조 안 함. 시안은 `.content::after` 번짐 | 구현됨 |
 | EdgeGlow | kit | `src/shared/ui/glow-fx.tsx` | `.topnav` | S01–S15 | [기존] 기존 부품 재내보내기 — 시안 대조 안 함. 시안은 `.topnav::after` 아래 빛줄 | 구현됨 |
 
+### kit 목록 판(r4 — 로망 이식, `src/shared/ui/kit/board/`)
+
+r4: 목록 · 앱 틀 생김새는 로망 정본(romang-ui-design)을 따르고 색만 경찰 토큰(2026-11-16 사용자 결정). 원본은 romang `src/shared/ui/board/*` · `board/list/ListTable.tsx` · `kit/item/StatePill.tsx`. 구조 · 크기 · 모서리 · 글자 크기 · 상태(`aria-pressed` · `data-state` · 0건 `opacity-40` · 눌림 1px)는 원본 그대로, 색만 대응(`bg-state-deep` → `bg-brand-3`, 흰 글자 → `text-paper`, 칩 켜짐 `bg-paper text-brand-3`, 분홍 초점 → 뚜껑 안 `outline-paper` · 흰 판 안 `ring-brand`). 시안(r3)에 짝이 없어 진열만 하고 대조하지 않는다(`noMockup`).
+
+| 부품 | 출입구 | 파일 | 원본(data-part) | 쓰는 화면 | 변형 | 상태 |
+|---|---|---|---|---|---|---|
+| BoardFrame | kit | `src/shared/ui/kit/board/BoardFrame.tsx` | (로망 `BoardFrame`) | S01 | [새로] 흰 판 · 테 · 모서리 14 · 옅은 그림자(`--t-panel-drop`) | 구현됨 |
+| BoardLid | kit | `src/shared/ui/kit/board/BoardLid.tsx` | (로망 `BoardLid`) | S01 | [새로] `board`(줄바꿈) · `finder`(한 줄 48) · `scroll`(옆으로 밀기 + `aside`). 진한 띠 `bg-brand-3` · 12 굵게 `text-paper` | 구현됨 |
+| LidChip | kit | `src/shared/ui/kit/board/LidChip.tsx` | (로망 `LidChip`) | S01 | [새로] 켜짐 · 꺼짐 · `zero`(흐림 .4, 동작 유지) · `pending`(「준비 중」) · `blocked` · `outline` · 수 `count`. `aria-pressed` | 구현됨 |
+| LidChipGroup | kit | `src/shared/ui/kit/board/LidChipGroup.tsx` | (로망 `LidChipGroup`) | S01 | [새로] `role="group"` 칩 묶음 | 구현됨 |
+| LidSeparator | kit | `src/shared/ui/kit/board/LidSeparator.tsx` | (로망 `LidSeparator`) | S01 | [새로] 1px × 18 흰 35% 칸막이 | 구현됨 |
+| LidFilterLabel | kit | `src/shared/ui/kit/board/LidFilterLabel.tsx` | (로망 `LidFilterLabel`) | S01 | [새로] 깔때기 아이콘 + 「필터」(글자 바꿈 가능) | 구현됨 |
+| LidResetLink | kit | `src/shared/ui/kit/board/LidResetLink.tsx` | (로망 `LidResetLink`) | S01 | [새로] 「✕ 필터 풀기」 글자 단추 — 거른 것이 있을 때만 화면이 그림 | 구현됨 |
+| LidActiveFilterChip | kit | `src/shared/ui/kit/board/LidActiveFilterChip.tsx` | (로망 `LidActiveFilterChip`) | 진열만 | [새로] 켜진 조건 + ✕ 동그라미(`bg-brand-bg`) | 구현됨 |
+| LidSearch | kit | `src/shared/ui/kit/board/LidSearch.tsx` | (로망 `LidSearch`) | S01 | [새로] `board` · `finder` 폭. 값 있을 때만 지우기 × (누르면 칸으로 초점). 로망의 전역 찾기 등록 줄은 뺌 | 구현됨 |
+| LidViewTabs | kit | `src/shared/ui/kit/board/LidViewTabs.tsx` | (로망 `LidViewTabs`) | 진열만 | [새로] 보기 탭 묶음(흰 55% 안쪽 테) | 구현됨 |
+| LidViewTab | kit | `src/shared/ui/kit/board/LidViewTabs.tsx` | (로망 `LidViewTab`) | 진열만 | [새로] 켜짐 `bg-paper text-brand-3` · `menu`(▾) · `animate` | 구현됨 |
+| ListHeadRow | kit | `src/shared/ui/kit/board/ListTable.tsx` | (로망 `ListHeadRow`) | 진열만(S01 표는 `<table>` 로 같은 값) | [새로] h-8 · 흰 바탕 · 10.5 보통 회색 · 아래 선 · sticky | 구현됨 |
+| ListGroupHead | kit | `src/shared/ui/kit/board/ListTable.tsx` | (로망 `ListGroupHead`) | 진열만 | [새로] `bg-brand-bg` · 12 굵게 `text-brand-3` · 오른쪽 흐린 수 | 구현됨 |
+| ListRow | kit | `src/shared/ui/kit/board/ListTable.tsx` | (로망 `ListRow`) | 진열만(S01 표는 같은 값) | [새로] 높이 30 · 아래 선 · `selected`(`bg-brand-bg` + 1.5px `ring-brand` 안쪽) · `interactive`(올림 `bg-brand-bg/60`) | 구현됨 |
+| ListNameCell | kit | `src/shared/ui/kit/board/ListTable.tsx` | (로망 `ListNameCell`) | 진열만 | [새로] 머리글자 동그라미 + 12.5 굵게 이름, 빈 이름은 흐린 「이름 없음」 | 구현됨 |
+| ListFoot | kit | `src/shared/ui/kit/board/ListTable.tsx` | (로망 `ListFoot`) | S01 | [새로] 표 아래 h-9 한 줄 · 위 선 · 11 회색 | 구현됨 |
+| ListNote | kit | `src/shared/ui/kit/board/ListTable.tsx` | (로망 `ListNote`) | S01 | [새로] 빈 · 확인 못 함 한 줄(12 회색) + 뒤 `action`(「· 다시」) | 구현됨 |
+| StatePill | kit | `src/shared/ui/kit/board/StatePill.tsx` | (로망 `kit/item/StatePill`) | S01 | [새로] `done`(✓) · `pending` · `fact` = 회색 알약(`bg-strip`), `problem` = `bg-danger-bg text-danger-fg` + 「!」, `notApplicable` = 점선 「–」. 글자형 · 단추형(`busy` · `blocked`) | 구현됨 |
+| CountDot | kit | `src/shared/ui/kit/board/CountDot.tsx` | (로망 `CountDot`) | S01–S14 앱 틀 메뉴 | [새로] 0 이하 · 모름은 안 그림, 100 이상 「99+」. `selected` · `collapsed` | 구현됨 |
+
 ## viewer — 족적 사진 표시(재지 않음)
 
 | 부품 | 출입구 | 파일 | 원본(data-part) | 쓰는 화면 | 변형 | 상태 |
@@ -99,7 +125,7 @@
 |---|---|---|---|---|---|---|
 | Panel | panel | `src/shared/ui/panel/Panel.tsx` | `.panel` · `.panel-h` · `.panel-b` | S00–S15 | [새로] `default` · `tc`(모서리 장식, `corners`) · `default-pad` · 머리(제목 · 라벨 · 오른쪽 `actions`) | 검증됨 |
 | ButtonBar | panel | `src/shared/ui/panel/ButtonBar.tsx` | `.panel-h .r` | S00 · S01 · S06–S15 (+ S02 모달 머리 — 표식 `S02-23`) | [새로] `panel-head` · `modal-head` · SCAS 순서 고정(이전 · 다음 · … · 닫기). 오른쪽 붙임 · 세로 가운데(배치)는 미검증 — 아래 「배치 속성은 대조하지 않음」 | 검증됨 |
-| ScasShell | panel | `src/shared/ui/panel/ScasShell.tsx` | `M.shell` | S01–S15 | [새로] 위 메뉴 · 탭 줄 · 현재 탭 · 왼쪽 메뉴(`M.scasShell`은 SCAS 비교용이라 원본 아님) — 전환은 검증 후 한 번에 | 구현됨 |
+| ScasShell | panel | `src/shared/ui/panel/ScasShell.tsx` | `M.shell` → r4 로망 새 앱 틀(romang `widgets/app-shell/ui/ShellSidebar` · `ShellNavRow` · `ShellTopBar` · `ShellLogo`) | S01–S15 | [새로 → r4 로망 생김새] 바깥 `bg-[var(--t-emblem-to)]` 틀 · 왼쪽 사이드바 232(로고 방패 + 구역 이름표 + 메뉴 줄 h-9 · 아이콘 17 · 고른 줄 `bg-brand-3 text-paper` · 건수 CountDot · 잠긴 SCAS 메뉴 흐림 + 「SCAS」) · 오른쪽 둥근 내용 판(`rounded-[18px] bg-canvas`) 안 위 막대 h-14(화면 제목 · 바로 찾기 흰 알약 · 사용자 알약 · `headerEnd`). 탭 줄 · 점 격자 · 번짐 장식은 r4 에서 뺌. 접기 없음 | 구현됨 |
 | SearchForm | panel | `src/shared/ui/panel/SearchForm.tsx` | `.form` | S01 · S02 · S04 · S05 · S10 · S11 · S13 | [새로] 라벨-값 2열 · 3열 · 조회 · 초기화 · 필수 라벨(`.l.req`) | 구현됨 |
 | Stepper | panel | `src/shared/ui/panel/Stepper.tsx` | `.stepper` | S01 (+ S07 · S08 흐름 띠는 표식 때 확인) | [새로] 변형 `bar`(기본, S01 5px 막대) · `labeled`(S02 제목 줄: 점 + 이름 + 14px 연결선, 지금 단계 청록 맥박 · `aria-current="step"`). `steps` · `current`(0부터, NaN · ±Infinity 는 첫 칸, 칸 수와 같으면 모두 끝남). 끝남 파랑 · 지금 주황 + 빛 · 남음 회색, `width` 20(S01) · 18(CSS 기본), 읽는 이름에 지금 단계 | 검증됨 |
 | Crumb | panel | `src/shared/ui/panel/Crumb.tsx` | `.crumb` | S00 · S06–S15 | [새로] — | 구현됨 |

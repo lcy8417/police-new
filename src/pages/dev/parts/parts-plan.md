@@ -66,6 +66,26 @@
 | 화면 진열 페이지 S00–S14 | SearchForm | 그대로 | 잠금 후 화면이 가져다 씀(구현됨) |
 | 화면 진열 페이지 S00–S14 | Crumb | 그대로 | 잠금 후 화면이 가져다 씀(구현됨) |
 | 화면 진열 페이지 S00–S14 | PageHead | 그대로 | 잠금 후 화면이 가져다 씀(구현됨) |
+| 진열 화면 S01–S14 앱 틀 | ScasShell | 확장 | r4 로망 이식 — 로망 새 앱 틀(사이드바 232 · 위 막대 h-14 · 둥근 내용 판) 생김새, 색만 경찰 토큰. 탭 줄 · 점 격자 장식 뺌 |
+| S01 목록 판 바깥 카드 | BoardFrame | 새로 | 로망 이식(romang `shared/ui/board/BoardFrame`) — 색만 경찰 토큰 |
+| S01 목록 판 뚜껑 띠 | BoardLid | 새로 | 로망 이식(`BoardLid`) — 진한 띠 bg-brand-3 |
+| S01 뚜껑 칩 | LidChip | 새로 | 로망 이식(`LidChip`) — aria-pressed · 0건 흐림 · 눌림 1px |
+| S01 뚜껑 칩 묶음 | LidChipGroup | 새로 | 로망 이식(`LidChipGroup`) |
+| S01 뚜껑 칸막이 | LidSeparator | 새로 | 로망 이식(`LidSeparator`) |
+| S01 뚜껑 「필터」 이름표 | LidFilterLabel | 새로 | 로망 이식(`LidFilterLabel`) |
+| S01 뚜껑 조건 풀기 | LidResetLink | 새로 | 로망 이식(`LidResetLink`) — 활성일 때만 화면이 그림 |
+| 진열 화면 kit 뚜껑 켜진 조건 칩 | LidActiveFilterChip | 새로 | 로망 이식(`LidActiveFilterChip`) |
+| S01 뚜껑 찾기 칸 | LidSearch | 새로 | 로망 이식(`LidSearch`) — 전역 찾기 등록(zustand) 줄은 뺌 |
+| 진열 화면 kit 뚜껑 보기 탭 | LidViewTabs | 새로 | 로망 이식(`LidViewTabs`) |
+| 진열 화면 kit 뚜껑 보기 탭 칸 | LidViewTab | 새로 | 로망 이식(`LidViewTab`) |
+| 진열 화면 kit 목록 칸 머리 | ListHeadRow | 새로 | 로망 이식(`board/list/ListTable`) |
+| 진열 화면 kit 목록 묶음 머리 | ListGroupHead | 새로 | 로망 이식(`ListTable`) |
+| 진열 화면 kit 목록 줄 | ListRow | 새로 | 로망 이식(`ListTable`) — 고른 줄 bg-brand-bg + ring-brand |
+| 진열 화면 kit 목록 이름 칸 | ListNameCell | 새로 | 로망 이식(`ListTable`) |
+| S01 목록 아래 한 줄 | ListFoot | 새로 | 로망 이식(`ListTable`) — 개수 · 쪽당 행 · 행 높이 · 보기 · 쪽수 |
+| S01 목록 빈 · 실패 안내 | ListNote | 새로 | 로망 이식(`ListTable`) |
+| S01 표 상태 알약 | StatePill | 새로 | 로망 이식(`kit/item/StatePill`) — 회색, 실제 문제만 danger + 「!」 |
+| 진열 화면 kit 수 동그라미 | CountDot | 새로 | 로망 이식(`board/CountDot`) — 앱 틀 메뉴 건수에도 씀 |
 
 ## 승인 (spec §8 「만들 부품」 표 = 사용자 승인)
 
@@ -101,3 +121,23 @@
 승인: 11/16 소유자 — ColumnPicker
 승인: 11/16 소유자 — ViewCountSwitch
 승인: 11/16 소유자 — AutoPlayControl
+승인: 11/16 사용자 — ScasShell
+승인: 11/16 사용자 — BoardFrame
+승인: 11/16 사용자 — BoardLid
+승인: 11/16 사용자 — LidChip
+승인: 11/16 사용자 — LidChipGroup
+승인: 11/16 사용자 — LidSeparator
+승인: 11/16 사용자 — LidFilterLabel
+승인: 11/16 사용자 — LidResetLink
+승인: 11/16 사용자 — LidActiveFilterChip
+승인: 11/16 사용자 — LidSearch
+승인: 11/16 사용자 — LidViewTabs
+승인: 11/16 사용자 — LidViewTab
+승인: 11/16 사용자 — ListHeadRow
+승인: 11/16 사용자 — ListGroupHead
+승인: 11/16 사용자 — ListRow
+승인: 11/16 사용자 — ListNameCell
+승인: 11/16 사용자 — ListFoot
+승인: 11/16 사용자 — ListNote
+승인: 11/16 사용자 — StatePill
+승인: 11/16 사용자 — CountDot

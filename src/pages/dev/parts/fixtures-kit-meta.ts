@@ -3,6 +3,7 @@
 import type { PartFixture } from "./fixtures-meta";
 
 const NO_MOCKUP_FORM = "시안에 없는 모양(새로 만든 부품) — 진열만 하고 시안 짝 대조는 하지 않는다";
+const NO_MOCKUP_ROMANG = "r4 로망 이식 부품 — r3 시안에 짝이 없다(생김새 정본은 로망, 색만 경찰 토큰). 진열만 한다";
 
 export const KIT_PART_FIXTURES: PartFixture[] = [
   // S01 목록 머리 「기본 보기 15열 / SCAS 열 전체 보기」 — 시안 .seg (기본 변형)
@@ -24,4 +25,15 @@ export const KIT_PART_FIXTURES: PartFixture[] = [
   { id: "S01-83", part: "ViewCountSwitch", parentWidth: 260, surface: "panel", noMockup: NO_MOCKUP_FORM },
   { id: "S01-84", part: "AutoPlayControl", variant: "auto", parentWidth: 640, surface: "panel", noMockup: NO_MOCKUP_FORM },
   { id: "S01-85", part: "AutoPlayControl", variant: "manual", parentWidth: 300, surface: "panel", noMockup: NO_MOCKUP_FORM },
+  // r4 목록 판(로망 이식) — r3 시안에 짝이 없다(생김새 정본 = 로망 romang-ui-design, 색만 경찰 토큰). 진열만 한다.
+  { id: "S01-86", part: "BoardLid", parentWidth: 900, surface: "panel", noMockup: NO_MOCKUP_ROMANG },
+  { id: "S01-87", part: "LidChip", state: "on", parentWidth: 200, surface: "panel", boxClass: "bg-brand-3 p-[8px]", noMockup: NO_MOCKUP_ROMANG },
+  { id: "S01-88", part: "LidSearch", state: "on", parentWidth: 260, surface: "panel", boxClass: "flex bg-brand-3 p-[8px]", noMockup: NO_MOCKUP_ROMANG },
+  { id: "S01-89", part: "LidViewTabs", parentWidth: 320, surface: "panel", boxClass: "flex bg-brand-3 p-[8px]", noMockup: NO_MOCKUP_ROMANG },
+  { id: "S01-90", part: "LidActiveFilterChip", parentWidth: 200, surface: "panel", boxClass: "flex bg-brand-3 p-[8px]", noMockup: NO_MOCKUP_ROMANG },
+  { id: "S01-91", part: "BoardFrame", parentWidth: 640, surface: "canvas", noMockup: NO_MOCKUP_ROMANG },
+  { id: "S01-92", part: "ListRow", state: "selected", parentWidth: 520, surface: "panel", noMockup: NO_MOCKUP_ROMANG },
+  { id: "S01-93", part: "ListNote", parentWidth: 520, surface: "panel", noMockup: NO_MOCKUP_ROMANG },
+  { id: "S01-94", part: "StatePill", variant: "problem", parentWidth: 200, surface: "panel", noMockup: NO_MOCKUP_ROMANG },
+  { id: "S01-95", part: "CountDot", parentWidth: 80, surface: "panel", boxClass: "bg-[var(--t-emblem-to)] p-[8px]", noMockup: NO_MOCKUP_ROMANG },
 ];

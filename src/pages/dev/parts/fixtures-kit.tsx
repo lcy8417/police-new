@@ -3,14 +3,31 @@ import type { ReactNode } from "react";
 import {
   AutoPlayControl,
   Avatar,
+  BoardFrame,
+  BoardLid,
   ColumnPicker,
   Combobox,
+  CountDot,
   DataGrid,
   FilterBar,
   InlineError,
+  LidActiveFilterChip,
+  LidChip,
+  LidChipGroup,
+  LidFilterLabel,
+  LidResetLink,
+  LidSearch,
+  LidSeparator,
+  LidViewTab,
+  LidViewTabs,
+  ListFoot,
+  ListHeadRow,
+  ListNote,
+  ListRow,
   Pagination,
   RadioRow,
   Segmented,
+  StatePill,
   StatusDot,
   ViewCountSwitch,
 } from "@/shared/ui/kit";
@@ -136,4 +153,77 @@ export const KIT_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
       partId="S01-85"
     />
   ),
+  // r4 목록 판(로망 이식) — 뚜껑 한 줄: 이름표 · 칩 켜짐/꺼짐/0건 · 칸막이 · 풀기 · 찾기
+  "S01-86": () => (
+    <BoardLid partId="S01-86">
+      <LidFilterLabel>빠른 보기</LidFilterLabel>
+      <LidChipGroup aria-label="빠른 보기">
+        <LidChip active count={14}>결과 확인 전</LidChip>
+        <LidChip count={9}>이미지 미검색</LidChip>
+        <LidChip zero count={0}>교차 검증</LidChip>
+      </LidChipGroup>
+      <LidSeparator />
+      <LidResetLink onClick={noop} />
+      <LidSearch inputProps={{ "aria-label": "찾기", placeholder: "감정번호 · 사건명", value: "", onChange: noop }} />
+    </BoardLid>
+  ),
+  "S01-87": () => (
+    <LidChip active count={14} partId="S01-87">
+      결과 확인 전
+    </LidChip>
+  ),
+  "S01-88": () => (
+    <LidSearch
+      partId="S01-88"
+      inputProps={{ "aria-label": "찾기", value: "0646", onChange: noop }}
+      onClear={noop}
+    />
+  ),
+  "S01-89": () => (
+    <LidViewTabs aria-label="보기" partId="S01-89">
+      <LidViewTab active>
+        목록 <b>116</b>
+      </LidViewTab>
+      <LidViewTab active={false} menu>
+        문양 <b>12</b>
+      </LidViewTab>
+    </LidViewTabs>
+  ),
+  "S01-90": () => (
+    <LidActiveFilterChip aria-label="결과 확인 전 풀기" onClick={noop} partId="S01-90">
+      결과 확인 전
+    </LidActiveFilterChip>
+  ),
+  "S01-91": () => (
+    <BoardFrame partId="S01-91" className="mt-0">
+      <ListHeadRow>
+        <span className="w-[120px]">감정번호</span>
+        <span>사건명</span>
+      </ListHeadRow>
+      <ListRow>
+        <span className="w-[120px]">00001-25-0646</span>
+        <span>침입절도</span>
+      </ListRow>
+      <ListRow selected>
+        <span className="w-[120px]">00001-25-0649</span>
+        <span>상해</span>
+      </ListRow>
+      <ListFoot>
+        2 / 전체 116<span className="ml-auto">1 / 6쪽</span>
+      </ListFoot>
+    </BoardFrame>
+  ),
+  "S01-92": () => (
+    <ListRow selected partId="S01-92">
+      <span className="w-[120px]">00001-25-0646</span>
+      <span>침입절도</span>
+    </ListRow>
+  ),
+  "S01-93": () => <ListNote partId="S01-93">조건에 맞는 항목 없음</ListNote>,
+  "S01-94": () => (
+    <StatePill tone="problem" partId="S01-94">
+      불능 1
+    </StatePill>
+  ),
+  "S01-95": () => <CountDot count={3} partId="S01-95" />,
 };

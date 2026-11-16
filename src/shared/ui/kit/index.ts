@@ -36,3 +36,35 @@ export { FilterBar, type FilterBarProps, type FilterGroup, type FilterOption } f
 export { ViewCountSwitch, type ViewCountSwitchProps } from './ViewCountSwitch'
 export { ColumnPicker, type ColumnPickerColumn, type ColumnPickerProps } from './ColumnPicker'
 export { DialogShell,type DialogShellProps, type DialogShellSize } from './DialogShell'
+// r4 목록 판(로망 이식) — 앱 틀 · 목록 생김새는 로망 정본, 색만 경찰 토큰
+export {
+  BoardFrame,
+  BoardLid,
+  LidChip,
+  LidChipGroup,
+  LidSeparator,
+  LidFilterLabel,
+  LidResetLink,
+  LidActiveFilterChip,
+  LidSearch,
+  LidViewTabs,
+  LidViewTab,
+  ListHeadRow,
+  ListGroupHead,
+  ListRow,
+  ListNameCell,
+  ListFoot,
+  ListNote,
+  StatePill,
+  CountDot,
+  type BoardFrameProps,
+  type BoardLidProps,
+  type LidChipProps,
+  type LidSearchProps,
+  type LidViewTabProps,
+  type ListRowProps,
+  type ListNoteProps,
+  type StatePillProps,
+  type StatePillTone,
+  type CountDotProps,
+} from './board'
