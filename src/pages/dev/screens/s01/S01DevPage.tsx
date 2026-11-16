@@ -1,6 +1,7 @@
 import * as React from "react"
 import { toast } from "sonner"
 
+import { FEATURES } from "@/entities/session"
 import type { FilterGroup } from "@/shared/ui/kit"
 import {
   CaseListScreen,
@@ -21,14 +22,7 @@ import {
   useDevViewer,
   useRememberedState,
 } from "../frame"
-import {
-  EMPTY_FILTERS,
-  S01_AI_PREP,
-  S01_LIVE_AT,
-  S01_PAGE_SIZE,
-  S01_TASKS,
-  makeCaseRows,
-} from "./mock-cases"
+import { EMPTY_FILTERS, S01_LIVE_AT, S01_PAGE_SIZE, makeCaseRows } from "./mock-cases"
 
 const info = devScreen("s01")
 
@@ -37,9 +31,23 @@ const isRowHeight = oneOf<CaseListRowHeight>(["보통", "촘촘"])
 
 /** 빠른 찾기 칩 값(묶음 key → 고른 값들). 묶음 안은 「또는」, 묶음끼리는 「그리고」 */
 type QuickValues = Record<string, string[]>
-const EMPTY_QUICK: QuickValues = { progress: [], result: [], kind: [], mine: [] }
+const EMPTY_QUICK: QuickValues = { view: [], progress: [], result: [], kind: [], mine: [] }
 
 const resultKey = (r: CaseListRow) => (r.caseResult === "" ? "none" : r.caseResult)
+
+// (r4 +α) 「빠른 보기」 — 옛 할 일 타일(결과 확인 전 · 이미지 미검색 · 교차 검증)을 뚜껑 칩으로 옮긴 것. 가짜 데이터 기준 정의:
+//  결과 확인 전 = 아직 확인 안 된 장(등록 · 검색 단계 장)이 하나라도 있는 사건
+//  이미지 미검색 = 검색을 안 한 장(등록 단계 장)이 하나라도 있는 사건
+//  교차 검증 = 사건 진행 단계가 교차 검증(stage 1)인 사건
+// 건수는 SCAS 조회 결과(matched) 안에서 그 조건에 맞는 사건 수를 센다 — 칩 수와 눌렀을 때 걸러지는 수가 같게.
+// 보이는 칩은 옛 타일 규칙 그대로: 결과 확인 전 = 모두, 이미지 미검색 = 감정 판단(EXAM_DECIDE), 교차 검증 = CROSS_REVIEW.
+const QUICK_VIEWS = [
+  { value: "awaiting", label: "결과 확인 전", test: (r: CaseListRow) => r.progress.registered + r.progress.searched > 0 },
+  { value: "unsearched", label: "이미지 미검색", test: (r: CaseListRow) => r.progress.registered > 0 },
+  { value: "cross", label: "교차 검증", test: (r: CaseListRow) => r.stage === 1 },
+] as const
+type QuickView = (typeof QUICK_VIEWS)[number]["value"]
+const viewTest = (v: string) => QUICK_VIEWS.find((q) => q.value === v)?.test ?? (() => true)
 
 // S01 사건관리 진열 페이지: 가짜 값 · 이동 콜백만 위젯에 넘긴다. 입력 칸 · 쪽 · 조회 조건 · 빠른 찾기는 여기서 들고 있어 눌러 보면 바뀐다.
 // 열 · 쪽당 행 · 행 높이는 이 브라우저에 기억한다(실패해도 기본값).
@@ -84,11 +92,29 @@ export function S01DevPage() {
   const quickMatched = matched.filter(
     (r) =>
       (needle === "" || [r.aprthngNo, r.docNo, r.caseName].some((t) => t.toLowerCase().includes(needle))) &&
+      anyOf("view", (v) => viewTest(v)(r)) &&
       anyOf("progress", (v) => (v === "registered" ? r.progress.registered > 0 : v === "searched" ? r.progress.searched > 0 : r.progress.confirmed > 0)) &&
       anyOf("result", (v) => resultKey(r) === v) &&
       anyOf("kind", (v) => r.kind === v) &&
       anyOf("mine", () => r.author === me)
   )
+
+  const can = (code: (typeof FEATURES)[keyof typeof FEATURES]) => viewer.isAdmin || viewer.features.includes(code)
+  const shownViews: Record<QuickView, boolean> = {
+    awaiting: true,
+    unsearched: can(FEATURES.EXAM_DECIDE),
+    cross: can(FEATURES.CROSS_REVIEW),
+  }
+  const views: FilterGroup = {
+    key: "view",
+    label: "빠른 보기",
+    value: quickValues.view,
+    options: QUICK_VIEWS.filter((q) => shownViews[q.value]).map((q) => ({
+      value: q.value,
+      label: q.label,
+      count: matched.filter(q.test).length,
+    })),
+  }
 
   const groups: FilterGroup[] = [
     {
@@ -158,12 +184,11 @@ export function S01DevPage() {
         onSearchCase={(no) => to("/dev/s04", { id: no })}
         onConfirmCase={(no) => to("/dev/s07", { id: no })}
         showPlus={plus}
-        aiPrep={S01_AI_PREP}
-        tasks={S01_TASKS}
         liveAt={S01_LIVE_AT}
         onMockAction={() => toast("시안 — 기능 준비 중")}
         quick={{
           query,
+          views,
           onQueryChange: (q) => {
             setQuery(q)
             setPage(1)

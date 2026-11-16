@@ -12,6 +12,11 @@ function Where() {
   return <p data-testid="where">{pathname + search}</p>
 }
 
+// r4: SCAS 검색 양식은 「상세 검색」 안에 접혀 있다(기본 접힘) — 양식 · 초기화 · 조회를 쓰는 시험은 먼저 편다
+function openDetail() {
+  fireEvent.click(screen.getByRole("button", { name: "상세 검색" }))
+}
+
 function renderAt(url: string) {
   return render(
     <MemoryRouter initialEntries={[url]}>
@@ -42,6 +47,7 @@ describe("S01DevPage 사건관리 목록", () => {
 
   it("피해자 · 사건장소 · 검거여부 · 타기관여부는 「준비 중」으로 잠겨 있다", () => {
     renderAt("/dev/s01?case=ready")
+    openDetail()
     for (const label of ["피해자", "사건장소", "검거여부", "타기관여부"]) {
       const el = screen.getByLabelText(label)
       expect(el).toBeDisabled()
@@ -51,6 +57,7 @@ describe("S01DevPage 사건관리 목록", () => {
 
   it("작성자 · 등록일자 조건도 조회에 걸린다", () => {
     renderAt("/dev/s01?case=ready")
+    openDetail()
     fireEvent.change(screen.getByLabelText("작성자"), { target: { value: "김" } })
     fireEvent.click(screen.getByRole("button", { name: "조회" }))
     expect(screen.getByText("결과 없음")).toBeInTheDocument()
@@ -80,6 +87,7 @@ describe("S01DevPage 사건관리 목록", () => {
 
   it("SCAS 검색 폼 라벨 순서가 시안과 같다(첫 열: 감정번호 · 등록일자 · 사건장소)", () => {
     const { container } = renderAt("/dev/s01?case=ready")
+    openDetail()
     const labels = Array.from(container.querySelectorAll('[data-part="SearchForm"] > div > div:nth-child(odd)')).map(
       (el) => el.textContent?.trim()
     )
@@ -95,12 +103,15 @@ describe("S01DevPage 사건관리 목록", () => {
     expect([labels[0], labels[3], labels[6]]).toEqual(["감정번호", "등록일자", "사건장소"])
   })
 
-  it("툴바 순서는 「목록보기/문양보기 · 초기화 · 엑셀 · 조회 · 등록」", () => {
+  it("r4 도구 자리: 머리 줄 「목록보기/문양보기 · 엑셀 · 열 선택 · 등록」, 상세 검색 안 「초기화 · 조회」(SCAS 앞뒤 순서는 그대로)", () => {
     renderAt("/dev/s01?case=ready&as=investigator")
     const bar = screen.getByRole("group", { name: "사건관리 목록 도구" })
     const names = Array.from(bar.querySelectorAll("button"))
       .map((el) => el.textContent?.replace(/[◉○]\s?/, "").trim())
-    expect(names.slice(0, 6)).toEqual(["목록보기", "문양보기", "초기화", "엑셀", "조회", "등록"])
+    expect(names).toEqual(["목록보기", "문양보기", "엑셀", expect.stringMatching(/^열 선택/), "등록"])
+    openDetail()
+    const detail = screen.getByRole("group", { name: "상세 검색 도구" })
+    expect(Array.from(detail.querySelectorAll("button")).map((el) => el.textContent?.trim())).toEqual(["초기화", "조회"])
   })
 
   it("「엑셀」 · 「문양보기」 는 활성 모양이고 누르면 「시안 — 기능 준비 중」 알림(spec §13-4)", () => {
@@ -126,19 +137,18 @@ describe("S01DevPage 사건관리 목록", () => {
     fireEvent.click(excel)
     fireEvent.click(pattern)
     expect(toastMock).not.toHaveBeenCalled()
-    // SCAS 툴바 순서는 그대로
+    // SCAS 툴바 앞뒤 순서는 그대로(초기화 · 조회는 r4 에서 상세 검색 안으로)
     const bar = screen.getByRole("group", { name: "사건관리 목록 도구" })
     const names = Array.from(bar.querySelectorAll("button")).map((el) => el.textContent?.replace(/[◉○]\s?/, "").trim())
-    expect(names.slice(0, 5)).toEqual(["목록보기", "문양보기", "초기화", "엑셀", "조회"])
+    expect(names.slice(0, 3)).toEqual(["목록보기", "문양보기", "엑셀"])
   })
 
   describe("r2 시안 +α", () => {
-    it("AI 사전 처리 · 역할별 할 일 타일 · 실시간 · 사건 진행 열 · 행 펼침이 시안 문구 그대로 보인다", () => {
+    it("실시간 · 사건 진행 열 · 행 펼침이 시안 문구 그대로 보이고, KPI 타일은 없다(r4)", () => {
       renderAt("/dev/s01?case=ready&as=analyst")
-      expect(screen.getByText("AI 사전 처리")).toBeInTheDocument()
-      expect(screen.getByText(/이진화 12\/12 · 문양 제안 9\/12 · 검색 Top-10 준비 7\/12/)).toBeInTheDocument()
-      expect(screen.getByText("09:12 공문 접수")).toBeInTheDocument()
-      expect(screen.getByText("교차 검증 요청 받음")).toBeInTheDocument()
+      // r4(2026-11-16 「kpi 부분은 없애자」): AI 사전 처리 · 할 일 타일은 지웠다
+      expect(screen.queryByText("AI 사전 처리")).toBeNull()
+      expect(screen.queryByText("교차 검증 요청 받음")).toBeNull()
       expect(screen.getByText("실시간 · 09:12 갱신")).toBeInTheDocument()
       expect(screen.getByText("＋사건 진행")).toBeInTheDocument()
       expect(screen.getByText("AI 7/12")).toBeInTheDocument()
@@ -153,7 +163,7 @@ describe("S01DevPage 사건관리 목록", () => {
     it("?plus=0 이면 [data-plus] 가 하나도 없고 1차 내용은 그대로", () => {
       const { container } = renderAt("/dev/s01?case=ready&as=analyst&plus=0")
       expect(container.querySelectorAll("[data-plus]")).toHaveLength(0)
-      expect(screen.queryByText("AI 사전 처리")).toBeNull()
+      expect(screen.queryByRole("group", { name: "빠른 보기" })).toBeNull()
       expect(screen.queryByText("＋사건 진행")).toBeNull()
       expect(screen.queryByText(/실시간/)).toBeNull()
       expect(screen.getByText("00001-25-0646")).toBeInTheDocument()
@@ -161,29 +171,29 @@ describe("S01DevPage 사건관리 목록", () => {
       expect(screen.getByText(/전체 116 중 1-20/)).toBeInTheDocument()
     })
 
-    it("보는 사람에 따라 타일 · 버튼이 달라진다(시안 data-role)", () => {
+    it("보는 사람에 따라 빠른 보기 칩 · 버튼이 달라진다(시안 data-role — 옛 타일 규칙)", () => {
+      const quickNames = () =>
+        Array.from(screen.getByRole("group", { name: "빠른 보기" }).querySelectorAll("button")).map((b) =>
+          b.textContent?.replace(/\s*\d+$/, "").trim()
+        )
       const { unmount } = renderAt("/dev/s01?case=ready&as=analyst")
-      expect(screen.getByText("이미지 미검색")).toBeInTheDocument()
-      expect(screen.queryByText("결재 대기")).toBeNull()
-      expect(screen.queryByText("우리 청 의뢰")).toBeNull()
+      expect(quickNames()).toEqual(["결과 확인 전", "이미지 미검색", "교차 검증"])
       expect(screen.getAllByRole("button", { name: "검색" }).length).toBeGreaterThan(0)
       expect(screen.getAllByRole("button", { name: "검증" }).length).toBeGreaterThan(0)
       unmount()
 
       const v = renderAt("/dev/s01?case=ready&as=verifier")
-      expect(screen.getByText("결재 대기")).toBeInTheDocument()
-      expect(screen.queryByText("AI 사전 처리")).toBeNull()
-      expect(screen.queryByText("이미지 미검색")).toBeNull()
+      expect(quickNames()).toEqual(["결과 확인 전"])
       expect(screen.queryByRole("button", { name: "검색" })).toBeNull()
       expect(screen.queryByRole("button", { name: "검증" })).toBeNull()
       v.unmount()
 
       renderAt("/dev/s01?case=ready&as=investigator")
-      expect(screen.getByText("우리 청 의뢰")).toBeInTheDocument()
-      expect(screen.queryByText("결재 대기")).toBeNull()
+      expect(quickNames()).toEqual(["결과 확인 전"])
       expect(screen.queryByText("AI 7/12")).toBeNull()
       expect(screen.getByRole("button", { name: "등록" })).toBeInTheDocument()
-    })
+      // 화면을 세 번 그려 병렬 부하에서 5초를 넘길 수 있다
+    }, 15_000)
 
     it("검증요청 · 검증은 눌러도 「시안 — 기능 준비 중」 알림만", () => {
       toastMock.mockClear()
@@ -198,9 +208,6 @@ describe("S01DevPage 사건관리 목록", () => {
       expect(scan).not.toBeNull()
       expect(scan!.className).toContain("motion-safe:animate-fx-scan")
       expect(scan!.className).toContain("opacity-0")
-      expect(container.querySelector('[data-part="AiProgress"][data-part-variant="running"] i')!.className).toContain(
-        "motion-safe:"
-      )
     })
 
     it("펼침 줄은 순번 숫자로 접고 편다", () => {
@@ -236,6 +243,7 @@ describe("S01DevPage 사건관리 목록", () => {
 
   it("조회 조건에 맞는 사건이 없으면 「결과 없음」(필터는 값을 바꿔 보인다)", () => {
     renderAt("/dev/s01?case=ready")
+    openDetail()
     fireEvent.change(screen.getByLabelText("감정번호"), { target: { value: "99999" } })
     fireEvent.click(screen.getByRole("button", { name: "조회" }))
     expect(screen.getByText("결과 없음")).toBeInTheDocument()
@@ -316,9 +324,9 @@ describe("S01 r3 — 빠른 찾기 · 열 고르기 · 쪽당 행 · 행 높이"
     expect(bodyRows()).toHaveLength(50)
   })
 
-  it("행 높이 촘촘: 칸 높이 클래스가 바뀐다", () => {
+  it("행 높이 촘촘: 칸 높이 클래스가 바뀐다(r4 로망 표: 보통 36 · 촘촘 30)", () => {
     const { container } = renderAt("/dev/s01?case=ready&plus=0")
-    expect(container.querySelector("tbody td")?.className).toContain("h-[44px]")
+    expect(container.querySelector("tbody td")?.className).toContain("h-[36px]")
     fireEvent.click(screen.getByRole("button", { name: "촘촘" }))
     expect(container.querySelector("tbody td")?.className).toContain("h-[30px]")
   })
@@ -332,6 +340,42 @@ describe("S01 r3 — 빠른 찾기 · 열 고르기 · 쪽당 행 · 행 높이"
     renderAt("/dev/s01?case=ready&plus=0")
     expect(bodyRows()).toHaveLength(10)
     expect(screen.getAllByRole("columnheader").map((h) => h.textContent)).not.toContain("문서번호")
+  })
+
+  it("r4 빠른 보기 칩 3개: 건수를 보이고, 누르면 목록이 그 사건만으로 걸러진다(다시 누르면 풀림)", () => {
+    renderAt("/dev/s01?case=ready&as=analyst")
+    const quick = within(screen.getByRole("group", { name: "빠른 보기" }))
+    // 가짜 116건 = 시안 7건 반복: 확인 전 장이 있는 사건 34 · 등록 단계 장이 있는 사건 17 · 교차 검증 단계 17
+    const awaiting = quick.getByRole("button", { name: "결과 확인 전 34" })
+    expect(quick.getByRole("button", { name: "이미지 미검색 17" })).toBeInTheDocument()
+    const cross = quick.getByRole("button", { name: "교차 검증 17" })
+    expect(awaiting).toHaveAttribute("aria-pressed", "false")
+    fireEvent.click(awaiting)
+    expect(awaiting).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByText("34 / 전체 116")).toBeInTheDocument()
+    expect(screen.getByText("00001-25-0649")).toBeInTheDocument()
+    expect(screen.queryByText("00001-25-0646")).toBeNull()
+    // 묶음 안은 「또는」
+    fireEvent.click(cross)
+    expect(screen.getByText("51 / 전체 116")).toBeInTheDocument()
+    fireEvent.click(awaiting)
+    fireEvent.click(cross)
+    expect(screen.getByText("116 / 전체 116")).toBeInTheDocument()
+  })
+
+  it("r4 상세 검색: SCAS 양식은 기본 접힘, 「상세 검색」을 누르면 펼쳐지고 다시 누르면 접힌다", () => {
+    const { container } = renderAt("/dev/s01?case=ready&plus=0")
+    const toggle = screen.getByRole("button", { name: "상세 검색" })
+    expect(toggle).toHaveAttribute("aria-expanded", "false")
+    expect(container.querySelector('[data-part="SearchForm"]')).toBeNull()
+    expect(screen.queryByRole("button", { name: "조회" })).toBeNull()
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute("aria-expanded", "true")
+    expect(container.querySelector('[data-part="SearchForm"]')).not.toBeNull()
+    expect(document.getElementById(toggle.getAttribute("aria-controls")!)).not.toBeNull()
+    expect(screen.getByRole("button", { name: "조회" })).toBeInTheDocument()
+    fireEvent.click(toggle)
+    expect(container.querySelector('[data-part="SearchForm"]')).toBeNull()
   })
 
   it("?plus=0 에서도 빠른 찾기가 보인다(r3 편의는 +α 가 아니다)", () => {

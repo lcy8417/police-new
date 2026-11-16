@@ -88,26 +88,6 @@ export interface CaseListRowSummary {
   defaultOpen?: boolean
 }
 
-/** (+α) 「AI 사전 처리」 타일: 방금 접수된 사건 */
-export interface CaseListAiPrep {
-  aprthngNo: string
-  /** `09:12` */
-  receivedAt: string
-  imageCount: number
-  binarized: number
-  suggested: number
-  top10: number
-}
-
-/** (+α) 역할별 할 일 타일 숫자 */
-export interface CaseListTasks {
-  awaitingResult: { cases: number; imagesTotal: number; imagesChecked: number }
-  unsearched: { images: number; ready: number; waiting: number }
-  crossRequest: { count: number; detail: string }
-  approval: { count: number; detail: string }
-  ours: { count: number; detail: string }
-}
-
 /** SCAS 검색 폼 값(전부 문자열 — 비어 있으면 「전체」 · 조건 없음) */
 export interface CaseListFilters {
   aprthngNo: string
@@ -133,6 +113,11 @@ export interface CaseListFilters {
 export interface CaseListQuickFilter {
   query: string
   onQueryChange: (query: string) => void
+  /**
+   * (r4 +α) 뚜껑 맨 앞 「빠른 보기」 칩 묶음(결과 확인 전 · 이미지 미검색 · 교차 검증 — 옛 할 일 타일 자리).
+   * 건수는 옵션 `count`. 바꾸면 onGroupChange(views.key, …). showPlus=false 면 그리지 않는다.
+   */
+  views?: FilterGroup
   /** 칩 묶음(진행 상태 · 사건결과 · 처리 구분 · 내 담당만) */
   groups: readonly FilterGroup[]
   onGroupChange: (key: string, values: string[]) => void
@@ -176,10 +161,6 @@ export interface CaseListScreenProps {
   onConfirmCase: (aprthngNo: string) => void
   /** (+α) 신규 기능 숨김 — 기본 true. false 면 `data-plus` 요소가 하나도 없다 */
   showPlus?: boolean
-  /** (+α) AI 사전 처리 타일 값 */
-  aiPrep?: CaseListAiPrep
-  /** (+α) 역할별 할 일 타일 값 */
-  tasks?: CaseListTasks
   /** (+α) 「실시간 · 09:12 갱신」의 시각 */
   liveAt?: string
   /** 아직 기능이 없는 버튼(엑셀 · 문양보기 · 검증요청 · 검증)을 눌렀을 때 — 이름을 넘긴다(시안 — 기능 준비 중) */

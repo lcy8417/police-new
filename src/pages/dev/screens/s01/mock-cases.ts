@@ -1,10 +1,4 @@
-import type {
-  CaseListAiPrep,
-  CaseListFilters,
-  CaseListRow,
-  CaseListRowSummary,
-  CaseListTasks,
-} from "@/widgets/case-list"
+import type { CaseListFilters, CaseListRow, CaseListRowSummary } from "@/widgets/case-list"
 
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
 
@@ -83,24 +77,8 @@ function makeSummary(i: number): CaseListRowSummary {
   }
 }
 
-/** (+α) 「AI 사전 처리」 타일: 방금 접수된 0649 */
-export const S01_AI_PREP: CaseListAiPrep = {
-  aprthngNo: "00001-25-0649",
-  receivedAt: "09:12",
-  imageCount: 12,
-  binarized: 12,
-  suggested: 9,
-  top10: 7,
-}
-
-/** (+α) 역할별 할 일 타일 숫자(시안 그대로) */
-export const S01_TASKS: CaseListTasks = {
-  awaitingResult: { cases: 14, imagesTotal: 98, imagesChecked: 57 },
-  unsearched: { images: 9, ready: 7, waiting: 2 },
-  crossRequest: { count: 1, detail: "00001-25-0646 · 김○○ → 나" },
-  approval: { count: 3, detail: "가장 오래된 것 2일" },
-  ours: { count: 22, detail: "진행 중 6 · 결재완료 16" },
-}
+// r4: 「AI 사전 처리」 · 역할별 할 일 타일(KPI)은 사용자 결정(2026-11-16 「kpi 부분은 없애자」)으로 지웠다.
+// 결과 확인 전 · 이미지 미검색 · 교차 검증은 S01DevPage 의 「빠른 보기」 칩이 이 데이터에서 직접 센다.
 
 export const S01_LIVE_AT = "09:12"
 
