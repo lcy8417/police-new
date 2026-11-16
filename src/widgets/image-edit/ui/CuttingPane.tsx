@@ -56,20 +56,24 @@ export type CuttingPaneProps = Omit<
   plus: boolean
 }
 
-/** 도구별 설정 줄(지금 앱 EditToolbar 위줄 자리). `bare` = 사건 창 안 — 테두리 상자 없이 한 줄 */
-function ToolOptions(p: CuttingPaneProps & { bare?: boolean }) {
+/**
+ * 도구별 설정 줄(지금 앱 EditToolbar 위줄 자리). `bare` = 사건 창 안 — 테두리 상자 없이 한 줄,
+ * `quiet` = 쓰임새 문장을 지금 도구 막대가 이미 말하므로 안내 문장은 빼고 조작만
+ */
+function ToolOptions(p: CuttingPaneProps & { bare?: boolean; quiet?: boolean }) {
   const { activeTool, denoiseState } = p
   const { canEdit } = p.access
   const showDenoise = activeTool === "denoise" || denoiseState !== "idle"
+  const say = (text: string) => (p.quiet ? null : <span className={HINT}>{text}</span>)
   let body: React.ReactNode = null
   switch (activeTool) {
     case "crop":
-      body = <span className={HINT}>자르기 틀을 맞춘 뒤 「확인」을 누르면 잘립니다.</span>
+      body = say("자르기 틀을 맞춘 뒤 「확인」을 누르면 잘립니다.")
       break
     case "calibrate":
       body = (
         <>
-          <span className={HINT}>비스듬한 사진의 네 모서리 점을 찍은 뒤 「적용」을 누르면 반듯하게 폅니다.</span>
+          {say("비스듬한 사진의 네 모서리 점을 찍은 뒤 「적용」을 누르면 반듯하게 폅니다.")}
           <Button size="sm" className="ml-auto" disabled={!canEdit} onClick={p.onApplyCalibration}>
             적용
           </Button>
@@ -91,11 +95,11 @@ function ToolOptions(p: CuttingPaneProps & { bare?: boolean }) {
       const tool = activeTool
       body = (
         <>
-          <span className={HINT}>
-            {tool === "background"
+          {say(
+            tool === "background"
               ? "다각형으로 남길 족적 영역을 고른 뒤 「적용」 — 바깥 배경을 지웁니다."
-              : "다각형으로 이어 붙은 장애물을 고른 뒤 「적용」 — 그 자리를 메웁니다."}
-          </span>
+              : "다각형으로 이어 붙은 장애물을 고른 뒤 「적용」 — 그 자리를 메웁니다."
+          )}
           <Button size="sm" className="ml-auto" disabled={!canEdit} onClick={() => p.onApplyPolygon(tool)}>
             적용
           </Button>
@@ -148,7 +152,7 @@ function ToolOptions(p: CuttingPaneProps & { bare?: boolean }) {
       {showDenoise ? (
         <div className="flex flex-wrap items-center gap-[8px]">
           <AiTag />
-          <span className={HINT}>노이즈제거 — 서버 AI가 잡음을 지웁니다(가장 오래 걸림).</span>
+          {say("노이즈제거 — 서버 AI가 잡음을 지웁니다(가장 오래 걸림).")}
           {denoiseState !== "idle" ? (
             <AiProgress state={denoiseState === "running" ? "running" : denoiseState === "done" ? "done" : "failed"} label="노이즈제거" className="min-w-[140px] flex-1" />
           ) : null}
@@ -325,18 +329,18 @@ const saveNote = (p: CuttingPaneProps) =>
     : "자르고 돌린 사진이 사건 이미지로 저장됩니다(받은 원본은 따로 보관)."
 
 /**
- * 사건 창 도구 칸 한 줄의 생김새(11/17 사용자 「각각 기능들 좀더 잘 드러나게 … 장황하고 정렬도 뭘 해야할지 모르겟고」):
- * 선 아이콘 + 이름 + 한 줄 쓰임새, 묶음 둘(다듬기 · 정리). 이름은 접근성 이름 그대로(쓰임새는 설명으로만).
+ * 사건 창 도구(11/17 사용자 「각각 기능들 좀더 잘 드러나게」 → 「옆에 클릭 선 말고 좀더 고급지고 전문적 느낌으로. 지금 너무 아카데믹한」):
+ * 도구 칸은 아이콘 타일(아이콘 + 짧은 이름)만, 쓰임새는 지금 도구 막대와 마우스 설명으로. 이름(접근성)은 원래 이름 그대로.
  */
-const WINDOW_TOOLS: Record<ImageEditTool | "handle", { icon: LucideIcon; desc: string }> = {
-  crop: { icon: Crop, desc: "틀 맞춰 잘라내기" },
-  handle: { icon: RotateCw, desc: "틀 위 손잡이로 돌리기" },
-  calibrate: { icon: Scan, desc: "비스듬한 사진 반듯하게" },
-  measure: { icon: Ruler, desc: "1 cm 기준으로 실측" },
-  background: { icon: Eraser, desc: "족적 밖 배경 지우기" },
-  inpaint: { icon: Bandage, desc: "붙은 장애물 메우기" },
-  threshold: { icon: Contrast, desc: "흑백 두 값으로" },
-  denoise: { icon: Sparkles, desc: "AI 가 잡음 지우기" },
+const WINDOW_TOOLS: Record<ImageEditTool | "handle", { icon: LucideIcon; short: string; desc: string }> = {
+  crop: { icon: Crop, short: "자르기", desc: "틀을 맞춘 뒤 「확인」으로 잘라냅니다" },
+  handle: { icon: RotateCw, short: "손잡이", desc: "자르기 틀 위 손잡이로 돌립니다" },
+  calibrate: { icon: Scan, short: "4점 보정", desc: "비스듬한 사진을 네 점으로 반듯하게" },
+  measure: { icon: Ruler, short: "길이 측정", desc: "1 cm 기준으로 실제 길이를 잽니다" },
+  background: { icon: Eraser, short: "배경 제거", desc: "족적 밖 배경을 지웁니다" },
+  inpaint: { icon: Bandage, short: "장애물 제거", desc: "이어 붙은 장애물 자리를 메웁니다" },
+  threshold: { icon: Contrast, short: "이진화", desc: "흑백 두 값으로 나눕니다" },
+  denoise: { icon: Sparkles, short: "노이즈", desc: "AI 가 잡음을 지웁니다" },
 }
 const TOOL_GROUPS: { name: string; tools: ImageEditTool[] }[] = [
   { name: "다듬기", tools: ["crop", "calibrate", "measure"] },
@@ -344,7 +348,7 @@ const TOOL_GROUPS: { name: string; tools: ImageEditTool[] }[] = [
 ]
 const TOOL_LABEL = Object.fromEntries(TOOLS.map((t) => [t.tool, t.label])) as Record<ImageEditTool, string>
 
-/** 사건 창 도구 칸 한 줄(아이콘 칸 · 이름 · 쓰임새). 고른 것 = 흰 바탕 + 왼쪽 brand 2px + 아이콘 칸 brand */
+/** 사건 창 도구 타일(아이콘 19 + 짧은 이름 10.5). 고른 것 = 옅은 brand 판 + 1px brand 테 + 아이콘 brand(옆 줄 없음) */
 function RailTool({
   kind,
   label,
@@ -360,58 +364,50 @@ function RailTool({
   onClick: () => void
   plusMark?: boolean
 }) {
-  const { icon: Icon, desc } = WINDOW_TOOLS[kind]
-  const descId = React.useId()
+  const { icon: Icon, short, desc } = WINDOW_TOOLS[kind]
   return (
     <button
       type="button"
       aria-label={label}
-      aria-describedby={descId}
       aria-pressed={on}
+      title={`${label} — ${desc}`}
       disabled={disabled}
       onClick={onClick}
       {...(plusMark ? { "data-plus": "" } : {})}
       className={cn(
-        "m-0 flex w-full cursor-pointer items-center gap-[9px] rounded-[8px] border-0 bg-transparent px-[7px] py-[6px] text-left transition-colors duration-150 motion-reduce:transition-none",
+        "relative m-0 flex w-full cursor-pointer flex-col items-center gap-[5px] rounded-[9px] border-0 bg-transparent px-[2px] pt-[9px] pb-[7px] transition-colors duration-150 motion-reduce:transition-none",
         "focus-visible:outline-2 focus-visible:outline-solid focus-visible:-outline-offset-2 focus-visible:outline-brand",
-        "disabled:cursor-default disabled:opacity-45",
-        on ? "bg-panel [box-shadow:inset_2px_0_0_var(--t-brand),0_1px_2px_var(--t-panel-drop)]" : "hover:bg-panel/70"
+        "disabled:cursor-default disabled:opacity-40",
+        on
+          ? "bg-brand-bg text-foreground [box-shadow:inset_0_0_0_1px_var(--t-brand-line)]"
+          : "text-muted-foreground hover:bg-panel-3 hover:text-foreground"
       )}
     >
-      <span
-        aria-hidden="true"
-        className={cn(
-          "grid size-[28px] flex-none place-items-center rounded-[7px] border border-solid",
-          on ? "border-brand-line bg-brand-bg text-brand-3" : "border-border bg-panel text-fg-2"
-        )}
-      >
-        <Icon className="size-[15px]" strokeWidth={1.8} />
+      <Icon aria-hidden="true" className={cn("size-[19px]", on && "text-brand")} strokeWidth={1.7} />
+      <span aria-hidden="true" className="whitespace-nowrap text-[10.5px] font-semibold leading-none">
+        {short}
       </span>
-      <span className="flex min-w-0 flex-col">
-        <b className={cn("flex items-center gap-[5px] text-[12px] font-bold", on ? "text-brand-3" : "text-foreground")}>
-          {label}
-          {kind === "denoise" ? <AiTag /> : null}
-        </b>
-        <small id={descId} className="truncate text-[10.5px] text-muted-foreground">
-          {desc}
-        </small>
-      </span>
+      {kind === "denoise" ? (
+        <span aria-hidden="true" className="absolute top-[5px] right-[6px] font-code text-[8.5px] font-bold text-ai">
+          AI
+        </span>
+      ) : null}
     </button>
   )
 }
 
-/** 사건 창 왼쪽 도구 칸(옅은 회색 판) — 묶음 이름 + 줄들 */
+/** 사건 창 왼쪽 도구 칸(작업판 안 한 단 밝은 판) — 타일 세로 줄, 묶음 사이 가는 선 */
 function ToolRail({ p }: { p: CuttingPaneProps }) {
   const { canEdit } = p.access
   return (
     <div
       role="group"
       aria-label="도구"
-      className="flex min-h-0 flex-col gap-[12px] overflow-y-auto border-0 border-r border-solid border-border bg-panel-2 px-[8px] py-[10px]"
+      className="flex min-h-0 flex-col gap-[8px] overflow-y-auto border-0 border-r border-solid border-border bg-panel-2 px-[6px] py-[8px]"
     >
-      {TOOL_GROUPS.map((g) => (
-        <div key={g.name} className="flex flex-col gap-[2px]">
-          <p className="m-0 px-[7px] pb-[3px] text-[10.5px] font-bold tracking-[0.04em] text-muted-foreground">{g.name}</p>
+      {TOOL_GROUPS.map((g, gi) => (
+        <div key={g.name} role="group" aria-label={g.name} className="flex flex-col gap-[3px]">
+          {gi > 0 ? <span aria-hidden="true" className="mx-[8px] mb-[5px] h-px bg-border" /> : null}
           {g.tools.map((tool) => {
             const on = p.activeTool === tool
             return (
@@ -430,16 +426,17 @@ function ToolRail({ p }: { p: CuttingPaneProps }) {
   )
 }
 
-/** 작업대 위 · 아래 막대(흰 띠 + 가는 선) */
+/** 작업판 위 · 아래 막대(한 단 밝은 판 + 가는 선) */
 const STAGE_BAR = "flex shrink-0 flex-wrap items-center gap-x-[10px] gap-y-[4px] bg-panel px-[12px] py-[6px]"
 
 /**
- * 사건 창 안 이미지 커팅(11/17 사용자 「컴팩트하면서 고급지게」 → 「각각 기능들 좀더 잘 드러나게 … 좌 중앙 우 느낌이 다르면 구분선이나
- * 좀 차이를 줘. 너무 다 하얀 배경이니 하나 더 암보여. 그렇다고 알록달록은 싫고」) — 같은 상태 · 핸들러, 배치만 다르다.
- * 머리(PaneHead) 오른쪽 끝 = 취소 · 확인 · 저장. 아래 한 판을 세 결로 나눈다:
- *   왼쪽 도구 칸(옅은 회색 panel-2 · 오른쪽 선) — 묶음(다듬기 · 정리) + 아이콘 · 이름 · 쓰임새 한 줄
- *   가운데 작업대(한 단 짙은 회색 panel-3) — 위 흰 막대(보기 · 회전 | 지금 도구 + 그 설정) · 캔버스(남은 높이 꽉) · 아래 흰 막대(빠른 보정 = SCAS 아래 버튼 줄)
- *   오른쪽 보조 칸(흰 바탕 · 왼쪽 선)은 부르는 쪽(ImageEditScreen)이 둔다.
+ * 사건 창 안 이미지 커팅(11/17 사용자 「컴팩트하면서 고급지게」 → 「좌 중앙 우 느낌이 다르면 구분선이나 좀 차이를 줘 … 알록달록은 싫고」
+ * → 「시인성 높여 … 옆에 클릭 선 말고 좀더 고급지고 전문적 느낌으로. 지금 너무 아카데믹한」) — 같은 상태 · 핸들러, 배치만 다르다.
+ * 머리(PaneHead, 밝은 바탕) 오른쪽 끝 = 취소 · 확인 · 저장. 그 아래 작업판은 사진 편집 도구처럼 어두운 판(`data-theme="dark"` —
+ * 경찰 다크 팔레트 토큰 그대로, 새 색 없음)으로 사진이 도드라지게:
+ *   왼쪽 도구 칸(폭 76 · 아이콘 타일, 묶음 사이 가는 선)
+ *   가운데: 위 막대(보기 · 회전) · 지금 도구 막대(아이콘 · 이름 · 쓰임새 · 설정) · 사진(가장 어두운 바탕, 높이 꽉) · 아래 막대(빠른 보정)
+ * 오른쪽 보조 칸(밝은 바탕 · 왼쪽 선)은 부르는 쪽(ImageEditScreen)이 둔다.
  */
 export function CuttingWindow(p: CuttingPaneProps) {
   const tool = p.activeTool
@@ -452,9 +449,13 @@ export function CuttingWindow(p: CuttingPaneProps) {
         sub={p.access.canEdit ? `원본 ${fmt(p.originalSize.width)} × ${fmt(p.originalSize.height)}` : "보기 전용 — 편집 · 저장은 사건 조회 또는 사건 등록 권한"}
         end={<SaveButtons p={p} />}
       />
-      <div className="grid min-h-0 flex-1 grid-cols-[164px_minmax(0,1fr)] overflow-hidden rounded-[10px] border border-solid border-border min-[1400px]:grid-cols-[184px_minmax(0,1fr)]">
+      <div
+        data-theme="dark"
+        data-slot="image-edit-workbench"
+        className="grid min-h-0 flex-1 grid-cols-[76px_minmax(0,1fr)] overflow-hidden rounded-[12px] border border-solid border-border bg-panel text-foreground [box-shadow:0_6px_18px_var(--t-panel-drop)]"
+      >
         <ToolRail p={p} />
-        <div className="flex min-h-0 min-w-0 flex-col bg-panel-3">
+        <div className="flex min-h-0 min-w-0 flex-col bg-canvas">
           <div className={cn(STAGE_BAR, "border-0 border-b border-solid border-border")}>
             <div role="group" aria-label="보기 · 회전" className="flex flex-wrap items-center gap-x-[10px] gap-y-[4px]">
               <ZoomRotate p={p} compact />
@@ -473,21 +474,23 @@ export function CuttingWindow(p: CuttingPaneProps) {
           <div className={cn(STAGE_BAR, "min-h-[36px] border-0 border-b border-solid border-border")}>
             {tool && ToolIcon ? (
               <>
-                <b className="inline-flex shrink-0 items-center gap-[6px] text-[12px] font-bold text-brand-3">
-                  <ToolIcon aria-hidden="true" className="size-[14px]" strokeWidth={2} />
+                <b className="inline-flex shrink-0 items-center gap-[7px] text-[12.5px] font-bold text-foreground">
+                  <span aria-hidden="true" className="grid size-[24px] place-items-center rounded-[7px] bg-brand-bg text-brand [box-shadow:inset_0_0_0_1px_var(--t-brand-line)]">
+                    <ToolIcon className="size-[14px]" strokeWidth={1.9} />
+                  </span>
                   {TOOL_LABEL[tool]}
                 </b>
-                <span aria-hidden="true" className="h-[14px] w-px bg-line-3" />
+                <span className="shrink-0 text-[11.5px] text-muted-foreground">{WINDOW_TOOLS[tool].desc}</span>
                 <div className="min-w-0 flex-1">
-                  <ToolOptions {...p} bare />
+                  <ToolOptions {...p} bare quiet />
                 </div>
               </>
             ) : (
-              <span className={HINT}>왼쪽에서 도구를 고르면 여기에서 설정합니다.</span>
+              <span className={HINT}>왼쪽 도구를 고르면 여기에서 설정합니다.</span>
             )}
           </div>
-          <div className="min-h-0 flex-1 p-[12px]">
-            <CanvasBox p={p} className="h-full [box-shadow:0_1px_3px_var(--t-panel-drop)]" />
+          <div className="min-h-0 flex-1 p-[14px]">
+            <CanvasBox p={p} className="h-full border-line-3 [box-shadow:0_8px_24px_var(--t-panel-drop)]" />
           </div>
           <div className={cn(STAGE_BAR, "border-0 border-t border-solid border-border")}>
             <span className="shrink-0 text-[10.5px] font-bold tracking-[0.04em] text-muted-foreground">빠른 보정</span>
