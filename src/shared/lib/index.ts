@@ -2,6 +2,7 @@ export { cn } from './utils'
 export { convertKeysToCamelCase } from './case'
 export { formatKstDateTime, kstDateString, toKstIso } from './kst'
 export { useDebouncedValue } from './use-debounced-value'
+export { useAutoPlay, type UseAutoPlayOptions, type UseAutoPlayResult } from './use-auto-play'
 export {
   buildGammaLut,
   clampByte,

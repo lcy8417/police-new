@@ -18,4 +18,10 @@ export const KIT_PART_FIXTURES: PartFixture[] = [
   { id: "S01-74", part: "DataGrid", parentWidth: 520, surface: "panel", noMockup: "시안 표는 화면마다 열 · 그림이 달라 한 짝으로 못 맞춤(열 정의는 화면이 정함)" },
   { id: "S01-75", part: "Pagination", parentWidth: 520, surface: "panel", noMockup: "시안 S01은 「페이지 1 / 9」 입력형, 부품은 이전 · 다음 + 범위 글자" },
   { id: "S00-71", part: "InlineError", parentWidth: 260, surface: "panel", noMockup: NO_MOCKUP_FORM },
+  // r3 편의 부품 — 시안 짝 없음(사용자 r3 피드백으로 새로 만든 부품). 진열만 한다.
+  { id: "S01-81", part: "FilterBar", parentWidth: 640, surface: "panel", noMockup: NO_MOCKUP_FORM },
+  { id: "S01-82", part: "ColumnPicker", parentWidth: 260, surface: "panel", boxClass: "h-[40px]", noMockup: NO_MOCKUP_FORM },
+  { id: "S01-83", part: "ViewCountSwitch", parentWidth: 260, surface: "panel", noMockup: NO_MOCKUP_FORM },
+  { id: "S01-84", part: "AutoPlayControl", variant: "auto", parentWidth: 640, surface: "panel", noMockup: NO_MOCKUP_FORM },
+  { id: "S01-85", part: "AutoPlayControl", variant: "manual", parentWidth: 300, surface: "panel", noMockup: NO_MOCKUP_FORM },
 ];

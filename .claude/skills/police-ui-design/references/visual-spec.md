@@ -125,6 +125,15 @@
 | Stepper(`.stepper`) | inline-flex 간격 3 · 칸 폭 18(S01 인라인 20) 높이 5 모서리 3 · 남음 line-3 · 끝남 brand-2 · 지금 warn + `0 0 6px warn` |
 | Stepper `labeled`(S02 제목 줄) | inline-flex 간격 4 · 10.5px 400 · 단계 = 점(7px 원 · 1px 테두리, 끝남 · 지금은 채움 · 남음은 비움) + 이름, 색 끝남 brand · 지금 ai(맥박) · 남음 faint · 연결선 14×1 지금 단계로 들어오는 선까지 brand-2, 그 뒤 line-3 |
 
+## r3 편의 부품 (시안 짝 없음 — 기존 부품 모양을 따르고 토큰만 쓴다)
+
+| 부품 | 값 |
+|---|---|
+| FilterBar | flex wrap · 간격 가로 14 세로 6 · 검색 칸 Field `search-shell` 폭 220 · 묶음 라벨 11.5 mute + Chip(꺼짐 `default`, 켜짐 `blue`) 간격 5, 개수 mono tabular 70% · 「조건 지우기」 높이 22 모서리 6 line-3/panel-2 11.5 fg-2(조건 없으면 .5) · 결과 개수 오른쪽 끝 mono 11.5 mute |
+| ColumnPicker | 열기 버튼 높이 26 12px + 「n/전체」 mono dim · 팝오버 폭 200 panel · 테두리 border · 모서리 8 · 안쪽 8 · 목록 최대 높이 260 · 줄 12px fg-2(잠김 dim + 「고정」) · 체크 13px `accent-brand` |
+| ViewCountSwitch | inline-flex 간격 8 · 라벨 12px mute · Segmented 기본 변형 |
+| AutoPlayControl | flex wrap 간격 10×6 · Segmented(수동/자동) · 칸 버튼 높이 24 폭 24+ 11.5 line-3/panel-2(눌림 brand-bg + brand-line) · 간격 값 mono tabular 폭 38 · 막대 폭 96 높이 4 모서리 3 바탕 border 채움 brand(폭 변화는 `motion-safe` 로만 100ms linear — 줄이기면 정지 폭) |
+
 ## 입력 · 저장 · 오류
 
 **결론: 입력 칸은 빈 칸 · 안내 글자 · 필수 · 확인 필요 · 읽기 전용 · 잠김 · 비활성 버튼까지 시안에 있다. 틀림 · 초점 · 저장 중 · 저장 실패는 시안에 없으므로 쓰기 전에 시안에 먼저 그린다.** 아래 값은 S01 · S02 · S13 시안에서 읽은 계산값(감정관 시점).
