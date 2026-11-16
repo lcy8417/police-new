@@ -2,3 +2,4 @@
 export { AiTag, type AiTagProps, type AiTagVariant } from "./AiTag"
 export { AiProgress, type AiProgressProps, type AiProgressState } from "./AiProgress"
 export { ConfidenceBar, type ConfidenceBarProps, type ConfidenceScale } from "./ConfidenceBar"
+export { ScanOverlay, type ScanOverlayProps } from "./ScanOverlay"
