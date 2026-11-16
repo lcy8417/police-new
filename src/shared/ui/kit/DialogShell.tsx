@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
+import { useThemePortalContainer } from "@/shared/lib/display-prefs"
 import { cn } from "@/shared/lib/utils"
 import { Dialog, DialogClose, DialogContent, DialogOverlay, DialogPortal, DialogTitle } from "../dialog"
 import { partAttrs } from "../part-attrs"
@@ -52,10 +53,12 @@ export function DialogShell({
   children,
   partId,
 }: DialogShellProps) {
+  // 시안 화면 범위(ThemeScope) 안이면 그 범위의 포털 자리로 띄워 팔레트 · 글꼴 · 배율을 받는다. 범위 밖이면 null → body(전과 같음)
+  const scopePortal = useThemePortalContainer()
   if (variant === "layer") {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogPortal container={container ?? undefined}>
+        <DialogPortal container={container ?? scopePortal ?? undefined}>
           <DialogOverlay className="absolute z-[5] bg-canvas/55 backdrop-blur-none" />
           <DialogPrimitive.Content
             {...partAttrs("DialogShell", { variant: "layer", id: partId })}
@@ -84,6 +87,7 @@ export function DialogShell({
       <DialogContent
         {...partAttrs("DialogShell", { variant: size === "large" ? "large" : undefined, id: partId })}
         showCloseButton={false}
+        container={scopePortal}
         aria-describedby={undefined}
         className={cn(
           "flex max-h-[90vh] flex-col gap-0 p-0 rounded-[12px] border-brand-line bg-panel text-foreground shadow-[0_24px_70px_var(--t-panel-drop)]",

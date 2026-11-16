@@ -1,7 +1,8 @@
 import * as React from "react"
 import { Link, useLocation } from "react-router-dom"
 
-import { ScasShell, type ScasMenuGroup } from "@/shared/ui/panel"
+import { ScasShell, ThemeScope, ThemeSettings, type ScasMenuGroup } from "@/shared/ui/panel"
+import { useDisplayPrefs } from "@/shared/lib/display-prefs"
 import { cn } from "@/shared/lib/utils"
 
 import { DEV_SCREENS } from "./dev-screens"
@@ -33,6 +34,10 @@ function menuFor(viewer: DevViewerInfo, as: string | null, plusOff: boolean): Sc
   return groups
 }
 
+// 틀 = 화면 높이 상자 + 세로 스크롤. html · body · #root 가 overflow:hidden 이라 틀이 스스로 스크롤해야
+// 키운 글자(「크게」 · 「아주 크게」)나 긴 화면의 아래쪽까지 볼 수 있다(r3 화면 설정).
+const FRAME_SCROLL = "h-full overflow-auto bg-canvas"
+
 const PILL = "rounded-[999px] border border-solid px-[8px] py-[1px] font-code text-[11px] no-underline"
 
 export function DevScreenFrame({ screen, title, cases, bare = false, children }: DevScreenFrameProps) {
@@ -42,6 +47,7 @@ export function DevScreenFrame({ screen, title, cases, bare = false, children }:
   const activeCase = useDevCase(cases, cases[0] ?? "ready")
   const viewerKey = useDevViewerKey()
   const viewer = DEV_VIEWERS[viewerKey]
+  const display = useDisplayPrefs()
 
   const hrefWith = (key: string, value: string) => {
     const params = new URLSearchParams(search)
@@ -90,20 +96,23 @@ export function DevScreenFrame({ screen, title, cases, bare = false, children }:
       >
         신규 기능 보기 {plus ? "켜짐" : "꺼짐"}
       </Link>
+      {/* bare(S00 로그인)는 껍데기가 없으므로 진열 막대 끝(흐름 안 — 줄이 접혀도 겹치지 않게)에 「화면 설정」 */}
+      {bare && <ThemeSettings className="ml-auto" />}
     </div>
   )
 
+  // 화면 설정(r3, 설계서 §14-4): 진열 막대까지 같은 범위로 감싸 팔레트 · 글꼴 · 글자 크기가 화면 전체에 걸린다.
   if (bare) {
     return (
-      <div className="min-h-screen bg-canvas text-foreground">
+      <ThemeScope prefs={display} className={FRAME_SCROLL + " text-foreground"}>
         {bar}
         {children}
-      </div>
+      </ThemeScope>
     )
   }
 
   return (
-    <div className="min-h-screen bg-canvas">
+    <ThemeScope prefs={display} className={FRAME_SCROLL}>
       {bar}
       <ScasShell
         active={title}
@@ -114,9 +123,11 @@ export function DevScreenFrame({ screen, title, cases, bare = false, children }:
           </Link>
         )}
         user={{ name: viewer.who.split(" ")[0], org: viewer.org, roleLabel: viewer.label }}
+        display={display}
+        headerEnd={<ThemeSettings />}
       >
         {children}
       </ScasShell>
-    </div>
+    </ThemeScope>
   )
 }

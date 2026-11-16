@@ -1,5 +1,6 @@
 import * as React from "react"
 
+import { themeScopeAttrs, type DisplayPrefs } from "@/shared/lib/display-prefs"
 import { cn } from "@/shared/lib/utils"
 import { Avatar, Chip, Field } from "../kit"
 import { partAttrs } from "../part-attrs"
@@ -46,6 +47,10 @@ export interface ScasShellProps {
   children: React.ReactNode
   /** 시안 위치 식별자(`data-part-id`) */
   partId?: string
+  /** 화면 설정(r3): 주면 루트에 범위 속성(data-theme · data-font · data-scale · data-motion)을 단다. 없으면 :root 값 그대로 */
+  display?: DisplayPrefs
+  /** 위 메뉴 오른쪽 끝 자리(r3 — 예: `<ThemeSettings />` 「화면 설정」). 없으면 그리지 않는다 */
+  headerEnd?: React.ReactNode
 }
 
 const ITEM_BASE =
@@ -98,12 +103,25 @@ function MenuItem({
   )
 }
 
-export function ScasShell({ active, title, tabs, tabOn, menu, renderLink, user, children, partId }: ScasShellProps) {
+export function ScasShell({
+  active,
+  title,
+  tabs,
+  tabOn,
+  menu,
+  renderLink,
+  user,
+  children,
+  partId,
+  display,
+  headerEnd,
+}: ScasShellProps) {
   const tabList = tabs ?? [active]
   const currentTab = tabOn ?? tabList[0]
   return (
     <div
       {...partAttrs("ScasShell", { id: partId })}
+      {...(display ? themeScopeAttrs(display) : {})}
       className="grid min-h-[860px] grid-rows-[auto_auto_minmax(0,1fr)] bg-canvas text-foreground"
     >
       <div
@@ -153,6 +171,7 @@ export function ScasShell({ active, title, tabs, tabOn, menu, renderLink, user, 
             <Avatar name={user.name} />
           </span>
         </span>
+        {headerEnd}
       </div>
 
       <div

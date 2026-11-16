@@ -6,3 +6,5 @@ export { SearchForm, type SearchFormProps, type SearchFormRow } from "./SearchFo
 export { Crumb, type CrumbProps } from "./Crumb"
 export { PageHead, type PageHeadProps } from "./PageHead"
 export { Stepper, type StepperProps } from "./Stepper"
+export { ThemeScope, type ThemeScopeProps } from "./ThemeScope"
+export { ThemeSettings, type ThemeSettingsProps } from "./ThemeSettings"
