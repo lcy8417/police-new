@@ -15,9 +15,12 @@ function Harness() {
   )
 }
 
+// 펼침 칸(disclosure) — 이름 있는 구역(region)이고 대화상자가 아니다
+const panel = () => screen.queryByRole("region", { name: "화면 설정" })
+
 function open() {
   fireEvent.click(screen.getByRole("button", { name: "화면 설정" }))
-  return screen.getByRole("dialog", { name: "화면 설정" })
+  return screen.getByRole("region", { name: "화면 설정" })
 }
 
 beforeEach(() => {
@@ -30,9 +33,12 @@ describe("ThemeSettings", () => {
     render(<Harness />)
     const trigger = screen.getByRole("button", { name: "화면 설정" })
     expect(trigger).toHaveAttribute("aria-expanded", "false")
-    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(panel()).toBeNull()
     open()
     expect(trigger).toHaveAttribute("aria-expanded", "true")
+    // 대화상자가 아니므로 초점을 가두지 않는다(aria-controls 로 연결된 펼침 칸)
+    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(trigger.getAttribute("aria-controls")).toBe(panel()!.id)
   })
 
   it("기본값: SCAS 밝게 · D2Coding · 보통 · 움직임 줄이기 끔", () => {
@@ -85,7 +91,7 @@ describe("ThemeSettings", () => {
     act(() => {
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))
     })
-    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(panel()).toBeNull()
     expect(screen.getByRole("button", { name: "화면 설정" })).toHaveFocus()
   })
 
@@ -98,16 +104,16 @@ describe("ThemeSettings", () => {
     )
     const dialog = open()
     fireEvent.mouseDown(dialog)
-    expect(screen.getByRole("dialog")).toBeInTheDocument()
+    expect(panel()).toBeInTheDocument()
     fireEvent.mouseDown(screen.getByText("바깥"))
-    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(panel()).toBeNull()
   })
 
   it("닫기 버튼", () => {
     render(<Harness />)
     const dialog = open()
     fireEvent.click(within(dialog).getByRole("button", { name: "닫기" }))
-    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(panel()).toBeNull()
   })
 
   it("기억한 값이 깨져 있어도 기본값으로 열린다", () => {

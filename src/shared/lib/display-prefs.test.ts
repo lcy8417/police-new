@@ -88,6 +88,29 @@ describe("useDisplayPrefs", () => {
     expect(result.current.font).toBe("nanum-gothic")
   })
 
+  it("다른 탭의 변경(storage 이벤트)을 따라가고, 저장소 비우기(key=null)면 기본값으로", () => {
+    const { result } = renderHook(() => useDisplayPrefs())
+    localStorage.setItem(DISPLAY_PREFS_KEY, JSON.stringify({ ...DEFAULT_DISPLAY_PREFS, theme: "light-soft" }))
+    act(() => {
+      window.dispatchEvent(new StorageEvent("storage", { key: DISPLAY_PREFS_KEY }))
+    })
+    expect(result.current.theme).toBe("light-soft")
+    localStorage.clear()
+    act(() => {
+      window.dispatchEvent(new StorageEvent("storage", { key: null }))
+    })
+    expect(result.current.theme).toBe("scas-light")
+  })
+
+  it("storage 듣개는 구독자 수와 상관없이 창에 하나만 단다", () => {
+    const add = vi.spyOn(window, "addEventListener")
+    const remove = vi.spyOn(window, "removeEventListener")
+    const hooks = [renderHook(() => useDisplayPrefs()), renderHook(() => useDisplayPrefs()), renderHook(() => useDisplayPrefs())]
+    expect(add.mock.calls.filter(([type]) => type === "storage")).toHaveLength(1)
+    for (const h of hooks) h.unmount()
+    expect(remove.mock.calls.filter(([type]) => type === "storage")).toHaveLength(1)
+  })
+
   it("set 에 틀린 값이 들어와도 그 칸은 기본값으로 고친다", () => {
     const { result } = renderHook(() => useDisplayPrefs())
     act(() => result.current.set({ theme: "neon" as never }))

@@ -49,10 +49,19 @@ function declsOf(css: string, selector: RegExp): Record<string, string> {
   return out;
 }
 
+// 앱 :root 값 = 선택자 목록에 :root 가 든 블록을 모두 합친 것(r3: 값 토큰 블록은 `:root, [data-theme="dark"]`)
+function appRootDecls(): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const m of appCss.matchAll(/(?:^|\n)([^{}\n]*:root[^{}]*)\{([\s\S]*?)\n\}/g)) {
+    for (const d of m[2].matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) out[d[1]] = d[2].trim();
+  }
+  return out;
+}
+
 describe("토큰 대응표", () => {
   it("시안 앱용 값은 모두 --t-*로 1:1", () => {
     const mock = declsOf(mockupCss, /:root\s*\{([\s\S]*?)\n\}/);
-    const app = declsOf(appCss, /:root\s*\{([\s\S]*?)\n\}/);
+    const app = appRootDecls();
     for (const [from, to] of Object.entries(MAP)) {
       expect(mock[from], `시안 ${from}`).toBeDefined();
       expect(app[to], `앱 ${to}`).toBe(mock[from]);
@@ -104,7 +113,7 @@ describe("@theme 역할(기존 화면 변화 0 — 설계서 §12-2)", () => {
   it("부품 글꼴 역할 font-ui · font-code 는 시안 --font-ui · --font-mono 와 같은 글꼴 목록", () => {
     // r3(설계서 §14-3): 역할은 범위 변수 --t-font-* 를 가리키고, :root 기본값이 시안 목록 그대로다.
     const mock = declsOf(mockupCss, /:root\s*\{([\s\S]*?)\n\}/);
-    const root = declsOf(appCss, /:root\s*\{([\s\S]*?)\n\}/);
+    const root = appRootDecls();
     expect(theme["--font-ui"]).toBe("var(--t-font-ui)");
     expect(theme["--font-code"]).toBe("var(--t-font-code)");
     expect(root["--t-font-ui"]).toBe(mock["--font-ui"]);

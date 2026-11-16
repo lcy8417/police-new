@@ -15,10 +15,18 @@ function declsOf(block: string): Record<string, string> {
   return out;
 }
 
+// 선택자 목록에 :root 가 든 블록(값 토큰 블록 `:root, [data-theme="dark"]` + 글꼴 · shadcn 블록)을 모두 합친다
+function rootBlocks(): { selector: string; body: string }[] {
+  return [...appCss.matchAll(/(?:^|\n)([^{}\n]*:root[^{}]*)\{([\s\S]*?)\n\}/g)].map((m) => ({
+    selector: m[1].trim(),
+    body: m[2],
+  }));
+}
+
 function rootTokens(): Record<string, string> {
-  const m = appCss.match(/:root\s*\{([\s\S]*?)\n\}/);
-  if (!m) throw new Error(":root 블록 없음");
-  return declsOf(m[1]);
+  const blocks = rootBlocks();
+  if (blocks.length === 0) throw new Error(":root 블록 없음");
+  return Object.assign({}, ...blocks.map((b) => declsOf(b.body)));
 }
 
 // 팔레트 토큰 = :root 값 위에 그 팔레트 블록 값을 덮은 것(브라우저 상속과 같은 결과)
@@ -151,10 +159,21 @@ describe("팔레트 블록 구성", () => {
     }
   });
 
-  it("dark 팔레트는 값 토큰을 다시 정의하지 않는다(= :root 의 r3 시안 값 그대로)", () => {
-    const m = appCss.match(/\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/);
-    expect(m, '[data-theme="dark"] 블록').not.toBeNull();
-    expect(Object.keys(declsOf(m![1]))).toEqual([]);
+  it("dark 팔레트는 :root 와 같은 값 토큰 블록을 함께 쓴다(밝은 범위 안에 겹쳐도 다크 값이 다시 선언됨)", () => {
+    // 값 토큰은 `:root, [data-theme="dark"]` 한 블록에만 — 두 곳에 같은 값을 따로 적지 않는다
+    const shared = rootBlocks().filter((b) => /(^|,)\s*\[data-theme="dark"\]\s*$/.test(b.selector.split(",").at(-1) ?? ""));
+    expect(shared, ':root, [data-theme="dark"] 블록').toHaveLength(1);
+    const sharedTokens = declsOf(shared[0].body);
+    const root = rootTokens();
+    const hexNames = Object.keys(root).filter((n) => n.startsWith("--t-") && /^#[0-9a-f]{6}$/i.test(root[n]));
+    expect(hexNames.filter((n) => sharedTokens[n] !== root[n])).toEqual([]);
+    // 그 밖의 dark 블록(color-scheme 등)은 값 토큰을 다시 정의하지 않는다
+    // (선택자 목록의 끝 항목 — 앞이 `,` 인 것 — 은 위 공유 블록이므로 뺀다)
+    const others = [...appCss.matchAll(/\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/g)].filter(
+      (m) => !appCss.slice(0, m.index).trimEnd().endsWith(","),
+    );
+    expect(others.length).toBeGreaterThan(0);
+    for (const b of others) expect(Object.keys(declsOf(b[1]))).toEqual([]);
   });
 
   it("대비 계산 확인(흰 · 검정 21:1)", () => {

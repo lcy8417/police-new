@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react"
+import { createContext, useContext, useSyncExternalStore } from "react"
 
 // 시안 화면 「화면 설정」 값(설계서 §14-1·3·4): 팔레트 · 글꼴 · 글자 크기 · 움직임 줄이기.
 // 이 브라우저에만 기억한다(localStorage). 읽기 · 쓰기가 실패하거나 값이 깨져 있으면 기본값으로 동작한다.
@@ -115,18 +115,20 @@ function emit() {
   for (const fn of listeners) fn()
 }
 
+// 다른 탭에서 바꾼 값도 따라간다. 듣개는 모듈에 하나만(첫 구독 때 달고 마지막 해제 때 뗀다).
+// key 가 null 이면 저장소 전체 비우기(localStorage.clear()) — 그때도 다시 읽는다.
+function onStorage(e: StorageEvent) {
+  if (e.key !== null && e.key !== DISPLAY_PREFS_KEY) return
+  current = readDisplayPrefs()
+  emit()
+}
+
 function subscribe(fn: () => void) {
+  if (listeners.size === 0) window.addEventListener("storage", onStorage)
   listeners.add(fn)
-  // 다른 탭에서 바꾼 값도 따라간다
-  const onStorage = (e: StorageEvent) => {
-    if (e.key !== DISPLAY_PREFS_KEY) return
-    current = readDisplayPrefs()
-    emit()
-  }
-  window.addEventListener("storage", onStorage)
   return () => {
     listeners.delete(fn)
-    window.removeEventListener("storage", onStorage)
+    if (listeners.size === 0) window.removeEventListener("storage", onStorage)
   }
 }
 
@@ -150,4 +152,49 @@ export interface UseDisplayPrefs extends DisplayPrefs {
 export function useDisplayPrefs(): UseDisplayPrefs {
   const prefs = useSyncExternalStore(subscribe, snapshot, () => DEFAULT_DISPLAY_PREFS)
   return { ...prefs, set: setDisplayPrefs }
+}
+
+// ───────── 범위 밖으로 나가는 겹침 창(포털) ─────────
+// 대화상자 · 알림은 보통 document.body 로 포털되어 범위(data-theme …)를 벗어난다. ThemeScope 가 범위 안에 포털 자리를
+// 하나 두고 이 맥락으로 알려 주면, DialogShell 은 그 자리로 포털한다. 범위 밖(맥락 없음)이면 null — 전과 같이 body.
+export const ThemePortalContext = createContext<HTMLElement | null>(null)
+
+/** 가장 가까운 ThemeScope 의 포털 자리(없으면 null) */
+export function useThemePortalContainer(): HTMLElement | null {
+  return useContext(ThemePortalContext)
+}
+
+// 앱 전체에 하나뿐인 알림(Toaster)은 범위 트리 밖에 있으므로 맥락 대신 「지금 열린 범위」 목록으로 알린다.
+// 가장 나중에 열린 범위의 설정을 쓴다. 열린 범위가 없으면 null — 알림은 전과 같은 모양.
+const activeScopes = new Map<symbol, DisplayPrefs>()
+const scopeListeners = new Set<() => void>()
+let activeSnapshot: DisplayPrefs | null = null
+
+function emitScopes() {
+  const last = [...activeScopes.values()].at(-1) ?? null
+  activeSnapshot = last
+  for (const fn of scopeListeners) fn()
+}
+
+/** ThemeScope 가 열려 있는 동안 설정을 알린다(같은 id 면 순서는 그대로 값만 갱신 — Map.set 성질) */
+export function setThemeScope(id: symbol, prefs: DisplayPrefs): void {
+  activeScopes.set(id, prefs)
+  emitScopes()
+}
+
+/** ThemeScope 가 닫힐 때 */
+export function clearThemeScope(id: symbol): void {
+  if (activeScopes.delete(id)) emitScopes()
+}
+
+/** 지금 열린 범위의 설정(없으면 null) */
+export function useActiveThemeScope(): DisplayPrefs | null {
+  return useSyncExternalStore(
+    (fn) => {
+      scopeListeners.add(fn)
+      return () => scopeListeners.delete(fn)
+    },
+    () => activeSnapshot,
+    () => null,
+  )
 }

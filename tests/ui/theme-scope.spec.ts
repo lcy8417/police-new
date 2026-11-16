@@ -107,6 +107,44 @@ test("팔레트별 바탕 · 글자 계산값(dark = r3 시안 값)", async ({ p
   }
 });
 
+test("scas-light 안에 겹친 dark 영역은 다크 값(팔레트 미리보기 「어둡게」 포함)", async ({ page }) => {
+  await openWith(page, "/dev/s01", { theme: "scas-light", font: "d2coding", scale: "md", reducedMotion: true });
+  const nested = await page.locator('[data-part="ScasShell"]').evaluate((shell) => {
+    const probe = document.createElement("span");
+    probe.setAttribute("data-theme", "dark");
+    probe.className = "bg-canvas text-foreground";
+    shell.appendChild(probe);
+    const cs = getComputedStyle(probe);
+    const r = { tBg: cs.getPropertyValue("--t-bg").trim(), bg: cs.backgroundColor, fg: cs.color };
+    probe.remove();
+    return r;
+  });
+  expect(nested).toEqual({ tBg: "#05080d", bg: "rgb(5, 8, 13)", fg: "rgb(229, 233, 240)" });
+
+  await page.getByRole("button", { name: "화면 설정" }).click();
+  const swatches = page.getByRole("region", { name: "화면 설정" }).locator('[data-theme] > span:first-child');
+  const colors = await swatches.evaluateAll((els) => els.map((el) => getComputedStyle(el).backgroundColor));
+  // 순서: SCAS 밝게 · 또렷하게 · 부드럽게 · 어둡게 — 첫 칸은 각 팔레트의 바탕(canvas)
+  expect(colors).toEqual(["rgb(238, 240, 244)", "rgb(255, 255, 255)", "rgb(230, 232, 236)", "rgb(5, 8, 13)"]);
+});
+
+test("범위 안 대화상자(DialogShell modal)는 범위의 팔레트 · 글꼴로 뜬다", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  // S13 사용자 관리 「사용자 추가」 → DialogShell(modal) 「사용자 추가」
+  await openWith(page, "/dev/s13?as=admin", { theme: "scas-light", font: "pretendard", scale: "md", reducedMotion: true });
+  await page.getByRole("button", { name: "사용자 추가" }).click();
+  const dialog = page.getByRole("dialog", { name: "사용자 추가" });
+  await expect(dialog).toBeVisible();
+  const r = await dialog.evaluate((el) => ({
+    inPortal: !!el.closest('[data-part="ThemeScope"] [data-theme-portal]'),
+    bg: getComputedStyle(el).backgroundColor,
+    font: getComputedStyle(el).fontFamily,
+  }));
+  expect(r.inPortal).toBe(true);
+  expect(r.bg).toBe("rgb(255, 255, 255)");
+  expect(r.font.startsWith('"Scas Pretendard"')).toBe(true);
+});
+
 for (const screen of ["s01", "s05"] as const) {
   test(`「아주 크게」 + 1280 폭 ${screen}: 가로 넘침 0`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });

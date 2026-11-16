@@ -113,10 +113,10 @@ export function ThemeSettings({ className }: ThemeSettingsProps) {
         </svg>
         화면 설정
       </Button>
+      {/* 펼침 칸(disclosure): 초점을 가두지 않는 보통 구역이다(대화상자 아님) — Tab 으로 버튼 다음에 바로 들어간다 */}
       {open && (
-        <div
+        <section
           id={panelId}
-          role="dialog"
           aria-label="화면 설정"
           className={
             "absolute top-[calc(100%+6px)] right-0 z-50 grid w-[380px] gap-[14px] rounded-[10px] border border-solid border-border " +
@@ -184,7 +184,7 @@ export function ThemeSettings({ className }: ThemeSettingsProps) {
           </Row>
 
           <p className="m-0 text-[11.5px] text-dim">고른 값은 이 브라우저에 기억됩니다.</p>
-        </div>
+        </section>
       )}
     </div>
   )
