@@ -2,6 +2,7 @@ import * as React from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import type { PatternZone } from "@/entities/pattern";
 import type { Shoe } from "@/entities/shoe";
 import { useAutoPlay } from "@/shared/lib/use-auto-play";
 import type { FilterGroup } from "@/shared/ui/kit";
@@ -9,6 +10,7 @@ import {
   ShoeDbPanel,
   ShoeDbScreen,
   type ShoeExtractState,
+  type ShoeAiMarks,
   type ShoeCardSize,
   type ShoeDbFilters,
   type ShoeDbScreenProps,
@@ -64,6 +66,37 @@ const BLANK: Shoe = {
   outline: [],
 };
 
+/** 모든 AI 제안을 확인된 AI 문양으로 */
+function confirmMarks(marks: ShoeAiMarks | undefined): ShoeAiMarks | undefined {
+  if (!marks) return marks;
+  return Object.fromEntries(
+    Object.entries(marks).map(([z, row]) => [z, Object.fromEntries(Object.keys(row ?? {}).map((n) => [n, "ai" as const]))]),
+  ) as ShoeAiMarks;
+}
+
+/** 빠진 문양의 AI 표시는 지운다(빼고 손으로 다시 넣으면 수동) */
+function pruneMarks(marks: ShoeAiMarks | undefined, form: Shoe): ShoeAiMarks | undefined {
+  if (!marks) return marks;
+  const out: ShoeAiMarks = {};
+  for (const z of ["top", "mid", "bottom", "outline"] as const) {
+    const row = marks[z];
+    if (row) out[z] = Object.fromEntries(Object.entries(row).filter(([n]) => form[z].includes(n)));
+  }
+  return out;
+}
+
+/** 상세 필터(「조회」로 적용한 값) — 화류번호 · 상표 · 제조사(앞부분 맞춤) · 그룹명 · 문양 입력 · 승인. 가짜 신발에 없는 칸(성별 · 등록일자 · 관서)은 거르지 않는다 */
+function matchesFilters(s: Shoe, f: ShoeDbFilters, status: string | undefined): boolean {
+  const has = (v: string | null | undefined, q: string) => q.trim() === "" || (v ?? "").toLowerCase().includes(q.trim().toLowerCase());
+  if (!has(s.ftwrId, f.ftwrId) || !has(s.brandCode, f.brandCode) || !has(s.makrCode, f.makrCode) || !has(s.ftwrGroupNm, f.groupNm)) return false;
+  const patterned = s.top.length + s.mid.length + s.bottom.length + s.outline.length > 0;
+  if (f.patternInput === "in" && !patterned) return false;
+  if (f.patternInput === "out" && patterned) return false;
+  if (f.approval === "yes" && status === "승인 대기") return false;
+  if (f.approval === "no" && status !== "승인 대기") return false;
+  return true;
+}
+
 // S10 신발문양 관리 진열 페이지. 값은 가짜, 저장은 토스트로만 확인한다.
 export function S10DevPage() {
   const caseName = useDevCase(SCREEN_CASES.s10, "ready");
@@ -91,6 +124,9 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
   const [aiDetails] = React.useState(makeS10AiDetails);
   const [filters, setFilters] =
     React.useState<ShoeDbFilters>(S10_EMPTY_FILTERS);
+  // 「조회」를 눌러야 걸리는 상세 필터(SCAS 처럼 — 입력 중에는 목록이 바뀌지 않음). 처음 · 「조건 지우기」 뒤에는 걸지 않는다
+  // (기본 칸 값이 SCAS 기본 「미승인 · 미입력」이라 처음부터 걸면 목록이 비어 보인다). 2회차 검수 — 조회가 목록에 안 걸리던 것
+  const [applied, setApplied] = React.useState<ShoeDbFilters | null>(null);
   // 시안 기본은 문양보기(카드). `?view=list` 로 표를 먼저 볼 수 있다
   const [view, setView] = React.useState<ShoeDbView>(
     params.get("view") === "list" ? "list" : "pattern",
@@ -128,6 +164,7 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
   const needle = query.trim().toLowerCase();
   const filtered = allShoes.filter((s) => {
     if (needle !== "" && ![s.ftwrId, s.modlNm, s.brandCode].some((t) => (t ?? "").toLowerCase().includes(needle))) return false;
+    if (applied && !matchesFilters(s, applied, cardInfo[s.ftwrId]?.status)) return false;
     if (!showPlus) return true;
     const info = cardInfo[s.ftwrId];
     if (quickValues.status.length > 0 && !(info && quickValues.status.includes(info.status))) return false;
@@ -180,6 +217,15 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
         },
       ]
     : [];
+  const runSearch = () => {
+    setApplied(filters);
+    afterFilterChange();
+  };
+  const resetFilters = () => {
+    setFilters(S10_EMPTY_FILTERS);
+    setApplied(null);
+    afterFilterChange();
+  };
   const clearQuick = () => {
     setQuery("");
     setQuickValues(EMPTY_QUICK);
@@ -228,13 +274,14 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
       setDialog((d) => {
         if (!d) return d;
         const form = { ...d.form };
-        const added: string[] = [];
-        for (const zone of ["top", "mid", "bottom", "outline"] as const) {
+        const marks: ShoeAiMarks = { ...d.aiMarks };
+        // AI 는 상 · 중 · 하만 제안한다(윤곽은 AI 미지원 — 가중치 스펙 §8-7). 출처는 부위별로 남긴다(2회차 검수)
+        for (const zone of ["top", "mid", "bottom"] as const) {
           const fresh = S10_AI_SUGGEST[zone].filter((n) => !form[zone].includes(n));
           form[zone] = [...form[zone], ...fresh];
-          added.push(...fresh);
+          marks[zone] = { ...marks[zone], ...Object.fromEntries(fresh.map((n) => [n, "suggested" as const])) };
         }
-        return { ...d, form, aiNames: [...(d.aiNames ?? []), ...added] };
+        return { ...d, form, aiMarks: marks };
       });
       setExtractState("done");
     }, S10_EXTRACT_MS);
@@ -250,7 +297,10 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
     library: S10_LIBRARY,
     extractState,
     onExtract: extract,
-    onConfirmAi: () => setDialog((d) => (d ? { ...d, aiNames: [] } : d)),
+    // 확인해도 AI 출처는 남긴다(점선 제안 → 확인된 AI 문양 — 수동으로 바뀌지 않음, 2회차 검수)
+    onConfirmAi: () => setDialog((d) => (d ? { ...d, aiMarks: confirmMarks(d.aiMarks) } : d)),
+    onConfirmAiOne: (zone: PatternZone, name: string) =>
+      setDialog((d) => (d && d.aiMarks?.[zone]?.[name] ? { ...d, aiMarks: { ...d.aiMarks, [zone]: { ...d.aiMarks[zone], [name]: "ai" } } } : d)),
     onPrevShoe: editIndex > 0 ? () => openAt(editIndex - 1) : undefined,
     onNextShoe: editIndex >= 0 && editIndex < filtered.length - 1 ? () => openAt(editIndex + 1) : undefined,
     onApprove: () => toast.success(`승인했습니다 (시안): ${dialog?.form.ftwrId ?? ""}`),
@@ -270,8 +320,8 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
     filters,
     onFiltersChange: setFilters,
     officeItems: S10_OFFICES,
-    onSearch: () => toast("조회합니다 (시안)"),
-    onReset: () => setFilters(S10_EMPTY_FILTERS),
+    onSearch: runSearch,
+    onReset: resetFilters,
     view,
     onViewChange: setView,
     shoes: pageRows,
@@ -283,7 +333,7 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
     onOpenShoe: open,
     onRegister: () => setDialog({ mode: "new", form: BLANK }),
     dialog,
-    onFormChange: (form: Shoe) => setDialog((d) => (d ? { ...d, form, saveError: undefined } : d)),
+    onFormChange: (form: Shoe) => setDialog((d) => (d ? { ...d, form, aiMarks: pruneMarks(d.aiMarks, form), saveError: undefined } : d)),
     onSave: save,
     onCloseDialog: () => setDialog(null),
     onReplaceImage: () => toast("이미지를 고릅니다 (시안)"),
@@ -324,8 +374,8 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
       filters={filters}
       onFiltersChange={setFilters}
       officeItems={S10_OFFICES}
-      onSearch={() => toast("조회합니다 (시안)")}
-      onReset={() => setFilters(S10_EMPTY_FILTERS)}
+      onSearch={runSearch}
+      onReset={resetFilters}
       view={view}
       onViewChange={setView}
       shoes={pageRows}

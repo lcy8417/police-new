@@ -1,7 +1,8 @@
-import { fireEvent, render, screen, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { describe, expect, it, vi } from "vitest"
 
+import { S10_EXTRACT_MS } from "./mock-cases"
 import { S10Content } from "./S10DevPage"
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }))
@@ -37,5 +38,43 @@ describe("신발 DB 패널(S10Content inPanel)", () => {
     expect(within(board).getByRole("button", { name: `빼기 · 중 ${name}` })).toBeInTheDocument()
     fireEvent.click(within(lib).getByRole("button", { name: `중에서 ${name} 빼기` }))
     expect(within(board).queryByRole("button", { name: `빼기 · 중 ${name}` })).toBeNull()
+  })
+
+  it("2회차 검수 — AI 추출 출처는 부위별(윤곽 없음), 한 장 · 모두 확인해도 수동이 아니라 「AI · 확인」으로 남는다", () => {
+    vi.useFakeTimers()
+    try {
+      renderPanel()
+      fireEvent.click(screen.getByRole("button", { name: "303351 열기" }))
+      fireEvent.click(screen.getByRole("button", { name: /AI 문양 추출/ }))
+      act(() => {
+        vi.advanceTimersByTime(S10_EXTRACT_MS)
+      })
+      const board = screen.getByRole("group", { name: "부위별 문양" })
+      const zone = (z: string) => board.querySelector(`[data-drop-zone="${z}"]`) as HTMLElement
+      expect(zone("outline").querySelectorAll('[data-card-status="suggested"]')).toHaveLength(0)
+      const suggested = board.querySelectorAll('[data-card-status="suggested"]')
+      expect(suggested.length).toBeGreaterThan(0)
+      // 한 장 확인
+      fireEvent.click(within(suggested[0] as HTMLElement).getByRole("button", { name: /확인/ }))
+      expect(board.querySelectorAll('[data-card-status="suggested"]')).toHaveLength(suggested.length - 1)
+      // 모두 확인 → 제안 0, AI · 확인으로 남음
+      fireEvent.click(screen.getByRole("button", { name: "모두 확인" }))
+      expect(board.querySelectorAll('[data-card-status="suggested"]')).toHaveLength(0)
+      expect(board.querySelectorAll('[data-card-status="ai"]')).toHaveLength(suggested.length)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("2회차 검수 — 상세 필터는 「조회」를 눌러야 목록에 걸리고, 「조건 지우기」로 풀린다", () => {
+    renderPanel()
+    fireEvent.click(screen.getByRole("button", { name: /^필터/ }))
+    fireEvent.change(screen.getByRole("textbox", { name: "화류번호" }), { target: { value: "303351" } })
+    // 입력만으로는 그대로
+    expect(screen.getAllByRole("button", { name: / 열기$/ }).length).toBeGreaterThan(1)
+    fireEvent.click(screen.getByRole("button", { name: "조회" }))
+    expect(screen.getAllByRole("button", { name: / 열기$/ }).map((b) => b.getAttribute("aria-label"))).toEqual(["303351 열기"])
+    fireEvent.click(screen.getByRole("button", { name: "조건 지우기" }))
+    expect(screen.getAllByRole("button", { name: / 열기$/ }).length).toBeGreaterThan(1)
   })
 })

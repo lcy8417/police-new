@@ -55,7 +55,7 @@ export const S10_LIBRARY: Record<string, string[]> = Object.fromEntries(
 )
 
 /** AI 문양 추출이 제안하는 부위별 문양(진열 값) */
-export const S10_AI_SUGGEST = { top: ["n32_04"], mid: ["n21_05"], bottom: ["n32_04"], outline: ["s10c"] } as const
+export const S10_AI_SUGGEST = { top: ["n32_04"], mid: ["n21_05"], bottom: ["n32_04"] } as const
 
 /** AI 문양 추출 흉내 시간(ms) */
 export const S10_EXTRACT_MS = 1200

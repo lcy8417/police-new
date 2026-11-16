@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { rankOfRun, S04_RUNS } from "../s04/mock-cases"
+import { rankOfRun, S04_KINDS, S04_RUNS } from "../s04/mock-cases"
 import { S05_WINDOW_FIRST } from "../s05/mock-cases"
 import { OPEN_CASES_FULL } from "./case-window-query"
 import { S01DevPage } from "./S01DevPage"
@@ -310,6 +310,36 @@ describe("S01 사건 창", () => {
         expect(query().get("run")).toBe("572434")
         expect(within(dialog()).getByText(`${count}건`, { exact: false })).toBeInTheDocument()
         expect(within(dialog()).queryByText(/^857건/)).toBeNull()
+      })
+
+      it("2회차 검수 — 일반 문양 목록에서 넣은 문양은 AI 추출에 같은 이름이 있어도 수동, 「AI」 탭에서 넣어야 AI 출처 · 확신도", () => {
+        const d = open()
+        const board = within(d).getByRole("group", { name: "현장 이미지 문양" })
+        fireEvent.click(within(board).getByRole("button", { name: /^하 부위/ }))
+        const lib = within(d).getByRole("region", { name: "문양 목록" })
+        const kinds = within(within(lib).getByRole("tablist", { name: "문양 종류" }))
+        const bottom = () => d.querySelector('[data-drop-zone="bottom"]') as HTMLElement
+        fireEvent.click(kinds.getByRole("tab", { name: S04_KINDS.n51_03 }))
+        fireEvent.click(within(lib).getByRole("button", { name: "하에 n51_03 넣기" }))
+        expect(bottom().querySelectorAll('[data-card-status="manual"]')).toHaveLength(1)
+        fireEvent.click(within(lib).getByRole("button", { name: "하에서 n51_03 빼기" }))
+        fireEvent.click(kinds.getByRole("tab", { name: /^AI/ }))
+        fireEvent.click(within(lib).getByRole("button", { name: "하에 n51_03 넣기(AI 0.71)" }))
+        expect(bottom().querySelectorAll('[data-card-status="manual"]')).toHaveLength(0)
+        expect(bottom().querySelectorAll('[data-card-status="ai"]')).toHaveLength(1)
+      })
+
+      it("2회차 검수 — 「다시 불러오기」는 그때의 확인 전 AI 제안도 되살려 R5(세 부위 반복) · 가중치가 검색 때와 같다(「지금」)", () => {
+        const d = open()
+        // 처음 값: 하 n32_04 는 확인 전 제안 — 그래도 상 n32_04 는 R5(상 · 중 · 하 반복)로 낮음
+        fireEvent.click(within(d).getByRole("button", { name: "검색" }))
+        fireEvent.click(within(d).getByRole("button", { name: "다시입력" }))
+        fireEvent.click(within(side(d)).getByRole("tab", { name: /검색 이력/ }))
+        fireEvent.click(within(d).getByRole("button", { name: "검색 572434 — 이 조건 다시 불러오기" }))
+        const board = within(d).getByRole("group", { name: "현장 이미지 문양" })
+        expect(within(board).getByRole("button", { name: /^하 부위 1개/ })).toBeInTheDocument()
+        const first = within(within(d).getByRole("list", { name: "검색 이력" })).getAllByRole("listitem", { name: /^검색 / })[0]
+        expect(first).toHaveTextContent("지금")
       })
 
       it("1회차 검수 — 「다시입력」은 직접 가중치도 지운다(빈 화면에 「직접 n」이 남지 않음)", () => {

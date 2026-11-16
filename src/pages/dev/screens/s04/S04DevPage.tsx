@@ -1,7 +1,7 @@
 import * as React from "react"
 import { toast } from "sonner"
 
-import { insertPatternPath, type PatternZone } from "@/entities/pattern"
+import { insertPatternPath, type PatternInsertOrigin, type PatternZone } from "@/entities/pattern"
 import { toKstIso } from "@/shared/lib"
 import { ZoneBands, type ZoneBand } from "@/shared/ui/viewer"
 import {
@@ -259,14 +259,14 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow, caseImages, onPickI
   const nameAt = (zone: PatternZone, index: number) => zones[zone][index]?.[0] ?? ""
 
   /** 클릭 넣기 · 끌어 놓기 공통 — 같은 부위에 같은 이름이 있으면 넣지 않는다(이름 기준, docs/pattern-data-model.md §2) */
-  const insertInto = (zone: PatternZone, src: string) => {
+  const insertInto = (zone: PatternZone, src: string, origin?: PatternInsertOrigin) => {
     const name = patternName(src)
     if (zones[zone].some(([n]) => n === name)) return
     updateZone(zone, (items) => (items.some(([n]) => n === name) ? items : [...items, [name, 0] as const]))
-    // AI 추출 결과에 있는 문양이면(「AI」 탭에서 누르거나 끌어 넣음) AI 출처 · 확신도를 그대로 남긴다 —
-    // 사람이 골라 넣었으니 확인된 AI 문양(「ai」). 수동으로 처리하면 R3(저확신 −1)가 빠져 가중치가 올라간다(1회차 검수)
-    const ai = extracted.find((e) => e.code === name)
-    if (ai) patchMeta(zone, name, { status: "ai", confidence: ai.score })
+    // AI 추출 결과(「AI」 탭 · 추출 결과 칸)에서 넣었을 때만 AI 출처 · 확신도를 남긴다 — 사람이 골라 넣었으니 확인된 AI 문양(「ai」).
+    // 일반 문양 목록에서 같은 이름을 골라 넣은 것 · 윤곽(AI 미지원)은 수동(2회차 검수 — 이름만으로 AI 로 붙여 R3 감점이 걸리던 것)
+    const ai = origin === "ai" && zone !== "outline" ? extracted.find((e) => e.code === name) : undefined
+    patchMeta(zone, name, ai ? { status: "ai", confidence: ai.score } : null)
     setNoteCode(name)
   }
 
@@ -313,6 +313,12 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow, caseImages, onPickI
         if (p.status && p.status !== "manual") zoneMeta[p.name] = { status: "ai", ...(p.confidence !== undefined ? { confidence: p.confidence } : {}) }
         if (p.manual) zoneOverrides[p.name] = p.weight
       }
+      // 그때의 확인 전 AI 제안도 되살린다(검색엔 안 들어갔지만 R5 세 부위 반복이 제안까지 센다 — 2회차 검수)
+      for (const s of run.pending?.[z] ?? []) {
+        if (nextZones[z].some(([n]) => n === s.name)) continue
+        nextZones[z] = [...nextZones[z], [s.name, 0] as const]
+        zoneMeta[s.name] = { status: "suggested", ...(s.confidence !== undefined ? { confidence: s.confidence } : {}) }
+      }
       nextMeta[z] = zoneMeta
       nextOverrides[z] = zoneOverrides
     }
@@ -356,7 +362,7 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow, caseImages, onPickI
       zones={hydrated}
       selectedZone={selectedZone}
       onSelectZone={setSelectedZone}
-      onInsertPattern={(src) => insertInto(selectedZone, src)}
+      onInsertPattern={(src, origin) => insertInto(selectedZone, src, origin)}
       onInsertPatternToZone={insertInto}
       onRemovePattern={(zone, index) => {
         patchMeta(zone, nameAt(zone, index), null)

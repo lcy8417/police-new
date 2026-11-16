@@ -234,7 +234,7 @@ export function PatternCodeScreen(props: PatternCodeScreenProps) {
     </div>
   )
   const extractResults = (bare: boolean) => (
-    <ExtractResults state={props.extractState} items={props.extracted} inserted={inserted} onInsert={props.onInsertPattern} canEdit={canEdit} bare={bare} />
+    <ExtractResults state={props.extractState} items={props.extracted} inserted={inserted} onInsert={(src) => props.onInsertPattern(src, "ai")} canEdit={canEdit} bare={bare} />
   )
   const codeNoteText = props.codeNote ? (
     <>

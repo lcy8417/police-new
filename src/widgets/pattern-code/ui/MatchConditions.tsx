@@ -81,7 +81,7 @@ export function MatchConditions({ value, onChange, bare = false }: MatchConditio
           <Find label="등록관서" />
         </Row>
       </dl>
-      <p className="text-[11px] text-dim">지금 검색은 필수 문양만으로 찾습니다(매칭 조건은 운영 연결 때).</p>
+      <p className="text-[11px] text-dim">필수 문양은 후보를 거르고, 확인한 문양 전체(가중치)로 점수를 냅니다. 매칭 조건은 운영 연결 때.</p>
     </section>
   )
 }

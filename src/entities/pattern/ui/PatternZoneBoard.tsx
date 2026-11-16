@@ -9,6 +9,8 @@ import {
   PATTERN_DRAG_FORMAT,
   PATTERN_WEIGHT_LEVELS,
   PATTERN_ZONES,
+  dropOrigin,
+  type PatternInsertOrigin,
   type PatternCardView,
   type PatternWeightLevel,
   type PatternWeightView,
@@ -28,8 +30,8 @@ export interface PatternZoneBoardProps {
   /** 넣을 부위 */
   selectedZone: PatternZone
   onSelectZone: (zone: PatternZone) => void
-  /** 끌어 온 문양(그림 경로)을 놓은 부위에 넣기 — 없으면 끌어 놓기 안 받음 */
-  onDropToZone?: (zone: PatternZone, src: string) => void
+  /** 끌어 온 문양(그림 경로)을 놓은 부위에 넣기 — 없으면 끌어 놓기 안 받음. origin = AI 추출 결과에서 왔나 */
+  onDropToZone?: (zone: PatternZone, src: string, origin: PatternInsertOrigin) => void
   onRemove: (zone: PatternZone, index: number) => void
   /** 필수 켜고 끄기(crime 전용) — 주면 카드마다 필수 단추 · 우클릭 */
   onToggleMust?: (zone: PatternZone, index: number) => void
@@ -302,7 +304,7 @@ export function PatternZoneBoard({
                     e.preventDefault()
                     setDragOver(null)
                     const src = e.dataTransfer.getData(PATTERN_DRAG_FORMAT)
-                    if (src) onDropToZone?.(zone, src)
+                    if (src) onDropToZone?.(zone, src, dropOrigin(e.dataTransfer))
                   }
                 : undefined
             }

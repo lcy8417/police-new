@@ -14,6 +14,17 @@ export const PATTERN_ZONES: readonly { zone: PatternZone; label: string }[] = [
 /** 끌어 놓기에 싣는 자료 형식(지금 앱 PatternPalette · PatternZones 와 같음) — 값은 그림 경로 */
 export const PATTERN_DRAG_FORMAT = "text/plain"
 
+/** AI 추출 결과에서 끌어 온 문양 표시(값 "1") — 놓는 쪽이 AI 출처 · 확신도를 남길지 가른다(2회차 검수) */
+export const PATTERN_DRAG_AI_FORMAT = "application/x-scas-pattern-ai"
+
+/** 문양을 어디서 넣었나 — AI 추출 결과(「AI」 탭 · 추출 결과 칸) 또는 일반 문양 목록 */
+export type PatternInsertOrigin = "ai" | "palette"
+
+/** 끌어 놓은 자료가 AI 추출 결과에서 왔나 */
+export function dropOrigin(data: Pick<DataTransfer, "getData">): PatternInsertOrigin {
+  return data.getData(PATTERN_DRAG_AI_FORMAT) === "1" ? "ai" : "palette"
+}
+
 /** 가중치 단계 */
 export type PatternWeightLevel = "low" | "normal" | "high"
 

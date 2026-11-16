@@ -7,6 +7,7 @@ export type {
   ShoeDbFilters,
   ShoeDbView,
   ShoeDialogState,
+  ShoeAiMarks,
   ShoeOfficeItem,
   ShoeWorkStatus,
   ShoeCardMark,

@@ -4,7 +4,7 @@ import { Check } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { PatternIcon } from "@/shared/ui/viewer"
 
-import { PATTERN_DRAG_FORMAT, type PatternLibraryItem, type PatternLibraryTab } from "../model/view"
+import { PATTERN_DRAG_AI_FORMAT, PATTERN_DRAG_FORMAT, type PatternLibraryItem, type PatternLibraryTab } from "../model/view"
 
 export interface PatternLibraryProps {
   /** 종류 탭(알약 한 줄 · 개수) */
@@ -63,6 +63,8 @@ function LibraryTile({
       draggable={canEdit && !inserted}
       onDragStart={(e) => {
         e.dataTransfer.setData(PATTERN_DRAG_FORMAT, src)
+        // AI 추출 결과 칸(확신도가 있는 문양)이면 표시를 같이 싣는다 — 놓는 쪽이 AI 출처를 남긴다
+        if (score !== undefined) e.dataTransfer.setData(PATTERN_DRAG_AI_FORMAT, "1")
         e.dataTransfer.effectAllowed = "copy"
       }}
       onClick={onToggle}

@@ -102,6 +102,7 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
         extractState={props.extractState}
         onExtract={props.onExtract}
         onConfirmAi={props.onConfirmAi}
+        onConfirmAiOne={props.onConfirmAiOne}
         onPrev={props.onPrevShoe}
         onNext={props.onNextShoe}
         onApprove={props.onApprove}

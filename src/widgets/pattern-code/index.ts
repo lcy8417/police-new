@@ -8,6 +8,7 @@ export { BoundaryLines, PriceTagBox, RoiBox, ZoneConfidenceTags, type ZoneConfid
 export { patternWeights, WEIGHT_LABEL, WEIGHT_VALUE, type PatternWeight, type PatternWeightMap } from "./model/weight-rules"
 export {
   patternScore,
+  pendingSnapshot,
   queryOfRun,
   rankShoes,
   runSnapshot,

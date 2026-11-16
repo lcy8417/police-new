@@ -1,7 +1,7 @@
 import type * as React from "react"
 
 import type { CrimeHistoryRow } from "@/entities/crime"
-import type { EssentialFlag, PatternZone } from "@/entities/pattern"
+import type { EssentialFlag, PatternInsertOrigin, PatternZone } from "@/entities/pattern"
 import type { FeatureCode } from "@/entities/session"
 import type { ScreenStatus } from "@/shared/lib/screen-status"
 
@@ -156,6 +156,11 @@ export interface SearchRun {
   source: SearchImageSource
   /** 부위별 검색 문양(확인 전 AI 제안은 빠짐) */
   zones: Readonly<Record<PatternZone, readonly SearchRunPattern[]>>
+  /**
+   * 그때 화면에 있던 확인 전 AI 제안(검색에는 안 들어감 — 가중치 R5 를 같은 문맥으로 되살리려고 남긴다, 2회차 검수).
+   * 없으면 제안 없이 검색한 것
+   */
+  pending?: Readonly<Partial<Record<PatternZone, readonly { name: string; confidence?: number }[]>>>
   /** 그때의 매칭 조건 */
   conditions: MatchConditionValues
   /** 결과 수(필수 거르기 통과) */
@@ -214,10 +219,13 @@ export interface PatternCodeScreenProps {
   /** 문양을 넣을 부위(SCAS 「입력 중」 빨간 테) */
   selectedZone: PatternZone
   onSelectZone: (zone: PatternZone) => void
-  /** 고른 부위에 문양 넣기(팔레트 · 추출 결과 클릭) — 경로를 그대로 넘긴다 */
-  onInsertPattern: (src: string) => void
+  /**
+   * 고른 부위에 문양 넣기(팔레트 · 추출 결과 클릭) — 경로를 그대로 넘긴다.
+   * origin = "ai" 는 AI 추출 결과(「AI」 탭 · 추출 결과 칸)에서 넣은 것 — 부르는 쪽이 AI 출처 · 확신도를 남긴다(2회차 검수)
+   */
+  onInsertPattern: (src: string, origin?: PatternInsertOrigin) => void
   /** 팔레트 · 추출 결과에서 끌어 온 문양을 놓은 부위에 넣기(고른 부위와 무관, 지금 앱 `onDropToZone`) */
-  onInsertPatternToZone: (zone: PatternZone, src: string) => void
+  onInsertPatternToZone: (zone: PatternZone, src: string, origin?: PatternInsertOrigin) => void
   /** 부위의 문양 빼기(지금 앱: 썸네일 클릭) */
   onRemovePattern: (zone: PatternZone, index: number) => void
   /** 필수 문양 켜고 끄기(지금 앱: 우클릭) */

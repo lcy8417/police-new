@@ -81,8 +81,10 @@ export interface ShoeEditorProps {
   library: Record<string, readonly string[]>
   extractState: ShoeExtractState
   onExtract: () => void
-  /** AI 가 넣은 문양을 모두 확인(AI 테 지움) */
+  /** AI 가 넣은 제안을 모두 확인(점선 제안 → 확인된 AI 문양) */
   onConfirmAi: () => void
+  /** AI 제안 한 장 확인 */
+  onConfirmAiOne?: (zone: PatternZone, name: string) => void
   onPrev?: () => void
   onNext?: () => void
   onApprove: () => void
@@ -116,7 +118,9 @@ export function ShoeEditor(props: ShoeEditorProps) {
   const [spot, setSpot] = React.useState<LensSpot | null>(null)
   const [pinned, setPinned] = React.useState(false)
   const [hovered, setHovered] = React.useState<PatternLibraryItem | null>(null)
-  const aiNames = React.useMemo(() => dialog.aiNames ?? [], [dialog.aiNames])
+  // AI 출처는 부위 · 이름별(다른 부위에 손으로 넣은 같은 이름은 수동 그대로 — 2회차 검수)
+  const aiMarks = dialog.aiMarks
+  const suggestedCount = PATTERN_ZONES.reduce((n, z) => n + form[z.zone].filter((name) => aiMarks?.[z.zone]?.[name] === "suggested").length, 0)
   const extracting = extractState === "running"
   const cls = viewTuneClass(tune)
   const tuneLabels = viewTuneLabels(tune)
@@ -139,10 +143,10 @@ export function ShoeEditor(props: ShoeEditorProps) {
   const cards = React.useMemo(() => {
     const out = {} as Record<PatternZone, PatternZoneCards[PatternZone]>
     for (const { zone: z } of PATTERN_ZONES) {
-      out[z] = form[z].map((n) => ({ name: n, src: patternSrc(n), status: aiNames.includes(n) ? ("suggested" as const) : ("manual" as const) }))
+      out[z] = form[z].map((n) => ({ name: n, src: patternSrc(n), status: aiMarks?.[z]?.[n] ?? ("manual" as const) }))
     }
     return out as PatternZoneCards
-  }, [form, aiNames])
+  }, [form, aiMarks])
 
   const zoneNote: Partial<Record<PatternZone, React.ReactNode>> = {}
   if (detail) {
@@ -291,9 +295,9 @@ export function ShoeEditor(props: ShoeEditorProps) {
       <div className={cn(BAR, "border-0 border-b border-solid border-border")}>
         <h3 className="m-0 text-[12.5px] font-bold whitespace-nowrap text-foreground">4부위 문양</h3>
         <span className="font-code text-[11px] text-muted-foreground tabular-nums">{total}개</span>
-        {aiNames.length > 0 ? (
+        {suggestedCount > 0 ? (
           <span className="ml-auto inline-flex items-center gap-[6px]">
-            <AiTag variant="done">{`AI 제안 ${aiNames.length}`}</AiTag>
+            <AiTag variant="done">{`AI 제안 ${suggestedCount}`}</AiTag>
             <WorkbenchButton size="sm" variant="ghost" icon={Check} disabled={!canEdit} onClick={props.onConfirmAi}>
               모두 확인
             </WorkbenchButton>
@@ -308,6 +312,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
           onSelectZone={setZone}
           onDropToZone={(z, src) => insertTo(z, nameOf(src))}
           onRemove={(z, index) => setZoneNames(z, form[z].filter((_, i) => i !== index))}
+          onConfirm={props.onConfirmAiOne && canEdit ? (z, index) => props.onConfirmAiOne?.(z, form[z][index]) : undefined}
           canEdit={canEdit}
           zoneNote={zoneNote}
           emptyText="오른쪽 목록에서 눌러 넣기"

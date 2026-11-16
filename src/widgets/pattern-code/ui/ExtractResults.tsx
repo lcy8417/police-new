@@ -1,3 +1,4 @@
+import { PATTERN_DRAG_AI_FORMAT } from "@/entities/pattern"
 import { AiProgress, AiTag, ConfidenceBar } from "@/shared/ui/ai"
 import { PatternIcon } from "@/shared/ui/viewer"
 
@@ -47,6 +48,8 @@ export function ExtractResults({ state, items, inserted, onInsert, canEdit, bare
                 draggable={canEdit && !done}
                 onDragStart={(e) => {
                   e.dataTransfer.setData(DRAG_FORMAT, it.src)
+                  // AI 추출 결과에서 끌었다는 표시 — 놓는 부위가 AI 출처 · 확신도를 남긴다(2회차 검수)
+                  e.dataTransfer.setData(PATTERN_DRAG_AI_FORMAT, "1")
                   e.dataTransfer.effectAllowed = "copy"
                 }}
                 onClick={() => onInsert(it.src)}

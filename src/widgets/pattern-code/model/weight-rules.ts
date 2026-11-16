@@ -126,7 +126,8 @@ export function patternWeights(
   kinds: Readonly<Record<string, PaletteKind>> | undefined,
   overrides: WeightOverrideMap | undefined,
 ): PatternWeightMap {
-  // R5 — 이름별로 상 · 중 · 하 가운데 몇 부위에 있나
+  // R5 — 이름별로 상 · 중 · 하 가운데 몇 부위에 있나(스펙 §3 예시대로 확인 전 제안도 센다 — 그래서 검색 이력에 그때의 제안도 남겨
+  // 「다시 불러오기」가 같은 R5 를 되살린다, SearchRun.pending)
   const spread = new Map<string, number>()
   for (const z of ["top", "mid", "bottom"] as const) {
     for (const name of new Set(zones[z].map(([p]) => patternName(p)))) spread.set(name, (spread.get(name) ?? 0) + 1)

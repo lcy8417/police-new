@@ -94,6 +94,28 @@ export function rankShoes(query: readonly QueryPattern[], shoes: readonly ShoePa
   return out.sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || a.ftwrId.localeCompare(b.ftwrId))
 }
 
+/**
+ * 그때 화면에 있던 확인 전 AI 제안(Q 밖) → 이력 `SearchRun.pending`. 검색에는 안 들어가지만 가중치 R5(세 부위 반복)가
+ * 제안까지 세므로, 「다시 불러오기」가 같은 문맥을 되살리려면 함께 남겨야 한다(2회차 검수). 없으면 undefined
+ */
+export function pendingSnapshot(
+  zones: ZoneTuples,
+  meta: PatternMetaMap | undefined,
+): Partial<Record<PatternZone, { name: string; confidence?: number }[]>> | undefined {
+  const out: Partial<Record<PatternZone, { name: string; confidence?: number }[]>> = {}
+  let any = false
+  for (const z of ZONES) {
+    for (const [path] of zones[z]) {
+      const name = patternName(path)
+      const m = meta?.[z]?.[name]
+      if (m?.status !== "suggested") continue
+      ;(out[z] ??= []).push(m.confidence !== undefined ? { name, confidence: m.confidence } : { name })
+      any = true
+    }
+  }
+  return any ? out : undefined
+}
+
 /** 검색 문양 Q → 이력에 남길 부위별 문양(필수 · 가중치 · 직접 · 그때의 카드 상태와 확신도) */
 export function runSnapshot(
   query: readonly QueryPattern[],

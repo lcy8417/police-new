@@ -1,3 +1,4 @@
+import type { PatternZone } from "@/entities/pattern"
 import type { FeatureCode } from "@/entities/session"
 import type { Shoe } from "@/entities/shoe"
 import type { ScreenStatus } from "@/shared/lib/screen-status"
@@ -44,9 +45,15 @@ export interface ShoeDialogState {
   saveError?: string
   /** 처음 보일 탭(기본 기본정보) */
   initialTab?: "basic" | "pattern"
-  /** (패널 편집 창) AI 문양 추출이 넣은 문양 이름 — 사람이 확인하기 전까지 AI 테로 보인다 */
-  aiNames?: readonly string[]
+  /**
+   * (패널 편집 창) AI 문양 추출이 넣은 문양 — 부위 · 이름별 출처(2회차 검수: 이름만 보면 다른 부위에 손으로 넣은 같은 이름까지 AI 로 보였다).
+   * suggested = 확인 전 제안(점선), ai = 사람이 확인한 AI 문양. 없는 문양은 수동
+   */
+  aiMarks?: ShoeAiMarks
 }
+
+/** 부위 → 문양 이름 → AI 출처 상태 */
+export type ShoeAiMarks = Partial<Record<PatternZone, Readonly<Record<string, "suggested" | "ai">>>>
 
 /** (패널 편집 창) AI 문양 추출 상태 */
 export type ShoeExtractState = "idle" | "running" | "done"
@@ -62,8 +69,10 @@ export interface ShoeDbPanelExtra {
   extractState: ShoeExtractState
   /** AI 문양 추출(밑창 그림 → 상 · 중 · 하 제안) */
   onExtract: () => void
-  /** AI 가 넣은 문양을 모두 확인(AI 테 지움) */
+  /** AI 가 넣은 제안을 모두 확인(점선 제안 → 확인된 AI 문양) */
   onConfirmAi: () => void
+  /** AI 제안 한 장 확인(카드의 「확인」) */
+  onConfirmAiOne?: (zone: PatternZone, name: string) => void
   /** 편집 창 이전 · 다음 신발(목록 순서). 없으면 단추가 꺼진다 */
   onPrevShoe?: () => void
   onNextShoe?: () => void

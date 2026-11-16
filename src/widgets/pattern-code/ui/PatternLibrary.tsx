@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { PatternLibrary as LibraryView, type PatternLibraryItem, type PatternZone } from "@/entities/pattern"
+import { PatternLibrary as LibraryView, type PatternInsertOrigin, type PatternLibraryItem, type PatternZone } from "@/entities/pattern"
 import { AiProgress } from "@/shared/ui/ai"
 
 import { PALETTE_KINDS, patternName, ZONE_ROWS } from "../model/constants"
@@ -18,8 +18,8 @@ export interface PatternLibraryProps {
   selectedZone: PatternZone
   /** (지금은 쓰지 않음 — 넣을 부위는 가운데 행에서 고른다) */
   onSelectZone?: (zone: PatternZone) => void
-  /** 고른 부위에 넣기 */
-  onInsert: (src: string) => void
+  /** 고른 부위에 넣기 — origin "ai" = 「AI」 탭(추출 결과)에서 넣음 */
+  onInsert: (src: string, origin?: PatternInsertOrigin) => void
   /** 부위의 문양 빼기 */
   onRemove: (zone: PatternZone, index: number) => void
   canEdit: boolean
@@ -59,6 +59,12 @@ export function PatternLibrary({
   const ai = React.useMemo(() => [...(extracted ?? [])].sort((a, b) => b.score - a.score), [extracted])
   const hasAi = ai.length > 0 || extractState === "running" || extractState === "failed"
   const [aiTab, setAiTab] = React.useState(false)
+  // 추출(다시 추출)을 시작하거나 끝나면 「AI」 탭을 연다 — 사건 창은 따로 추출 결과 칸이 없어 결과가 안 보이던 것(2회차 검수)
+  const [seenExtract, setSeenExtract] = React.useState(extractState)
+  if (seenExtract !== extractState) {
+    setSeenExtract(extractState)
+    if (extractState === "running" || extractState === "done") setAiTab(true)
+  }
   const tab = aiTab && hasAi ? "AI" : kind
   const zoneLabel = ZONE_ROWS.find((z) => z.zone === selectedZone)?.label ?? ""
   const names = zones[selectedZone].map(([p]) => patternName(p))
@@ -66,7 +72,7 @@ export function PatternLibrary({
   const toggle = (item: PatternLibraryItem) => {
     const at = names.indexOf(item.name)
     if (at >= 0) onRemove(selectedZone, at)
-    else onInsert(item.src)
+    else onInsert(item.src, tab === "AI" ? "ai" : "palette")
   }
   const tabs = [
     ...(hasAi ? [{ key: "AI", label: "AI", count: ai.length, ai: true }] : []),

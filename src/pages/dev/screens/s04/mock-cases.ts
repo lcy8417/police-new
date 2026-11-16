@@ -4,6 +4,7 @@ import {
   queryOfRun,
   rankShoes,
   runSnapshot,
+  pendingSnapshot,
   searchQuery,
   type ExtractState,
   type FunnelStep,
@@ -215,6 +216,11 @@ export const S04_FAKE_SHOES: ShoePatterns[] = (() => {
   })
 })()
 
+function pendingOf(zones: NamedZones, meta: PatternMetaMap): Pick<SearchRun, "pending"> {
+  const pending = pendingSnapshot(zones, meta)
+  return pending ? { pending } : {}
+}
+
 /** 검색 한 번(진열 가짜 계산 — spec §4 식 그대로) */
 export function fakeSearchRun(args: {
   searchNo: number
@@ -233,6 +239,8 @@ export function fakeSearchRun(args: {
     at: args.at,
     source: args.source,
     zones: runSnapshot(query, weights, args.meta),
+    // 그때의 확인 전 제안(검색엔 안 들어감 — R5 문맥을 되살리려고, 2회차 검수)
+    ...pendingOf(args.zones, args.meta),
     conditions: args.conditions,
     resultCount: ranked.length,
     top: ranked.slice(0, 5).map((h) => ({ ...h, src: soleOf(h.ftwrId) })),

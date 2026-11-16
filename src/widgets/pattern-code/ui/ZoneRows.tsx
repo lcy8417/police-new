@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import type { PatternZone } from "@/entities/pattern"
+import { dropOrigin, type PatternInsertOrigin, type PatternZone } from "@/entities/pattern"
 import { cn } from "@/shared/lib/utils"
 import { ConfidenceBar } from "@/shared/ui/ai"
 import { Button, Chip } from "@/shared/ui/kit"
@@ -16,8 +16,8 @@ export interface ZoneRowsProps {
   zones: CrimeZones
   selectedZone: PatternZone
   onSelectZone: (zone: PatternZone) => void
-  /** 끌어 온 문양을 놓은 부위에 넣기 */
-  onDropToZone: (zone: PatternZone, src: string) => void
+  /** 끌어 온 문양을 놓은 부위에 넣기(origin "ai" = AI 추출 결과에서 끌어 옴) */
+  onDropToZone: (zone: PatternZone, src: string, origin: PatternInsertOrigin) => void
   onRemovePattern: (zone: PatternZone, index: number) => void
   onToggleEssential: (zone: PatternZone, index: number) => void
   canEdit: boolean
@@ -193,7 +193,7 @@ export function ZoneRows({
                     e.preventDefault()
                     setDragOver(null)
                     const src = e.dataTransfer.getData(DRAG_FORMAT)
-                    if (src) onDropToZone(zone, src)
+                    if (src) onDropToZone(zone, src, dropOrigin(e.dataTransfer))
                   }
                 : undefined
             }
