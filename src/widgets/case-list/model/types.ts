@@ -153,6 +153,8 @@ export interface CaseListScreenProps {
   onReset: () => void
   /** 행(또는 이미지)을 눌러 사건 상세로 */
   onOpenCase: (aprthngNo: string) => void
+  /** (+α) 펼침 줄의 이미지 블록을 눌러 그 이미지로(`seq` = `_1`). 없으면 블록은 누를 수 없다 */
+  onOpenImage?: (aprthngNo: string, seq: string) => void
   /** 사건 등록(권한 있을 때만 버튼이 보인다) */
   onRegister: () => void
   /** 행 끝 「검색」 — 문양 코딩 · 검색으로 */

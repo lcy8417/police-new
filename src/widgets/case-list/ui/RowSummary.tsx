@@ -29,15 +29,20 @@ function Arrow() {
   )
 }
 
-function ImageCard({ image }: { image: CaseListImageSummary }) {
+function ImageCard({ image, onOpen }: { image: CaseListImageSummary; onOpen?: () => void }) {
   const found = image.result === "발견"
   const unable = image.result === "감정불능"
+  // onOpen 이 있으면 블록 전체가 그 이미지로 가는 단추(같은 모양 + 올리면 테 강조 · 키보드 초점)
+  const Box = onOpen ? "button" : "div"
   return (
-    <div
+    <Box
+      {...(onOpen ? { type: "button" as const, onClick: onOpen, "aria-label": `${image.seq} ${image.result} 이미지 열기` } : {})}
       className={cn(
         "grid gap-[7px] rounded-[10px] border border-solid px-[9px] py-[8px]",
         "bg-[linear-gradient(160deg,var(--t-panel),var(--t-panel-2))]",
-        found ? "border-ok-line" : "border-border"
+        found ? "border-ok-line" : "border-border",
+        onOpen &&
+          "m-0 w-full cursor-pointer text-left font-[inherit] text-inherit hover:border-brand-line focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-brand"
       )}
     >
       <div className="flex items-center gap-[6px] text-[11.5px]">
@@ -75,7 +80,7 @@ function ImageCard({ image }: { image: CaseListImageSummary }) {
           </>
         )}
       </div>
-    </div>
+    </Box>
   )
 }
 
@@ -84,13 +89,15 @@ interface RowSummaryProps {
   canAct: boolean
   onOpenCase: () => void
   onConfirmCase: () => void
+  /** 이미지 블록을 눌러 그 이미지로(`_1`). 없으면 블록은 누를 수 없다 */
+  onOpenImage?: (seq: string) => void
 }
 
-export function RowSummary({ summary, canAct, onOpenCase, onConfirmCase }: RowSummaryProps) {
+export function RowSummary({ summary, canAct, onOpenCase, onConfirmCase, onOpenImage }: RowSummaryProps) {
   return (
     <div className="grid grid-cols-[repeat(3,minmax(0,1fr))_260px] gap-[10px] whitespace-normal py-[10px] pl-[48px] pr-[12px] pb-[12px]">
       {summary.images.map((img) => (
-        <ImageCard key={img.seq} image={img} />
+        <ImageCard key={img.seq} image={img} onOpen={onOpenImage ? () => onOpenImage(img.seq) : undefined} />
       ))}
       <div className="grid content-start gap-[4px] text-[11.5px] leading-[1.4] text-muted-foreground">
         <span>

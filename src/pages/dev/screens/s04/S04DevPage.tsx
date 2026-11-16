@@ -35,6 +35,7 @@ import {
   useDevPlus,
   useDevViewer,
   useRememberedState,
+  type DevGo,
 } from "../frame"
 import { FakePhoto } from "../mock-assets/FakePhoto"
 import {
@@ -119,11 +120,12 @@ function nextUncoded(statuses: Record<string, ImageCodingStatus>, current: strin
   return S04_IMAGES.find((no) => no !== current && statuses[no] === "uncoded") ?? null
 }
 
-function S04Stage({ caseName }: { caseName: S04Case }) {
+function S04Stage({ caseName, imageNo, go: goProp }: { caseName: S04Case; imageNo: string; go?: DevGo }) {
   const mock = S04_MOCK[caseName]
   const viewer = useDevViewer()
   const plus = useDevPlus()
-  const go = useDevNavigate()
+  const nav = useDevNavigate()
+  const go = goProp ?? nav
   const [meta, setMeta] = React.useState<PatternMetaMap>(mock.meta)
   const [imageStatuses, setImageStatuses] = React.useState<Record<string, ImageCodingStatus>>(S04_IMAGE_STATUSES)
   const [historyQuery, setHistoryQuery] = React.useState("")
@@ -133,7 +135,7 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
   const [searchMethod, setSearchMethod] = React.useState<SearchMethod>("image")
   const [selectedSearchNo, setSelectedSearchNo] = React.useState<number | undefined>(mock.history[0]?.searchNo)
 
-  const [aprthngNo, setAprthngNo] = React.useState(S04_APRTHNG_NO)
+  const [aprthngNo, setAprthngNo] = React.useState(imageNo)
   const [zones, setZones] = React.useState<NamedZones>(mock.zones)
   const [selectedZone, setSelectedZone] = React.useState<PatternZone>("top")
   const [searchImage, setSearchImage] = React.useState<SearchImageSource>("edited")
@@ -299,12 +301,25 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
   )
 }
 
+export interface S04ContentProps {
+  devCase: S04Case
+  /** 코딩하는 이미지 번호(`<감정번호>_<n>`, 없으면 시안 값) */
+  imageNo?: string
+  /** 화면 옮기기(없으면 진열 주소 이동) — 사건 창은 탭 바꾸기로 받는다 */
+  go?: DevGo
+}
+
+/** S04 틀 없는 내용 — 진열 페이지와 사건 창(「문양 코드」 탭)이 같이 쓴다 */
+export function S04Content({ devCase, imageNo = S04_APRTHNG_NO, go }: S04ContentProps) {
+  return <S04Stage key={devCase} caseName={devCase} imageNo={imageNo} go={go} />
+}
+
 // S04 문양 코딩 · 검색 조건 진열 페이지 — 정본 위젯에 가짜 값 · 이동 콜백만 넘긴다.
 export function S04DevPage() {
   const caseName = useDevCase(SCREEN_CASES.s04, "ready")
   return (
     <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
-      <S04Stage key={caseName} caseName={caseName} />
+      <S04Content devCase={caseName} />
     </DevScreenFrame>
   )
 }

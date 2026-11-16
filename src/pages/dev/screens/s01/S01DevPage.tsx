@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { FEATURES } from "@/entities/session"
@@ -9,6 +10,7 @@ import {
   type CaseListRow,
   type CaseListRowHeight,
 } from "@/widgets/case-list"
+import { CaseWindow, type CaseWindowTab } from "@/widgets/case-window"
 
 import {
   DevScreenFrame,
@@ -21,8 +23,36 @@ import {
   useDevPlus,
   useDevViewer,
   useRememberedState,
+  type DevGo,
 } from "../frame"
-import { EMPTY_FILTERS, S01_LIVE_AT, S01_PAGE_SIZE, makeCaseRows } from "./mock-cases"
+import { S02Content } from "../s02"
+import { S03Content } from "../s03"
+import { S04Content } from "../s04"
+import { S05Content } from "../s05"
+import { S06Content } from "../s06"
+import { S07Content } from "../s07"
+import {
+  MAX_OPEN_CASES,
+  OPEN_CASES_FULL,
+  closeCaseTab,
+  openCaseWindow,
+  readCaseWindow,
+  readOpenTabs,
+  stepCaseWindow,
+  writeCaseWindow,
+  type CaseWindowQuery,
+} from "./case-window-query"
+import { EMPTY_FILTERS, S01_LIVE_AT, S01_PAGE_SIZE, makeCaseImages, makeCaseRows, stageLabel } from "./mock-cases"
+
+/** 사건 창 본문 탭 ↔ 진열 화면 주소(창 안 내용이 `go("/dev/s04")` 처럼 부르면 그 탭으로 바꾼다) */
+const TAB_OF_PATH: Record<string, CaseWindowTab> = {
+  "/dev/s02": "info",
+  "/dev/s03": "edit",
+  "/dev/s04": "pattern",
+  "/dev/s05": "search",
+  "/dev/s06": "compare",
+  "/dev/s07": "confirm",
+}
 
 const info = devScreen("s01")
 
@@ -153,6 +183,114 @@ export function S01DevPage() {
   // SCAS 조회 조건에 맞는 사건이 없으면 「결과 없음」(케이스 전환과 같은 모양). 빠른 찾기 0건은 위젯이 따로 안내한다.
   const status = devCase === "ready" && matched.length === 0 ? "empty" : devCase
 
+  // ── 사건 창(r4 — 행을 누르면 목록 위 오른쪽에 큰 창). 상태는 주소(query) 에 둔다 → case-window-query.ts ──
+  const [params, setParams] = useSearchParams()
+  const win = readCaseWindow(params)
+  const rowOf = (no: string) => allRows.find((r) => r.aprthngNo === no)
+  const imagesOf = (no: string) => {
+    const row = rowOf(no)
+    return row ? makeCaseImages(row) : []
+  }
+  const firstImage = (no: string) => imagesOf(no)[0]?.no ?? null
+  const setWindow = (next: CaseWindowQuery | null, clearTabs = false) => setParams(writeCaseWindow(params, next, clearTabs))
+  // 창 닫기(✕ · Esc · 가림막) — 열린 사건 탭 목록은 남긴다(주소에 open 만 있던 경우도 그 사건을 탭으로 남김)
+  const closeWindow = () => {
+    const next = writeCaseWindow(params, null)
+    if (win) next.set("tabs", win.tabs.join(","))
+    setParams(next)
+  }
+  const openWindow = (no: string, tab: CaseWindowTab, img?: string | null) => {
+    const next = openCaseWindow(win?.tabs ?? readOpenTabs(params), no, { tab, img: img ?? firstImage(no) })
+    if (next === null) {
+      toast(OPEN_CASES_FULL)
+      return
+    }
+    setWindow(next)
+  }
+  // 창 안 내용(S02–S07)이 다른 진열 화면으로 가려 하면 → 창 탭 바꾸기(사건관리로 = 창 닫기, 그 밖 화면은 그대로 이동)
+  const windowGo: DevGo = (path, extra = {}) => {
+    if (!win) return
+    if (path === "/dev/s01") {
+      closeWindow()
+      return
+    }
+    const tab = TAB_OF_PATH[path]
+    if (!tab) {
+      to(path, extra)
+      return
+    }
+    const img = extra.image ? (/_(\d+)$/.exec(extra.image)?.[1] ?? win.img) : win.img
+    const next = writeCaseWindow(params, { ...win, tab, img })
+    if (extra.ftwr) next.set("ftwr", extra.ftwr)
+    if (extra.rank) next.set("rank", extra.rank)
+    setParams(next)
+  }
+
+  const openRow = win ? rowOf(win.open) : undefined
+  let caseWindow: React.ReactNode = null
+  if (win && openRow) {
+    const images = makeCaseImages(openRow)
+    const img = win.img ?? images[0]?.no ?? null
+    const imageNo = img ? `${win.open}_${img}` : undefined
+    // ‹ › = 지금 목록(걸러진 · 이 쪽) 순서의 앞 · 뒤 사건. 목록에 없으면 둘 다 잠김
+    const at = pageRows.findIndex((r) => r.aprthngNo === win.open)
+    const prev = at > 0 ? pageRows[at - 1] : undefined
+    const next = at >= 0 ? pageRows[at + 1] : undefined
+    const step = (target: CaseListRow | undefined) => {
+      if (target) setWindow(stepCaseWindow(win, target.aprthngNo, firstImage(target.aprthngNo)))
+    }
+    const key = `${win.open}|${win.tab === "confirm" ? "" : img}|${win.tab}`
+    const body =
+      win.tab === "info" ? (
+        <S02Content key={key} devCase="ready" caseId={win.open} imageId={imageNo} go={windowGo} />
+      ) : win.tab === "edit" ? (
+        <S03Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} />
+      ) : win.tab === "pattern" ? (
+        <S04Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} />
+      ) : win.tab === "search" ? (
+        <S05Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} />
+      ) : win.tab === "compare" ? (
+        <S06Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} />
+      ) : (
+        <S07Content key={key} devCase="ready" go={windowGo} />
+      )
+    caseWindow = (
+      <CaseWindow
+        summary={{
+          aprthngNo: openRow.aprthngNo,
+          caseName: openRow.caseName,
+          requestOffice: openRow.requestOffice,
+          registeredAt: openRow.registeredAt,
+          imageCount: images.length,
+          // 사건 진행 단계는 +α — 신규를 끄면 꼬리표를 뺀다
+          stageLabel: plus ? stageLabel(openRow.stage) : undefined,
+        }}
+        images={images}
+        selectedImage={img}
+        tab={win.tab}
+        openCases={win.tabs.map((no) => ({ aprthngNo: no, caseName: rowOf(no)?.caseName ?? "" }))}
+        openCasesFull={win.tabs.length >= MAX_OPEN_CASES ? OPEN_CASES_FULL : undefined}
+        prevOff={!prev}
+        nextOff={!next}
+        onClose={closeWindow}
+        onPrev={() => step(prev)}
+        onNext={() => step(next)}
+        onSelectImage={(no) => setWindow({ ...win, img: no })}
+        onSelectTab={(tab) => setWindow({ ...win, tab })}
+        onSelectOpenCase={(no) => {
+          if (no !== win.open) openWindow(no, win.tab)
+        }}
+        onCloseOpenCase={(no) => {
+          const after = closeCaseTab(win, no, firstImage)
+          setWindow(after, after === null)
+        }}
+        onConfirmResult={() => setWindow({ ...win, tab: "confirm" })}
+      >
+        {body}
+      </CaseWindow>
+    )
+  }
+
   return (
     <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
       <CaseListScreen
@@ -179,10 +317,12 @@ export function S01DevPage() {
           setQuickValues(EMPTY_QUICK)
           setPage(1)
         }}
-        onOpenCase={(no) => to("/dev/s02", { id: no })}
+        onOpenCase={(no) => openWindow(no, "info")}
+        onOpenImage={(no, seq) => openWindow(no, "info", seq.replace(/^_/, ""))}
         onRegister={() => to("/dev/s02")}
-        onSearchCase={(no) => to("/dev/s04", { id: no })}
-        onConfirmCase={(no) => to("/dev/s07", { id: no })}
+        // 「검색」 = 검색 안 한 첫 이미지의 검색 결과 탭, 「확인」 = 사건 단위 결과 확인 탭
+        onSearchCase={(no) => openWindow(no, "search", imagesOf(no).find((i) => i.status === "등록")?.no)}
+        onConfirmCase={(no) => openWindow(no, "confirm")}
         showPlus={plus}
         liveAt={S01_LIVE_AT}
         onMockAction={() => toast("시안 — 기능 준비 중")}
@@ -215,6 +355,7 @@ export function S01DevPage() {
         rowHeight={rowHeight}
         onRowHeightChange={setRowHeight}
       />
+      {caseWindow}
     </DevScreenFrame>
   )
 }

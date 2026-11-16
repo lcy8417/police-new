@@ -21,6 +21,7 @@ import {
   useDevPlus,
   useDevViewer,
   useRememberedState,
+  type DevGo,
 } from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { FakeSole, fakeSoleUrl, SOLE_PALETTE } from "../mock-assets/FakeSole"
@@ -79,13 +80,32 @@ function makeCandidates(ftwr: string, rank: number | null): CompareCandidate[] {
 // S06 상세 조회 · 정밀 대조 진열 페이지. `?ftwr=` · `?rank=`는 S05 카드에서 넘어온다.
 // 정렬은 여기서 들고 있다(제어형) — no-alignment 케이스에서 「정렬 저장」을 누르면 가짜 정렬이 저장된 것처럼 바뀐다.
 export function S06DevPage() {
-  const to = useDevNavigate()
+  const activeCase = useDevCase(SCREEN_CASES.s06, "ready")
+  return (
+    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
+      <S06Content devCase={activeCase} />
+    </DevScreenFrame>
+  )
+}
+
+export interface S06ContentProps {
+  devCase: (typeof SCREEN_CASES.s06)[number]
+  /** 대조하는 현장 이미지 번호(`<감정번호>_<n>`, 없으면 시안 값) */
+  imageNo?: string
+  /** 화면 옮기기(없으면 진열 주소 이동) — 사건 창은 탭 바꾸기로 받는다 */
+  go?: DevGo
+}
+
+/** S06 틀 없는 내용 — 진열 페이지와 사건 창(「정밀 대조」 탭)이 같이 쓴다. `?ftwr=` · `?rank=` 는 주소에서 읽는다 */
+export function S06Content({ devCase: activeCase, imageNo, go }: S06ContentProps) {
+  const nav = useDevNavigate()
+  const to = go ?? nav
   const { search } = useLocation()
   const params = new URLSearchParams(search)
   const urlFtwr = params.get("ftwr") || S06_DEFAULT_FTWR
   const rankParam = Number(params.get("rank"))
   const urlRank = Number.isInteger(rankParam) && rankParam > 0 ? rankParam : null
-  const activeCase = useDevCase(SCREEN_CASES.s06, "ready")
+  const caseInfo = useMemo(() => (imageNo ? { ...CASE_INFO, aprthngNo: imageNo } : CASE_INFO), [imageNo])
   const viewer = useDevViewer()
   const showPlus = useDevPlus()
   const [savedAlignment, setSavedAlignment] = useState<Alignment | null>(null)
@@ -135,49 +155,47 @@ export function S06DevPage() {
 
 
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
-      <MatchCompareScreen
-        status={activeCase === "no-alignment" ? "ready" : activeCase}
-        errorAt={S06_ERROR_AT}
-        onRetry={() => {
-          toast("대응 매칭을 다시 불러옵니다(진열용)")
-          to("/dev/s06", { case: "ready", ftwr: ftwrId })
-        }}
-        isAdmin={viewer.isAdmin}
-        features={viewer.features}
-        ranking={ranking}
-        alignment={alignment}
-        matches={MATCHES}
-        crimeImage={crimeImage}
-        shoeImage={shoeImage}
-        caseInfo={CASE_INFO}
-        shoeInfo={shoeInfoFor(ftwrId)}
-        crimePatterns={CRIME_PATTERNS}
-        shoePatterns={SHOE_PATTERNS}
-        alignmentSlot={<AlignmentDecor alignment={FAKE_ALIGNMENT} />}
-        onSaveAlignment={() => {
-          setSavedAlignment(FAKE_ALIGNMENT)
-          toast.success("정렬을 저장했습니다(진열용)")
-        }}
-        onConfirmTarget={() => to("/dev/s07", { ftwr: ftwrId })}
-        onClose={() => to("/dev/s05")}
-        showPlus={showPlus}
-        insight={insight}
-        onPlusAction={(label) => toast("시안 — 기능 준비 중", { description: label })}
-        candidates={candidates}
-        onCandidateChange={(c) => setCurrent({ ftwrId: c.ftwrId, rank: c.rank })}
-        compareCount={compareCount}
-        onCompareCountChange={setCompareCount}
-        autoMode={autoMode}
-        onAutoModeChange={(mode) => {
-          setAutoMode(mode)
-          setPlaying(mode === "auto")
-        }}
-        intervalMs={intervalMs}
-        onIntervalChange={setIntervalMs}
-        playing={playing}
-        onPlayingChange={setPlaying}
-      />
-    </DevScreenFrame>
+    <MatchCompareScreen
+      status={activeCase === "no-alignment" ? "ready" : activeCase}
+      errorAt={S06_ERROR_AT}
+      onRetry={() => {
+        toast("대응 매칭을 다시 불러옵니다(진열용)")
+        to("/dev/s06", { case: "ready", ftwr: ftwrId })
+      }}
+      isAdmin={viewer.isAdmin}
+      features={viewer.features}
+      ranking={ranking}
+      alignment={alignment}
+      matches={MATCHES}
+      crimeImage={crimeImage}
+      shoeImage={shoeImage}
+      caseInfo={caseInfo}
+      shoeInfo={shoeInfoFor(ftwrId)}
+      crimePatterns={CRIME_PATTERNS}
+      shoePatterns={SHOE_PATTERNS}
+      alignmentSlot={<AlignmentDecor alignment={FAKE_ALIGNMENT} />}
+      onSaveAlignment={() => {
+        setSavedAlignment(FAKE_ALIGNMENT)
+        toast.success("정렬을 저장했습니다(진열용)")
+      }}
+      onConfirmTarget={() => to("/dev/s07", { ftwr: ftwrId })}
+      onClose={() => to("/dev/s05")}
+      showPlus={showPlus}
+      insight={insight}
+      onPlusAction={(label) => toast("시안 — 기능 준비 중", { description: label })}
+      candidates={candidates}
+      onCandidateChange={(c) => setCurrent({ ftwrId: c.ftwrId, rank: c.rank })}
+      compareCount={compareCount}
+      onCompareCountChange={setCompareCount}
+      autoMode={autoMode}
+      onAutoModeChange={(mode) => {
+        setAutoMode(mode)
+        setPlaying(mode === "auto")
+      }}
+      intervalMs={intervalMs}
+      onIntervalChange={setIntervalMs}
+      playing={playing}
+      onPlayingChange={setPlaying}
+    />
   )
 }

@@ -17,6 +17,7 @@ import {
   useDevPlus,
   useDevViewer,
   useRememberedState,
+  type DevGo,
 } from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
@@ -49,11 +50,30 @@ const PLUS_NOT_READY = "시안 — 기능 준비 중"
 // S07 검색결과 확인 진열 페이지. 판정 값 · 이력 · 결과확인완료 · 교차 검증자는 여기서 들고(제어형), 「결과확인완료」를 누르면
 // 지금 앱처럼 이력 한 줄(발견 = 매칭 신발 ID, 그 밖 = 매칭 없음)을 쌓고 알림을 띄운다. `?ftwr=`는 S06 「확인대상」에서 넘어온다.
 export function S07DevPage() {
-  const to = useDevNavigate()
+  const activeCase = useDevCase(SCREEN_CASES.s07, "ready")
+  return (
+    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
+      <S07Content devCase={activeCase} />
+    </DevScreenFrame>
+  )
+}
+
+export interface S07ContentProps {
+  devCase: (typeof SCREEN_CASES.s07)[number]
+  /** 화면 옮기기(없으면 진열 주소 이동) — 사건 창은 탭 바꾸기로 받는다 */
+  go?: DevGo
+}
+
+/**
+ * S07 틀 없는 내용 — 진열 페이지와 사건 창(사건 단위 「결과 확인」 탭)이 같이 쓴다. `?ftwr=` 는 주소에서 읽는다.
+ * 가짜 이미지 블록 · 이력은 시안 0646 값 그대로다(어느 사건 창에서 열어도 같다).
+ */
+export function S07Content({ devCase: activeCase, go }: S07ContentProps) {
+  const nav = useDevNavigate()
+  const to = go ?? nav
   const { search } = useLocation()
   const params = new URLSearchParams(search)
   const ftwr = params.get("ftwr") || S07_DEFAULT_FTWR
-  const activeCase = useDevCase(SCREEN_CASES.s07, "ready")
   const viewer = useDevViewer()
   const showPlus = useDevPlus()
 
@@ -90,53 +110,51 @@ export function S07DevPage() {
   )
 
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
-      <ResultConfirmScreen
-        status={activeCase}
-        errorAt={S07_ERROR_AT}
-        onRetry={() => {
-          toast("검색 결과를 다시 불러옵니다(진열용)")
-          to("/dev/s07", { case: "ready", ftwr })
-        }}
-        isAdmin={viewer.isAdmin}
-        features={viewer.features}
-        caseSummary={CASE_SUMMARY}
-        blocks={activeCase === "ready" ? blocks : []}
-        judgements={judgements}
-        onJudgementChange={(aprthngNo, result) => setJudgements((prev) => ({ ...prev, [aprthngNo]: result }))}
-        onSaveJudgement={({ aprthngNo, ftwrId, ranking, result }) => {
-          const count = Object.values(added).reduce((n, rows) => n + rows.length, 0)
-          const row: CrimeHistoryRow = {
-            searchNo: NEXT_SEARCH_NO + count,
-            frstRegistDt: toKstIso().slice(0, 19).replace("T", " "),
-            ranking,
-            mtchgId: result === "found" ? ftwrId : null,
-          }
-          setAdded((prev) => ({ ...prev, [aprthngNo]: [...(prev[aprthngNo] ?? []), row] }))
-          setCompleted((prev) => ({ ...prev, [aprthngNo]: result }))
-          toast.success(`${aprthngNo} ${LABEL[result]} 저장(진열용)`)
-        }}
-        showPlus={showPlus}
-        insight={insight}
-        completed={completed}
-        crossReviewer={reviewer}
-        onCrossReviewerChange={setReviewer}
-        onRequestCrossReview={(r) => {
-          const name = REVIEWERS.find((x) => x.value === r)?.label ?? r
-          toast(PLUS_NOT_READY, { description: `교차 검증 요청 → ${name}` })
-        }}
-        onPlusAction={(label) => toast(PLUS_NOT_READY, { description: label })}
-        blockCount={blockCount}
-        onBlockCountChange={setBlockCount}
-        query={query}
-        onQueryChange={setQuery}
-        filters={filters}
-        onFiltersChange={(key, values) => setFilters({ ...filters, [key]: values })}
-        onClearFilters={() => {
-          setQuery("")
-          setFilters({})
-        }}
-      />
-    </DevScreenFrame>
+    <ResultConfirmScreen
+      status={activeCase}
+      errorAt={S07_ERROR_AT}
+      onRetry={() => {
+        toast("검색 결과를 다시 불러옵니다(진열용)")
+        to("/dev/s07", { case: "ready", ftwr })
+      }}
+      isAdmin={viewer.isAdmin}
+      features={viewer.features}
+      caseSummary={CASE_SUMMARY}
+      blocks={activeCase === "ready" ? blocks : []}
+      judgements={judgements}
+      onJudgementChange={(aprthngNo, result) => setJudgements((prev) => ({ ...prev, [aprthngNo]: result }))}
+      onSaveJudgement={({ aprthngNo, ftwrId, ranking, result }) => {
+        const count = Object.values(added).reduce((n, rows) => n + rows.length, 0)
+        const row: CrimeHistoryRow = {
+          searchNo: NEXT_SEARCH_NO + count,
+          frstRegistDt: toKstIso().slice(0, 19).replace("T", " "),
+          ranking,
+          mtchgId: result === "found" ? ftwrId : null,
+        }
+        setAdded((prev) => ({ ...prev, [aprthngNo]: [...(prev[aprthngNo] ?? []), row] }))
+        setCompleted((prev) => ({ ...prev, [aprthngNo]: result }))
+        toast.success(`${aprthngNo} ${LABEL[result]} 저장(진열용)`)
+      }}
+      showPlus={showPlus}
+      insight={insight}
+      completed={completed}
+      crossReviewer={reviewer}
+      onCrossReviewerChange={setReviewer}
+      onRequestCrossReview={(r) => {
+        const name = REVIEWERS.find((x) => x.value === r)?.label ?? r
+        toast(PLUS_NOT_READY, { description: `교차 검증 요청 → ${name}` })
+      }}
+      onPlusAction={(label) => toast(PLUS_NOT_READY, { description: label })}
+      blockCount={blockCount}
+      onBlockCountChange={setBlockCount}
+      query={query}
+      onQueryChange={setQuery}
+      filters={filters}
+      onFiltersChange={(key, values) => setFilters({ ...filters, [key]: values })}
+      onClearFilters={() => {
+        setQuery("")
+        setFilters({})
+      }}
+    />
   )
 }

@@ -20,7 +20,16 @@ import {
   type ViewAdjustments,
 } from "@/widgets/image-edit"
 
-import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevPlus, useDevViewer } from "../frame"
+import {
+  DevScreenFrame,
+  SCREEN_CASES,
+  devScreen,
+  useDevCase,
+  useDevNavigate,
+  useDevPlus,
+  useDevViewer,
+  type DevGo,
+} from "../frame"
 import { FakePhoto, fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
 import {
@@ -126,11 +135,12 @@ function FakeCanvas({
   )
 }
 
-function S03Stage({ caseName }: { caseName: S03Case }) {
+function S03Stage({ caseName, imageNo, go: goProp }: { caseName: S03Case; imageNo: string; go?: DevGo }) {
   const mock = S03_MOCK[caseName]
   const viewer = useDevViewer()
   const plus = useDevPlus()
-  const go = useDevNavigate()
+  const nav = useDevNavigate()
+  const go = goProp ?? nav
 
   const [zoom, setZoom] = React.useState(100)
   const [rotation, setRotation] = React.useState(S03_TILT)
@@ -168,7 +178,7 @@ function S03Stage({ caseName }: { caseName: S03Case }) {
       features={viewer.features}
       showPlus={plus}
       onPlusAction={notReady}
-      aprthngNo={S03_APRTHNG_NO}
+      aprthngNo={imageNo}
       originalSize={S03_ORIGINAL_SIZE}
       canvasSlot={<FakeCanvas tool={activeTool} rotate={rotation} photoSrc={photoSrc} plus={plus} />}
       zoom={zoom}
@@ -214,7 +224,7 @@ function S03Stage({ caseName }: { caseName: S03Case }) {
         toast.success("편집 이미지를 저장했습니다.")
         go("/dev/s04")
       }}
-      viewerImage={{ src: viewerSrc, alt: `${S03_APRTHNG_NO} 사건 이미지(가짜 예시)` }}
+      viewerImage={{ src: viewerSrc, alt: `${imageNo} 사건 이미지(가짜 예시)` }}
       adjustments={adjustments}
       onAdjustmentsChange={setAdjustments}
       onClose={() => go("/dev/s02")}
@@ -240,12 +250,25 @@ function S03Stage({ caseName }: { caseName: S03Case }) {
   )
 }
 
+export interface S03ContentProps {
+  devCase: S03Case
+  /** 편집하는 이미지 번호(`<감정번호>_<n>`, 없으면 시안 값) */
+  imageNo?: string
+  /** 화면 옮기기(없으면 진열 주소 이동) — 사건 창은 탭 바꾸기로 받는다 */
+  go?: DevGo
+}
+
+/** S03 틀 없는 내용 — 진열 페이지와 사건 창(「이미지 편집」 탭)이 같이 쓴다 */
+export function S03Content({ devCase, imageNo = S03_APRTHNG_NO, go }: S03ContentProps) {
+  return <S03Stage key={devCase} caseName={devCase} imageNo={imageNo} go={go} />
+}
+
 // S03 이미지 편집 진열 페이지 — 정본 위젯에 가짜 값 · 이동 콜백만 넘긴다.
 export function S03DevPage() {
   const caseName = useDevCase(SCREEN_CASES.s03, "ready")
   return (
     <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
-      <S03Stage key={caseName} caseName={caseName} />
+      <S03Content devCase={caseName} />
     </DevScreenFrame>
   )
 }

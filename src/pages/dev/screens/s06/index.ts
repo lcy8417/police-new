@@ -1,1 +1,1 @@
-export { S06DevPage } from "./S06DevPage"
+export { S06DevPage, S06Content, type S06ContentProps } from "./S06DevPage"

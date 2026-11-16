@@ -1,4 +1,5 @@
 import type { CaseListFilters, CaseListRow, CaseListRowSummary } from "@/widgets/case-list"
+import type { CaseImageStatus, CaseWindowImage } from "@/widgets/case-window"
 
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
 
@@ -81,6 +82,39 @@ function makeSummary(i: number): CaseListRowSummary {
 // 결과 확인 전 · 이미지 미검색 · 교차 검증은 S01DevPage 의 「빠른 보기」 칩이 이 데이터에서 직접 센다.
 
 export const S01_LIVE_AT = "09:12"
+
+/**
+ * 사건 창 왼쪽 목록(현장 이미지 _1 … _n)의 가짜 값 — 목록 행의 숫자에서 만들어 서로 맞게 한다.
+ * 장수 = 신발 + 타이어(신발이 앞 번호). 확인된 장이 앞 번호부터: 결과(발견 → 불발견 → 감정불능) 수만큼 그 결과, 남은 확인 장은 「확인」.
+ * 그다음 검색된 장 「검색됨」, 나머지 「등록」. 예 0649 = 12장: 발견 1 · 검색됨 2 · 등록 9.
+ */
+export function makeCaseImages(row: CaseListRow): CaseWindowImage[] {
+  const total = row.shoeCount + row.tireCount
+  const { found, missed, unable } = row.results
+  const { confirmed, searched } = row.progress
+  const statusAt = (i: number): CaseImageStatus => {
+    if (i < confirmed) {
+      if (i < found) return "발견"
+      if (i < found + missed) return "불발견"
+      if (i < found + missed + unable) return "감정불능"
+      return "확인"
+    }
+    return i < confirmed + searched ? "검색됨" : "등록"
+  }
+  return Array.from({ length: total }, (_, i) => ({
+    no: String(i + 1),
+    imageNo: `${row.aprthngNo}_${i + 1}`,
+    kind: i < row.shoeCount ? "신발" : "타이어",
+    status: statusAt(i),
+    thumbSrc: thumbFor(i),
+  }))
+}
+
+/** 사건 진행 단계 이름(목록 「사건 진행」 열과 같은 말) */
+export function stageLabel(stage: number | undefined): string {
+  if (stage === undefined || stage < 0) return "이미지 확인 중"
+  return ["검증요청", "교차 검증", "감정서", "결재", "결재완료"][stage] ?? "이미지 확인 중"
+}
 
 /** 시안 7건을 돌려 가며 전체 116건을 만든다. 감정번호는 0649 에서 하나씩 내려간다. */
 export function makeCaseRows(): CaseListRow[] {

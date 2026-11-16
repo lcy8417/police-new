@@ -22,6 +22,7 @@ import {
   useDevPlus,
   useDevViewer,
   useRememberedState,
+  type DevGo,
 } from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
@@ -58,10 +59,28 @@ const ZONES: readonly ZoneTriple[] = [
 
 const PLUS_NOT_READY = "시안 — 기능 준비 중"
 
+export interface S05ContentProps {
+  devCase: (typeof SCREEN_CASES.s05)[number]
+  /** 검색한 이미지 번호(`<감정번호>_<n>`, 없으면 시안 값) */
+  imageNo?: string
+  /** 화면 옮기기(없으면 진열 주소 이동) — 사건 창은 탭 바꾸기로 받는다 */
+  go?: DevGo
+}
+
 // S05 검색 결과 진열 페이지: 쪽 번호 · 이진화/원본 보기 · 확인대상(★)을 여기서 들고(제어형), 카드를 누르면 S06 으로 간다.
 export function S05DevPage() {
-  const to = useDevNavigate()
   const activeCase = useDevCase(SCREEN_CASES.s05, "ready")
+  return (
+    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
+      <S05Content devCase={activeCase} />
+    </DevScreenFrame>
+  )
+}
+
+/** S05 틀 없는 내용 — 진열 페이지와 사건 창(「검색 결과」 탭)이 같이 쓴다 */
+export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go }: S05ContentProps) {
+  const nav = useDevNavigate()
+  const to = go ?? nav
   const viewer = useDevViewer()
   const showPlus = useDevPlus()
   const [page, setPage] = useState(1)
@@ -104,68 +123,66 @@ export function S05DevPage() {
   const insight = useMemo(() => ({ ...baseInsight, seenUpTo: seen.upTo, seenAt: seen.at }), [baseInsight, seen])
 
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
-      <SearchResultScreen
-        status={activeCase}
-        errorAt={S05_ERROR_AT}
-        onRetry={() => {
-          toast("다시 검색합니다(진열용)")
-          to("/dev/s05", { case: "ready" })
-        }}
-        isAdmin={viewer.isAdmin}
-        features={viewer.features}
-        imageNo={S05_IMAGE_NO}
-        sceneImage={sceneImage}
-        results={results}
-        totalCount={activeCase === "ready" ? S05_TOTAL : 0}
-        page={page}
-        pageSize={S05_PAGE_SIZE}
-        onPageChange={setPage}
-        imageMode={imageMode}
-        onImageModeChange={(mode) => {
-          setImageMode(mode)
-          toast(`${mode} — 결과 이미지를 다시 불러옵니다(진열용)`)
-        }}
-        onOpenResult={(item, ranking) => to("/dev/s06", { ftwr: item.ftwrId, rank: String(ranking) })}
-        showPlus={showPlus}
-        insight={insight}
-        targets={targets}
-        onToggleTarget={(t) => {
-          const has = targets.some((x) => x.rank === t.rank)
-          setTargets(has ? targets.filter((x) => x.rank !== t.rank) : [...targets, t].sort((a, b) => a.rank - b.rank))
-          toast(has ? `${t.rank}위 ${t.ftwrId} 확인대상 제외(진열용)` : `${t.rank}위 ${t.ftwrId} 확인대상 등록(진열용)`)
-        }}
-        onResume={(rank) => {
-          setPage(Math.ceil(rank / S05_PAGE_SIZE))
-          setFocusRank(rank)
-        }}
-        onPlusAction={(label) => toast(PLUS_NOT_READY, { description: label })}
-        columns={columns ?? undefined}
-        onColumnsChange={setColumns}
-        thumbSize={thumbSize}
-        onThumbSizeChange={setThumbSize}
-        query={query}
-        onQueryChange={setQuery}
-        filters={filters}
-        onFiltersChange={(key, values) => setFilters({ ...filters, [key]: values })}
-        onClearFilters={() => {
-          setQuery("")
-          setFilters({})
-        }}
-        autoMode={autoMode}
-        onAutoModeChange={(mode) => {
-          setAutoMode(mode)
-          setPlaying(mode === "auto")
-        }}
-        intervalMs={intervalMs}
-        onIntervalChange={setIntervalMs}
-        playing={playing}
-        onPlayingChange={setPlaying}
-        focusRank={focusRank}
-        onFocusChange={setFocusRank}
-        onSeenUpToChange={(rank) => setSeen({ upTo: rank, at: "방금" })}
-        onNotice={(message) => toast(message)}
-      />
-    </DevScreenFrame>
+    <SearchResultScreen
+      status={activeCase}
+      errorAt={S05_ERROR_AT}
+      onRetry={() => {
+        toast("다시 검색합니다(진열용)")
+        to("/dev/s05", { case: "ready" })
+      }}
+      isAdmin={viewer.isAdmin}
+      features={viewer.features}
+      imageNo={imageNo}
+      sceneImage={sceneImage}
+      results={results}
+      totalCount={activeCase === "ready" ? S05_TOTAL : 0}
+      page={page}
+      pageSize={S05_PAGE_SIZE}
+      onPageChange={setPage}
+      imageMode={imageMode}
+      onImageModeChange={(mode) => {
+        setImageMode(mode)
+        toast(`${mode} — 결과 이미지를 다시 불러옵니다(진열용)`)
+      }}
+      onOpenResult={(item, ranking) => to("/dev/s06", { ftwr: item.ftwrId, rank: String(ranking) })}
+      showPlus={showPlus}
+      insight={insight}
+      targets={targets}
+      onToggleTarget={(t) => {
+        const has = targets.some((x) => x.rank === t.rank)
+        setTargets(has ? targets.filter((x) => x.rank !== t.rank) : [...targets, t].sort((a, b) => a.rank - b.rank))
+        toast(has ? `${t.rank}위 ${t.ftwrId} 확인대상 제외(진열용)` : `${t.rank}위 ${t.ftwrId} 확인대상 등록(진열용)`)
+      }}
+      onResume={(rank) => {
+        setPage(Math.ceil(rank / S05_PAGE_SIZE))
+        setFocusRank(rank)
+      }}
+      onPlusAction={(label) => toast(PLUS_NOT_READY, { description: label })}
+      columns={columns ?? undefined}
+      onColumnsChange={setColumns}
+      thumbSize={thumbSize}
+      onThumbSizeChange={setThumbSize}
+      query={query}
+      onQueryChange={setQuery}
+      filters={filters}
+      onFiltersChange={(key, values) => setFilters({ ...filters, [key]: values })}
+      onClearFilters={() => {
+        setQuery("")
+        setFilters({})
+      }}
+      autoMode={autoMode}
+      onAutoModeChange={(mode) => {
+        setAutoMode(mode)
+        setPlaying(mode === "auto")
+      }}
+      intervalMs={intervalMs}
+      onIntervalChange={setIntervalMs}
+      playing={playing}
+      onPlayingChange={setPlaying}
+      focusRank={focusRank}
+      onFocusChange={setFocusRank}
+      onSeenUpToChange={(rank) => setSeen({ upTo: rank, at: "방금" })}
+      onNotice={(message) => toast(message)}
+    />
   )
 }

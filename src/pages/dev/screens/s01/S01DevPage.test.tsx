@@ -230,10 +230,11 @@ describe("S01DevPage 사건관리 목록", () => {
     expect(screen.getByRole("button", { name: "등록" })).toBeInTheDocument()
   })
 
-  it("행을 누르면 그 사건 상세 진열 주소로 이동하고 보는 사람(as)을 유지한다", () => {
+  it("행을 누르면 페이지를 옮기지 않고 그 사건 창이 열리며 보는 사람(as)을 유지한다(r4 사건 창)", () => {
     renderAt("/dev/s01?case=ready&as=admin")
     fireEvent.click(screen.getByText("00001-25-0646"))
-    expect(screen.getByTestId("where").textContent).toBe("/dev/s02?id=00001-25-0646&as=admin")
+    expect(screen.queryByTestId("where")).toBeNull()
+    expect(screen.getByRole("dialog", { name: "00001-25-0646 주거침입 사건 창" })).toBeInTheDocument()
   })
 
   it("「등록」을 누르면 등록 모드 상세로 이동한다", () => {

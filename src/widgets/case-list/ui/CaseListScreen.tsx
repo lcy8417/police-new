@@ -190,6 +190,7 @@ export function CaseListScreen({
   onSearch,
   onReset,
   onOpenCase,
+  onOpenImage,
   onRegister,
   onSearchCase,
   onConfirmCase,
@@ -749,6 +750,7 @@ export function CaseListScreen({
                           canAct={canAct}
                           onOpenCase={() => onOpenCase(r.aprthngNo)}
                           onConfirmCase={() => onConfirmCase(r.aprthngNo)}
+                          onOpenImage={onOpenImage ? (seq) => onOpenImage(r.aprthngNo, seq) : undefined}
                         />
                       ) : null
                   : undefined
