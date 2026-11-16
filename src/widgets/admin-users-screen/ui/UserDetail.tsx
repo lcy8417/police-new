@@ -109,7 +109,8 @@ export function UserDetail({
   const featuresDirty = !sameFeatures(draft.features, user.features)
   // 저장된 소속이 본청인 비직원은 의뢰를 볼 수 없다 · 비직원의 개인 사건 조회는 전국 사건 사진 열람이 된다
   const orgHint = needsOrgAssignment(user, orgs.find((o) => o.orgId === user.orgId)?.orgSe)
-  const nationwide = grantsNationwidePhotos(isStaffUser(user), draft.features)
+  // 경고는 편집 중인 값(구분 · 역할 · 권한) 기준 — 저장 전에 바꾼 역할로도 바로 보이게(3회차 검수)
+  const nationwide = grantsNationwidePhotos(isStaffUser({ userSe: draft.userSe, roles: draft.roles }), draft.features)
   const roleOrder = roles.map((r) => r.roleCode)
   // 편집 값 기준 역할 프리셋과 비교(시안 「프리셋과 같음」 칩)
   const presetDiff = effectiveRow({ ...user, features: draft.features, roles: draft.roles, userSe: draft.userSe }, roles, assignedDuties).diff
@@ -315,7 +316,10 @@ export function UserDetail({
                 return <DutyToggle key={col.key} id={id} col={col} checked={checked} onChange={onChange} />
               })}
             </ul>
-            <span className="text-[11px] text-dim">여러 개 켤 수 있음 · 신발 DB 「승인」은 신발 승인이 켜진 사람만</span>
+            {/* 신발 등록(SHOE_EDIT)은 서버 기능 권한이라 위 「권한 저장」으로 저장된다 — 나머지 둘은 바로 반영(3회차 검수 — 저장 방식이 달라 보이던 것) */}
+            <span className="text-[11px] text-dim">
+              여러 개 켤 수 있음 · 문양 입력 · 신발 승인은 바로 반영, 신발 등록은 위 「권한 저장」으로 저장 · 신발 DB 「승인」은 신발 승인이 켜진 사람만
+            </span>
           </Section>
         </div>
       )}

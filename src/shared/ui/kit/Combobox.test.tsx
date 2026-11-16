@@ -135,4 +135,19 @@ describe("Combobox", () => {
       proto.scrollIntoView = had
     }
   })
+
+  it("3회차 검수 — 한글 조합 중인 Enter 는 항목을 고르지 않는다", () => {
+    const { input, onValueChange } = setup()
+    fireEvent.change(input, { target: { value: "동" } })
+    fireEvent.keyDown(input, { key: "Enter", isComposing: true, keyCode: 229 })
+    expect(onValueChange).not.toHaveBeenCalled()
+    fireEvent.keyDown(input, { key: "Enter" })
+    expect(onValueChange).toHaveBeenCalledWith("dg-e")
+  })
+
+  it("3회차 검수 — 고른 값이 있으면 들어올 때 글자를 모두 골라 바로 치면 새 검색어가 된다", () => {
+    const { input } = setup({ value: "dg-w" })
+    fireEvent.focus(input)
+    expect([input.selectionStart, input.selectionEnd]).toEqual([0, "서부서".length])
+  })
 })

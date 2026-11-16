@@ -117,16 +117,24 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
   }
 
   const set = (patch: Partial<ShoeDbFilters>) => onFiltersChange({ ...filters, ...patch })
-  const nFilter = activeFilterCount(filters)
+  const applied = props.filtersApplied ?? true
+  const nFilter = applied ? activeFilterCount(filters) : 0
   const quickActive = quick !== undefined && (quick.query.trim() !== "" || quick.groups.some((g) => g.value.length > 0))
-  const quickEmpty = status === "ready" && quickActive && quick.resultCount === 0
+  // 빠른 찾기 · 걸린 상세 조건으로 0건 — 빈 격자가 아니라 「조건에 맞는 항목 없음 · 조건 지우기」
+  const quickEmpty = status === "ready" && ((quickActive && quick.resultCount === 0) || (props.filtersApplied === true && total === 0))
+  const clearAll = () => {
+    if (quickActive) quick?.onClear()
+    if (props.filtersApplied) onReset()
+  }
   const size = PANEL_CARD[cardSize]
 
+  // 한 줄 = 이름 + 칸. 칸마다 자기 접근성 이름(aria-label)이 있어 `<label>` 로 감싸지 않는다 —
+  // 등록일자(입력 2개) · 단추 묶음을 `<label>` 이 감싸 첫 칸으로 누름 · 이름이 쏠리던 것(3회차 검수)
   const label = (text: string, field: React.ReactNode, wide = false) => (
-    <label className={cn("grid min-w-0 grid-cols-[64px_minmax(0,1fr)] items-center gap-[8px] text-[12.5px] text-muted-foreground", wide && "col-span-2")}>
-      <span>{text}</span>
+    <div className={cn("grid min-w-0 grid-cols-[64px_minmax(0,1fr)] items-center gap-[8px] text-[12.5px] text-muted-foreground", wide && "col-span-2")}>
+      <span aria-hidden="true">{text}</span>
       {field}
-    </label>
+    </div>
   )
 
   const filterForm = filterOpen ? (
@@ -184,7 +192,7 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
     body = (
       <div role="status" className="grid justify-items-center gap-[8px] px-[14px] py-[24px] text-[12.5px] text-muted-foreground">
         <span>조건에 맞는 항목 없음</span>
-        <WorkbenchButton size="sm" variant="soft" onClick={quick.onClear}>
+        <WorkbenchButton size="sm" variant="soft" onClick={clearAll}>
           조건 지우기
         </WorkbenchButton>
       </div>
@@ -294,7 +302,7 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
       <div className="min-h-0 flex-1 overflow-auto">{body}</div>
       {status === "ready" || status === "empty" ? (
         <div className="shrink-0 border-0 border-t border-solid border-border">
-          <Pagination total={status === "empty" ? 0 : total} page={page} pageSize={pageSize} hasNext={page * pageSize < total} onPageChange={onPageChange} />
+          <Pagination total={status === "empty" ? 0 : total} page={page} pageSize={pageSize} hasNext={status !== "empty" && page * pageSize < total} onPageChange={onPageChange} />
         </div>
       ) : null}
     </div>

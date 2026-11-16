@@ -353,7 +353,7 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
         ) : null}
         <div className="max-w-full overflow-x-auto">{body}</div>
         {(status === "ready" || status === "empty") && (
-          <Pagination total={status === "empty" ? 0 : total} page={page} pageSize={pageSize} hasNext={page * pageSize < total} onPageChange={onPageChange} />
+          <Pagination total={status === "empty" ? 0 : total} page={page} pageSize={pageSize} hasNext={status !== "empty" && page * pageSize < total} onPageChange={onPageChange} />
         )}
       </Panel>
       {dialog && (

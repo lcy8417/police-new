@@ -464,9 +464,12 @@ export function CaseDetailScreen({
                 {extra?.flipNote}
               </Chip>
             ) : null}
-            <WorkbenchButton icon={Scissors} className="ml-auto" disabled={!selected} onClick={() => selected && onOpenImageEdit(selected.id)}>
-              이미지 커팅 열기
-            </WorkbenchButton>
+            {/* 이미지 편집 탭이 없는 사람(수사관 — 사건 조회 권한 없음)에게는 눌러도 갈 곳이 없으니 숨긴다(3회차 검수) */}
+            {canSearch ? (
+              <WorkbenchButton icon={Scissors} className="ml-auto" disabled={!selected} onClick={() => selected && onOpenImageEdit(selected.id)}>
+                이미지 커팅 열기
+              </WorkbenchButton>
+            ) : null}
           </div>
         </section>
 

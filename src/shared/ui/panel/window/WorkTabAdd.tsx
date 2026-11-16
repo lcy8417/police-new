@@ -65,15 +65,17 @@ export function WorkTabAdd({
 }: WorkTabAddProps) {
   const [open, setOpen] = React.useState(false)
   const rootRef = React.useRef<HTMLSpanElement>(null)
+  const buttonRef = React.useRef<HTMLButtonElement>(null)
   const menuId = React.useId()
 
-  // Esc · 바깥 누름 = 닫기
+  // Esc · 바깥 누름 = 닫기. Esc 로 닫으면 초점을 「+」 단추로 돌린다(3회차 검수 — 초점이 문서 몸통으로 빠지던 것)
   React.useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return
       e.preventDefault()
       setOpen(false)
+      buttonRef.current?.focus()
     }
     const onDown = (e: PointerEvent) => {
       if (rootRef.current && e.target instanceof Node && !rootRef.current.contains(e.target)) setOpen(false)
@@ -89,6 +91,7 @@ export function WorkTabAdd({
   return (
     <span ref={rootRef} {...partAttrs("WorkTabAdd", { state: open ? "open" : undefined, id: partId })} className="relative inline-flex">
       <button
+        ref={buttonRef}
         type="button"
         aria-label={label}
         title={label}

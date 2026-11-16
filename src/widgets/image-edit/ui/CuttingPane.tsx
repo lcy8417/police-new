@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Bandage, Check, Contrast, Crop, Eraser, Eye, RotateCw, Ruler, Save, Scan, Sparkles, Undo2, X, type LucideIcon } from "lucide-react"
 
-import type { ThresholdMode } from "@/shared/lib"
+import { hasLayerAbove, type ThresholdMode } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
 import { AiProgress, AiTag, ScanOverlay } from "@/shared/ui/ai"
 import { Button, Field, Segmented, WorkbenchButton } from "@/shared/ui/kit"
@@ -515,9 +515,11 @@ function PreviewOverlay({ preview, canEdit, onClose, onRevert }: { preview: Cutt
   React.useEffect(() => {
     closeRef.current = onClose
   }, [onClose])
+  // 위에 다른 층(화면 설정 · 관리 ▾ 등)이 열려 있으면 그 층 몫(3회차 검수)
+  const rootRef = React.useRef<HTMLDivElement>(null)
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || e.defaultPrevented) return
+      if (e.key !== "Escape" || e.defaultPrevented || hasLayerAbove(rootRef.current)) return
       e.preventDefault()
       closeRef.current()
     }
@@ -525,7 +527,7 @@ function PreviewOverlay({ preview, canEdit, onClose, onRevert }: { preview: Cutt
     return () => document.removeEventListener("keydown", onKey)
   }, [])
   return (
-    <div role="region" data-esc-layer="" aria-label="편집 이력 미리보기" className="absolute inset-0 z-[2] flex flex-col overflow-hidden rounded-[10px] bg-canvas">
+    <div ref={rootRef} role="region" data-esc-layer="" aria-label="편집 이력 미리보기" className="absolute inset-0 z-[2] flex flex-col overflow-hidden rounded-[10px] bg-canvas">
       <div className="flex shrink-0 items-center gap-[8px] border-0 border-b border-solid border-border bg-panel px-[12px] py-[7px]">
         <Eye aria-hidden="true" className="size-[15px] text-brand" strokeWidth={1.9} />
         <b className="text-[12.5px] font-bold text-foreground">

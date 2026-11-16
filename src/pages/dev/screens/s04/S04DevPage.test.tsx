@@ -163,11 +163,12 @@ describe("S04DevPage — 문양 코딩 · 검색 조건", () => {
       renderAt("/dev/s04?case=ready")
       expect(screen.getByText(/필수 문양\(2개\)만 검색에 쓰입니다/)).toBeInTheDocument()
       fireEvent.contextMenu(screen.getByRole("button", { name: "하 n32_04" }))
-      expect(screen.getByRole("progressbar", { name: "검색 결과 갱신" })).toBeInTheDocument()
+      // 재검색은 AI 일이 아니라 AI 진행 막대 없이 글자만(3회차 검수)
+      expect(screen.getByText("검색 결과 갱신 중…")).toBeInTheDocument()
       act(() => {
         vi.advanceTimersByTime(300)
       })
-      expect(screen.queryByRole("progressbar", { name: "검색 결과 갱신" })).toBeNull()
+      expect(screen.queryByText("검색 결과 갱신 중…")).toBeNull()
       expect(screen.getByText("필수 문양 3개로 검색 결과를 갱신했습니다.")).toBeInTheDocument()
     } finally {
       vi.useRealTimers()
@@ -439,9 +440,9 @@ describe("S04DevPage — 시안 r2 신규 기능 · 연출", () => {
 
   it("움직임 줄이기: ready 의 훑기 선 · 실시간 점 · 막대 채움은 motion-safe: 로만 걸린다", () => {
     const { container } = renderAt("/dev/s04?case=ready")
-    expect(container.querySelector("[data-part='ScanOverlay']")).not.toBeNull()
+    // ready 에서 늘 도는 훑기 선은 없다(AI 추출이 돌 때만 — 3회차 검수). 남은 움직임도 motion-safe: 로만
     const animated = Array.from(container.querySelectorAll("[class*='animate-']"))
-    expect(animated.length).toBeGreaterThanOrEqual(3)
+    expect(animated.length).toBeGreaterThanOrEqual(1)
     for (const el of animated) {
       expect(
         el

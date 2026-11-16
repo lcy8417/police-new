@@ -73,6 +73,8 @@ export function Combobox({
   }
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // 한글 조합 중인 키(조합 확정 Enter 등)는 항목 고르기로 받지 않는다(3회차 검수 — 입력 중인 관서가 잘못 확정되던 것)
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return
     if (e.key === "ArrowDown") {
       e.preventDefault()
       setOpen(true)
@@ -114,7 +116,11 @@ export function Combobox({
           setActive(0)
           setOpen(true)
         }}
-        onFocus={() => setOpen(true)}
+        // 들어오면 고른 이름 글자를 모두 골라 둔다 — 바로 치면 새 검색어가 된다(3회차 검수 — 「전체 사용자박」처럼 뒤에 붙던 것)
+        onFocus={(e) => {
+          setOpen(true)
+          e.currentTarget.select()
+        }}
         // 칸을 떠나면 확정하지 않은 입력 글자는 버리고, 확정된 선택(없으면 빈 칸)을 다시 보인다
         onBlur={() => {
           setQuery(null)

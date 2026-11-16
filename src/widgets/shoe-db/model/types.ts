@@ -63,6 +63,11 @@ export type ShoeExtractState = "idle" | "running" | "done"
  * 자동 넘기기 · 엑셀 · 초기화 같은 군더더기는 없다(11/17 사용자 「신발도 자동 이런 건 없어도 되고」).
  */
 export interface ShoeDbPanelExtra {
+  /**
+   * 상세 조건이 「조회」로 걸려 있나 — 걸려 있을 때만 「필터 n」 수를 달고, 0건이면 「조건 지우기」 안내(3회차 검수 —
+   * 처음 · 조건 지우기 뒤에도 기본 칸 값으로 「필터 2」가 뜨고, 조회 0건이면 빈 격자만 보이던 것). 없으면 늘 걸린 것으로 본다
+   */
+  filtersApplied?: boolean
   /** 종류별 전체 문양 이름(문양 목록 탭 · 격자) */
   library: Record<string, readonly string[]>
   /** AI 문양 추출 상태 */

@@ -44,6 +44,8 @@ import {
 } from "./mock-cases"
 
 const info = devScreen("s13")
+/** 서버 거절 문구(api-communication §1-1 — 400) 그대로 */
+const LAST_ADMIN_MESSAGE = "관리자는 최소 1명 있어야 합니다"
 const COLUMN_KEYS: string[] = USER_COLUMNS.map((c) => c.key)
 const isColumnKeys = subsetOf(COLUMN_KEYS)
 
@@ -71,6 +73,8 @@ export function S13DevPage() {
 
   const patchUser = (userId: string, patch: Partial<AdminUser>) =>
     setUsers((prev) => prev.map((u) => (u.userId === userId ? { ...u, ...patch } : u)))
+  // 이 사람 말고 쓰는 중인 관리자가 없나(서버 「관리자는 최소 1명」 규칙을 화면에서 먼저)
+  const isLastActiveAdmin = (userId: string) => !users.some((u) => u.userId !== userId && u.userSe === "ADMIN" && u.useAt === "Y")
   const clearEdit = (userId: string, keys: (keyof UserDraft)[]) =>
     setEdits((prev) => {
       const rest = { ...prev[userId] }
@@ -157,6 +161,11 @@ export function S13DevPage() {
         onSaveInfo={() => {
           // 이름이 비면 저장하지 않는다(상세 칸이 「이름을 입력하세요」를 보인다)
           if (!selected || !draft || draft.userNm.trim() === "") return
+          // 마지막 활성 관리자는 일반 사용자로 내릴 수 없다(서버 400 문구 그대로 — 3회차 검수)
+          if (selected.userSe === "ADMIN" && draft.userSe !== "ADMIN" && isLastActiveAdmin(selected.userId)) {
+            toast.error(LAST_ADMIN_MESSAGE)
+            return
+          }
           const org = MOCK_ORGS.find((o) => o.orgId === draft.orgId)
           patchUser(selected.userId, { userNm: draft.userNm.trim(), userSe: draft.userSe, orgId: draft.orgId, orgNm: org?.orgNm ?? selected.orgNm })
           clearEdit(selected.userId, ["userNm", "userSe", "orgId"])
@@ -179,6 +188,11 @@ export function S13DevPage() {
           toast.success(`${userId} 잠금을 풀었습니다`)
         }}
         onSetUseAt={(userId, useAt) => {
+          // 마지막 활성 관리자는 사용 중지할 수 없다(3회차 검수)
+          if (useAt === "N" && users.find((u) => u.userId === userId)?.userSe === "ADMIN" && isLastActiveAdmin(userId)) {
+            toast.error(LAST_ADMIN_MESSAGE)
+            return
+          }
           patchUser(userId, { useAt })
           toast.success(useAt === "N" ? `${userId} 사용을 중지했습니다` : `${userId} 다시 사용합니다`)
         }}

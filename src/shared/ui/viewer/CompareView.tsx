@@ -1,7 +1,7 @@
 import * as React from "react"
 
 import { cn } from "@/shared/lib/utils"
-import { Button } from "../kit/Button"
+import { Button } from "../kit"
 import { partAttrs } from "../part-attrs"
 
 // 두 그림 비교(S03 뷰어 B · S06 · S07 · S08): 나란히 · 겹쳐 · 밀어서. 그림은 부모가 만들어 넘긴다.

@@ -89,6 +89,8 @@ export function ThemeSettings({ className, compact = false }: ThemeSettingsProps
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return
+      // 이 Esc 는 화면 설정 닫기 몫 — 아래 층(편집 판 · 사건 창)이 같이 닫히지 않게 알린다(3회차 검수)
+      e.preventDefault()
       setOpen(false)
       triggerRef.current?.focus()
     }

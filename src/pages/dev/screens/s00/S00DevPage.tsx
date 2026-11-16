@@ -81,7 +81,8 @@ export function S00DevPage() {
   const fixed =
     activeCase === "failed" ? LOGIN_FAILED_MESSAGE : activeCase === "locked" ? LOCKED_MESSAGE : null
   const errorMessage = localError ?? fixed
-  const status = activeCase === "loading" ? "loading" : activeCase === "error" ? "error" : "ready"
+  // 입력 검사 문구(빈 칸 등)는 서버 장애와 다르다 — 장애 시각 · 「다시」 없이 검사 문구만(3회차 검수)
+  const status = activeCase === "loading" ? "loading" : activeCase === "error" && localError === null ? "error" : "ready"
   // 서버 거절(failed · locked)일 때만 남은 시도 안내가 붙는다. 입력 검사 문구에는 없다.
   const attempts =
     localError === null && activeCase === "failed"

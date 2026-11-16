@@ -1,7 +1,7 @@
 import * as React from "react"
 
 import { cn } from "@/shared/lib/utils"
-import { AiProgress, ScanOverlay } from "@/shared/ui/ai"
+import { ScanOverlay } from "@/shared/ui/ai"
 import { Button, Chip, ColumnPicker, DataGrid, Field, FilterBar, InlineError, Segmented, type DataGridColumn } from "@/shared/ui/kit"
 import { ButtonBar, Panel } from "@/shared/ui/panel"
 
@@ -84,10 +84,8 @@ function ResearchLine({ state, essentialCount }: { state: ResearchState; essenti
   return (
     <div role="status" className="flex min-h-[24px] min-w-0 items-center gap-[8px] px-[10px] text-[11.5px] text-muted-foreground">
       {state === "running" ? (
-        <>
-          <span className="whitespace-nowrap">검색 결과 갱신 중…</span>
-          <AiProgress state="running" label="검색 결과 갱신" className="flex-1" />
-        </>
+        // 재검색은 AI 일이 아니다 — AI 진행 막대 대신 글자만(사건 창과 같게, 3회차 검수 · motion.md)
+        <span className="whitespace-nowrap">검색 결과 갱신 중…</span>
       ) : state === "done" ? (
         <span>필수 문양 {essentialCount}개로 검색 결과를 갱신했습니다.</span>
       ) : (
@@ -220,11 +218,8 @@ export function PatternCodeScreen(props: PatternCodeScreenProps) {
   const canvasBox = (sizeClass: string) => (
     <div className={cn("relative min-w-0 overflow-hidden rounded-[10px] border border-solid border-border bg-canvas", sizeClass)}>
       {props.canvasSlot}
+      {/* 훑기 선은 AI 추출이 도는 동안만(늘 도는 +α 훑기는 뺐다 — 사건 창과 같게, 3회차 검수 · motion.md) */}
       <ScanOverlay active={props.extractState === "running"} />
-      {plus ? (
-        // 시안: 현장 이미지는 AI가 보는 동안 3.6초 주기로 훑는다
-        <ScanOverlay active data-plus="" className="motion-safe:[animation-duration:3.6s]" />
-      ) : null}
       <Chip variant="h20-warn" className="pointer-events-none absolute top-[6px] right-[6px] border-ai-line bg-ai-bg text-ai">
         {props.searchImage === "edited" ? (props.editedLook ? `편집본 · ${props.editedLook}` : "편집본") : "원본"}
       </Chip>
@@ -355,7 +350,8 @@ export function PatternCodeScreen(props: PatternCodeScreenProps) {
   // 겹치는 제목 줄(문양 상세보기 · 감정번호) · 닫기 · 이미지 목록 표(창 왼쪽 목록과 같은 일) · AI 검색 방식 · 깔때기 ·
   // 인공지능문양관리(준비 중 AI 단추)는 그리지 않는다 — 이 탭의 AI 는 문양 추출뿐.
   if (props.inWindow && (status === "ready" || status === "empty")) {
-    return <PatternWindow {...props} canEdit={canEdit} readOnlyNote={readOnlyNote} roleChips={roleChips} />
+    // 사건 창은 관리자에게 다른 역할 제한 칩을 띄우지 않는다(「보기만」 · 「볼 수 없음」이 함께 뜨던 것 — 3회차 검수). 단독 진열은 시안처럼 모두
+    return <PatternWindow {...props} canEdit={canEdit} readOnlyNote={readOnlyNote} roleChips={props.isAdmin ? null : roleChips} />
   }
 
   let body: React.ReactNode

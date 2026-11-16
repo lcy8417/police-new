@@ -3,7 +3,7 @@ import * as React from "react"
 import { insertPatternPath } from "@/entities/pattern"
 import type { Shoe } from "@/entities/shoe"
 import { cn } from "@/shared/lib/utils"
-import { AiTag, ConfidenceBar, ScanOverlay } from "@/shared/ui/ai"
+import { AiTag, ConfidenceBar } from "@/shared/ui/ai"
 import { Button, Chip, DialogShell, Field, Segmented } from "@/shared/ui/kit"
 import { ButtonBar } from "@/shared/ui/panel"
 import { PatternIcon } from "@/shared/ui/viewer"
@@ -75,7 +75,7 @@ function SoleAiOverlay({ detail }: { detail: ShoeAiDetail }) {
       <span className="pointer-events-none absolute top-[calc(39%-14px)] left-[41%] font-code text-[9.5px] font-semibold text-warn">
         {`가림 ${detail.occlusion.percent}%`}
       </span>
-      <ScanOverlay active />
+      {/* 분석이 끝난 정적 결과 — 훑기 선은 AI 가 일하는 동안만(3회차 검수 · motion.md) */}
       <span className="pointer-events-none absolute top-[43%] left-[44%] grid h-[30px] w-[62px] -rotate-[8deg] place-items-center rounded-[4px] bg-warn text-[10px] font-bold text-canvas opacity-85">
         {detail.occlusion.obstacle}
       </span>
@@ -224,7 +224,7 @@ export function ShoeInfoDialog({
         <span className="text-[11.5px] text-muted-foreground">신발 문양</span>
         {plus && detail && (
           <div data-plus="" className="flex items-center gap-[8px] rounded-[7px] border border-solid border-ai-line bg-ai-bg px-[10px] py-[6px] text-[11.5px]">
-            <AiTag variant="progress">AI 1차 입력</AiTag>
+            <AiTag variant="done">AI 1차 입력</AiTag>
             <span className="text-fg-2">
               상·하가 같은 {detail.sameKind.label}(<span className="font-code">{detail.sameKind.code}</span>)이라 <b className="text-foreground">한 번에</b> 채움 · {detail.sameKind.hint}
             </span>

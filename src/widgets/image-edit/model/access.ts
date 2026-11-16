@@ -18,7 +18,9 @@ export interface ImageEditAccess {
  */
 export function imageEditAccess(isAdmin: boolean, features: readonly FeatureCode[], showPlus: boolean): ImageEditAccess {
   const has = (code: FeatureCode) => isAdmin || features.includes(code)
-  const canEdit = has(FEATURES.CRIME_SEARCH) || has(FEATURES.CRIME_REGISTER)
+  // 실증 보기에서 기술책임자(결재 권한만 · 판정 확정 없음)는 「보기만」 — 칩과 같이 편집 · 되돌리기도 잠근다(3회차 검수 — 칩은 보기만인데 편집이 되던 것)
+  const verifierOnly = has(FEATURES.REPORT_APPROVE) && !has(FEATURES.EXAM_DECIDE)
+  const canEdit = (has(FEATURES.CRIME_SEARCH) || has(FEATURES.CRIME_REGISTER)) && !(showPlus && verifierOnly)
   return {
     canEdit,
     canSave: canEdit && (!showPlus || has(FEATURES.CRIME_REGISTER)),

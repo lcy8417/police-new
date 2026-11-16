@@ -32,7 +32,7 @@ describe("AdminLogsScreen 펼침(제어형) · 쪽 넘김", () => {
   it("행을 누르면 onToggleSession(id, true) 로 알리고 스스로는 펼치지 않는다", () => {
     const onToggleSession = vi.fn()
     render(<AdminLogsScreen {...base({ onToggleSession })} />)
-    fireEvent.click(screen.getAllByRole("button", { name: "기능 기록 펼치기" })[0])
+    fireEvent.click(screen.getAllByRole("button", { name: /기능 기록 펼치기$/ })[0])
     expect(onToggleSession).toHaveBeenCalledWith("sess-0001", true)
     expect(screen.queryByRole("list", { name: "이 로그인의 기능 기록" })).toBeNull()
   })
@@ -41,7 +41,7 @@ describe("AdminLogsScreen 펼침(제어형) · 쪽 넘김", () => {
     const onToggleSession = vi.fn()
     render(<AdminLogsScreen {...base({ expandedSessionIds: ["sess-0001"], onToggleSession })} />)
     expect(within(screen.getByRole("list", { name: "이 로그인의 기능 기록" })).getAllByText("성공").length).toBeGreaterThan(0)
-    fireEvent.click(screen.getAllByRole("button", { name: "기능 기록 펼치기" })[0])
+    fireEvent.click(screen.getAllByRole("button", { name: /기능 기록 펼치기$/ })[0])
     expect(onToggleSession).toHaveBeenCalledWith("sess-0001", false)
   })
 

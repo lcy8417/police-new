@@ -105,8 +105,9 @@ export function S14DevPage() {
     <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
       <AdminLogsScreen
         showPlus={plus}
-        insights={MOCK_INSIGHTS}
-        tabCounts={MOCK_TAB_COUNTS}
+        // 기록이 하나도 없는 케이스(empty)에는 「오늘 1,248건」 같은 요약 · 탭 건수를 보이지 않는다(3회차 검수)
+        insights={activeCase === "empty" ? undefined : MOCK_INSIGHTS}
+        tabCounts={activeCase === "empty" ? undefined : MOCK_TAB_COUNTS}
         adminActions={slice(MOCK_ADMIN_ACTIONS)}
         onLoadMore={handleLoadMore}
         onExport={() => toast("시안 — 기능 준비 중")}

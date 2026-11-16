@@ -18,7 +18,8 @@ const LOGOUT_REASON_LABELS: Record<LogoutReason, string> = {
 }
 
 const ALL_COLUMNS = [
-  { key: "expand", label: "", right: false },
+  // 펼침 단추 열 — 빈 머리칸이 아니라 화면 읽기 이름을 둔다(3회차 검수)
+  { key: "expand", label: "펼침", right: false },
   { key: "user", label: "사용자", right: false },
   { key: "login", label: "로그인", right: false },
   { key: "logout", label: "로그아웃", right: false },
@@ -60,7 +61,7 @@ export function SessionTable({ sessions, timelines, onRetryTimeline, expandedSes
           <tr>
             {COLUMNS.map((c) => (
               <th key={c.key} scope="col" className={cn(TH, c.right ? "text-right" : "text-left")}>
-                {c.label}
+                {c.key === "expand" ? <span className="sr-only">{c.label}</span> : c.label}
               </th>
             ))}
           </tr>
@@ -77,11 +78,12 @@ export function SessionTable({ sessions, timelines, onRetryTimeline, expandedSes
               const open = expanded.has(s.sessionId)
               return (
                 <Fragment key={s.sessionId}>
-                  <tr aria-selected={open || undefined} className={cn(open ? "bg-brand-bg" : "hover:bg-brand-bg/60")}>
+                  <tr data-open={open || undefined} className={cn(open ? "bg-brand-bg" : "hover:bg-brand-bg/60")}>
                     <td className={cn(TD, "h-[40px] w-[40px] pl-[10px]")}>
                       <button
                         type="button"
-                        aria-label="기능 기록 펼치기"
+                        // 줄마다 다른 이름(누구의 어느 로그인인지 — 같은 이름 단추 50개이던 것, 3회차 검수)
+                        aria-label={`${s.userNm} ${formatKstDateTime(s.loginDt)} 로그인 기능 기록 펼치기`}
                         aria-expanded={open}
                         onClick={() => onToggleSession(s.sessionId, !open)}
                         className="grid size-[26px] cursor-pointer place-items-center rounded-[6px] border-0 bg-transparent text-dim hover:text-brand"

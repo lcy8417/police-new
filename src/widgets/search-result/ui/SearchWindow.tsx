@@ -365,7 +365,8 @@ export function SearchWindow(props: SearchResultScreenProps) {
     )
   }
 
-  const roleChips = showPlus ? (
+  // 사건 창은 관리자에게 다른 역할 제한 칩을 띄우지 않는다(3회차 검수 — 두 칩이 함께 뜨던 것)
+  const roleChips = showPlus && !props.isAdmin ? (
     <span className="inline-flex gap-[6px]">
       {roles.verifier ? <Chip>기술책임자 · 보기만</Chip> : null}
       {roles.investigator ? <Chip>수사관 · 볼 수 없음</Chip> : null}

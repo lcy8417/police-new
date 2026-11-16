@@ -34,8 +34,18 @@ export function ColumnPicker({ columns, visible, onChange, defaultVisible, partI
     const onDown = (e: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
     }
+    // 초점이 팝오버 밖에 있어도 Esc 로 닫는다(3회차 검수) — 바깥 창은 preventDefault 를 보고 그대로
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return
+      e.preventDefault()
+      setOpen(false)
+    }
     document.addEventListener("mousedown", onDown)
-    return () => document.removeEventListener("mousedown", onDown)
+    document.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("mousedown", onDown)
+      document.removeEventListener("keydown", onKey)
+    }
   }, [open])
 
   const emit = (keys: ReadonlySet<string>) => onChange(columns.filter((c) => c.locked || keys.has(c.key)).map((c) => c.key))
@@ -83,6 +93,7 @@ export function ColumnPicker({ columns, visible, onChange, defaultVisible, partI
           id={panelId}
           role="group"
           aria-label="보일 열"
+          data-esc-layer=""
           className="absolute right-0 top-[30px] z-20 w-[200px] rounded-[8px] border border-solid border-border bg-panel p-[8px] [box-shadow:0_8px_24px_var(--t-panel-drop)]"
         >
           <div className="mb-[6px] flex gap-[6px]">

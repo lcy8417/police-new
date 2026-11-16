@@ -37,7 +37,12 @@ export function LogListTable<Row>({
           ))}
         </ListHeadRow>
         {rows.length === 0 ? (
-          <ListNote className="text-center">결과 없음</ListNote>
+          // role="table" 아래는 행만 — 빈 안내도 행 · 칸으로 감싼다(3회차 검수)
+          <div role="row">
+            <span role="cell" className="block">
+              <ListNote className="text-center">결과 없음</ListNote>
+            </span>
+          </div>
         ) : (
           rows.map((r) => (
             <ListRow key={rowKey(r)} role="row" className="h-auto min-h-[36px] cursor-default py-[5px]">

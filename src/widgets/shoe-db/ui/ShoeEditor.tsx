@@ -13,6 +13,7 @@ import {
   type PatternZoneCards,
 } from "@/entities/pattern"
 import type { Shoe } from "@/entities/shoe"
+import { hasLayerAbove } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
 import { AiTag, ScanOverlay } from "@/shared/ui/ai"
 import { Field, Segmented, WorkbenchButton } from "@/shared/ui/kit"
@@ -129,9 +130,11 @@ export function ShoeEditor(props: ShoeEditorProps) {
   React.useEffect(() => {
     closeRef.current = props.onClose
   }, [props.onClose])
+  // 위에 다른 층(화면 설정 · 관리 ▾ · 고르기 목록)이 열려 있으면 그 층 몫(3회차 검수 — 함께 닫히던 것)
+  const rootRef = React.useRef<HTMLElement>(null)
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || e.defaultPrevented) return
+      if (e.key !== "Escape" || e.defaultPrevented || hasLayerAbove(rootRef.current)) return
       e.preventDefault()
       closeRef.current()
     }
@@ -374,7 +377,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
   )
 
   return (
-    <section aria-label={isNew ? "신발 등록" : `신발 ${form.ftwrId} 편집`} data-slot="shoe-editor" data-esc-layer="" className="flex h-full min-h-0 flex-col">
+    <section ref={rootRef} aria-label={isNew ? "신발 등록" : `신발 ${form.ftwrId} 편집`} data-slot="shoe-editor" data-esc-layer="" className="flex h-full min-h-0 flex-col">
       {head}
       {info}
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_280px] gap-[12px] p-[12px]">

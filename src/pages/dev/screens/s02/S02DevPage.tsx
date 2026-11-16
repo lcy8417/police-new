@@ -164,7 +164,8 @@ export function S02Content({ devCase, caseId: id, imageId, go, inWindow = false,
     const message = validateCaseDetail(form, images.length)
     setError(message)
     if (message) return
-    toast.success("사건이 등록되었습니다.")
+    // 열어 본 사건을 고쳐 저장하면 「저장」, 새 등록이면 「등록」(3회차 검수 — 수정에도 등록 알림이 뜨던 것)
+    toast.success(mode === "detail" ? "사건 정보를 저장했습니다." : "사건이 등록되었습니다.")
     if (mode === "register" && continuous) {
       // 연속 등록: 폼과 이미지를 비우고 다음 사건을 받는다
       setForm(EMPTY_FORM)

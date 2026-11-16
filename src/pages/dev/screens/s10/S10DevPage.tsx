@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import type { PatternZone } from "@/entities/pattern";
-import type { Shoe } from "@/entities/shoe";
+import { validateShoeForm, type Shoe } from "@/entities/shoe";
 import { useAutoPlay } from "@/shared/lib/use-auto-play";
 import type { FilterGroup } from "@/shared/ui/kit";
 import {
@@ -30,6 +30,7 @@ import {
   useDevViewer,
   useRememberedState,
 } from "../frame";
+import { sampleSoleUrl } from "../mock-assets/sample-images";
 import {
   makeS10AiDetails,
   makeS10AllShoes,
@@ -92,8 +93,10 @@ function matchesFilters(s: Shoe, f: ShoeDbFilters, status: string | undefined): 
   const patterned = s.top.length + s.mid.length + s.bottom.length + s.outline.length > 0;
   if (f.patternInput === "in" && !patterned) return false;
   if (f.patternInput === "out" && patterned) return false;
-  if (f.approval === "yes" && status === "승인 대기") return false;
-  if (f.approval === "no" && status !== "승인 대기") return false;
+  // 승인 = 작업 단계가 남지 않은 신발(문양 대기 · 승인 대기 · 측면 없음 · AI 확인 필요는 모두 미승인 — 3회차 검수: 승인 대기만 미승인으로 쳐 뒤집히던 것)
+  const approved = status === undefined;
+  if (f.approval === "yes" && !approved) return false;
+  if (f.approval === "no" && approved) return false;
   return true;
 }
 
@@ -119,7 +122,7 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
   const viewer = useDevViewer();
   const showPlus = useDevPlus();
   const [params] = useSearchParams();
-  const [allShoes] = React.useState(makeS10AllShoes);
+  const [allShoes, setAllShoes] = React.useState(makeS10AllShoes);
   const cardInfo = React.useMemo(() => makeS10CardInfo(allShoes), [allShoes]);
   const [aiDetails] = React.useState(makeS10AiDetails);
   const [filters, setFilters] =
@@ -244,15 +247,18 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
     });
   };
 
+  // 저장: 화면 검사(validateShoeForm — 신발ID 1~8자 · 예약어 count · 수집연도 4자리)를 서버보다 먼저 하고,
+  // 저장한 값은 목록에 남긴다(3회차 검수 — 검사 없이 저장되고 다시 열면 고친 값이 사라지던 것)
   const save = () => {
     if (!dialog) return;
     const id = dialog.form.ftwrId;
-    if (dialog.mode === "new") {
-      if (id.trim() === "")
-        return setDialog({ ...dialog, saveError: "신발ID를 입력하세요" });
-      if (allShoes.some((s) => s.ftwrId === id))
-        return setDialog({ ...dialog, saveError: S10_DUPLICATE_MESSAGE });
-    }
+    if (dialog.mode === "new" && id.trim() === "") return setDialog({ ...dialog, saveError: "신발ID를 입력하세요" });
+    if (dialog.mode === "new" && allShoes.some((s) => s.ftwrId === id))
+      return setDialog({ ...dialog, saveError: S10_DUPLICATE_MESSAGE });
+    const invalid = validateShoeForm(dialog.form, dialog.mode);
+    if (invalid) return setDialog({ ...dialog, saveError: invalid });
+    const saved = dialog.form;
+    setAllShoes((prev) => (dialog.mode === "new" ? [saved, ...prev] : prev.map((s) => (s.ftwrId === saved.ftwrId ? saved : s))));
     toast.success(`저장했습니다 (시안): ${id}`);
     setDialog(null);
   };
@@ -336,7 +342,11 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
     onFormChange: (form: Shoe) => setDialog((d) => (d ? { ...d, form, aiMarks: pruneMarks(d.aiMarks, form), saveError: undefined } : d)),
     onSave: save,
     onCloseDialog: () => setDialog(null),
-    onReplaceImage: () => toast("이미지를 고릅니다 (시안)"),
+    // 진열용: 이미지가 없는 새 등록은 표본 밑창 그림을 넣어 회전 · AI 문양 추출을 이어서 볼 수 있게(3회차 검수 — 영구 잠기던 것)
+    onReplaceImage: () => {
+      toast("이미지를 고릅니다 (시안)");
+      setDialog((d) => (d && !d.form.image ? { ...d, form: { ...d.form, image: sampleSoleUrl("00758", { kind: "shoe" }) } } : d));
+    },
     onRotateImage: () => toast("이미지를 90도 돌립니다 (시안)"),
     quick: {
       query,
@@ -357,7 +367,7 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
     onCardSizeChange: setCardSize,
   };
 
-  if (inPanel) return <ShoeDbPanel {...common} {...panelExtra} />;
+  if (inPanel) return <ShoeDbPanel {...common} {...panelExtra} filtersApplied={applied !== null} />;
 
   return (
     <ShoeDbScreen

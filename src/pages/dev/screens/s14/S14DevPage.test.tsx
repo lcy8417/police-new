@@ -30,7 +30,7 @@ describe("S14 사용·감사 기록 진열 페이지", () => {
     const headers = within(list())
       .getAllByRole("columnheader")
       .map((h) => h.textContent)
-    expect(headers).toEqual(["", "사용자", "로그인", "로그아웃", "종료 사유", "IP", "이벤트 수", "실패 수"])
+    expect(headers).toEqual(["펼침", "사용자", "로그인", "로그아웃", "종료 사유", "IP", "이벤트 수", "실패 수"])
     expect(within(list()).getByText("park0412")).toBeInTheDocument()
   })
 
@@ -42,7 +42,7 @@ describe("S14 사용·감사 기록 진열 페이지", () => {
   it("세션 행을 펼치면 기능 타임라인이 보이고 다시 누르면 접힌다", async () => {
     admin("ready")
     expect(screen.queryByRole("list", { name: "이 로그인의 기능 기록" })).toBeNull()
-    const toggle = within(list()).getAllByRole("button", { name: "기능 기록 펼치기" })[0]
+    const toggle = within(list()).getAllByRole("button", { name: /기능 기록 펼치기$/ })[0]
     fireEvent.click(toggle)
     expect(screen.getByText("기능 기록을 불러오는 중…")).toBeInTheDocument()
     const timeline = await screen.findByRole("list", { name: "이 로그인의 기능 기록" })
@@ -54,7 +54,7 @@ describe("S14 사용·감사 기록 진열 페이지", () => {
 
   it("실패 이벤트를 누르면 오류 내용(긴 문구 포함)이 펼쳐진다", async () => {
     admin("ready")
-    fireEvent.click(within(list()).getAllByRole("button", { name: "기능 기록 펼치기" })[0])
+    fireEvent.click(within(list()).getAllByRole("button", { name: /기능 기록 펼치기$/ })[0])
     const timeline = await screen.findByRole("list", { name: "이 로그인의 기능 기록" })
     const failRow = within(timeline).getByRole("button", { name: /감정서 출력/ })
     fireEvent.click(failRow)
@@ -65,7 +65,7 @@ describe("S14 사용·감사 기록 진열 페이지", () => {
     admin("ready")
     // lee0508 행(이름으로 찾음) — 타임라인 조회 실패
     const row = within(list()).getByText("lee0508").closest("tr") as HTMLElement
-    fireEvent.click(within(row).getByRole("button", { name: "기능 기록 펼치기" }))
+    fireEvent.click(within(row).getByRole("button", { name: /기능 기록 펼치기$/ }))
     expect(await screen.findByText("기능 기록을 확인하지 못했습니다")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "다시" })).toBeInTheDocument()
     expect(screen.queryByText("결과 없음")).toBeNull()
@@ -261,7 +261,7 @@ describe("S14 사용·감사 기록 — r2 시안 구성", () => {
       fireEvent.click(within(list()).getByRole("button", { name: /열 선택/ }))
       expect(within(list()).getByRole("checkbox", { name: /사용자/ })).toBeDisabled()
       fireEvent.click(within(list()).getByRole("checkbox", { name: /^종료 사유/ }))
-      expect(within(list()).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["", "사용자", "로그인", "로그아웃", "IP", "이벤트 수", "실패 수"])
+      expect(within(list()).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["펼침", "사용자", "로그인", "로그아웃", "IP", "이벤트 수", "실패 수"])
     })
 
     it("기능 기록 열도 따로 고른다", () => {
@@ -295,7 +295,7 @@ describe("S14 사용·감사 기록 — r2 시안 구성", () => {
 
       admin("full-page")
       expect(screen.getByRole("button", { name: /다음/ })).toBeDisabled()
-      expect(within(list()).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["", "사용자", "로그인", "로그아웃", "IP", "이벤트 수", "실패 수"])
+      expect(within(list()).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["펼침", "사용자", "로그인", "로그아웃", "IP", "이벤트 수", "실패 수"])
       expect(within(list()).getByLabelText("검색어")).toHaveValue("")
       fireEvent.click(tabButton("기능 기록"))
       const region = screen.getByRole("region", { name: "기능 기록" })

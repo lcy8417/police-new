@@ -5,6 +5,7 @@ export { useDebouncedValue } from './use-debounced-value'
 export { useAutoPlay, type UseAutoPlayOptions, type UseAutoPlayResult } from './use-auto-play'
 export { isTextEntryTarget, shouldHandleShortcut, type ShortcutKeyEvent } from './should-handle-shortcut'
 export { handleRovingKey, rovingIndex } from './roving-tabs'
+export { ESC_LAYER_SELECTOR, hasLayerAbove } from './esc-layer'
 export {
   buildGammaLut,
   clampByte,
