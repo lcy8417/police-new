@@ -34,6 +34,23 @@ export type SearchImageSource = "original" | "edited"
 /** AI 문양 추출 진행 상태. idle = 아직 안 돌림 */
 export type ExtractState = "idle" | "running" | "done" | "failed"
 
+/** 필수 문양 변경 뒤 재검색 상태 */
+export type ResearchState = "idle" | "running" | "done"
+
+/** SCAS 「매칭 조건」 값. 고를 수 있는 글자(선택지)는 SCAS 라벨이라 위젯 상수 `MATCH_OPTIONS`에 있다 */
+export interface MatchConditionValues {
+  /** 검색구분(현장문양 · 동일범 · 용의자문양) */
+  searchKind: string
+  /** 등록기간 시작 `YYYY-MM-DD` */
+  periodFrom: string
+  /** 등록기간 끝 `YYYY-MM-DD` */
+  periodTo: string
+  /** 성별(전체 · 남 · 여 · 혼용) */
+  gender: string
+  /** 굽유무(전체 · 유 · 무 · 불상) */
+  heel: string
+}
+
 /** S04 문양 코딩 · 검색 조건 화면이 받는 값. 저장되는 값은 모두 제어형(spec §6-1). */
 export interface PatternCodeScreenProps {
   /** 화면 조회 상태. empty = 이 이미지에 아직 문양 · 검색 이력이 없음 */
@@ -73,10 +90,14 @@ export interface PatternCodeScreenProps {
   onSelectZone: (zone: PatternZone) => void
   /** 고른 부위에 문양 넣기(팔레트 · 추출 결과 클릭) — 경로를 그대로 넘긴다 */
   onInsertPattern: (src: string) => void
+  /** 팔레트 · 추출 결과에서 끌어 온 문양을 놓은 부위에 넣기(고른 부위와 무관, 지금 앱 `onDropToZone`) */
+  onInsertPatternToZone: (zone: PatternZone, src: string) => void
   /** 부위의 문양 빼기(지금 앱: 썸네일 클릭) */
   onRemovePattern: (zone: PatternZone, index: number) => void
   /** 필수 문양 켜고 끄기(지금 앱: 우클릭) */
   onToggleEssential: (zone: PatternZone, index: number) => void
+  /** 필수 문양이 바뀐 뒤 실시간 재검색 상태(F20). idle = 아직 다시 찾지 않음 */
+  researchState: ResearchState
   /** SCAS 「다시입력」 — 4부위 문양 모두 지움 */
   onReset: () => void
 
@@ -87,6 +108,10 @@ export interface PatternCodeScreenProps {
   palette: readonly string[]
   /** SCAS 「코드 설명」 — 마지막으로 고른 문양의 설명(없으면 null) */
   codeNote: { code: string; text: string } | null
+
+  /** SCAS 「매칭 조건」 값(지금 검색이 보내지 않아 화면에서는 비활성 — 운영 연결 때 쓸 값) */
+  matchConditions: MatchConditionValues
+  onMatchConditionsChange: (next: MatchConditionValues) => void
 
   /** 이 이미지의 검색 이력 */
   history: readonly CrimeHistoryRow[]

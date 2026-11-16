@@ -1,6 +1,7 @@
 import { AiProgress, AiTag, ConfidenceBar } from "@/shared/ui/ai"
 import { PatternIcon } from "@/shared/ui/viewer"
 
+import { DRAG_FORMAT } from "../model/constants"
 import type { ExtractedPatternView, ExtractState } from "../model/types"
 import { Band } from "./Band"
 
@@ -17,7 +18,7 @@ const LOW = 0.5
 
 /**
  * AI 통합 추출 결과(F17 — 시안 핀 9 「AI 창 → 왼쪽 그림 안」). 점수 내림차순, 점수는 ConfidenceBar.
- * 누르면 고른 부위에 넣는다(지금 앱 「통합 추출란」의 끌어 넣기와 같은 일).
+ * 누르면 고른 부위에 넣고, 끌어서 부위 행에 놓을 수도 있다(지금 앱 「통합 추출란」의 끌어 넣기).
  */
 export function ExtractResults({ state, items, inserted, onInsert, canEdit }: ExtractResultsProps) {
   const sorted = [...items].sort((a, b) => b.score - a.score)
@@ -39,6 +40,11 @@ export function ExtractResults({ state, items, inserted, onInsert, canEdit }: Ex
                 type="button"
                 aria-label={`${it.code} 넣기(AI ${it.score.toFixed(2)})`}
                 disabled={!canEdit || done}
+                draggable={canEdit && !done}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData(DRAG_FORMAT, it.src)
+                  e.dataTransfer.effectAllowed = "copy"
+                }}
                 onClick={() => onInsert(it.src)}
                 className="flex min-w-0 cursor-pointer flex-col items-center gap-[4px] rounded-[9px] border border-dashed border-ai-line bg-ai-bg/40 px-[4px] py-[6px] disabled:cursor-not-allowed disabled:opacity-60"
               >

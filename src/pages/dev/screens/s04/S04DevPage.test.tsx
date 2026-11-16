@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { S04DevPage } from "./S04DevPage"
 
@@ -20,7 +20,20 @@ function renderAt(url: string) {
   )
 }
 
-const KINDS = ["무늬", "선", "윤곽", "다각", "삼각", "사각", "원", "항목"]
+/** jsdom 에는 DataTransfer 가 없어 끌어 놓기 자료 상자를 흉내 낸다 */
+function fakeDataTransfer() {
+  const store: Record<string, string> = {}
+  return {
+    dropEffect: "none",
+    effectAllowed: "all",
+    setData: (k: string, v: string) => {
+      store[k] = v
+    },
+    getData: (k: string) => store[k] ?? "",
+  }
+}
+
+const KINDS =["무늬", "선", "윤곽", "다각", "삼각", "사각", "원", "항목"]
 
 describe("S04DevPage — 문양 코딩 · 검색 조건", () => {
   it("ready 케이스에 상/중/하/윤곽 4부위를 그린다", () => {
@@ -84,6 +97,84 @@ describe("S04DevPage — 문양 코딩 · 검색 조건", () => {
     expect(within(zones).getByRole("button", { name: "윤곽 s10a" })).toBeInTheDocument()
   })
 
+  it("팔레트 문양을 끌어 하 부위에 놓으면 하에 들어가고, 「여기에 놓기」가 보인다", () => {
+    const { container } = renderAt("/dev/s04?case=ready")
+    const zones = screen.getByRole("group", { name: "현장 이미지 문양" })
+    const bottom = container.querySelector<HTMLElement>("[data-drop-zone='bottom']")!
+    const data = fakeDataTransfer()
+    const item = screen.getByRole("button", { name: "n32_02 넣기" })
+    expect(item).toHaveAttribute("draggable", "true")
+    fireEvent.dragStart(item, { dataTransfer: data })
+    fireEvent.dragOver(bottom, { dataTransfer: data })
+    expect(within(bottom).getByText("여기에 놓기")).toBeInTheDocument()
+    fireEvent.drop(bottom, { dataTransfer: data })
+    expect(within(bottom).queryByText("여기에 놓기")).toBeNull()
+    expect(within(zones).getByRole("button", { name: "하 n32_02" })).toBeInTheDocument()
+    // 고른 부위(상)는 그대로
+    expect(within(zones).queryByRole("button", { name: /^상 n32_02/ })).toBeNull()
+  })
+
+  it("같은 부위에 이미 있는 문양을 끌어 놓아도 두 번 들어가지 않는다(이름 기준)", () => {
+    const { container } = renderAt("/dev/s04?case=ready")
+    const zones = screen.getByRole("group", { name: "현장 이미지 문양" })
+    const bottom = container.querySelector<HTMLElement>("[data-drop-zone='bottom']")!
+    const data = fakeDataTransfer()
+    data.setData("text/plain", "/src/assets/Patterns/전체/n32_04.png")
+    fireEvent.dragOver(bottom, { dataTransfer: data })
+    fireEvent.drop(bottom, { dataTransfer: data })
+    expect(within(zones).getAllByRole("button", { name: /^하 n32_04/ })).toHaveLength(1)
+
+    const item = screen.getByRole("button", { name: "n32_02 넣기" })
+    for (let i = 0; i < 2; i++) {
+      const d = fakeDataTransfer()
+      fireEvent.dragStart(item, { dataTransfer: d })
+      fireEvent.drop(bottom, { dataTransfer: d })
+    }
+    expect(within(zones).getAllByRole("button", { name: /^하 n32_02/ })).toHaveLength(1)
+  })
+
+  it("AI 추출 결과도 끌어서 부위에 놓을 수 있다", () => {
+    const { container } = renderAt("/dev/s04?case=ready")
+    const zones = screen.getByRole("group", { name: "현장 이미지 문양" })
+    const outline = container.querySelector<HTMLElement>("[data-drop-zone='outline']")!
+    const data = fakeDataTransfer()
+    const item = within(screen.getByRole("region", { name: "AI 추출 결과" })).getByRole("button", { name: /^n51_03 넣기/ })
+    fireEvent.dragStart(item, { dataTransfer: data })
+    fireEvent.drop(outline, { dataTransfer: data })
+    expect(within(zones).getByRole("button", { name: "윤곽 n51_03" })).toBeInTheDocument()
+  })
+
+  it("빈 부위에는 「여기로 드래그」 자리가 있다", () => {
+    renderAt("/dev/s04?case=empty")
+    expect(screen.getAllByText("여기로 드래그")).toHaveLength(4)
+  })
+
+  it("필수를 바꾸면 검색 결과 갱신이 돌고, 잠시 뒤 갱신했다고 보인다", () => {
+    vi.useFakeTimers()
+    try {
+      renderAt("/dev/s04?case=ready")
+      expect(screen.getByText(/필수 문양\(2개\)만 검색에 쓰입니다/)).toBeInTheDocument()
+      fireEvent.contextMenu(screen.getByRole("button", { name: "하 n32_04" }))
+      expect(screen.getByRole("progressbar", { name: "검색 결과 갱신" })).toBeInTheDocument()
+      act(() => {
+        vi.advanceTimersByTime(300)
+      })
+      expect(screen.queryByRole("progressbar", { name: "검색 결과 갱신" })).toBeNull()
+      expect(screen.getByText("필수 문양 3개로 검색 결과를 갱신했습니다.")).toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it("매칭 조건은 진열 페이지가 준 값을 보이고 비활성이다", () => {
+    renderAt("/dev/s04?case=ready")
+    const cond = screen.getByRole("region", { name: "매칭 조건" })
+    expect(within(cond).getByLabelText("등록기간 시작")).toHaveValue("2000-01-01")
+    expect(within(cond).getByLabelText("등록기간 끝")).toHaveValue("2025-07-24")
+    expect(within(cond).getByRole("radio", { name: /현장문양/ })).toHaveAttribute("aria-checked", "true")
+    expect(within(cond).getByRole("radio", { name: /현장문양/ })).toBeDisabled()
+  })
+
   it("추출 결과마다 ConfidenceBar로 점수를 보인다", () => {
     renderAt("/dev/s04?case=ready")
     const result = screen.getByRole("region", { name: "AI 추출 결과" })
@@ -142,6 +233,7 @@ describe("S04DevPage — 문양 코딩 · 검색 조건", () => {
     expect(screen.getByRole("button", { name: "다시입력" })).toBeDisabled()
     expect(screen.getByRole("button", { name: /추출$/ })).toBeDisabled()
     expect(screen.getByRole("button", { name: "n32_02 넣기" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "n32_02 넣기" })).toHaveAttribute("draggable", "false")
     expect(screen.getByRole("button", { name: "하 n32_04" })).toBeDisabled()
   })
 

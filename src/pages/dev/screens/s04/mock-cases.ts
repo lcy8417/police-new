@@ -1,6 +1,6 @@
 import type { CrimeHistoryRow } from "@/entities/crime"
 import type { EssentialFlag, PatternZone } from "@/entities/pattern"
-import type { ExtractState, PaletteKind } from "@/widgets/pattern-code"
+import type { ExtractState, MatchConditionValues, PaletteKind } from "@/widgets/pattern-code"
 
 // S04 문양 코딩 · 검색 조건 진열 케이스. 숫자는 시안 예시값(감정물 00001-25-0649_2, 상 · 중 n32_04 필수, 점수 0.93 · 0.61 · 0.42 · 0.71).
 // 서버처럼 문양은 「이름」으로 들고 있고, 진열 페이지가 insertPatternPath 로 경로를 붙여 위젯에 넘긴다(docs/pattern-data-model.md §3).
@@ -52,6 +52,18 @@ export const S04_MOCK: Record<S04Case, S04Mock> = {
   error: { status: "error", errorAt: "09:41", extractState: "idle", zones: EMPTY_ZONES, extracted: [], history: [] },
   empty: { status: "empty", extractState: "idle", zones: EMPTY_ZONES, extracted: [], history: [] },
 }
+
+/** SCAS 「매칭 조건」 가짜 값(시안 등록기간 2000-01-01 ~ 2025-07-24) */
+export const S04_MATCH_CONDITIONS: MatchConditionValues = {
+  searchKind: "현장문양",
+  periodFrom: "2000-01-01",
+  periodTo: "2025-07-24",
+  gender: "전체",
+  heel: "전체",
+}
+
+/** 필수 문양을 바꾼 뒤 재검색이 끝나기까지(진열용, 지금 앱 디바운스 300ms와 같음) */
+export const S04_RESEARCH_MS = 300
 
 export const S04_APRTHNG_NO = "00001-25-0649_2"
 export const S04_IMAGES = Array.from({ length: 6 }, (_, i) => `00001-25-0649_${i + 1}`)

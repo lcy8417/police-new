@@ -65,16 +65,19 @@ export function ImageEditScreen(props: ImageEditScreenProps) {
         }
         actions={
           <ButtonBar variant="modal-head">
+            {/* 이미지를 불러온 뒤에만 A/B 전환을 보인다(불러오는 중 · 실패 때는 바꿀 대상이 없음) */}
             {status === "ready" ? (
-              <Chip variant={pane === "cut" ? "blue-h20" : "h19"}>{pane === "cut" ? "1차 작업 · 저장함" : "보기용 · 저장 안 함"}</Chip>
+              <>
+                <Chip variant={pane === "cut" ? "blue-h20" : "h19"}>{pane === "cut" ? "1차 작업 · 저장함" : "보기용 · 저장 안 함"}</Chip>
+                <Segmented
+                  aria-label="편집 종류"
+                  items={PANES}
+                  value={pane}
+                  onValueChange={(v) => setPane(v as Pane)}
+                  className="[&_button]:px-[10px] [&_button]:py-[3px] [&_button]:text-[12px]"
+                />
+              </>
             ) : null}
-            <Segmented
-              aria-label="편집 종류"
-              items={PANES}
-              value={pane}
-              onValueChange={(v) => setPane(v as Pane)}
-              className="[&_button]:px-[10px] [&_button]:py-[3px] [&_button]:text-[12px]"
-            />
           </ButtonBar>
         }
       >

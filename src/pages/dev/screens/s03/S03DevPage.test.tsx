@@ -113,6 +113,25 @@ describe("S03DevPage — 이미지 편집", () => {
     expect(container.querySelector("[data-part='ScanOverlay']")).not.toBeNull()
   })
 
+  it("denoise-failed 케이스는 AiProgress 「실패」와 「다시 실행」을 보이고, 누르면 다시 돈다", () => {
+    const { container } = renderAt("/dev/s03?case=denoise-failed")
+    const failed = container.querySelector("[data-part='AiProgress']")
+    expect(failed).toHaveAttribute("data-part-variant", "failed")
+    expect(within(failed as HTMLElement).getByText("실패")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "다시 실행" }))
+    expect(container.querySelector("[data-part='AiProgress']")).toHaveAttribute("data-part-variant", "running")
+  })
+
+  it("불러오는 중 · 실패 때는 A/B 전환을 보이지 않는다", () => {
+    for (const c of ["loading", "error"]) {
+      const { unmount } = renderAt(`/dev/s03?case=${c}`)
+      expect(screen.queryByRole("group", { name: "편집 종류" })).toBeNull()
+      unmount()
+    }
+    renderAt("/dev/s03?case=ready")
+    expect(screen.getByRole("group", { name: "편집 종류" })).toBeInTheDocument()
+  })
+
   it("움직임 줄이기: AI 움직임 클래스는 motion-safe: 로만 걸린다", () => {
     const { container } = renderAt("/dev/s03?case=running")
     const animated = Array.from(container.querySelectorAll("[class*='animate-']"))

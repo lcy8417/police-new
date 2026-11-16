@@ -2,12 +2,12 @@ import * as React from "react"
 
 import type { CrimeHistoryRow } from "@/entities/crime"
 import { FEATURES } from "@/entities/session"
-import { ScanOverlay } from "@/shared/ui/ai"
+import { AiProgress, ScanOverlay } from "@/shared/ui/ai"
 import { Button, Chip, DataGrid, InlineError, Segmented, type DataGridColumn } from "@/shared/ui/kit"
 import { ButtonBar, Panel } from "@/shared/ui/panel"
 
-import { patternName } from "../model/constants"
-import type { PatternCodeScreenProps, SearchImageSource } from "../model/types"
+import { patternName, ZONE_ROWS } from "../model/constants"
+import type { PatternCodeScreenProps, ResearchState, SearchImageSource } from "../model/types"
 import { Band } from "./Band"
 import { ExtractResults } from "./ExtractResults"
 import { MatchConditions } from "./MatchConditions"
@@ -36,8 +36,26 @@ const IMAGE_COLUMNS: DataGridColumn<string>[] = [
   { key: "no", header: "이미지 번호", render: (no) => <span className="font-code text-[11.5px]">{no}</span> },
 ]
 
+/** 필수 문양을 바꾼 뒤 실시간 재검색 줄(F20). idle 이면 안내만 */
+function ResearchLine({ state, essentialCount }: { state: ResearchState; essentialCount: number }) {
+  return (
+    <div role="status" className="flex min-h-[24px] items-center gap-[8px] px-[10px] text-[11.5px] text-muted-foreground">
+      {state === "running" ? (
+        <>
+          <span className="whitespace-nowrap">검색 결과 갱신 중…</span>
+          <AiProgress state="running" label="검색 결과 갱신" className="flex-1" />
+        </>
+      ) : state === "done" ? (
+        <span>필수 문양 {essentialCount}개로 검색 결과를 갱신했습니다.</span>
+      ) : (
+        <span>필수 문양({essentialCount}개)만 검색에 쓰입니다 — 바꾸면 결과를 다시 찾습니다.</span>
+      )}
+    </div>
+  )
+}
+
 /**
- * S04 문양 코딩 · 검색 조건 — SCAS 「문양 상세보기」 3열(왼쪽 현장 이미지 · 이미지 목록 · 코드 설명 / 가운데 문양 행 ·
+ * S04 문양 코딩 · 검색 조건 —SCAS 「문양 상세보기」 3열(왼쪽 현장 이미지 · 이미지 목록 · 코드 설명 / 가운데 문양 행 ·
  * 팔레트 / 오른쪽 매칭 조건 · 검색이력)과 버튼 줄 그대로. 따로 뜨던 AI 창은 왼쪽 그림 안으로(시안 핀 9).
  * 서버 호출 · 전역 상태 없음, 값은 모두 props(제어형). 경계선 캔버스는 슬롯.
  */
@@ -48,7 +66,8 @@ export function PatternCodeScreen(props: PatternCodeScreenProps) {
     () => new Set(zones[selectedZone].map(([path]) => patternName(path))),
     [zones, selectedZone],
   )
-  const extractLabel = props.searchImage === "edited" ? "✦ 편집한 이미지로 다시 추출" : "✦ 원본 이미지로 추출"
+  const essentialCount = ZONE_ROWS.reduce((n, { zone }) => n + zones[zone].filter(([, flag]) => Boolean(flag)).length, 0)
+  const extractLabel =props.searchImage === "edited" ? "✦ 편집한 이미지로 다시 추출" : "✦ 원본 이미지로 추출"
 
   const buttons = (
     <ButtonBar variant="modal-head" aria-label="문양 상세보기 버튼">
@@ -143,12 +162,14 @@ export function PatternCodeScreen(props: PatternCodeScreenProps) {
         {/* 가운데: 현장 이미지 문양 4부위 · 팔레트 */}
         <div className="flex min-w-0 flex-col gap-[8px]">
           <Band title="현장 이미지 문양">
-            <span className="text-[11px] text-dim">누르면 빼기 · 우클릭 필수 · 필수를 바꾸면 결과를 다시 찾습니다</span>
+            <span className="text-[11px] text-dim">끌어 놓기 · 누르면 빼기 · 우클릭 필수</span>
           </Band>
+          <ResearchLine state={props.researchState} essentialCount={essentialCount} />
           <ZoneRows
             zones={zones}
             selectedZone={selectedZone}
             onSelectZone={props.onSelectZone}
+            onDropToZone={props.onInsertPatternToZone}
             onRemovePattern={props.onRemovePattern}
             onToggleEssential={props.onToggleEssential}
             canEdit={canEdit}
@@ -165,7 +186,7 @@ export function PatternCodeScreen(props: PatternCodeScreenProps) {
 
         {/* 오른쪽: 매칭 조건 · 검색이력 */}
         <div className="flex min-w-0 flex-col gap-[8px]">
-          <MatchConditions />
+          <MatchConditions value={props.matchConditions} onChange={props.onMatchConditionsChange} />
           <section aria-label="검색이력" className="flex flex-col gap-[6px]">
             <Band title="검색이력" />
             <div className="min-w-0 overflow-x-auto">

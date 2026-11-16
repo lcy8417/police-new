@@ -2,16 +2,19 @@ import * as React from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
-import { insertPatternPath, stripPatternPath, type PatternZone } from "@/entities/pattern"
+import { insertPatternPath, type PatternZone } from "@/entities/pattern"
 import { ZoneBands, type ZoneBand } from "@/shared/ui/viewer"
 import {
   BoundaryLines,
   PatternCodeScreen,
+  patternName,
   RoiBox,
   type CrimePatternTuple,
   type CrimeZones,
   type ExtractState,
+  type MatchConditionValues,
   type PaletteKind,
+  type ResearchState,
   type SearchImageSource,
 } from "@/widgets/pattern-code"
 
@@ -23,8 +26,10 @@ import {
   S04_CASES,
   S04_CODE_NOTES,
   S04_IMAGES,
+  S04_MATCH_CONDITIONS,
   S04_MOCK,
   S04_PALETTE,
+  S04_RESEARCH_MS,
   type NamedZones,
   type S04Case,
 } from "./mock-cases"
@@ -43,11 +48,6 @@ function hydrate(zones: NamedZones): CrimeZones {
   const out = {} as Record<PatternZone, CrimePatternTuple[]>
   for (const z of ZONE_KEYS) out[z] = zones[z].map((t) => insertPatternPath(t) as CrimePatternTuple)
   return out
-}
-
-const nameOf = (src: string) => {
-  const s = stripPatternPath(src)
-  return typeof s === "string" ? s : s[0]
 }
 
 /** 경계선 캔버스 자리에 넣는 가짜 그림 + 시안 도구 모양(고정 장식, pointer-events-none) */
@@ -90,6 +90,15 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
   const [extracted, setExtracted] = React.useState(mock.extracted)
   const [paletteKind, setPaletteKind] = React.useState<PaletteKind>("선")
   const [noteCode, setNoteCode] = React.useState<string | null>(caseName === "ready" ? "n32_04" : null)
+  const [researchState, setResearchState] = React.useState<ResearchState>("idle")
+  const [matchConditions, setMatchConditions] = React.useState<MatchConditionValues>(S04_MATCH_CONDITIONS)
+
+  // 진열용 실시간 재검색: 필수를 바꾸면 잠깐 「갱신 중」, S04_RESEARCH_MS 뒤 「갱신했습니다」(F20)
+  React.useEffect(() => {
+    if (researchState !== "running") return
+    const t = window.setTimeout(() => setResearchState("done"), S04_RESEARCH_MS)
+    return () => window.clearTimeout(t)
+  }, [researchState])
 
   // 진열용: 추출을 누르면 잠시 뒤 끝난 모양으로(running 케이스는 계속 도는 모양을 보여 준다)
   React.useEffect(() => {
@@ -113,6 +122,13 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
 
   const updateZone = (zone: PatternZone, fn: (items: NamedZones[PatternZone]) => NamedZones[PatternZone]) =>
     setZones((prev) => ({ ...prev, [zone]: fn(prev[zone]) }))
+
+  /** 클릭 넣기 · 끌어 놓기 공통 — 같은 부위에 같은 이름이 있으면 넣지 않는다(이름 기준, docs/pattern-data-model.md §2) */
+  const insertInto = (zone: PatternZone, src: string) => {
+    const name = patternName(src)
+    updateZone(zone, (items) => (items.some(([n]) => n === name) ? items : [...items, [name, 0] as const]))
+    setNoteCode(name)
+  }
 
   return (
     <PatternCodeScreen
@@ -139,15 +155,16 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
       zones={hydrated}
       selectedZone={selectedZone}
       onSelectZone={setSelectedZone}
-      onInsertPattern={(src) => {
-        const name = nameOf(src)
-        updateZone(selectedZone, (items) => (items.some(([n]) => n === name) ? items : [...items, [name, 0] as const]))
-        setNoteCode(name)
-      }}
+      onInsertPattern={(src) => insertInto(selectedZone, src)}
+      onInsertPatternToZone={insertInto}
       onRemovePattern={(zone, index) => updateZone(zone, (items) => items.filter((_, i) => i !== index))}
-      onToggleEssential={(zone, index) =>
+      onToggleEssential={(zone, index) => {
         updateZone(zone, (items) => items.map((t, i) => (i === index ? ([t[0], !t[1]] as const) : t)))
-      }
+        setResearchState("running")
+      }}
+      researchState={researchState}
+      matchConditions={matchConditions}
+      onMatchConditionsChange={setMatchConditions}
       onReset={() => {
         setZones(S04_MOCK.empty.zones)
         toast("4부위 문양을 모두 지웠습니다.")
