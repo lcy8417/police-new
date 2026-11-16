@@ -13,7 +13,29 @@ export interface ImageSearchResultItem {
   image: string
   /** 유사도 — 퍼센트 0~100(예 69.99). 서버가 문자열로 줄 수도 있다 */
   similarity: number | string
+  /**
+   * r3 빠른 찾기용 상표명. imageSearch 응답에는 없다 — 운영 연결 때 신발 목록(brandCode)에서 채우고, 없으면 화류번호로만 찾는다.
+   */
+  brandNm?: string | null
 }
+
+/** r3 결과형태(한 줄 카드 수). 1–6 = 보기 개수 칸, 8 = +α 「촘촘 8열」 */
+export type ResultColumns = 1 | 2 | 3 | 4 | 5 | 6 | 8
+
+/** r3 썸네일 크기 — 화면 글자 그대로 */
+export type ThumbSize = "작게" | "보통" | "크게"
+
+/** r3 이동 방식 — AutoPlayControl 값 그대로 */
+export type AutoMode = "manual" | "auto"
+
+/**
+ * r3 필터 묶음 키: grade(유사도 등급 ok · warn · danger) · seen(seen · unseen) · target(star) · ai(top10).
+ * seen · target · ai 는 +α 값(본 위치 · 확인대상 · AI 10건)이 있어야 칩이 보인다.
+ */
+export type ResultFilterKey = "grade" | "seen" | "target" | "ai"
+
+/** r3 필터 값(묶음 키 → 고른 값들, 빈 배열 · 없음 = 거르지 않음) */
+export type ResultFilterValues = Readonly<Partial<Record<ResultFilterKey, readonly string[]>>>
 
 /** 이진화/원본 보기 — 지금 앱의 한국어 리터럴 그대로(imageSearch 가 이 값으로 신발 이미지 폴더 B/Shoerinsics 를 고른다) */
 export type ImageMode = "이진화보기" | "원본보기"
@@ -162,4 +184,37 @@ export interface SearchResultScreenProps {
   onResume?: (rank: number) => void
   /** 동작이 아직 없는 +α 버튼(그룹등록 · 프린트 · 크게 보기 …) — 누른 버튼 글자 */
   onPlusAction?: (label: string) => void
+
+  // ── r3 편의(+α 아님 — showPlus 와 무관하게 보인다). 값은 모두 제어형, 바꾸는 콜백을 넘기면 그 조작이 보인다 ──
+
+  /** 결과형태(한 줄 카드 수). 없으면 위젯 안 기본값(+α 8열 · 아니면 4열) */
+  columns?: ResultColumns
+  onColumnsChange?: (columns: ResultColumns) => void
+  /** 썸네일 크기(기본 「보통」) */
+  thumbSize?: ThumbSize
+  onThumbSizeChange?: (size: ThumbSize) => void
+  /** 빠른 찾기 글자(화류번호 · 상표) — 지금 쪽 안에서 거른다 */
+  query?: string
+  onQueryChange?: (query: string) => void
+  /** 필터 칩 값 */
+  filters?: ResultFilterValues
+  onFiltersChange?: (key: ResultFilterKey, values: string[]) => void
+  /** 「조건 지우기」 — 글자 · 칩 모두 비움 */
+  onClearFilters?: () => void
+  /** 이동 방식(수동 · 자동) */
+  autoMode?: AutoMode
+  onAutoModeChange?: (mode: AutoMode) => void
+  /** 자동 넘김 간격(ms, 0.5초 단위 0.5~10초) */
+  intervalMs?: number
+  onIntervalChange?: (ms: number) => void
+  /** 자동 재생 중(일시정지 = false). 마지막 카드에서 위젯이 false 로 돌려준다 */
+  playing?: boolean
+  onPlayingChange?: (playing: boolean) => void
+  /** 초점 카드 순위(빠른 비교 창 · 자동 모드가 따라감). 없으면 insight.focusRank */
+  focusRank?: number | null
+  onFocusChange?: (rank: number) => void
+  /** 「어디까지 봤는지」 — 초점이 지나간 순위까지 올린다(+α 값이 있을 때만 부른다) */
+  onSeenUpToChange?: (rank: number) => void
+  /** 짧은 안내(전체 화면을 못 쓸 때 등) — 진열은 알림으로 띄운다 */
+  onNotice?: (message: string) => void
 }

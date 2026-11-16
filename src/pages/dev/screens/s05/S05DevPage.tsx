@@ -1,7 +1,14 @@
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
-import { SearchResultScreen, type ImageMode, type SearchTarget } from "@/widgets/search-result"
+import {
+  SearchResultScreen,
+  type AutoMode,
+  type ImageMode,
+  type ResultColumns,
+  type SearchTarget,
+  type ThumbSize,
+} from "@/widgets/search-result"
 
 import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevPlus, useDevViewer } from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
@@ -14,11 +21,18 @@ import {
   makeResults,
   S05_ERROR_AT,
   S05_IMAGE_NO,
+  S05_FOCUS_RANK,
   S05_PAGE_SIZE,
+  S05_SEEN_AT,
+  S05_SEEN_UP_TO,
   S05_TOTAL,
 } from "./mock-cases"
+import { isIntervalMs, isStringListRecord, oneOf, REMEMBER_PREFIX, useRememberedState } from "./use-remembered-state"
 
 const info = devScreen("s05")
+const KEY = `${REMEMBER_PREFIX}s05:`
+const COLUMN_VALUES: readonly (ResultColumns | null)[] = [null, 1, 2, 3, 4, 5, 6, 8]
+const THUMB_VALUES: readonly ThumbSize[] = ["작게", "보통", "크게"]
 
 // 결과 밑창 무늬 8가지(시안 S05 Z 배열)를 순위마다 돌려 쓴다
 const ZONES: readonly ZoneTriple[] = [
@@ -45,6 +59,18 @@ export function S05DevPage() {
   const [imageMode, setImageMode] = useState<ImageMode>("이진화보기")
   const [targets, setTargets] = useState<readonly SearchTarget[]>(INITIAL_TARGETS)
 
+  // r3 보기 설정 — 결과형태 · 썸네일 · 간격 · 필터는 이 브라우저에 기억(결과형태 null = 화면 기본: +α 8열 · 아니면 4열)
+  const [columns, setColumns] = useRememberedState<ResultColumns | null>(`${KEY}columns`, null, oneOf(COLUMN_VALUES))
+  const [thumbSize, setThumbSize] = useRememberedState<ThumbSize>(`${KEY}thumb`, "보통", oneOf(THUMB_VALUES))
+  const [intervalMs, setIntervalMs] = useRememberedState<number>(`${KEY}interval`, 2000, isIntervalMs)
+  const [filters, setFilters] = useRememberedState<Record<string, string[]>>(`${KEY}filters`, {}, isStringListRecord)
+  const [query, setQuery] = useState("")
+  // 자동 모드는 기억하지 않는다(다시 열 때 저절로 넘어가지 않게)
+  const [autoMode, setAutoMode] = useState<AutoMode>("manual")
+  const [playing, setPlaying] = useState(false)
+  const [focusRank, setFocusRank] = useState<number | null>(S05_FOCUS_RANK)
+  const [seen, setSeen] = useState({ upTo: S05_SEEN_UP_TO, at: S05_SEEN_AT })
+
   const sceneImage = useMemo(() => fakePhotoUrl({ zones: ["herring", "herring", "herring"], flip: true, tag: "" }), [])
   const soleUrls = useMemo(
     () => ZONES.map((zones, i) => fakeSoleUrl({ kind: imageMode === "이진화보기" ? "bin" : "shoe", zones, seed: i + 1 })),
@@ -54,7 +80,7 @@ export function S05DevPage() {
     () => (activeCase === "ready" ? makeResults(page, (rank) => soleUrls[(rank - 1) % soleUrls.length]) : []),
     [activeCase, page, soleUrls],
   )
-  const insight = useMemo(
+  const baseInsight = useMemo(
     () =>
       makeInsight({
         scene: sceneImage,
@@ -64,6 +90,8 @@ export function S05DevPage() {
       }),
     [sceneImage],
   )
+  // 「어디까지 봤는지」는 초점이 지나가며 올라간다(제어형)
+  const insight = useMemo(() => ({ ...baseInsight, seenUpTo: seen.upTo, seenAt: seen.at }), [baseInsight, seen])
 
   return (
     <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
@@ -97,8 +125,36 @@ export function S05DevPage() {
           setTargets(has ? targets.filter((x) => x.rank !== t.rank) : [...targets, t].sort((a, b) => a.rank - b.rank))
           toast(has ? `${t.rank}위 ${t.ftwrId} 확인대상 제외(진열용)` : `${t.rank}위 ${t.ftwrId} 확인대상 등록(진열용)`)
         }}
-        onResume={(rank) => setPage(Math.ceil(rank / S05_PAGE_SIZE))}
+        onResume={(rank) => {
+          setPage(Math.ceil(rank / S05_PAGE_SIZE))
+          setFocusRank(rank)
+        }}
         onPlusAction={(label) => toast(PLUS_NOT_READY, { description: label })}
+        columns={columns ?? undefined}
+        onColumnsChange={setColumns}
+        thumbSize={thumbSize}
+        onThumbSizeChange={setThumbSize}
+        query={query}
+        onQueryChange={setQuery}
+        filters={filters}
+        onFiltersChange={(key, values) => setFilters({ ...filters, [key]: values })}
+        onClearFilters={() => {
+          setQuery("")
+          setFilters({})
+        }}
+        autoMode={autoMode}
+        onAutoModeChange={(mode) => {
+          setAutoMode(mode)
+          setPlaying(mode === "auto")
+        }}
+        intervalMs={intervalMs}
+        onIntervalChange={setIntervalMs}
+        playing={playing}
+        onPlayingChange={setPlaying}
+        focusRank={focusRank}
+        onFocusChange={setFocusRank}
+        onSeenUpToChange={(rank) => setSeen({ upTo: rank, at: "방금" })}
+        onNotice={(message) => toast(message)}
       />
     </DevScreenFrame>
   )
