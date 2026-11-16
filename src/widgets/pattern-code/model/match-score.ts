@@ -55,35 +55,67 @@ export function searchQuery(zones: ZoneTuples, meta: PatternMetaMap | undefined,
   return out
 }
 
-/** 한 신발의 문양 점수. 필수에 걸려 빠지면 null, 검색 문양이 없으면 0 */
-export function patternScore(query: readonly QueryPattern[], shoe: ShoePatterns): number | null {
+/** 한 신발의 판정 — 필수에 걸려 빠짐 / 문양 점수(0~1) / 점수 없음(검색 문양이 비어 이미지 유사도만) */
+export type PatternScoreResult = { excluded: true } | { excluded: false; score: number | null }
+
+/**
+ * 한 신발의 문양 점수(spec §4). 필수에 걸려 빠지면 null.
+ * 검색 문양 Q 가 비면 「점수 없음」 — 0점과 다르다(1회차 검수: 0 으로 두면 모든 신발이 0점 동점으로 ID 순 정렬됨). `scoreOf` 로 구분해 읽는다.
+ */
+export function scoreOf(query: readonly QueryPattern[], shoe: ShoePatterns): PatternScoreResult {
   let total = 0
   let hit = 0
   for (const q of query) {
     const has = shoe.zones[q.zone].includes(q.name)
-    if (q.essential && !has) return null
+    if (q.essential && !has) return { excluded: true }
     total += q.weight
     if (has) hit += q.weight
   }
-  return total === 0 ? 0 : hit / total
+  return { excluded: false, score: total === 0 ? null : hit / total }
 }
 
-/** 필수를 통과한 신발을 점수 내림차순(같으면 신발 ID 순)으로 */
+/** 한 신발의 문양 점수 — 필수에 걸려 빠지거나 검색 문양이 없어 점수가 없으면 null(둘을 가르려면 `scoreOf`) */
+export function patternScore(query: readonly QueryPattern[], shoe: ShoePatterns): number | null {
+  const r = scoreOf(query, shoe)
+  return r.excluded ? null : r.score
+}
+
+/**
+ * 필수를 통과한 신발을 점수 내림차순(같으면 신발 ID 순)으로.
+ * 검색 문양이 없으면(점수 없음) 점수로 줄 세우지 않고 받은 순서(= 이미지 유사도 순서) 그대로, 점수는 null.
+ */
 export function rankShoes(query: readonly QueryPattern[], shoes: readonly ShoePatterns[]): SearchRunHit[] {
   const out: SearchRunHit[] = []
   for (const shoe of shoes) {
-    const score = patternScore(query, shoe)
-    if (score !== null) out.push({ ftwrId: shoe.ftwrId, score })
+    const r = scoreOf(query, shoe)
+    if (!r.excluded) out.push({ ftwrId: shoe.ftwrId, score: r.score })
   }
-  return out.sort((a, b) => b.score - a.score || a.ftwrId.localeCompare(b.ftwrId))
+  if (query.length === 0) return out
+  return out.sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || a.ftwrId.localeCompare(b.ftwrId))
 }
 
-/** 검색 문양 Q → 이력에 남길 부위별 문양(필수 · 가중치 · 직접) */
-export function runSnapshot(query: readonly QueryPattern[], weights: PatternWeightMap): Record<PatternZone, SearchRunPattern[]> {
+/** 검색 문양 Q → 이력에 남길 부위별 문양(필수 · 가중치 · 직접 · 그때의 카드 상태와 확신도) */
+export function runSnapshot(
+  query: readonly QueryPattern[],
+  weights: PatternWeightMap,
+  meta?: PatternMetaMap,
+): Record<PatternZone, SearchRunPattern[]> {
   const out = { top: [], mid: [], bottom: [], outline: [] } as Record<PatternZone, SearchRunPattern[]>
   for (const q of query) {
     const w = weights[q.zone]?.[q.name]
-    out[q.zone].push({ name: q.name, essential: q.essential, weight: w?.level ?? "normal", manual: w?.source === "manual" })
+    const m = meta?.[q.zone]?.[q.name]
+    const p: SearchRunPattern = { name: q.name, essential: q.essential, weight: w?.level ?? "normal", manual: w?.source === "manual" }
+    // 검색에 들어간 문양은 확인된 문양뿐(확인 전 제안은 Q 에서 빠짐) — AI 면 「ai」로, 확신도를 함께 남긴다
+    if (m && m.status !== "manual") {
+      p.status = "ai"
+      if (m.confidence !== undefined) p.confidence = m.confidence
+    }
+    out[q.zone].push(p)
   }
   return out
+}
+
+/** 이력 한 줄의 문양 → 검색 문양 Q(검색 결과 탭이 그 검색의 순위를 다시 낼 때 — 그때의 가중치 단계 값 그대로) */
+export function queryOfRun(zones: Readonly<Record<PatternZone, readonly SearchRunPattern[]>>): QueryPattern[] {
+  return ZONES.flatMap((zone) => zones[zone].map((p) => ({ zone, name: p.name, essential: p.essential, weight: WEIGHT_VALUE[p.weight] })))
 }

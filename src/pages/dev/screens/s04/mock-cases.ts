@@ -1,6 +1,7 @@
 import type { EssentialFlag, PatternZone } from "@/entities/pattern"
 import {
   patternWeights,
+  queryOfRun,
   rankShoes,
   runSnapshot,
   searchQuery,
@@ -231,12 +232,33 @@ export function fakeSearchRun(args: {
     searchNo: args.searchNo,
     at: args.at,
     source: args.source,
-    zones: runSnapshot(query, weights),
+    zones: runSnapshot(query, weights, args.meta),
     conditions: args.conditions,
     resultCount: ranked.length,
     top: ranked.slice(0, 5).map((h) => ({ ...h, src: soleOf(h.ftwrId) })),
   }
 }
+
+/** 사건 창 보관함(frame/work-memory)에서 이 이미지의 검색 이력 칸 이름 — 검색 결과 탭이 같은 이름으로 읽는다 */
+export const S04_RUNS_FIELD = "s04.runs"
+/** 사건 창 보관함에서 이 이미지의 4부위 문양 칸 이름 — 정밀 대조 탭 비교 띠 · 검색 결과 빠른 비교가 읽는다 */
+export const S04_ZONES_FIELD = "s04.zones"
+
+/**
+ * 이력 한 줄의 전체 순위(검색 결과 탭 「자세히 →」) — 그때 남긴 문양 · 필수 · 가중치로 같은 가짜 신발 DB 를 다시 돌린다.
+ * 같은 식 · 같은 DB 라 이력 줄의 결과 수 · 상위 신발 · 점수와 똑같이 나온다(결과를 통째로 들고 다니지 않음).
+ */
+export function rankOfRun(run: SearchRun) {
+  return rankShoes(queryOfRun(run.zones), S04_FAKE_SHOES)
+}
+
+/** 가짜 신발 DB 의 한 켤레 문양(없으면 undefined) — 정밀 대조 비교 띠 · 검색 결과 빠른 비교 */
+export function fakeShoePatterns(ftwrId: string): ShoePatterns | undefined {
+  return S04_FAKE_SHOES.find((s) => s.ftwrId === ftwrId)
+}
+
+/** 신발 ID → 밑창 그림(검색 이력 썸네일과 같은 그림) */
+export { soleOf as fakeSoleOf }
 
 /** 처음 보이는 검색 이력 두 줄(최신이 앞) — 상 · 중 헤링본 필수만(원본) → 윤곽 · 마크까지 넣고 마크를 높음으로(편집본) */
 export const S04_RUNS: SearchRun[] = [

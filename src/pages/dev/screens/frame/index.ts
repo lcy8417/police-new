@@ -13,4 +13,16 @@ export {
   useRememberedState,
   type RememberedUpdate,
 } from "./use-remembered-state"
+export {
+  WorkMemoryProvider,
+  imageScope,
+  readWork,
+  useWorkScope,
+  useWorkState,
+  useWorkValue,
+  useWorkWriter,
+  workKey,
+  writeWork,
+  type WorkStore,
+} from "./work-memory"
 export { DEV_SCREENS, SCREEN_CASES, devScreen, type DevScreenId, type DevScreenInfo } from "./dev-screens"

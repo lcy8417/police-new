@@ -24,6 +24,7 @@ import {
   useDevPlus,
   useDevViewer,
   useRememberedState,
+  useWorkState,
   type DevGo,
 } from "../frame"
 import type { S07Facts } from "../s01/case-flow"
@@ -94,9 +95,10 @@ function S07WindowContent({ devCase, facts, go }: { devCase: S07ContentProps["de
   const nav = useDevNavigate()
   const to = go ?? nav
   const viewer = useDevViewer()
-  const [picked, setPicked] = useState<Record<string, Judgement>>({})
-  const [requested, setRequested] = useState(false)
-  const [reviewer, setReviewer] = useState<string | null>(null)
+  // 판정 · 교차 검증 요청은 탭을 옮겨도 남는다(사건 창 보관함 — 사건 단위, 1회차 검수)
+  const [picked, setPicked] = useWorkState<Record<string, Judgement>>("s07.picked", {})
+  const [requested, setRequested] = useWorkState("s07.requested", false)
+  const [reviewer, setReviewer] = useWorkState<string | null>("s07.reviewer", null)
   const rows = useMemo<ConfirmRow[]>(
     () => facts.rows.map((r) => (picked[r.no] ? { ...r, judgement: picked[r.no] } : r)),
     [facts.rows, picked],

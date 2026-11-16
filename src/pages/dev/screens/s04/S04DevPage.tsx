@@ -9,8 +9,11 @@ import {
   HISTORY_COLUMNS,
   PatternCodeScreen,
   patternName,
+  patternWeights,
   PriceTagBox,
   RoiBox,
+  runSnapshot,
+  searchQuery,
   ZoneConfidenceTags,
   type CrimePatternTuple,
   type CrimeZones,
@@ -39,6 +42,7 @@ import {
   useDevPlus,
   useDevViewer,
   useRememberedState,
+  useWorkState,
   type DevGo,
 } from "../frame"
 import { FakePhoto } from "../mock-assets/FakePhoto"
@@ -50,6 +54,8 @@ import {
   S04_KINDS,
   S04_LIBRARY,
   S04_RUNS,
+  S04_RUNS_FIELD,
+  S04_ZONES_FIELD,
   S04_CODE_NOTES,
   S04_FUNNEL,
   S04_IMAGE_REST,
@@ -133,39 +139,76 @@ function FakePatternCanvas({ source, plus, imageNo }: { source: SearchImageSourc
   )
 }
 
-/** 다음 미코딩 이미지(지금 이미지 제외) */
-function nextUncoded(statuses: Record<string, ImageCodingStatus>, current: string): string | null {
-  return S04_IMAGES.find((no) => no !== current && statuses[no] === "uncoded") ?? null
+/** 다음 미코딩 이미지(지금 이미지 제외 · 목록 순서) */
+function nextUncoded(images: readonly string[], statuses: Record<string, ImageCodingStatus>, current: string): string | null {
+  return images.find((no) => no !== current && statuses[no] === "uncoded") ?? null
 }
 
-function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Case; imageNo: string; go?: DevGo; inWindow?: boolean }) {
+/** 사건 창이 넘기는 그 사건의 이미지 한 장(이미지 번호 · 코딩 상태) */
+export interface S04CaseImage {
+  imageNo: string
+  status: ImageCodingStatus
+}
+
+/** 지금 화면 조건의 검색 이력 모양(「지금」 줄 찾기 — 문양 · 필수 · 가중치 · 매칭 조건 · 이미지가 모두 같은 줄) */
+function conditionKey(zones: NamedZones, meta: PatternMetaMap, overrides: WeightOverrideMap, conditions: MatchConditionValues, source: SearchImageSource) {
+  const weights = patternWeights(zones, meta, S04_KINDS, overrides)
+  return JSON.stringify([runSnapshot(searchQuery(zones, meta, weights), weights, meta), conditions, source])
+}
+
+interface S04StageProps {
+  caseName: S04Case
+  imageNo: string
+  go?: DevGo
+  inWindow?: boolean
+  caseImages?: readonly S04CaseImage[]
+  onPickImage?: (imageNo: string) => void
+}
+
+function S04Stage({ caseName, imageNo, go: goProp, inWindow, caseImages, onPickImage }: S04StageProps) {
   const mock = S04_MOCK[caseName]
   const viewer = useDevViewer()
   const plus = useDevPlus()
   const nav = useDevNavigate()
   const go = goProp ?? nav
-  const [meta, setMeta] = React.useState<PatternMetaMap>(mock.meta)
-  const [imageStatuses, setImageStatuses] = React.useState<Record<string, ImageCodingStatus>>(S04_IMAGE_STATUSES)
+  // 탭을 옮겨도 남는 작업 값(1회차 검수) — 사건 창이면 S01 보관함에 이미지별로 남는다(frame/work-memory). 단독 진열은 useState 와 같음
+  const [meta, setMeta] = useWorkState<PatternMetaMap>("s04.meta", mock.meta)
+  const [ownStatuses, setImageStatuses] = React.useState<Record<string, ImageCodingStatus>>(S04_IMAGE_STATUSES)
+  // 사건 창은 그 사건의 이미지 목록(바깥 왼쪽 목록과 같은 것), 단독 진열은 시안 6장
+  const imageStatuses = React.useMemo(
+    () => (caseImages ? Object.fromEntries(caseImages.map((i) => [i.imageNo, i.status])) : ownStatuses),
+    [caseImages, ownStatuses],
+  )
+  const imageList = React.useMemo(() => (caseImages ? caseImages.map((i) => i.imageNo) : S04_IMAGES), [caseImages])
   const [historyQuery, setHistoryQuery] = React.useState("")
   // r3 보기 설정(설계서 §14-6): 검색 이력 보이는 열은 이 브라우저에 기억. 검색어는 이번 화면에서만
   const [historyColumns, setHistoryColumns] = useRememberedState<string[]>("s04", "historyColumns", HISTORY_KEYS, isHistoryKeys)
-  const [soleText, setSoleText] = React.useState("")
+  const [soleText, setSoleText] = useWorkState("s04.soleText", "")
   const [searchMethod, setSearchMethod] = React.useState<SearchMethod>("image")
   const [selectedSearchNo, setSelectedSearchNo] = React.useState<number | undefined>(mock.history[0]?.searchNo)
 
   const [aprthngNo, setAprthngNo] = React.useState(imageNo)
-  const [zones, setZones] = React.useState<NamedZones>(mock.zones)
+  const [zones, setZones] = useWorkState<NamedZones>(S04_ZONES_FIELD, mock.zones)
   const [selectedZone, setSelectedZone] = React.useState<PatternZone>("top")
-  const [searchImage, setSearchImage] = React.useState<SearchImageSource>("edited")
-  const [extractState, setExtractState] = React.useState<ExtractState>(mock.extractState)
-  const [extracted, setExtracted] = React.useState(mock.extracted)
+  const [searchImage, setSearchImage] = useWorkState<SearchImageSource>("s04.searchImage", "edited")
+  const [extractState, setExtractState] = useWorkState<ExtractState>("s04.extractState", mock.extractState)
+  const [extracted, setExtracted] = useWorkState("s04.extracted", mock.extracted)
   const [paletteKind, setPaletteKind] = React.useState<PaletteKind>("선")
   const [noteCode, setNoteCode] = React.useState<string | null>(caseName === "ready" ? "n32_04" : null)
   const [researchState, setResearchState] = React.useState<ResearchState>("idle")
-  const [matchConditions, setMatchConditions] = React.useState<MatchConditionValues>(S04_MATCH_CONDITIONS)
+  const [matchConditions, setMatchConditions] = useWorkState<MatchConditionValues>("s04.conditions", S04_MATCH_CONDITIONS)
   // 사건 창(11/17): 사람이 고른 가중치 · 조건별 검색 이력(가짜 계산 — spec 2026-11-17-pattern-weight-rule-design §4)
-  const [weightOverrides, setWeightOverrides] = React.useState<WeightOverrideMap>({})
-  const [searchRuns, setSearchRuns] = React.useState<SearchRun[]>(caseName === "ready" || caseName === "running" ? S04_RUNS : [])
+  const [weightOverrides, setWeightOverrides] = useWorkState<WeightOverrideMap>("s04.weights", {})
+  const [searchRuns, setSearchRuns] = useWorkState<SearchRun[]>(
+    S04_RUNS_FIELD,
+    caseName === "ready" || caseName === "running" ? S04_RUNS : [],
+  )
+  // 「지금」 줄 = 지금 조건과 똑같은 이력 줄(가장 최근)
+  const currentRunNo = React.useMemo(() => {
+    if (!inWindow) return undefined
+    const now = conditionKey(zones, meta, weightOverrides, matchConditions, searchImage)
+    return searchRuns.find((r) => JSON.stringify([r.zones, r.conditions, r.source]) === now)?.searchNo
+  }, [inWindow, zones, meta, weightOverrides, matchConditions, searchImage, searchRuns])
 
   // 진열용 실시간 재검색: 필수를 바꾸면 잠깐 「갱신 중」, S04_RESEARCH_MS 뒤 「갱신했습니다」(F20)
   React.useEffect(() => {
@@ -182,7 +225,7 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
       setExtractState("done")
     }, 1500)
     return () => window.clearTimeout(t)
-  }, [extractState, caseName])
+  }, [extractState, caseName, setExtractState, setExtracted])
 
   const hydrated = React.useMemo(() => hydrate(zones), [zones])
   // 사건 창은 전체 문양 목록(폴더 그대로), 단독 진열은 시안 앞쪽 일부 그대로
@@ -217,7 +260,12 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
   /** 클릭 넣기 · 끌어 놓기 공통 — 같은 부위에 같은 이름이 있으면 넣지 않는다(이름 기준, docs/pattern-data-model.md §2) */
   const insertInto = (zone: PatternZone, src: string) => {
     const name = patternName(src)
+    if (zones[zone].some(([n]) => n === name)) return
     updateZone(zone, (items) => (items.some(([n]) => n === name) ? items : [...items, [name, 0] as const]))
+    // AI 추출 결과에 있는 문양이면(「AI」 탭에서 누르거나 끌어 넣음) AI 출처 · 확신도를 그대로 남긴다 —
+    // 사람이 골라 넣었으니 확인된 AI 문양(「ai」). 수동으로 처리하면 R3(저확신 −1)가 빠져 가중치가 올라간다(1회차 검수)
+    const ai = extracted.find((e) => e.code === name)
+    if (ai) patchMeta(zone, name, { status: "ai", confidence: ai.score })
     setNoteCode(name)
   }
 
@@ -246,7 +294,10 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
     toast.success(`검색 ${searchNo} — 결과 ${run.resultCount.toLocaleString("ko-KR")}건(진열 가짜 계산)`)
   }
 
-  /** 「이 조건 다시 불러오기」 — 그때의 문양 · 필수 · 가중치 · 매칭 조건 · 이미지를 되살린다(그때 검색한 문양은 모두 확인된 문양) */
+  /**
+   * 「이 조건 다시 불러오기」 — 그때의 문양 · 필수 · 가중치 · 매칭 조건 · 이미지를 되살린다(그때 검색한 문양은 모두 확인된 문양).
+   * 카드 상태 · AI 확신도는 지금 화면 값이 아니라 이력에 남긴 그때 값으로(1회차 검수 — 지운 저확신 AI 문양의 R3 가 풀려 가중치가 바뀌던 것)
+   */
   const restoreRun = (searchNo: number) => {
     const run = searchRuns.find((r) => r.searchNo === searchNo)
     if (!run) return
@@ -258,8 +309,7 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
       const zoneMeta: Record<string, PatternCardMeta> = {}
       const zoneOverrides: Record<string, WeightLevel> = {}
       for (const p of run.zones[z]) {
-        const m = meta[z]?.[p.name]
-        if (m) zoneMeta[p.name] = m.status === "suggested" ? { ...m, status: "ai" } : m
+        if (p.status && p.status !== "manual") zoneMeta[p.name] = { status: "ai", ...(p.confidence !== undefined ? { confidence: p.confidence } : {}) }
         if (p.manual) zoneOverrides[p.name] = p.weight
       }
       nextMeta[z] = zoneMeta
@@ -284,8 +334,12 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
       inWindow={inWindow}
       onPlusAction={notReady}
       aprthngNo={aprthngNo}
-      images={S04_IMAGES}
+      images={imageList}
       onSelectImage={(no) => {
+        if (onPickImage) {
+          onPickImage(no)
+          return
+        }
         setAprthngNo(no)
         toast(`${no} 이미지로 바꿨습니다(진열용 — 문양은 같은 가짜 값).`)
       }}
@@ -316,9 +370,11 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
       matchConditions={matchConditions}
       onMatchConditionsChange={setMatchConditions}
       onReset={() => {
+        // 문양 · 카드 덧붙임 · 직접 가중치를 함께 지운다(가중치만 남으면 빈 화면에 「직접 n」이 남고 다시 넣을 때 옛 값이 되살아남 — 1회차 검수)
         setZones(S04_MOCK.empty.zones)
         setMeta({})
-        toast("4부위 문양을 모두 지웠습니다.")
+        setWeightOverrides({})
+        toast("4부위 문양 · 직접 고른 가중치를 모두 지웠습니다.")
       }}
       paletteKind={paletteKind}
       onPaletteKindChange={setPaletteKind}
@@ -343,19 +399,26 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
               go("/dev/s05")
             }
       }
-      onOpenResults={() => go("/dev/s05")}
+      // 사건 창 「검색결과」 = 가장 최근 검색의 결과(이력 줄 「자세히 →」와 같음)
+      onOpenResults={() => go("/dev/s05", inWindow && searchRuns[0] ? { run: String(searchRuns[0].searchNo) } : {})}
       onClose={() => go("/dev/s02")}
       // ── 시안 r2 신규(+α) ──
       editedLook="이진화"
       priceTagWarning
       imageStatuses={imageStatuses}
       imageProgress={{
-        total: S04_IMAGE_TOTAL,
+        // 사건 창 = 그 사건의 장 수 · 바깥 이미지 목록 순서, 단독 진열 = 시안 「12장 중 …」
+        total: caseImages ? caseImages.length : S04_IMAGE_TOTAL,
         done: Object.values(imageStatuses).filter((s) => s === "done").length,
-        rest: S04_IMAGE_REST,
-        next: nextUncoded(imageStatuses, aprthngNo),
+        rest: caseImages ? undefined : S04_IMAGE_REST,
+        next: nextUncoded(imageList, imageStatuses, aprthngNo),
       }}
       onNextImage={(no) => {
+        // 사건 창: 바깥 이미지 목록에서 그 장을 고른 것과 같다(그 장의 작업 값으로 바뀜)
+        if (onPickImage) {
+          onPickImage(no)
+          return
+        }
         // 진열용: 넘어간 이미지를 「검색 중」으로, 떠난 이미지는 그대로 둔다
         setImageStatuses((prev) => ({ ...prev, [no]: "searching" }))
         setAprthngNo(no)
@@ -392,6 +455,7 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
         toast("가중치를 모두 규칙 기본값으로 되돌렸습니다.")
       }}
       searchRuns={searchRuns}
+      currentRunNo={currentRunNo}
       onRestoreRun={restoreRun}
       onOpenRun={(searchNo) => go("/dev/s05", { run: String(searchNo) })}
       lensSource={<FakePatternCanvas source={searchImage} plus={plus} imageNo={imageNo} />}
@@ -407,11 +471,25 @@ export interface S04ContentProps {
   go?: DevGo
   /** 사건 창 안(11/17) — 겹치는 제목 줄 · 닫기 · 이미지 목록 없이 세 칸 · 높이 꽉(위젯 `inWindow`) */
   inWindow?: boolean
+  /** 사건 창: 그 사건의 이미지 목록(진행 · 「다음 이미지」가 바깥 이미지 목록과 같게). 없으면 시안 6장 */
+  caseImages?: readonly S04CaseImage[]
+  /** 사건 창: 다른 장 고르기(바깥 이미지 목록 고르기와 같음) */
+  onPickImage?: (imageNo: string) => void
 }
 
 /** S04 틀 없는 내용 — 진열 페이지와 사건 창(「문양 코드」 탭)이 같이 쓴다 */
-export function S04Content({ devCase, imageNo = S04_APRTHNG_NO, go, inWindow }: S04ContentProps) {
-  return <S04Stage key={devCase} caseName={devCase} imageNo={imageNo} go={go} inWindow={inWindow} />
+export function S04Content({ devCase, imageNo = S04_APRTHNG_NO, go, inWindow, caseImages, onPickImage }: S04ContentProps) {
+  return (
+    <S04Stage
+      key={devCase}
+      caseName={devCase}
+      imageNo={imageNo}
+      go={go}
+      inWindow={inWindow}
+      caseImages={caseImages}
+      onPickImage={onPickImage}
+    />
+  )
 }
 
 // S04 문양 코딩 · 검색 조건 진열 페이지 — 정본 위젯에 가짜 값 · 이동 콜백만 넘긴다.

@@ -14,6 +14,19 @@ import type {
 export const S06_ERROR_AT = "17:31"
 export const S06_DEFAULT_FTWR = "00758"
 
+/** 사건 창 보관함(frame/work-memory)에서 이 이미지의 「확인대상」 칸 이름 — 결과 확인 탭(S01)이 같은 이름으로 읽는다 */
+export const CONFIRM_TARGET_FIELD = "s06.confirmTarget"
+
+/** 정밀 대조에서 확인대상으로 넘긴 신발(이미지 한 장에 하나) */
+export interface ConfirmTarget {
+  /** 신발 ID — 문자열 그대로(앞자리 0 보존) */
+  ftwrId: string
+  /** 검색 순위(모르면 null) */
+  rank: number | null
+  /** 유사도 퍼센트(모르면 null) */
+  similarity: number | null
+}
+
 /** 좌표계 크기: 현장 = FakePhoto(200×300) × 5, 신발 = FakeSole(100×264) × 4 */
 export const CRIME_SIZE = { width: 1000, height: 1500 } as const
 export const SHOE_SIZE = { width: 400, height: 1056 } as const

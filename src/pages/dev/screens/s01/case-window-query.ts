@@ -2,7 +2,8 @@ import type { CaseWindowTab } from "@/widgets/case-window"
 
 // 사건 창 상태 = 주소(query). `?open=<감정번호>&img=<이미지 번호>&tab=<탭>&tabs=<열린 감정번호들, 쉼표>`.
 // 뒤로가기로 이전 상태, 주소를 그대로 보내면 같은 창이 열린다. 다른 query(as · plus · case …)는 건드리지 않는다.
-// `ftwr` · `rank` 는 창 안 검색 결과 → 정밀 대조 → 결과 확인으로 넘기는 신발 번호(S06 · S07 내용이 주소에서 읽는다) — 창을 닫으면 지운다.
+// `ftwr` · `rank` · `run` 은 창 안 검색 결과 → 정밀 대조 → 결과 확인으로 넘기는 신발 번호 · 검색번호(S05–S07 내용이 주소에서 읽는다) —
+// 창을 닫거나 사건 · 이미지를 바꾸면 지운다.
 
 export const CASE_WINDOW_TABS: readonly CaseWindowTab[] = ["info", "edit", "pattern", "search", "compare", "confirm"]
 
@@ -19,8 +20,11 @@ export interface CaseWindowQuery {
   tabs: string[]
 }
 
+/** 창 안 검색 문맥(검색 결과 · 정밀 대조 · 결과 확인이 주소에서 읽는 신발 · 순위 · 검색번호) — 그 사건 · 그 이미지 것 */
+const CONTEXT_KEYS = ["ftwr", "rank", "run"] as const
+
 /** 창을 닫을 때 지우는 키. 열린 사건 탭 목록(`tabs`)은 남긴다 — 닫고 다른 행을 누르면 탭 줄 끝에 더해진다(로망 작업 탭처럼) */
-const WINDOW_KEYS = ["open", "img", "tab", "ftwr", "rank"] as const
+const WINDOW_KEYS = ["open", "img", "tab", ...CONTEXT_KEYS] as const
 
 const isTab = (v: string | null): v is CaseWindowTab => CASE_WINDOW_TABS.some((t) => t === v)
 
@@ -49,6 +53,10 @@ export function writeCaseWindow(params: URLSearchParams, next: CaseWindowQuery |
     for (const k of WINDOW_KEYS) out.delete(k)
     if (clearTabs) out.delete("tabs")
     return out
+  }
+  // 사건이나 이미지가 바뀌면 앞 사건 · 이미지의 검색 문맥(ftwr · rank · run)을 지운다(1회차 검수 — 다른 사건에 옛 신발 · 검색번호가 따라가던 것)
+  if (params.get("open") !== next.open || (params.get("img") ?? null) !== (next.img ?? null)) {
+    for (const k of CONTEXT_KEYS) out.delete(k)
   }
   out.set("open", next.open)
   if (next.img) out.set("img", next.img)

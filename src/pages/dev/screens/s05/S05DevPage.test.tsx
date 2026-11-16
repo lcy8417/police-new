@@ -169,7 +169,7 @@ describe("S05 r2 — 시안 +α", () => {
     expect(document.querySelector('[data-result-card][data-rank="137"]')).not.toBeNull()
     expect(screen.getByText("여기까지 봤음 · 136위 · 07-24 17:52")).toBeInTheDocument()
     const peek = screen.getByRole("dialog", { name: "빠른 비교" })
-    expect(within(peek).getByText("137위 · 305102 · 58.4%")).toBeInTheDocument()
+    expect(within(peek).getByText("137위 · 305102 · 54.4%")).toBeInTheDocument()
     expect(within(peek).getByText("하 부위 다름 → 확인대상 신중")).toBeInTheDocument()
     // 이미 본 카드(136위 이하)는 흐리게, 137위는 초점
     expect(document.querySelector('[data-result-card][data-rank="136"]')).toHaveAttribute("data-seen", "true")

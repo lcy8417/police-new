@@ -130,14 +130,18 @@ export interface SearchRunPattern {
   weight: WeightLevel
   /** 사람이 고른 값이었나(「직접」) */
   manual: boolean
+  /** 그때의 카드 상태(AI · 확인 / 수동) — 다시 불러올 때 규칙 R3 · R4 를 그때와 같게. 없으면 수동 */
+  status?: PatternCardStatus
+  /** 그때의 AI 확신도 0~1(AI 문양만) — 다시 불러올 때 규칙 R3 를 그때와 같게 */
+  confidence?: number
 }
 
 /** 검색 결과 상위 한 건(진열 가짜 계산) */
 export interface SearchRunHit {
   /** 신발 ID — 문자열 그대로(앞자리 0 보존) */
   ftwrId: string
-  /** 문양 점수 0~1(spec §4) */
-  score: number
+  /** 문양 점수 0~1(spec §4). 검색 문양이 없으면 null(「점수 없음」 — 이미지 유사도만, 0점과 다름) */
+  score: number | null
   /** 밑창 그림 주소(검색 이력 썸네일 — 운영 `/shoes_images/{B|Shoerinsics}/<ftwrId>.png`) */
   src?: string
 }
@@ -297,6 +301,8 @@ export interface PatternCodeScreenProps {
   onResetWeights?: () => void
   /** 검색 이력(검색 한 번 = 한 줄, 최신이 앞). 있으면 창 모드 「검색 이력」 탭이 이 모양으로 그린다 */
   searchRuns?: readonly SearchRun[]
+  /** 지금 화면 조건(문양 · 필수 · 가중치 · 매칭 조건 · 이미지)과 같은 이력 줄의 검색번호 — 그 줄에 「지금」 표시. 없으면 표시 없음 */
+  currentRunNo?: number
   /** 「이 조건 다시 불러오기」 */
   onRestoreRun?: (searchNo: number) => void
   /** 「결과 보기」(검색 결과 탭으로) */

@@ -18,8 +18,14 @@ import {
   useDevPlus,
   useDevViewer,
   useRememberedState,
+  WorkMemoryProvider,
+  imageScope,
+  readWork,
   type DevGo,
+  type WorkStore,
 } from "../frame"
+import { sampleSoleUrl } from "../mock-assets/sample-images"
+import { CONFIRM_TARGET_FIELD, type ConfirmTarget } from "../s06"
 import { S02Content } from "../s02"
 import { CaseWindowUpload } from "./CaseWindowUpload"
 import { caseFlowOf, s02FactsOf, s07FactsOf, tabMarksOf } from "./case-flow"
@@ -175,6 +181,9 @@ export function S01DevPage() {
     setParams(next)
   }
   const win = shoeOpen ? null : readCaseWindow(params)
+  // 사건 창 작업 보관함(1회차 검수 — 탭을 옮겨도 문양 · 가중치 · 검색 이력 · 확인대상 · 판정 · 편집 이력이 남게).
+  // 본문(S02–S07 내용)은 탭마다 새로 그려지므로 작업 값은 여기(S01)가 사건 · 이미지별로 든다(frame/work-memory)
+  const [workStore] = React.useState<WorkStore>(() => new Map())
   const rowOf = (no: string) => allRows.find((r) => r.aprthngNo === no)
   const imagesOf = (no: string) => {
     const row = rowOf(no)
@@ -235,6 +244,33 @@ export function S01DevPage() {
     // 머리 흐름 한 줄 · 탭 표시 · S02 값 — 모두 이 사건 행(장수 · 진행 · 결과 · 단계)에서 만든다(case-flow.ts)
     const flow = caseFlowOf(openRow, images, plus)
     const canEdit = viewer.isAdmin || viewer.features.includes(FEATURES.CRIME_REGISTER)
+    // 문양 코드 탭 진행 · 「다음 이미지」 = 바깥 이미지 목록 그대로(장 상태 → 코딩 상태)
+    const caseImages = images.map((i) => ({
+      imageNo: i.imageNo,
+      status: i.status === "등록" ? ("uncoded" as const) : i.status === "검색됨" ? ("searching" as const) : ("done" as const),
+    }))
+    const pickImage = (imageNo: string) => {
+      const no = /_(\d+)$/.exec(imageNo)?.[1]
+      if (no) setWindow({ ...win, img: no })
+    }
+    // 결과 확인 = 정밀 대조에서 「확인대상」으로 넘긴 신발을 그 장의 판정 줄에 싣는다(1회차 검수)
+    const baseFacts = s07FactsOf(openRow, flow)
+    const confirmFacts = {
+      ...baseFacts,
+      rows: baseFacts.rows.map((r) => {
+        const t = readWork<ConfirmTarget>(workStore, imageScope(win.open, r.no), CONFIRM_TARGET_FIELD)
+        if (!t) return r
+        return {
+          ...r,
+          shoe: {
+            ftwrId: t.ftwrId,
+            image: sampleSoleUrl(t.ftwrId, { kind: "shoe" }),
+            score: t.similarity ?? r.shoe?.score ?? 0,
+            ranking: t.rank ?? r.shoe?.ranking ?? 1,
+          },
+        }
+      }),
+    }
     const body =
       win.tab === "info" ? (
         <S02Content
@@ -249,14 +285,16 @@ export function S01DevPage() {
       ) : win.tab === "edit" ? (
         <S03Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} inWindow />
       ) : win.tab === "pattern" ? (
-        <S04Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} inWindow />
+        <S04Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} inWindow caseImages={caseImages} onPickImage={pickImage} />
       ) : win.tab === "search" ? (
         <S05Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} inWindow searchNo={params.get("run") ?? undefined} />
       ) : win.tab === "compare" ? (
         <S06Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} inWindow />
       ) : (
-        <S07Content key={key} devCase="ready" go={windowGo} inWindow facts={s07FactsOf(openRow, flow)} />
+        <S07Content key={key} devCase="ready" go={windowGo} inWindow facts={confirmFacts} />
       )
+    // 작업 값 범위: 사건 정보 · 결과 확인 = 사건 단위, 그 밖 = 이미지 단위
+    const workScope = win.tab === "confirm" || win.tab === "info" ? win.open : imageScope(win.open, img)
     // 작업 탭 줄 「+」(11/17 사용자 「오른쪽에 + 버튼으로 기존 기능들이나 사건들 추가」): 사건 찾아 열기 · 기능 열기
     const needleAdd = addQuery.trim().toLowerCase()
     const full = win.tabs.length >= MAX_OPEN_CASES
@@ -362,7 +400,9 @@ export function S01DevPage() {
         }}
         onConfirmResult={() => setWindow({ ...win, tab: "confirm" })}
       >
-        {body}
+        <WorkMemoryProvider store={workStore} scope={workScope}>
+          {body}
+        </WorkMemoryProvider>
       </CaseWindow>
     )
   }

@@ -195,7 +195,9 @@ describe("S01 사건 창", () => {
         expect(within(d).getByRole("button", { name: "검색" })).toHaveAttribute("data-part-variant", "primary")
         expect(within(d).getByRole("button", { name: "검색결과" })).toHaveAttribute("data-part-variant", "soft")
         expect(within(d).getByRole("button", { name: "다시입력" })).toHaveAttribute("data-part-variant", "ghost")
-        expect(within(d).getByRole("button", { name: /다음 이미지 _3/ })).toHaveAttribute("data-part", "WorkbenchButton")
+        // 진행 · 다음 이미지 = 바깥 이미지 목록 그대로(0649: _1 발견 · _2 · _3 검색됨 → 다음 미코딩 _4, 12장 중 1장 완료)
+        expect(within(d).getByRole("button", { name: /다음 이미지 _4/ })).toHaveAttribute("data-part", "WorkbenchButton")
+        expect(within(d).getByText("12장 중 1장 완료")).toBeInTheDocument()
       })
 
       it("AI 조건은 뺀다 — 검색 방식 · 깔때기 · 인공지능문양관리 없음, AI 동작은 「다시 추출」 하나", () => {
@@ -282,6 +284,38 @@ describe("S01 사건 창", () => {
         // 자세히 = 검색 결과 탭
         fireEvent.click(within(d).getByRole("button", { name: "검색 572419 — 자세히" }))
         expect(query().get("tab")).toBe("search")
+      })
+
+      it("1회차 검수 — 탭을 옮겨도 문양 · 가중치 · 검색 이력이 남고, 「자세히 →」는 그 검색의 건수 · 순위를 보인다", () => {
+        const d = open()
+        const board = () => within(dialog()).getByRole("group", { name: "현장 이미지 문양" })
+        // 중 s81b 가중치를 높음으로 · 검색
+        fireEvent.click(within(within(board()).getByRole("group", { name: /^중 s81b 가중치/ })).getByRole("button", { name: "가중치 높음" }))
+        fireEvent.click(within(d).getByRole("button", { name: "검색" }))
+        fireEvent.click(within(side(d)).getByRole("tab", { name: /검색 이력/ }))
+        const first = within(within(dialog()).getByRole("list", { name: "검색 이력" })).getAllByRole("listitem", { name: /^검색 / })[0]
+        const count = /([\d,]+)건/.exec(first.textContent ?? "")?.[1]
+        // 지금 조건과 같은 줄에 「지금」
+        expect(first).toHaveTextContent("지금")
+        // 사건 정보 탭으로 갔다가 돌아와도 그대로
+        fireEvent.click(workTab(/사건 정보/))
+        fireEvent.click(workTab(/문양 코드/))
+        expect(within(board()).getByRole("group", { name: "중 s81b 가중치 높음 직접" })).toBeInTheDocument()
+        fireEvent.click(within(side(dialog())).getByRole("tab", { name: /검색 이력/ }))
+        expect(within(within(dialog()).getByRole("list", { name: "검색 이력" })).getAllByRole("listitem", { name: /^검색 / })).toHaveLength(3)
+        // 자세히 → 검색 결과 탭: 그 검색의 건수(시안 고정 857 이 아님)
+        fireEvent.click(within(dialog()).getByRole("button", { name: "검색 572434 — 자세히" }))
+        expect(query().get("run")).toBe("572434")
+        expect(within(dialog()).getByText(`${count}건`, { exact: false })).toBeInTheDocument()
+        expect(within(dialog()).queryByText(/^857건/)).toBeNull()
+      })
+
+      it("1회차 검수 — 「다시입력」은 직접 가중치도 지운다(빈 화면에 「직접 n」이 남지 않음)", () => {
+        const d = open()
+        fireEvent.click(within(within(d).getByRole("group", { name: /^중 s81b 가중치/ })).getByRole("button", { name: "가중치 높음" }))
+        fireEvent.click(within(d).getByRole("button", { name: "다시입력" }))
+        fireEvent.click(within(side(d)).getByRole("tab", { name: /검색 조건/ }))
+        expect(within(d).getByRole("region", { name: "가중치 규칙" })).toHaveTextContent("직접 0개")
       })
 
       it("확대경: 켜고 마우스를 대면 동그란 확대경(누를 수 없는 장식)이 따라오고, [ ] 키로 지름을 바꾼다", () => {
@@ -422,6 +456,21 @@ describe("S01 사건 창", () => {
     expect(within(dialog()).getByRole("group", { name: "00001-25-0649_12 판정" })).toBeInTheDocument()
     expect(within(dialog()).queryByRole("group", { name: "00001-25-0646_1 판정" })).toBeNull()
     expect(within(dialog()).getByText("판정 1 / 12")).toBeInTheDocument()
+  })
+
+  it("1회차 검수 — 정밀 대조 「확인대상」으로 넘긴 신발이 결과 확인 탭 그 장의 줄에 실린다", () => {
+    renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=4&tab=compare&ftwr=02219")
+    fireEvent.click(within(dialog()).getByRole("button", { name: "확인대상" }))
+    expect(query().get("tab")).toBe("confirm")
+    const row = within(dialog()).getByRole("group", { name: "00001-25-0649_4 판정" }).closest("tr, [role='row'], li, div") as HTMLElement
+    expect(within(row.parentElement as HTMLElement).getByText("02219")).toBeInTheDocument()
+  })
+
+  it("1회차 검수 — 사건 · 이미지를 바꾸면 앞 이미지의 검색 문맥(ftwr · rank · run)을 지운다", () => {
+    renderAt("/dev/s01?case=ready&open=00001-25-0649&img=1&tab=search&run=572419&ftwr=00758&rank=1")
+    fireEvent.click(screen.getByRole("navigation", { name: /현장 이미지/ }).querySelectorAll('[data-slot="window-rail-item"]')[2])
+    expect(query().get("img")).toBe("3")
+    for (const k of ["ftwr", "rank", "run"]) expect(query().get(k)).toBeNull()
   })
 
   it("왼쪽 목록 줄을 누르면 그 이미지로(img)", () => {

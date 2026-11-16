@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import type { SearchRun } from "@/widgets/pattern-code"
 import {
   SearchResultScreen,
   type AutoMode,
@@ -22,8 +23,12 @@ import {
   useDevPlus,
   useDevViewer,
   useRememberedState,
+  useWorkState,
+  useWorkValue,
+  useWorkWriter,
   type DevGo,
 } from "../frame"
+import { fakeShoePatterns, rankOfRun, S04_RUNS_FIELD } from "../s04/mock-cases"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
 import { samplePhotoUrl, sampleSoleUrl } from "../mock-assets/sample-images"
 import type { ZoneTriple } from "../mock-assets/fake-art"
@@ -41,7 +46,11 @@ import {
   S05_PAGE_SIZE,
   S05_SEEN_AT,
   S05_SEEN_UP_TO,
+  S05_RUN_NO_FIELD,
   S05_TOTAL,
+  runEssentialSummary,
+  runQueryPatterns,
+  runResults,
 } from "./mock-cases"
 
 const info = devScreen("s05")
@@ -93,7 +102,17 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
   const [page, setPage] = useState(1)
   // 지금 앱 기본값은 이진화보기
   const [imageMode, setImageMode] = useState<ImageMode>("이진화보기")
-  const [targets, setTargets] = useState<readonly SearchTarget[]>(INITIAL_TARGETS)
+  // 확인대상 · 본 위치는 탭을 옮겨도 남는다(사건 창 보관함 — 이미지별)
+  const [targets, setTargets] = useWorkState<readonly SearchTarget[]>("s05.targets", INITIAL_TARGETS)
+  // 사건 창: 문양 코드 탭 검색 이력의 그 검색(「자세히 →」) — 그 검색의 문양 · 가중치로 낸 순위 · 점수 · 건수를 보인다(1회차 검수)
+  const workRuns = useWorkValue<SearchRun[]>(S04_RUNS_FIELD)
+  const run = useMemo(() => (searchNo ? workRuns?.find((r) => String(r.searchNo) === searchNo) : undefined), [workRuns, searchNo])
+  const runHits = useMemo(() => (run && runQueryPatterns(run).length > 0 ? rankOfRun(run) : undefined), [run])
+  const writeWork = useWorkWriter()
+  useEffect(() => {
+    // 정밀 대조 탭이 같은 검색의 후보를 쓰게 지금 보는 검색번호를 남긴다
+    writeWork(S05_RUN_NO_FIELD, runHits && run ? run.searchNo : undefined)
+  }, [writeWork, run, runHits])
 
   // r3 보기 설정 — 결과형태 · 썸네일 · 간격 · 필터는 이 브라우저에 기억(결과형태 null = 화면 기본: +α 8열 · 아니면 4열)
   const [columns, setColumns] = useRememberedState<ResultColumns | null>("s05", "columns", null, oneOf(COLUMN_VALUES))
@@ -104,8 +123,8 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
   // 자동 모드는 기억하지 않는다(다시 열 때 저절로 넘어가지 않게)
   const [autoMode, setAutoMode] = useState<AutoMode>("manual")
   const [playing, setPlaying] = useState(false)
-  const [focusRank, setFocusRank] = useState<number | null>(S05_FOCUS_RANK)
-  const [seen, setSeen] = useState({ upTo: S05_SEEN_UP_TO, at: S05_SEEN_AT })
+  const [focusRank, setFocusRank] = useState<number | null>(runHits ? null : S05_FOCUS_RANK)
+  const [seen, setSeen] = useWorkState(`s05.seen.${run?.searchNo ?? "base"}`, runHits ? { upTo: 0, at: "—" } : { upTo: S05_SEEN_UP_TO, at: S05_SEEN_AT })
 
   // 표본 그림: 현장 = 이 이미지 번호의 실제 사진, 후보 = 신발 번호로 고른 실제 밑창(없으면 가짜 그림)
   const sceneImage = useMemo(() => samplePhotoUrl(imageNo, { zones: ["herring", "herring", "herring"], flip: true, tag: "" }), [imageNo])
@@ -119,10 +138,12 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
   const results = useMemo(() => {
     if (activeCase !== "ready") return []
     const imageFor = (rank: number, ftwrId: string) => sampleSoleUrl(ftwrId, { kind: soleKind }, () => soleUrls[(rank - 1) % soleUrls.length])
+    if (inWindow && run && runHits) return runResults(run, runHits, windowCount, imageFor, fakeShoePatterns)
     return inWindow
       ? makeRange(windowCount, imageFor, (rank) => ZONES[(rank - 1) % ZONES.length])
       : makeResults(page, imageFor)
-  }, [activeCase, page, soleUrls, soleKind, inWindow, windowCount])
+  }, [activeCase, page, soleUrls, soleKind, inWindow, windowCount, run, runHits])
+  const total = runHits ? runHits.length : S05_TOTAL
   const baseInsight = useMemo(
     () => ({
       ...makeInsight({
@@ -133,8 +154,18 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
         aiTop: (zones, ftwrId) => sampleSoleUrl(ftwrId, { kind: "shoe", zones }),
       }),
       ...(searchNo ? { searchNo } : {}),
+      // 그 검색의 시각 · 필수 요약 · 넣은 문양(이력 줄 값 그대로). 문양 없이 검색했으면 이미지 유사도 결과(시안 값) 그대로
+      ...(run
+        ? {
+            searchedAt: run.at.slice(5, 16),
+            essentialSummary: runEssentialSummary(run),
+            searchMethod: runHits ? "문양 점수(가중치)" : "이미지 검색",
+            queryPatterns: runQueryPatterns(run),
+            ...(runHits ? { focusRank: null, peek: null, detail: null, rerankUp: {} } : {}),
+          }
+        : {}),
     }),
-    [sceneImage, searchNo],
+    [sceneImage, searchNo, run, runHits],
   )
   // 「어디까지 봤는지」는 초점이 지나가며 올라간다(제어형)
   const insight = useMemo(() => ({ ...baseInsight, seenUpTo: seen.upTo, seenAt: seen.at }), [baseInsight, seen])
@@ -152,7 +183,7 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
       imageNo={imageNo}
       sceneImage={sceneImage}
       results={results}
-      totalCount={activeCase === "ready" ? S05_TOTAL : 0}
+      totalCount={activeCase === "ready" ? total : 0}
       page={page}
       pageSize={S05_PAGE_SIZE}
       onPageChange={setPage}
@@ -176,7 +207,7 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
         else setPage(Math.ceil(rank / S05_PAGE_SIZE))
         setFocusRank(rank)
       }}
-      onLoadMore={inWindow ? () => setWindowCount((n) => Math.min(S05_TOTAL, n + S05_WINDOW_STEP)) : undefined}
+      onLoadMore={inWindow ? () => setWindowCount((n) => Math.min(total, n + S05_WINDOW_STEP)) : undefined}
       onPlusAction={(label) => toast(PLUS_NOT_READY, { description: label })}
       columns={columns ?? undefined}
       onColumnsChange={setColumns}

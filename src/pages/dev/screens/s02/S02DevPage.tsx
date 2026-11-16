@@ -18,6 +18,7 @@ import {
   useDevNavigate,
   useDevPlus,
   useDevViewer,
+  useWorkState,
   type DevGo,
 } from "../frame"
 import { samplePhotoUrl } from "../mock-assets/sample-images"
@@ -86,7 +87,8 @@ export function S02Content({ devCase, caseId: id, imageId, go, inWindow = false,
     : S02_PLUS
 
   const [mode, setMode] = React.useState<"detail" | "register">(id ? "detail" : "register")
-  const [form, setForm] = React.useState<CaseDetailForm>(() =>
+  // 사건 창: 고친 사건 정보는 탭을 옮겨도 남는다(보관함 — 사건 단위, 1회차 검수)
+  const [form, setForm] = useWorkState<CaseDetailForm>("s02.form", () =>
     id ? loadedForm(id) : copyOf ? { ...loadedForm(copyOf), apprslReqestNo: "" } : EMPTY_FORM
   )
   const [images, setImages] = React.useState<CaseImage[]>(() => (source ? loadedImages(source) : []))

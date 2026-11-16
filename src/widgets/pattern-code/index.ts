@@ -6,7 +6,17 @@ export { MATCH_OPTIONS, PALETTE_KINDS, PATTERN_COUNTS, patternName, ZONE_ROWS } 
 export { BoundaryLines, PriceTagBox, RoiBox, ZoneConfidenceTags, type ZoneConfidenceTag } from "./ui/decorations"
 // 문양 가중치 룰베이스 · 문양 점수(spec 2026-11-17-pattern-weight-rule-design) — 진열 페이지의 가짜 검색도 같은 식을 쓴다
 export { patternWeights, WEIGHT_LABEL, WEIGHT_VALUE, type PatternWeight, type PatternWeightMap } from "./model/weight-rules"
-export { patternScore, rankShoes, runSnapshot, searchQuery, type QueryPattern, type ShoePatterns } from "./model/match-score"
+export {
+  patternScore,
+  queryOfRun,
+  rankShoes,
+  runSnapshot,
+  scoreOf,
+  searchQuery,
+  type PatternScoreResult,
+  type QueryPattern,
+  type ShoePatterns,
+} from "./model/match-score"
 export type {
   SearchRun,
   SearchRunHit,

@@ -109,11 +109,18 @@ export function SearchRunList({ runs, currentNo, onRestore, onOpen, canEdit, lim
                   <li className="text-[10.5px] text-muted-foreground">결과 없음</li>
                 ) : (
                   run.top.map((h, i) => (
-                    <li key={h.ftwrId} title={`${i + 1}위 ${h.ftwrId} · 점수 ${h.score.toFixed(2)}`} className="flex w-[38px] flex-col items-center gap-[1px]">
+                    <li
+                      key={h.ftwrId}
+                      title={`${i + 1}위 ${h.ftwrId} · ${h.score === null ? "문양 점수 없음(이미지 유사도만)" : `점수 ${h.score.toFixed(2)}`}`}
+                      className="flex w-[38px] flex-col items-center gap-[1px]"
+                    >
                       <span className="grid h-[44px] w-[30px] place-items-center overflow-hidden rounded-[4px] border border-solid border-line-3 bg-canvas">
-                        {h.src ? <img src={h.src} alt={`${h.ftwrId} 밑창`} className="size-full object-contain" /> : <span className="font-code text-[8px] text-muted-foreground">{h.ftwrId}</span>}
+                        {h.src ? <img src={h.src} alt={`${h.ftwrId} 밑창`} className="size-full object-contain" /> : <span className="font-code text-[10px] text-muted-foreground">{h.ftwrId}</span>}
                       </span>
-                      <span className="font-code text-[10.5px] leading-none font-semibold text-brand-3 tabular-nums">{h.score.toFixed(2)}</span>
+                      {/* 검색 문양이 없으면 문양 점수가 없다(0점과 다름) — 숫자 대신 대시 */}
+                      <span className={cn("font-code text-[10px] leading-none font-semibold tabular-nums", h.score === null ? "text-muted-foreground" : "text-brand-3")}>
+                        {h.score === null ? "—" : h.score.toFixed(2)}
+                      </span>
                     </li>
                   ))
                 )}

@@ -3,12 +3,15 @@ import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
 
 import type { Alignment } from "@/entities/alignment"
+import { insertPatternPath, type PatternZone } from "@/entities/pattern"
 import {
   MatchCompareScreen,
   type CompareAutoMode,
   type CompareCandidate,
   type CompareCount,
+  type ZonePatterns,
 } from "@/widgets/match-compare"
+import type { SearchRun, SearchRunHit } from "@/widgets/pattern-code"
 
 import {
   DevScreenFrame,
@@ -21,8 +24,12 @@ import {
   useDevPlus,
   useDevViewer,
   useRememberedState,
+  useWorkValue,
+  useWorkWriter,
   type DevGo,
 } from "../frame"
+import { fakeShoePatterns, rankOfRun, S04_RUNS_FIELD, S04_ZONES_FIELD, type NamedZones } from "../s04/mock-cases"
+import { S05_RUN_NO_FIELD } from "../s05/mock-cases"
 import { FakeSole, fakeSoleUrl, SOLE_PALETTE } from "../mock-assets/FakeSole"
 import { hasSamplePhotos, samplePhotoUrl, sampleSoleUrl } from "../mock-assets/sample-images"
 import { resolvePalette, type ZoneTriple } from "../mock-assets/fake-art"
@@ -32,7 +39,9 @@ import { AlignmentDecor } from "./AlignmentDecor"
 import { fakeSideShoeUrl } from "./fake-side-shoe"
 import {
   CASE_INFO,
+  CONFIRM_TARGET_FIELD,
   CRIME_PATTERNS,
+  type ConfirmTarget,
   CRIME_SIZE,
   FAKE_ALIGNMENT,
   makeMatchInsight,
@@ -60,8 +69,21 @@ const CANDIDATE_ZONES: readonly ZoneTriple[] = [
   ["herring", "dots", "herring"],
 ]
 
-/** r3 비교 후보 — S05 가짜 결과 1쪽(20건). 주소의 신발이 없으면 맨 앞에 */
-function makeCandidates(ftwr: string, rank: number | null): CompareCandidate[] {
+/** 이름 → 비교 띠 문양 한 칸(경로는 여기 페이지에서 한 번만 붙인다 — docs/pattern-data-model.md §3) */
+const patternIcon = (name: string) => ({ name, src: insertPatternPath(name) as string })
+
+/** 이름 문양 4부위 → 비교 띠 문양 */
+function zonePatternsOf(zones: Readonly<Record<PatternZone, readonly string[]>>): ZonePatterns {
+  return {
+    top: zones.top.map(patternIcon),
+    mid: zones.mid.map(patternIcon),
+    bottom: zones.bottom.map(patternIcon),
+    outline: zones.outline.map(patternIcon),
+  }
+}
+
+/** r3 비교 후보 — 사건 창에서 그 이미지의 검색(이력 「자세히」로 본 검색)이 있으면 그 검색의 상위 20건, 없으면 S05 가짜 결과 1쪽(20건). 주소의 신발이 없으면 맨 앞에 */
+function makeCandidates(ftwr: string, rank: number | null, hits?: readonly SearchRunHit[]): CompareCandidate[] {
   // 첫 칸은 2차 발견 이미지와 같은 그림(seed 없음)
   const art = CANDIDATE_ZONES.map((zones, i) => {
     const seed = i === 0 ? undefined : i + 1
@@ -75,7 +97,10 @@ function makeCandidates(ftwr: string, rank: number | null): CompareCandidate[] {
       sketch: sampleSoleUrl(id, { kind: "bin" }, () => fake.sketch),
     }
   }
-  const list: CompareCandidate[] = makeResults(1, () => "").map((r, i) => ({
+  const base = hits
+    ? hits.slice(0, 20).map((h) => ({ ftwrId: h.ftwrId, similarity: h.score === null ? "—" : Math.round(h.score * 10000) / 100 }))
+    : makeResults(1, () => "").map((r) => ({ ftwrId: r.ftwrId, similarity: r.similarity }))
+  const list: CompareCandidate[] = base.map((r, i) => ({
     ftwrId: r.ftwrId,
     rank: i + 1,
     similarity: r.similarity,
@@ -123,7 +148,16 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
 
   // r3 후보 넘기기: 검색 결과 1쪽(S05 가짜 값)을 후보 목록으로. 주소의 신발이 목록에 없으면 맨 앞에 넣는다.
   // 지금 후보는 여기서 든다(자동 넘김마다 주소를 쌓지 않게) — 처음 값만 주소(?ftwr · ?rank)에서.
-  const candidates = useMemo(() => makeCandidates(urlFtwr, urlRank), [urlFtwr, urlRank])
+  // 사건 창: 같은 이미지의 문양 코드 탭 값(4부위 문양 · 검색 이력)과 검색 결과 탭이 본 검색 번호를 보관함에서 읽는다
+  const workZones = useWorkValue<NamedZones>(S04_ZONES_FIELD)
+  const workRuns = useWorkValue<SearchRun[]>(S04_RUNS_FIELD)
+  const workRunNo = useWorkValue<number>(S05_RUN_NO_FIELD)
+  const writeWork = useWorkWriter()
+  const runHits = useMemo(() => {
+    const run = workRuns?.find((r) => r.searchNo === workRunNo)
+    return run ? rankOfRun(run) : undefined
+  }, [workRuns, workRunNo])
+  const candidates = useMemo(() => makeCandidates(urlFtwr, urlRank, runHits), [urlFtwr, urlRank, runHits])
   const [current, setCurrent] = useState<{ ftwrId: string; rank: number | null }>(() => {
     const hit = candidates.find((c) => c.ftwrId === urlFtwr && (urlRank === null || c.rank === urlRank))
     return { ftwrId: urlFtwr, rank: hit ? hit.rank : urlRank }
@@ -151,6 +185,24 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
     () => ({ rgb: currentCandidate.rgb, sketch: currentCandidate.sketch, ...SHOE_SIZE }),
     [currentCandidate],
   )
+  // 비교 띠 문양(1회차 검수 — 상수였던 것): 현장 = 문양 코드 탭의 지금 4부위(사건 창), 신발 = 지금 후보의 신발 DB 문양(가짜 DB 에 있으면).
+  // 없으면 시안 값 그대로(단독 진열)
+  const crimePatterns = useMemo(
+    () =>
+      workZones
+        ? zonePatternsOf({
+            top: workZones.top.map(([n]) => n),
+            mid: workZones.mid.map(([n]) => n),
+            bottom: workZones.bottom.map(([n]) => n),
+            outline: workZones.outline.map(([n]) => n),
+          })
+        : CRIME_PATTERNS,
+    [workZones],
+  )
+  const shoePatterns = useMemo(() => {
+    const shoe = fakeShoePatterns(ftwrId)
+    return shoe ? zonePatternsOf(shoe.zones) : SHOE_PATTERNS
+  }, [ftwrId])
   const insight = useMemo(
     () =>
       makeMatchInsight({
@@ -183,14 +235,23 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
       shoeImage={shoeImage}
       caseInfo={caseInfo}
       shoeInfo={shoeInfoFor(ftwrId)}
-      crimePatterns={CRIME_PATTERNS}
-      shoePatterns={SHOE_PATTERNS}
+      crimePatterns={crimePatterns}
+      shoePatterns={shoePatterns}
       alignmentSlot={<AlignmentDecor alignment={FAKE_ALIGNMENT} src={hasSamplePhotos ? crimeImage.rgb : undefined} />}
       onSaveAlignment={() => {
         setSavedAlignment(FAKE_ALIGNMENT)
         toast.success("정렬을 저장했습니다(진열용)")
       }}
-      onConfirmTarget={() => to("/dev/s07", { ftwr: ftwrId })}
+      onConfirmTarget={() => {
+        // 사건 창: 이 이미지의 확인대상을 보관함에 남긴다 → 결과 확인 탭이 그 장 판정 줄에 싣는다(1회차 검수)
+        const target: ConfirmTarget = {
+          ftwrId,
+          rank: ranking,
+          similarity: typeof currentCandidate.similarity === "number" ? currentCandidate.similarity : null,
+        }
+        writeWork(CONFIRM_TARGET_FIELD, target)
+        to("/dev/s07", { ftwr: ftwrId })
+      }}
       onClose={() => to("/dev/s05")}
       showPlus={showPlus}
       inWindow={inWindow}

@@ -1,4 +1,5 @@
-import { insertPatternPath } from "@/entities/pattern"
+import { insertPatternPath, type PatternZone } from "@/entities/pattern"
+import { WEIGHT_VALUE, type SearchRun, type SearchRunHit, type ShoePatterns } from "@/widgets/pattern-code"
 import type { ImageSearchResultItem, SearchInsight, SearchTarget } from "@/widgets/search-result"
 
 import type { Zone, ZoneTriple } from "../mock-assets/fake-art"
@@ -29,7 +30,7 @@ const FIRST_PAGE: readonly { ftwrId: string; similarity: number | string }[] = [
   { ftwrId: "306012", similarity: 59.9 },
   { ftwrId: "283377", similarity: 59.6 },
   { ftwrId: "00412", similarity: 59.0 },
-  { ftwrId: "305102", similarity: 58.4 },
+  { ftwrId: "305108", similarity: 58.4 },
   { ftwrId: "288410", similarity: "58.1" },
   { ftwrId: "301877", similarity: 57.9 },
   { ftwrId: "02219", similarity: 57.6 },
@@ -39,9 +40,13 @@ const FIRST_PAGE: readonly { ftwrId: string; similarity: number | string }[] = [
   { ftwrId: "300761", similarity: 56.5 },
 ]
 
-/** r2: 시안 S05 빠른 비교 · 상세조회가 가리키는 137위(305102 · 58.4%) */
+/**
+ * r2: 시안 S05 빠른 비교 · 상세조회가 가리키는 137위 305102. 유사도는 앞뒤 생성 점수와 같은 내림차순 곡선 위 값(136위 54.41 → 137위 54.39) —
+ * 시안 숫자 58.4 를 그대로 두면 136위보다 높아 순위 목록이 깨진다(1회차 검수). 같은 신발이 두 순위에 나오지 않게 13위는 다른 번호.
+ */
+export const S05_DETAIL_SIMILARITY = 54.39
 const FIXED_RANKS: Readonly<Record<number, { ftwrId: string; similarity: number }>> = {
-  137: { ftwrId: "305102", similarity: 58.4 },
+  137: { ftwrId: "305102", similarity: S05_DETAIL_SIMILARITY },
 }
 
 /** r3 빠른 찾기용 가짜 상표명(순위마다 돌려 씀 — 3 · 8 · 13 · 18위 = 크록스) */
@@ -123,6 +128,68 @@ export function makeRange(
   return out
 }
 
+// ── 사건 창(1회차 검수) — 검색 이력 한 줄의 결과(「자세히 →」) ─────────────
+
+/** 사건 창 보관함(frame/work-memory)에서 「검색 결과 탭이 지금 보는 검색번호」 칸 이름 — 정밀 대조 탭이 같은 검색의 후보를 쓴다 */
+export const S05_RUN_NO_FIELD = "s05.runNo"
+
+const ZONE_LABEL: Record<PatternZone, string> = { top: "상", mid: "중", bottom: "하", outline: "윤곽" }
+const RUN_ZONES: readonly PatternZone[] = ["top", "mid", "bottom", "outline"]
+
+/**
+ * 검색 이력 한 줄의 순위 → 검색 결과 카드(문양 점수 0~1 → 퍼센트). 부위 점수 = 그 부위에 넣은 문양 가운데 후보 신발에도 있는 가중치 몫,
+ * 후보 문양 = 가짜 신발 DB 의 그 신발 문양. 문양을 넣은 부위만 표식을 단다.
+ */
+export function runResults(
+  run: SearchRun,
+  hits: readonly SearchRunHit[],
+  count: number,
+  imageFor: ImageFor,
+  shoeOf: (ftwrId: string) => ShoePatterns | undefined,
+): ImageSearchResultItem[] {
+  return hits.slice(0, count).map((h, i) => {
+    const shoe = shoeOf(h.ftwrId)
+    const used = RUN_ZONES.filter((z) => run.zones[z].length > 0)
+    return {
+      ftwrId: h.ftwrId,
+      similarity: h.score === null ? "—" : Math.round(h.score * 10000) / 100,
+      image: imageFor(i + 1, h.ftwrId),
+      brandNm: MOCK_BRANDS[i % MOCK_BRANDS.length],
+      zoneScores: shoe
+        ? used.map((z) => {
+            const total = run.zones[z].reduce((n, p) => n + WEIGHT_VALUE[p.weight], 0)
+            const hitPs = run.zones[z].filter((p) => shoe.zones[z].includes(p.name))
+            const got = hitPs.reduce((n, p) => n + WEIGHT_VALUE[p.weight], 0)
+            return {
+              zone: ZONE_LABEL[z],
+              score: total === 0 ? 0 : Math.round((got / total) * 100),
+              why: hitPs.length === 0 ? "넣은 문양 없음" : `일치 ${hitPs.map((p) => p.name).join(" · ")}`,
+            }
+          })
+        : undefined,
+      zonePatterns: shoe
+        ? RUN_ZONES.map((z) => ({ zone: ZONE_LABEL[z], patterns: shoe.zones[z].map((name) => ({ name, src: insertPatternPath(name) as string })) }))
+        : undefined,
+    }
+  })
+}
+
+/** 검색 이력 한 줄 → 빠른 비교 왼쪽 「고른 문양」 줄(그때 넣은 문양 · 필수) */
+export function runQueryPatterns(run: SearchRun) {
+  return RUN_ZONES.filter((z) => run.zones[z].length > 0).map((z) => ({
+    zone: ZONE_LABEL[z],
+    patterns: run.zones[z].map((p) => ({ name: p.name, src: insertPatternPath(p.name) as string, essential: p.essential })),
+  }))
+}
+
+/** 검색 이력 한 줄 → 필수 문양 요약(「필수 문양 상 n32_04 · 중 n32_04」 / 「문양 없이(이미지만)」) */
+export function runEssentialSummary(run: SearchRun): string {
+  const must = RUN_ZONES.flatMap((z) => run.zones[z].filter((p) => p.essential).map((p) => `${ZONE_LABEL[z]} ${p.name}`))
+  const any = RUN_ZONES.some((z) => run.zones[z].length > 0)
+  if (!any) return "문양 없이(이미지만)"
+  return must.length === 0 ? "필수 문양 없음" : `필수 문양 ${must.join(" · ")}`
+}
+
 // ── r2 +α(시안 r3) 가짜 값 ─────────────────────────────────────────────
 
 /** 시안 TOP 10(AI가 먼저 보라는 10건) — 순위 · 신발 ID · 유사도 · 무늬 · 근거 · 본 것 */
@@ -202,7 +269,7 @@ export function makeInsight(img: {
     detail: {
       rank: 137,
       ftwrId: "305102",
-      similarity: 58.4,
+      similarity: S05_DETAIL_SIMILARITY,
       crimeImage: img.scene,
       shoeImage: img.shoe,
       sideImage: img.side,

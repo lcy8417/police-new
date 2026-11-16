@@ -28,6 +28,7 @@ import {
   useDevNavigate,
   useDevPlus,
   useDevViewer,
+  useWorkState,
   type DevGo,
 } from "../frame"
 import { FakePhoto } from "../mock-assets/FakePhoto"
@@ -150,14 +151,15 @@ function S03Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S03Ca
   const go = goProp ?? nav
 
   const [zoom, setZoom] = React.useState(100)
-  const [rotation, setRotation] = React.useState(S03_TILT)
+  // 회전 · 편집 이력 · 노이즈제거 · 보기 보정은 탭을 옮겨도 남는다(사건 창 보관함 — 이미지별, 1회차 검수)
+  const [rotation, setRotation] = useWorkState("s03.rotation", S03_TILT)
   const [rotateStep, setRotateStep] = React.useState(1)
   const [activeTool, setActiveTool] = React.useState<ImageEditTool | null>(mock.activeTool)
   const [thresholdMode, setThresholdMode] = React.useState<ThresholdMode>("standard")
   const [threshold, setThreshold] = React.useState(127)
-  const [denoiseState, setDenoiseState] = React.useState<DenoiseState>(mock.denoiseState)
-  const [history, setHistory] = React.useState<ImageEditHistoryEntry[]>(mock.history)
-  const [adjustments, setAdjustments] = React.useState<ViewAdjustments>(DEFAULT_VIEW_ADJUSTMENTS)
+  const [denoiseState, setDenoiseState] = useWorkState<DenoiseState>("s03.denoise", mock.denoiseState)
+  const [history, setHistory] = useWorkState<ImageEditHistoryEntry[]>("s03.history", mock.history)
+  const [adjustments, setAdjustments] = useWorkState<ViewAdjustments>("s03.adjustments", DEFAULT_VIEW_ADJUSTMENTS)
 
   // 표본 사진이 있으면 이 이미지 번호(감정번호_n)의 실제 사진 — 같은 사건 · 같은 장은 어느 탭에서나 같은 사진
   const photoSrc = React.useMemo(() => samplePhotoUrl(imageNo, { rotate: S03_TILT, tag: "" }), [imageNo])
@@ -171,7 +173,7 @@ function S03Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S03Ca
     if (denoiseState !== "running" || caseName === "running") return
     const t = window.setTimeout(() => setDenoiseState("done"), 2000)
     return () => window.clearTimeout(t)
-  }, [denoiseState, caseName])
+  }, [denoiseState, caseName, setDenoiseState])
 
   /** 편집 한 단계 — 이력 끝에 한 줄 더하고 알림 */
   const edited = (message: string, label: string) => {
@@ -223,6 +225,8 @@ function S03Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S03Ca
       }}
       onUndoTo={(no) => {
         setHistory((h) => h.filter((e) => e.no <= no))
+        // 받은 원본(0단계)까지 되돌리면 회전도 처음 값으로(「원본으로」와 같게 — 1회차 검수)
+        if (no === 0) setRotation(S03_TILT)
         toast(no === 0 ? "받은 원본까지 되돌렸습니다." : `${no}단계까지 되돌렸습니다.`)
       }}
       onRestore={() => {

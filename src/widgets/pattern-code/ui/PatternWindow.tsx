@@ -91,6 +91,7 @@ export function PatternWindow(props: PatternWindowProps) {
     { sug: 0, ok: 0, must: 0 }
   )
   const cls = viewTuneClass(tune)
+  const canvasCls = viewTuneClass({ ...tune, rotate: 0 })
   const tuneLabels = viewTuneLabels(tune)
   const progress = props.showPlus === false ? undefined : props.imageProgress
   const runs = props.searchRuns
@@ -220,8 +221,9 @@ export function PatternWindow(props: PatternWindowProps) {
                     title="두 번 누르면 크게 살펴봅니다"
                     className="relative size-full min-w-0 overflow-hidden rounded-[8px] border border-solid border-line-3 bg-canvas [box-shadow:0_8px_24px_var(--t-panel-drop)]"
                   >
-                    <div className={cn("absolute inset-0", cls.outer)}>
-                      <div className={cn("absolute inset-0", cls.inner)}>{props.canvasSlot}</div>
+                    {/* 좌표 캔버스 겹은 색 필터(대비 · 밝기 · 반전 · 이진화 · 감마)만 — 회전 같은 변형은 bounding rect 를 바꿔 좌표가 틀어지므로 절대 걸지 않는다(1회차 검수 확인) */}
+                    <div className={cn("absolute inset-0", canvasCls.outer)}>
+                      <div className={cn("absolute inset-0", canvasCls.inner)}>{props.canvasSlot}</div>
                     </div>
                     <ScanOverlay active={extracting} />
                     <span className={cn(TAG, "top-[6px] right-[6px]")}>{sourceLabel}</span>
@@ -359,7 +361,7 @@ export function PatternWindow(props: PatternWindowProps) {
               </>
             ) : (
               <section aria-label="검색이력" className="flex min-w-0 flex-col gap-[6px]">
-                <SearchRunList runs={runs ?? []} currentNo={undefined} onRestore={props.onRestoreRun} onOpen={props.onOpenRun} canEdit={canEdit} />
+                <SearchRunList runs={runs ?? []} currentNo={props.currentRunNo} onRestore={props.onRestoreRun} onOpen={props.onOpenRun} canEdit={canEdit} />
               </section>
             )}
           </div>
