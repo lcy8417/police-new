@@ -1,9 +1,9 @@
 import * as React from "react"
-import { BadgeCheck, ChevronLeft, ChevronRight, Crosshair, FolderPlus, Info, Link2, Paperclip, Rows3, Search, Settings2, SquareDashed, X } from "lucide-react"
+import { BadgeCheck, ChevronLeft, ChevronRight, Crosshair, FolderPlus, Info, Link2, Paperclip, Rows3, Save, Search, Settings2, SquareDashed, X } from "lucide-react"
 
 import { shouldHandleShortcut } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
-import { Button, DialogShell, InlineError, Segmented, ViewCountSwitch, WorkbenchButton } from "@/shared/ui/kit"
+import { DialogShell, InlineError, Segmented, ViewCountSwitch, WorkbenchButton } from "@/shared/ui/kit"
 import { PaneHead } from "@/shared/ui/panel"
 import { DEFAULT_LENS, DEFAULT_VIEW_TUNE, LENS_ZOOMS, stepLens, type LensSettings, type ViewTune } from "@/shared/ui/viewer"
 
@@ -145,7 +145,7 @@ export function CompareWindow(props: MatchCompareScreenProps) {
       className="absolute top-[8px] right-[8px] z-[5] grid w-[236px] gap-[8px] rounded-[10px] border border-solid border-line-3 bg-panel p-[10px] [box-shadow:0_12px_32px_var(--t-panel-drop)]"
     >
       <div className="flex items-center gap-[6px]">
-        <b className="text-[12px] text-foreground">신발 상세</b>
+        <b className="text-[12.5px] text-foreground">신발 상세</b>
         <span className="font-code text-[11px] text-muted-foreground">{shoeInfo.ftwrId}</span>
         <WorkbenchButton size="sm" variant="ghost" icon={X} iconOnly aria-label="신발 상세 닫기" className="ml-auto" onClick={() => setShoeOpen(false)} />
       </div>
@@ -154,7 +154,7 @@ export function CompareWindow(props: MatchCompareScreenProps) {
           <img src={plus.sideImage} alt="측면 이미지" className="block size-full object-contain" />
         </span>
       ) : null}
-      <dl className="m-0 grid grid-cols-[64px_minmax(0,1fr)] gap-x-[8px] gap-y-[3px] text-[11.5px]">
+      <dl className="m-0 grid grid-cols-[64px_minmax(0,1fr)] gap-x-[8px] gap-y-[3px] text-[11px]">
         {shoeRows.map(([k, v]) => (
           <React.Fragment key={k}>
             <dt className="text-muted-foreground">{k}</dt>
@@ -211,7 +211,7 @@ export function CompareWindow(props: MatchCompareScreenProps) {
   let stage: React.ReactNode
   if (status === "loading") {
     stage = (
-      <div aria-busy="true" role="status" className="grid h-full place-content-center text-[12px] text-muted-foreground">
+      <div aria-busy="true" role="status" className="grid h-full place-content-center text-[12.5px] text-muted-foreground">
         대응점 계산 중
       </div>
     )
@@ -356,7 +356,7 @@ export function CompareWindow(props: MatchCompareScreenProps) {
             {plus && ready ? (
               <AiVerdict insight={plus} />
             ) : (
-              <p className="m-0 text-[11.5px] text-muted-foreground">{ready ? "AI 대조 값이 없습니다" : "—"}</p>
+              <p className="m-0 text-[11px] text-muted-foreground">{ready ? "AI 대조 값이 없습니다" : "—"}</p>
             )}
           </aside>
         </div>
@@ -389,9 +389,9 @@ export function CompareWindow(props: MatchCompareScreenProps) {
         title="정렬 설정"
         size="large"
         actions={
-          <Button
-            size="sm"
-            variant="pri"
+          <WorkbenchButton
+            variant="primary"
+            icon={Save}
             disabled={!canWrite}
             onClick={() => {
               props.onSaveAlignment()
@@ -399,11 +399,11 @@ export function CompareWindow(props: MatchCompareScreenProps) {
             }}
           >
             정렬 저장
-          </Button>
+          </WorkbenchButton>
         }
       >
         <div className="grid gap-[8px] p-[12px_14px_14px]">
-          <span className="text-[12px] text-muted-foreground">관심영역(ROI)을 다각형으로 두르고 앞코 방향 화살표를 그린 뒤 저장합니다.</span>
+          <span className="text-[12.5px] text-muted-foreground">관심영역(ROI)을 다각형으로 두르고 앞코 방향 화살표를 그린 뒤 저장합니다.</span>
           <div className="relative h-[460px] overflow-hidden rounded-[10px] border border-solid border-border bg-canvas">{props.alignmentSlot}</div>
         </div>
       </DialogShell>

@@ -144,7 +144,7 @@ export function CaseWindow({
       <>
         결과 확인
         {markOf("confirm")}
-        <small className="ml-1.5 text-[10.5px] font-normal text-muted-foreground">사건 전체</small>
+        <small className="ml-1.5 text-[10px] font-normal text-muted-foreground">사건 전체</small>
       </>,
     ],
   ]
@@ -194,7 +194,7 @@ export function CaseWindow({
               {counts.length > 0 ? (
                 <span className="flex flex-wrap gap-1">
                   {counts.map(([s, n]) => (
-                    <span key={s} className="whitespace-nowrap rounded-full bg-strip px-1.5 text-[10.5px] leading-[18px] text-muted-foreground">
+                    <span key={s} className="whitespace-nowrap rounded-full bg-strip px-1.5 text-[10px] leading-[18px] text-muted-foreground">
                       {s} <b className="font-code font-bold text-fg-2">{n}</b>
                     </span>
                   ))}

@@ -74,9 +74,11 @@ function ToolOptions(p: CuttingPaneProps & { bare?: boolean; quiet?: boolean }) 
       body = (
         <>
           {say("비스듬한 사진의 네 모서리 점을 찍은 뒤 「적용」을 누르면 반듯하게 폅니다.")}
-          <Button size="sm" className="ml-auto" disabled={!canEdit} onClick={p.onApplyCalibration}>
-            적용
-          </Button>
+          <span className="ml-auto inline-flex">
+            <BarButton compact={!!p.bare} disabled={!canEdit} onClick={p.onApplyCalibration}>
+              적용
+            </BarButton>
+          </span>
         </>
       )
       break
@@ -100,9 +102,11 @@ function ToolOptions(p: CuttingPaneProps & { bare?: boolean; quiet?: boolean }) 
               ? "다각형으로 남길 족적 영역을 고른 뒤 「적용」 — 바깥 배경을 지웁니다."
               : "다각형으로 이어 붙은 장애물을 고른 뒤 「적용」 — 그 자리를 메웁니다."
           )}
-          <Button size="sm" className="ml-auto" disabled={!canEdit} onClick={() => p.onApplyPolygon(tool)}>
-            적용
-          </Button>
+          <span className="ml-auto inline-flex">
+            <BarButton compact={!!p.bare} disabled={!canEdit} onClick={() => p.onApplyPolygon(tool)}>
+              적용
+            </BarButton>
+          </span>
         </>
       )
       break
@@ -129,9 +133,11 @@ function ToolOptions(p: CuttingPaneProps & { bare?: boolean; quiet?: boolean }) 
             onChange={(e) => p.onThresholdChange(Math.min(255, Math.max(0, num(e.target.value, p.threshold))))}
             className="w-[64px]"
           />
-          <Button size="sm" className="ml-auto" disabled={!canEdit} onClick={p.onApplyThreshold}>
-            적용
-          </Button>
+          <span className="ml-auto inline-flex">
+            <BarButton compact={!!p.bare} disabled={!canEdit} onClick={p.onApplyThreshold}>
+              적용
+            </BarButton>
+          </span>
         </>
       )
       break
@@ -156,15 +162,28 @@ function ToolOptions(p: CuttingPaneProps & { bare?: boolean; quiet?: boolean }) 
           {denoiseState !== "idle" ? (
             <AiProgress state={denoiseState === "running" ? "running" : denoiseState === "done" ? "done" : "failed"} label="노이즈제거" className="min-w-[140px] flex-1" />
           ) : null}
-          <Button
-            size="sm"
-            variant="ai"
-            className="ml-auto"
-            disabled={!canEdit || denoiseState === "running"}
-            onClick={p.onRunDenoise}
-          >
-            {denoiseState === "failed" ? "다시 실행" : "실행"}
-          </Button>
+          {p.bare ? (
+            <WorkbenchButton
+              size="sm"
+              variant="soft"
+              icon={Sparkles}
+              className="ml-auto"
+              disabled={!canEdit || denoiseState === "running"}
+              onClick={p.onRunDenoise}
+            >
+              {denoiseState === "failed" ? "다시 실행" : "실행"}
+            </WorkbenchButton>
+          ) : (
+            <Button
+              size="sm"
+              variant="ai"
+              className="ml-auto"
+              disabled={!canEdit || denoiseState === "running"}
+              onClick={p.onRunDenoise}
+            >
+              {denoiseState === "failed" ? "다시 실행" : "실행"}
+            </Button>
+          )}
         </div>
       ) : null}
     </div>
@@ -204,6 +223,27 @@ function CanvasBox({ p, className }: { p: CuttingPaneProps; className: string })
 /** 사건 창 도구 막대 앞 흐린 이름(「확대」 · 「회전」) */
 const BAR_LABEL = "text-[11px] text-muted-foreground"
 
+interface BarButtonProps {
+  /** 사건 창(R6) = 작업판 단추 soft sm, 아니면 SCAS 단추 그대로 */
+  compact: boolean
+  label?: string
+  disabled?: boolean
+  onClick: () => void
+  children: React.ReactNode
+}
+
+function BarButton({ compact, label, disabled, onClick, children }: BarButtonProps) {
+  return compact ? (
+    <WorkbenchButton size="sm" variant="soft" aria-label={label} disabled={disabled} onClick={onClick} className="min-w-[24px] justify-center px-[6px]">
+      {children}
+    </WorkbenchButton>
+  ) : (
+    <Button size="sm" aria-label={label} disabled={disabled} onClick={onClick}>
+      {children}
+    </Button>
+  )
+}
+
 /** SCAS −[확대]+ · 좌[각도]우 두 묶음. `compact` = 사건 창 한 줄 도구 막대(칸 높이를 단추 sm 24 에 맞춤 · 앞 흐린 이름) */
 function ZoomRotate({ p, compact = false }: { p: CuttingPaneProps; compact?: boolean }) {
   const { canEdit } = p.access
@@ -213,9 +253,9 @@ function ZoomRotate({ p, compact = false }: { p: CuttingPaneProps; compact?: boo
     <>
       <span className="inline-flex items-center gap-[3px]">
         {compact ? <span className={cn(BAR_LABEL, "mr-[3px]")}>확대</span> : null}
-        <Button size="sm" aria-label="축소" onClick={() => p.onZoomChange(Math.max(10, p.zoom - 10))}>
+        <BarButton compact={compact} label="축소" onClick={() => p.onZoomChange(Math.max(10, p.zoom - 10))}>
           −
-        </Button>
+        </BarButton>
         <Field
           type="number"
           variant={variant}
@@ -224,15 +264,15 @@ function ZoomRotate({ p, compact = false }: { p: CuttingPaneProps; compact?: boo
           onChange={(e) => p.onZoomChange(num(e.target.value, p.zoom))}
           className={field}
         />
-        <Button size="sm" aria-label="확대" onClick={() => p.onZoomChange(p.zoom + 10)}>
+        <BarButton compact={compact} label="확대" onClick={() => p.onZoomChange(p.zoom + 10)}>
           +
-        </Button>
+        </BarButton>
       </span>
       <span className="inline-flex items-center gap-[3px]">
         {compact ? <span className={cn(BAR_LABEL, "mr-[3px]")}>회전</span> : null}
-        <Button size="sm" disabled={!canEdit} onClick={() => p.onRotate("left")}>
+        <BarButton compact={compact} disabled={!canEdit} onClick={() => p.onRotate("left")}>
           좌
-        </Button>
+        </BarButton>
         <Field
           type="number"
           variant={variant}
@@ -242,9 +282,9 @@ function ZoomRotate({ p, compact = false }: { p: CuttingPaneProps; compact?: boo
           onChange={(e) => p.onRotateStepChange(num(e.target.value, p.rotateStep))}
           className={field}
         />
-        <Button size="sm" disabled={!canEdit} onClick={() => p.onRotate("right")}>
+        <BarButton compact={compact} disabled={!canEdit} onClick={() => p.onRotate("right")}>
           우
-        </Button>
+        </BarButton>
       </span>
     </>
   )
@@ -301,7 +341,7 @@ function ToolButtons({ p, block = false }: { p: CuttingPaneProps; block?: boolea
 }
 
 /** SCAS 아래 버튼 줄(처음상태 … 상하반전). 이력 칸이 있으면 되돌리기는 이력 머리로 간다(시안) */
-function BottomRow({ p, className }: { p: CuttingPaneProps; className?: string }) {
+function BottomRow({ p, className, workbench = false }: { p: CuttingPaneProps; className?: string; workbench?: boolean }) {
   const { canEdit } = p.access
   const undoInHistory = p.plus && p.editHistory !== undefined
   return (
@@ -310,9 +350,14 @@ function BottomRow({ p, className }: { p: CuttingPaneProps; className?: string }
       locked={!canEdit}
       actions={{ 처음상태: p.onRestore }}
       highlight={p.plus && p.recommendFlip ? "좌우반전" : undefined}
+      workbench={workbench}
       className={className}
       trailing={
-        undoInHistory ? undefined : (
+        undoInHistory ? undefined : workbench ? (
+          <WorkbenchButton size="sm" variant="ghost" icon={Undo2} disabled={!canEdit || !p.canUndo} onClick={p.onUndo}>
+            되돌리기
+          </WorkbenchButton>
+        ) : (
           <Button size="sm" disabled={!canEdit || !p.canUndo} onClick={p.onUndo}>
             되돌리기
           </Button>
@@ -384,11 +429,11 @@ function RailTool({
       )}
     >
       <Icon aria-hidden="true" className={cn("size-[19px]", on && "text-brand")} strokeWidth={1.7} />
-      <span aria-hidden="true" className="whitespace-nowrap text-[10.5px] font-semibold leading-none">
+      <span aria-hidden="true" className="whitespace-nowrap text-[11px] font-semibold leading-none">
         {short}
       </span>
       {kind === "denoise" ? (
-        <span aria-hidden="true" className="absolute top-[5px] right-[6px] font-code text-[8.5px] font-bold text-ai">
+        <span aria-hidden="true" className="absolute top-[4px] right-[5px] font-code text-[10px] font-bold text-ai">
           AI
         </span>
       ) : null}
@@ -530,13 +575,13 @@ export function CuttingWindow(
             <div role="group" aria-label="보기 · 회전" className="flex flex-wrap items-center gap-x-[10px] gap-y-[4px]">
               <ZoomRotate p={p} compact />
               <span aria-hidden="true" className="h-[16px] w-px bg-line-3" />
-              <span className="inline-flex gap-[4px]">
-                <Button size="sm" onClick={p.onFit}>
+              <span className="inline-flex gap-[2px]">
+                <WorkbenchButton size="sm" variant="ghost" onClick={p.onFit}>
                   맞춤
-                </Button>
-                <Button size="sm" onClick={p.onActualSize}>
+                </WorkbenchButton>
+                <WorkbenchButton size="sm" variant="ghost" onClick={p.onActualSize}>
                   100%
-                </Button>
+                </WorkbenchButton>
               </span>
             </div>
           </div>
@@ -550,7 +595,7 @@ export function CuttingWindow(
                   </span>
                   {TOOL_LABEL[tool]}
                 </b>
-                <span className="shrink-0 text-[11.5px] text-muted-foreground">{WINDOW_TOOLS[tool].desc}</span>
+                <span className="shrink-0 text-[11px] text-muted-foreground">{WINDOW_TOOLS[tool].desc}</span>
                 <div className="min-w-0 flex-1">
                   <ToolOptions {...p} bare quiet />
                 </div>
@@ -574,8 +619,8 @@ export function CuttingWindow(
             ) : null}
           </div>
           <div className={cn(STAGE_BAR, "border-0 border-t border-solid border-border")}>
-            <span className="shrink-0 text-[10.5px] font-bold tracking-[0.04em] text-muted-foreground">빠른 보정</span>
-            <BottomRow p={p} className="justify-start" />
+            <span className="shrink-0 text-[11px] font-bold tracking-[0.04em] text-muted-foreground">빠른 보정</span>
+            <BottomRow p={p} className="justify-start" workbench />
           </div>
         </div>
       </div>

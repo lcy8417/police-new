@@ -46,12 +46,12 @@ const LOW = 0.7
 /** 작업판 막대(문양 코드 탭 작업판과 같은 결) */
 const BAR = "flex shrink-0 flex-wrap items-center gap-x-[8px] gap-y-[4px] bg-panel px-[10px] py-[5px]"
 /** 그림 위 꼬리표 */
-const TAG = "pointer-events-none absolute rounded-[5px] bg-canvas/90 px-[7px] py-[2px] font-code text-[10.5px] text-fg-2"
+const TAG = "pointer-events-none absolute rounded-[5px] bg-canvas/90 px-[7px] py-[2px] font-code text-[10px] text-fg-2"
 /** Shoerinsics 이진화 그림 근사(진열 — 운영은 서버 `/shoes_images/Shoerinsics/<ftwrId>.png`) */
 const SHOERINSICS = "grayscale contrast-[8]"
 const SMALL_SEG = "p-[2px] [&_button]:px-[7px] [&_button]:py-[1px] [&_button]:text-[11px]"
 /** 기본정보 입력 칸(라벨 위 · 칸 아래 — 한 줄에 여섯 칸) */
-const INFO_LABEL = "grid gap-[2px] text-[10.5px] font-semibold text-muted-foreground"
+const INFO_LABEL = "grid gap-[2px] text-[10px] font-semibold text-muted-foreground"
 const patternSrc = (name: string) => String(insertPatternPath(name))
 const nameOf = (src: string) => {
   const s = stripPatternPath(src)
@@ -168,7 +168,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
         목록
       </WorkbenchButton>
       <h3 className="m-0 font-code text-[13px] font-bold text-foreground">{isNew ? "새 신발" : form.ftwrId}</h3>
-      {form.modlNm ? <span className="max-w-[220px] truncate text-[12px] text-muted-foreground">{form.modlNm}</span> : null}
+      {form.modlNm ? <span className="max-w-[220px] truncate text-[12.5px] text-muted-foreground">{form.modlNm}</span> : null}
       {workStatus ? <span className="rounded-[5px] bg-strip px-[6px] py-px text-[11px] text-fg-2">{workStatus}</span> : null}
       <span className="ml-auto inline-flex items-center gap-[4px]">
         <WorkbenchButton size="sm" variant="ghost" icon={ChevronLeft} iconOnly aria-label="이전 신발" disabled={!props.onPrev} onClick={props.onPrev} />
@@ -199,17 +199,17 @@ export function ShoeEditor(props: ShoeEditorProps) {
           invalid={saveError != null}
           maxLength={8}
           onChange={(e) => props.onFormChange({ ...form, ftwrId: e.target.value })}
-          className="w-[96px] text-[12px]"
+          className="w-[96px] text-[12.5px]"
         />
       </label>
       {TEXT_FIELDS.map(({ key, label, width }) => (
         <label key={key} className={INFO_LABEL}>
           {label}
-          <Field value={form[key] ?? ""} readOnly={!canEdit} onChange={(e) => props.onFormChange({ ...form, [key]: e.target.value })} className={cn(width, "text-[12px]")} />
+          <Field value={form[key] ?? ""} readOnly={!canEdit} onChange={(e) => props.onFormChange({ ...form, [key]: e.target.value })} className={cn(width, "text-[12.5px]")} />
         </label>
       ))}
       {saveError ? (
-        <p role="alert" className="m-0 self-center text-[12px] text-danger">
+        <p role="alert" className="m-0 self-center text-[12.5px] text-danger">
           {saveError}
         </p>
       ) : null}
@@ -219,7 +219,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
   const sole = (
     <section aria-label="밑창 그림" className="flex min-h-0 min-w-0 flex-col border-0 border-r border-solid border-border">
       <div className={cn(BAR, "border-0 border-b border-solid border-border")}>
-        <h3 className="m-0 text-[12px] font-bold whitespace-nowrap text-foreground">밑창</h3>
+        <h3 className="m-0 text-[12.5px] font-bold whitespace-nowrap text-foreground">밑창</h3>
         <Segmented
           aria-label="밑창 그림 종류"
           items={[
@@ -264,7 +264,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
             <div className={cn("absolute inset-0", cls.outer)}>
               <div className={cn("absolute inset-0", cls.inner)}>{soleImage(false)}</div>
             </div>
-            {form.image ? <SoleZoneLines /> : <span className="absolute inset-0 grid place-items-center text-[12px] text-dim">이미지 없음</span>}
+            {form.image ? <SoleZoneLines /> : <span className="absolute inset-0 grid place-items-center text-[12.5px] text-dim">이미지 없음</span>}
             <ScanOverlay active={extracting} />
             <span className={cn(TAG, "top-[6px] right-[6px]")}>{look === "shoerinsics" ? "Shoerinsics 이진화" : "원본"}</span>
             {tuneLabels.length ? <span className={cn(TAG, "top-[30px] right-[6px] text-brand")}>{tuneLabels.join(" · ")}</span> : null}
@@ -289,7 +289,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
   const zones = (
     <section aria-label="부위별 문양" className="@container flex min-h-0 min-w-0 flex-col bg-canvas">
       <div className={cn(BAR, "border-0 border-b border-solid border-border")}>
-        <h3 className="m-0 text-[12px] font-bold whitespace-nowrap text-foreground">4부위 문양</h3>
+        <h3 className="m-0 text-[12.5px] font-bold whitespace-nowrap text-foreground">4부위 문양</h3>
         <span className="font-code text-[11px] text-muted-foreground tabular-nums">{total}개</span>
         {aiNames.length > 0 ? (
           <span className="ml-auto inline-flex items-center gap-[6px]">
@@ -314,7 +314,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
         />
       </div>
       {detail?.duplicate ? (
-        <div className={cn(BAR, "border-0 border-t border-solid border-border py-[6px] text-[11.5px]")}>
+        <div className={cn(BAR, "border-0 border-t border-solid border-border py-[6px] text-[11px]")}>
           <AiTag className="border-warn-line bg-warn-bg text-warn">중복 의심</AiTag>
           <span className="min-w-0 truncate text-fg-2">
             <span className="font-code">{detail.duplicate.ftwrId}</span> · 바닥 유사도{" "}

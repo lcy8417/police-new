@@ -1,4 +1,5 @@
 import * as React from "react"
+import { PencilLine, RotateCcw, Save, Scissors } from "lucide-react"
 
 import { FEATURES, type FeatureCode } from "@/entities/session"
 import { cn } from "@/shared/lib/utils"
@@ -13,6 +14,7 @@ import {
   InlineError,
   RadioRow,
   Segmented,
+  WorkbenchButton,
   type DataGridColumn,
 } from "@/shared/ui/kit"
 import { ButtonBar, PaneHead, Panel, SearchForm, Stepper, UnderlineTabs, type SearchFormRow } from "@/shared/ui/panel"
@@ -373,9 +375,15 @@ export function CaseDetailScreen({
           { value: "all", label: "선택한 이미지 모두 적용" },
         ]}
       />
-      <Button size="sm" locked={!canEdit} onClick={() => onMockAction?.("수정")}>
-        수정
-      </Button>
+      {inWindow ? (
+        <WorkbenchButton size="sm" icon={PencilLine} disabled={!canEdit} title={canEdit ? undefined : "수정 권한 없음"} onClick={() => onMockAction?.("수정")}>
+          수정
+        </WorkbenchButton>
+      ) : (
+        <Button size="sm" locked={!canEdit} onClick={() => onMockAction?.("수정")}>
+          수정
+        </Button>
+      )}
     </span>
   ) : null
   const saveBar = canEdit ? (
@@ -390,12 +398,25 @@ export function CaseDetailScreen({
           저장 후 다음 사건 연속 등록
         </label>
       ) : null}
-      <Button size="sm" onClick={onReset}>
-        초기화
-      </Button>
-      <Button size="sm" variant="pri" disabled={saving} onClick={onSave}>
-        {saving ? "저장 중..." : "저장"}
-      </Button>
+      {inWindow ? (
+        <>
+          <WorkbenchButton variant="ghost" icon={RotateCcw} onClick={onReset}>
+            초기화
+          </WorkbenchButton>
+          <WorkbenchButton variant="primary" icon={Save} disabled={saving} onClick={onSave}>
+            {saving ? "저장 중..." : "저장"}
+          </WorkbenchButton>
+        </>
+      ) : (
+        <>
+          <Button size="sm" onClick={onReset}>
+            초기화
+          </Button>
+          <Button size="sm" variant="pri" disabled={saving} onClick={onSave}>
+            {saving ? "저장 중..." : "저장"}
+          </Button>
+        </>
+      )}
     </div>
   ) : null
   const errorLine = errorMessage ? (
@@ -438,9 +459,9 @@ export function CaseDetailScreen({
                 {extra?.flipNote}
               </Chip>
             ) : null}
-            <Button size="sm" className="ml-auto" disabled={!selected} onClick={() => selected && onOpenImageEdit(selected.id)}>
+            <WorkbenchButton icon={Scissors} className="ml-auto" disabled={!selected} onClick={() => selected && onOpenImageEdit(selected.id)}>
               이미지 커팅 열기
-            </Button>
+            </WorkbenchButton>
           </div>
         </section>
 

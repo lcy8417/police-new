@@ -34,7 +34,7 @@ export interface WindowCardProps {
 function ZoneMarks({ item }: { item: ImageSearchResultItem }) {
   if (!item.zoneScores?.length) return null
   return (
-    <span className="inline-flex items-center gap-[5px] font-code text-[10.5px]">
+    <span className="inline-flex items-center gap-[5px] font-code text-[10px]">
       {item.zoneScores.map((z) => {
         const ok = z.score >= ZONE_MATCH
         return (
@@ -73,7 +73,7 @@ export function WindowCard({
   const value = parseSimilarity(item.similarity)
   const row = per === 1
   const score = (
-    <b className="font-code text-[19px] leading-none tabular-nums text-foreground">
+    <b className="font-code text-[16px] font-bold leading-none tabular-nums text-foreground">
       {value === null ? "—" : value.toFixed(1)}
       <span className="ml-[1px] text-[11px] font-semibold text-muted-foreground">%</span>
     </b>
@@ -112,7 +112,7 @@ export function WindowCard({
       >
         {!row ? (
           <span className="flex min-w-0 items-center gap-[6px]">
-            <b className="font-code text-[12px] tabular-nums">{`#${rank}`}</b>
+            <b className="font-code text-[12.5px] tabular-nums">{`#${rank}`}</b>
             <ZoneMarks item={item} />
             {seen ? <Eye aria-hidden="true" className="ml-auto size-[12px] shrink-0 text-faint" strokeWidth={2} /> : null}
           </span>
@@ -123,14 +123,14 @@ export function WindowCard({
         {row ? (
           <span className="grid min-w-0 content-start gap-[10px] py-[4px]">
             <span className="flex items-center gap-[8px]">
-              <b className="font-code text-[14px] tabular-nums">{`#${rank}`}</b>
-              <span className="font-code text-[12px] text-fg-2">{item.ftwrId}</span>
+              <b className="font-code text-[13px] tabular-nums">{`#${rank}`}</b>
+              <span className="font-code text-[12.5px] text-fg-2">{item.ftwrId}</span>
               {seen ? <Eye aria-hidden="true" className="size-[13px] text-faint" strokeWidth={2} /> : null}
               <span className="ml-auto pr-[28px]">{score}</span>
             </span>
             <ConfidenceBar value={value ?? NaN} scale="percent" label={`${rank}위 유사도`} className="[&>span]:hidden" />
             {item.zoneScores?.map((z) => (
-              <span key={z.zone} className="grid grid-cols-[18px_minmax(0,1fr)] items-center gap-x-[8px] gap-y-[2px] text-[11.5px]">
+              <span key={z.zone} className="grid grid-cols-[18px_minmax(0,1fr)] items-center gap-x-[8px] gap-y-[2px] text-[11px]">
                 <b className={z.score >= ZONE_MATCH ? "text-foreground" : "text-faint"}>{z.zone}</b>
                 <ConfidenceBar value={z.score} scale="percent" threshold={ZONE_MATCH} label={`${z.zone} 부위 점수`} />
                 <span />

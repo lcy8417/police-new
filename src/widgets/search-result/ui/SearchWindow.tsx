@@ -39,7 +39,7 @@ import { WindowCard } from "./WindowCard"
 const BAR = "flex shrink-0 flex-wrap items-center gap-x-[8px] gap-y-[4px] bg-panel px-[10px] py-[5px]"
 /** 작업판 막대 안 분할 단추를 단추 sm 높이로 */
 const SEG = "p-[2px] [&_button]:px-[8px] [&_button]:py-[1px] [&_button]:text-[11px]"
-const LABEL = "shrink-0 text-[10.5px] font-semibold text-muted-foreground"
+const LABEL = "shrink-0 text-[10px] font-semibold text-muted-foreground"
 
 type Per = 1 | 3 | 5
 type SeenFilter = "all" | "unseen" | "seen"
@@ -280,7 +280,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
   let body: React.ReactNode
   if (status === "loading") {
     body = (
-      <div aria-busy="true" className="grid h-full place-content-center justify-items-center gap-[10px] text-[12px] text-muted-foreground">
+      <div aria-busy="true" className="grid h-full place-content-center justify-items-center gap-[10px] text-[12.5px] text-muted-foreground">
         <AiProgress state="running" label="신발 검색 중" className="w-[220px]" />
         신발 검색 중
       </div>
@@ -295,7 +295,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
     body = (
       <div className="grid h-full place-content-center justify-items-center gap-[4px] text-[12.5px] text-muted-foreground">
         <span className="font-semibold text-fg-2">결과 없음</span>
-        <span className="text-[11.5px]">필수 문양을 조정해 다시 검색해 보세요</span>
+        <span className="text-[11px]">필수 문양을 조정해 다시 검색해 보세요</span>
       </div>
     )
   } else {
@@ -324,7 +324,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
       const next = visible[i + 1]
       if (plus && seenFilter === "all" && rank === seenUpTo && next) {
         items.push(
-          <li key="seen-line" data-seen-line className="col-span-full flex items-center gap-[8px] font-code text-[10.5px] text-brand">
+          <li key="seen-line" data-seen-line className="col-span-full flex items-center gap-[8px] font-code text-[10px] text-brand">
             <span aria-hidden="true" className="h-px flex-1 bg-brand-line" />
             {`여기까지 봤음 · ${seenUpTo}위 · ${plus.seenAt}`}
             <span aria-hidden="true" className="h-px flex-1 bg-brand-line" />
@@ -386,7 +386,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
         {/* 왼쪽: 현장 족적 — 보기 조정 · 확대경, 아래 본 위치 · 확인대상 */}
         <section aria-label="현장 족적" className="flex min-h-0 min-w-0 flex-col border-0 border-r border-solid border-border">
           <div className={cn(BAR, "border-0 border-b border-solid border-border")}>
-            <h3 className="m-0 text-[12px] font-bold whitespace-nowrap text-foreground">현장 족적</h3>
+            <h3 className="m-0 text-[12.5px] font-bold whitespace-nowrap text-foreground">현장 족적</h3>
           </div>
           <div className={cn(BAR, "border-0 border-b border-solid border-border py-[4px]")}>
             <ViewControls tune={tune} onTuneChange={setTune} lens={lens} onLensChange={setLens} noBrightness />
@@ -411,11 +411,11 @@ export function SearchWindow(props: SearchResultScreenProps) {
           {plus && status === "ready" ? (
             <div className="grid shrink-0 gap-[8px] border-0 border-t border-solid border-border bg-panel px-[10px] py-[8px]">
               <div data-seen-box className="grid gap-[5px]">
-                <span className="flex items-baseline justify-between text-[11.5px]">
+                <span className="flex items-baseline justify-between text-[11px]">
                   <b>본 위치</b>
                   <span className="font-code tabular-nums text-fg-2">{`${seenUpTo} / ${totalCount}`}</span>
                 </span>
-                <span className="flex items-center gap-[6px] text-[10.5px] text-muted-foreground">
+                <span className="flex items-center gap-[6px] text-[10px] text-muted-foreground">
                   {plus.seenAt}
                   <WorkbenchButton size="sm" variant="soft" icon={ArrowRight} className="ml-auto" onClick={() => goTo(seenUpTo + 1)}>
                     {`${seenUpTo + 1}위부터 이어 보기`}
@@ -423,7 +423,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
                 </span>
               </div>
               <div data-target-box className="grid gap-[3px]">
-                <span className="flex items-baseline justify-between text-[11.5px]">
+                <span className="flex items-baseline justify-between text-[11px]">
                   <b>확인대상</b>
                   <span className="font-code tabular-nums text-fg-2">{targets.length}</span>
                 </span>
@@ -457,7 +457,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
         {/* 가운데: 순위 목록 */}
         <section ref={stageRef} aria-label="순위 목록" className="relative flex min-h-0 min-w-0 flex-col bg-canvas">
           <div className={cn(BAR, "relative border-0 border-b border-solid border-border")}>
-            <h3 className="m-0 text-[12px] font-bold whitespace-nowrap text-foreground">순위</h3>
+            <h3 className="m-0 text-[12.5px] font-bold whitespace-nowrap text-foreground">순위</h3>
             {plus ? (
               <Segmented
                 aria-label="본 것 거르기"
@@ -549,7 +549,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
                     <span className="text-right font-code text-[11px] tabular-nums text-fg-2">{`${pageSec}초`}</span>
                   </label>
                 )}
-                {reduced ? <span className="text-[10.5px] text-muted-foreground">움직임 줄이기 — 쪽 넘김만</span> : null}
+                {reduced ? <span className="text-[10px] text-muted-foreground">움직임 줄이기 — 쪽 넘김만</span> : null}
               </div>
             ) : null}
           </div>
@@ -578,13 +578,13 @@ export function SearchWindow(props: SearchResultScreenProps) {
       {/* 바닥 단추 줄: 고른 카드 · 확인대상 · 정밀 대조 */}
       <div className="flex shrink-0 flex-wrap items-center gap-[8px] border-0 border-t border-solid border-border pt-[8px]">
         {selected ? (
-          <span data-selected-summary className="inline-flex items-baseline gap-[8px] text-[12px]">
+          <span data-selected-summary className="inline-flex items-baseline gap-[8px] text-[12.5px]">
             <b className="font-code tabular-nums">{`${selected.rank}위`}</b>
             <span className="font-code text-fg-2">{selected.item.ftwrId}</span>
             <b className="font-code tabular-nums">{`${parseSimilarity(selected.item.similarity)?.toFixed(1) ?? "—"}%`}</b>
           </span>
         ) : (
-          <span className="text-[11.5px] text-muted-foreground">카드를 눌러 고르세요</span>
+          <span className="text-[11px] text-muted-foreground">카드를 눌러 고르세요</span>
         )}
         <span className="ml-auto flex flex-wrap items-center gap-[6px]">
           <WorkbenchButton

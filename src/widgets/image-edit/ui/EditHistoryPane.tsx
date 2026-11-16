@@ -1,6 +1,7 @@
 import { Undo2 } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
+import { WorkbenchButton } from "@/shared/ui/kit"
 import { PaneHead } from "@/shared/ui/panel"
 
 import { stepLook } from "../model/step-look"
@@ -32,15 +33,9 @@ export function EditHistoryPane({ history, originalSrc, originalHash, previewNo,
         title="편집 이력"
         sub={`${history.length}단계`}
         end={
-          <button
-            type="button"
-            disabled={!canEdit || !canUndo}
-            onClick={onUndo}
-            className="inline-flex h-[28px] cursor-pointer items-center gap-[5px] rounded-[8px] border border-solid border-border bg-panel px-[10px] text-[12px] font-semibold text-fg-2 transition-colors hover:bg-strip disabled:cursor-default disabled:opacity-45 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-brand"
-          >
-            <Undo2 aria-hidden="true" className="size-[14px]" strokeWidth={1.9} />
+          <WorkbenchButton size="sm" variant="soft" icon={Undo2} disabled={!canEdit || !canUndo} onClick={onUndo}>
             되돌리기
-          </button>
+          </WorkbenchButton>
         }
       />
       <ol className="m-0 flex min-h-0 flex-1 list-none flex-col gap-[4px] overflow-y-auto p-0">
@@ -71,10 +66,10 @@ export function EditHistoryPane({ history, originalSrc, originalHash, previewNo,
                     {now ? (
                       <span className="rounded-full bg-brand-3 px-[6px] text-[10px] font-bold leading-[16px] text-paper">지금</span>
                     ) : null}
-                    {on ? <span className="ml-auto text-[10.5px] font-semibold text-brand-3">보는 중</span> : null}
+                    {on ? <span className="ml-auto text-[10px] font-semibold text-brand-3">보는 중</span> : null}
                   </span>
                   <span className={cn("truncate text-[12.5px] font-semibold", on ? "text-foreground" : "text-fg-2")}>{r.label}</span>
-                  {r.at ? <span className="font-code text-[10.5px] text-muted-foreground">{r.at}</span> : null}
+                  {r.at ? <span className="font-code text-[10px] text-muted-foreground">{r.at}</span> : null}
                 </span>
               </button>
             </li>
@@ -82,7 +77,7 @@ export function EditHistoryPane({ history, originalSrc, originalHash, previewNo,
         })}
       </ol>
       {originalHash ? (
-        <p className="m-0 shrink-0 border-0 border-t border-solid border-border pt-[8px] text-[10.5px] leading-[1.5] text-muted-foreground">
+        <p className="m-0 shrink-0 border-0 border-t border-solid border-border pt-[8px] text-[10px] leading-[1.5] text-muted-foreground">
           원본 보관 · SHA-256 <b className="font-code font-medium text-fg-2">{originalHash}</b>
         </p>
       ) : null}

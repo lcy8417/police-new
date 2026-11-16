@@ -37,7 +37,7 @@ const SOURCES = [
 /** 작업판 막대(한 단 밝은 판 + 가는 선 — 이미지 편집 탭 작업판과 같은 결) */
 const BAR = "flex shrink-0 flex-wrap items-center gap-x-[8px] gap-y-[4px] bg-panel px-[10px] py-[5px]"
 /** 그림 위 꼬리표 */
-const TAG = "pointer-events-none absolute rounded-[5px] bg-canvas/90 px-[7px] py-[2px] font-code text-[10.5px] text-fg-2"
+const TAG = "pointer-events-none absolute rounded-[5px] bg-canvas/90 px-[7px] py-[2px] font-code text-[10px] text-fg-2"
 
 type SideTab = "library" | "conditions" | "history"
 
@@ -186,7 +186,7 @@ export function PatternWindow(props: PatternWindowProps) {
             {/* 왼쪽: 현장 이미지 — 보기 조정 · 확대경 · 두 번 눌러 크게 */}
             <section aria-label="현장 이미지" className="flex min-h-0 min-w-0 flex-col border-0 border-r border-solid border-border">
               <div className={cn(BAR, "border-0 border-b border-solid border-border")}>
-                <h3 className="m-0 text-[12px] font-bold whitespace-nowrap text-foreground">현장 이미지</h3>
+                <h3 className="m-0 text-[12.5px] font-bold whitespace-nowrap text-foreground">현장 이미지</h3>
                 {sourcePicker}
                 <WorkbenchButton
                   size="sm"
@@ -232,7 +232,7 @@ export function PatternWindow(props: PatternWindowProps) {
               </div>
               <div className={cn(BAR, "flex-col items-stretch border-0 border-t border-solid border-border py-[7px]")}>
                 {props.showPlus !== false && props.priceTagWarning ? (
-                  <p className="m-0 text-[10.5px] leading-[1.4] text-warn">▣ 가격표 자리 — AI가 문양을 못 잡을 수 있습니다</p>
+                  <p className="m-0 text-[10px] leading-[1.4] text-warn">▣ 가격표 자리 — AI가 문양을 못 잡을 수 있습니다</p>
                 ) : null}
                 <WorkbenchButton
                   variant="soft"
@@ -250,7 +250,7 @@ export function PatternWindow(props: PatternWindowProps) {
             {/* 가운데: 상 · 중 · 하 · 윤곽 4부위 문양 */}
             <section aria-label="현장 이미지 문양" className="flex min-h-0 min-w-0 flex-col bg-canvas">
               <div className={cn(BAR, "border-0 border-b border-solid border-border")}>
-                <h3 className="m-0 text-[12px] font-bold whitespace-nowrap text-foreground">4부위 문양</h3>
+                <h3 className="m-0 text-[12.5px] font-bold whitespace-nowrap text-foreground">4부위 문양</h3>
                 {research}
                 <span className="ml-auto inline-flex items-center gap-[4px]">
                   {patternMeta ? (
@@ -293,14 +293,14 @@ export function PatternWindow(props: PatternWindowProps) {
                 />
                 {props.onSoleTextChange ? (
                   <label className="grid grid-cols-[46px_minmax(0,1fr)] items-center gap-[8px] px-[8px]">
-                    <b className="text-[12px] text-foreground">문자열</b>
+                    <b className="text-[12.5px] text-foreground">문자열</b>
                     <Field
                       aria-label="문자열"
                       placeholder="밑창에 글자가 보이면 입력"
                       value={props.soleText ?? ""}
                       readOnly={!canEdit}
                       onChange={(e) => props.onSoleTextChange?.(e.target.value)}
-                      className="text-[12px]"
+                      className="text-[12.5px]"
                     />
                   </label>
                 ) : null}
@@ -336,8 +336,8 @@ export function PatternWindow(props: PatternWindowProps) {
                   </SubHead>
                   <ul className="m-0 flex list-none flex-col gap-[3px] p-0">
                     {WEIGHT_RULES.map((r) => (
-                      <li key={r.id} className="flex gap-[6px] text-[11.5px] text-fg-2">
-                        <b className="w-[20px] shrink-0 font-code text-[10.5px] font-semibold text-muted-foreground">{r.id}</b>
+                      <li key={r.id} className="flex gap-[6px] text-[11px] text-fg-2">
+                        <b className="w-[20px] shrink-0 font-code text-[10px] font-semibold text-muted-foreground">{r.id}</b>
                         {r.text}
                       </li>
                     ))}
@@ -365,7 +365,7 @@ export function PatternWindow(props: PatternWindowProps) {
 
       {/* 바닥 단추 줄: 진행 · 다음 이미지 | 다시입력 · 검색결과 · 검색(닫기는 창 ✕) */}
       <div className="flex shrink-0 flex-wrap items-center gap-[8px] border-0 border-t border-solid border-border pt-[8px]">
-        {!canEdit ? <span className="text-[11.5px] text-muted-foreground">{props.readOnlyNote}</span> : null}
+        {!canEdit ? <span className="text-[11px] text-muted-foreground">{props.readOnlyNote}</span> : null}
         {progress ? (
           <span className="flex min-w-0 items-center gap-[8px] text-[11px] text-muted-foreground">
             <span className="font-code tabular-nums">

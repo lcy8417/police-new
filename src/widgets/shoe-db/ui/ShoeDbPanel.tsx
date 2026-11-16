@@ -39,7 +39,7 @@ const PATTERN_INPUT_OPTIONS = [
   { value: "in", label: "입력" },
   { value: "out", label: "미입력" },
 ]
-const SMALL_SEG = "p-[2px] [&_button]:px-[8px] [&_button]:py-[1px] [&_button]:text-[11.5px]"
+const SMALL_SEG = "p-[2px] [&_button]:px-[8px] [&_button]:py-[1px] [&_button]:text-[11px]"
 
 // 카드 크기 → 격자(폭에 맞춰 채움) · 사진 높이. 클래스는 통째로 적어야 Tailwind 가 만든다
 const CARD_SIZES: readonly ShoeCardSize[] = ["작게", "보통", "크게"]
@@ -120,7 +120,7 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
   const size = PANEL_CARD[cardSize]
 
   const label = (text: string, field: React.ReactNode, wide = false) => (
-    <label className={cn("grid min-w-0 grid-cols-[64px_minmax(0,1fr)] items-center gap-[8px] text-[12px] text-muted-foreground", wide && "col-span-2")}>
+    <label className={cn("grid min-w-0 grid-cols-[64px_minmax(0,1fr)] items-center gap-[8px] text-[12.5px] text-muted-foreground", wide && "col-span-2")}>
       <span>{text}</span>
       {field}
     </label>
@@ -258,7 +258,7 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
         ) : null}
         <span className="ml-auto inline-flex items-center gap-[8px]">
           {quick ? (
-            <span className="font-code text-[11.5px] text-muted-foreground tabular-nums">
+            <span className="font-code text-[11px] text-muted-foreground tabular-nums">
               {quick.resultCount} / {quick.total}
             </span>
           ) : null}

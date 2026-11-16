@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { Button } from "@/shared/ui/kit"
+import { Button, WorkbenchButton } from "@/shared/ui/kit"
 import { cn } from "@/shared/lib/utils"
 
 import { SCAS_BOTTOM_BUTTONS, type ScasBottomButton } from "../model/constants"
@@ -18,12 +18,39 @@ export interface ScasButtonRowProps {
   trailing?: React.ReactNode
   /** 먼저 누르라고 권하는 버튼(시안 핀 4 — 주황 `warn`) */
   highlight?: ScasBottomButton
+  /** 사건 창 작업판(R6) — 작업판 단추(WorkbenchButton sm)로. 권하는 단추는 옅은 판 + 주황 점 */
+  workbench?: boolean
   className?: string
 }
 
 const ON = "bg-brand-bg text-foreground [box-shadow:inset_0_0_0_1px_var(--t-brand)]"
 
-export function ScasButtonRow({ label, actions, pressed = {}, locked = false, trailing, highlight, className }: ScasButtonRowProps) {
+export function ScasButtonRow({ label, actions, pressed = {}, locked = false, trailing, highlight, workbench = false, className }: ScasButtonRowProps) {
+  if (workbench) {
+    return (
+      <div role="group" aria-label={label} className={cn("flex flex-wrap items-center gap-[3px]", className)}>
+        {SCAS_BOTTOM_BUTTONS.map((name) => {
+          const action = actions[name]
+          const recommend = name === highlight
+          return (
+            <WorkbenchButton
+              key={name}
+              size="sm"
+              variant={recommend ? "soft" : "ghost"}
+              aria-pressed={action ? pressed[name] : undefined}
+              disabled={!action || locked}
+              title={!action ? "준비 중" : recommend ? "먼저 권함" : undefined}
+              onClick={action}
+            >
+              {recommend ? <i aria-hidden="true" className="size-[6px] rounded-full bg-warn" /> : null}
+              {name}
+            </WorkbenchButton>
+          )
+        })}
+        {trailing}
+      </div>
+    )
+  }
   return (
     <div role="group" aria-label={label} className={cn("flex flex-wrap justify-center gap-[5px]", className)}>
       {SCAS_BOTTOM_BUTTONS.map((name) => {

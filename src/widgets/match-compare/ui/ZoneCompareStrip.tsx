@@ -15,7 +15,7 @@ const ZONES: { key: keyof ZonePatterns; label: string; basis?: string }[] = [
   { key: "outline", label: "윤곽" },
 ]
 
-const SIDE = "flex h-[30px] items-center text-[10.5px] font-semibold text-muted-foreground"
+const SIDE = "flex h-[30px] items-center text-[10px] font-semibold text-muted-foreground"
 
 function Icons({ label, items, shared }: { label: string; items: readonly PatternIconItem[]; shared: Set<string> }) {
   return (
@@ -67,7 +67,7 @@ export function ZoneCompareStrip({
         return (
           <div key={z.key} data-zone-cell={z.key} className="grid min-w-0 gap-[2px] border-0 border-l border-solid border-border pl-[10px]">
             <span className="flex h-[18px] items-center gap-[6px] font-code text-[11px] tabular-nums">
-              <b className="font-sans text-[12px] text-foreground">{z.label}</b>
+              <b className="font-sans text-[12.5px] text-foreground">{z.label}</b>
               <span aria-label={ok ? "일치" : "불일치"} className={cn("font-bold", ok ? "text-ai" : "text-warn")}>
                 {ok ? "✓" : "✕"}
               </span>

@@ -102,6 +102,20 @@
 - 지키는 검사: `src/shared/ui/token-map.test.ts`(`@theme`에 세 이름이 없음, `--font-ui` · `--font-code`가 시안 목록과 글자까지 같음) · `tests/ui/token-regression.spec.ts`(로그인 화면에서 `font-mono` · `font-sans` · 기본 글꼴 계산값이 브랜치 이전 값과 같음).
 - `:root` 목록의 글꼴 파일은 `index.html`의 Google Fonts 링크로 받는다(오프라인이면 목록의 다음 글꼴). 시안 화면 범위 글꼴 6종은 저장소에 넣었다(self-host, 2026-11-16 사용자 결정 「여러 개 받아서 선택할 수 있게」) — 아래 「팔레트 · 글꼴 범위」.
 
+### 글자 크기 단계 (R6, 2026-11-17 — 창 모드 화면)
+
+사건 창 탭 · 사건관리 목록 · 신발 DB 패널 · 로그인 · 사용자 관리 · 사용 기록은 아래 단계만 쓴다. 10.5 · 11.5 · 12 같은 사이 값은 가까운 단계로 옮긴다. 단독 진열(`/dev/sNN` 창 모드 아님)은 SCAS 시안 재현이라 시안 값 그대로.
+
+| 단계 | 크기 · 굵기 | 쓰는 자리 |
+|---|---|---|
+| 제목 | 13 굵게 | 칸 머리(PaneHead) · 판 이름 · 순위 꼬리표 |
+| 본문 | 12.5 | 표 줄 · 입력 칸 · 판 안 소제목(굵게) · 안내 한 줄 |
+| 보조 | 11 | 흐린 설명 · 개수 · 작은 단추(WorkbenchButton sm) |
+| 표식 | 10 | 칸 머리 이름 · 꼬리표 · 도구 타일 위 AI 표 |
+| 숫자 | 16 굵게 | 점수 · 유사도(`font-code tabular-nums`) |
+
+- 예외(부품 정본 값 그대로): WorkbenchButton md 12 · kit 목록 판(ListHeadRow 10.5 · ListRow 12, 로망 정본) · AI 대조 칸 대표 신뢰도 하나 28.
+
 ## 팔레트 · 글꼴 범위 (시안 r3, 2026-11-16 사용자 결정)
 
 **결론: 시안 화면은 루트(`ScasShell` · S00 진열 틀 = `ThemeScope`)에 `data-theme` · `data-font` · `data-scale` · `data-motion`을 달고, `src/index.css`가 그 범위에서만 값 토큰 `--t-*`와 글꼴 변수를 다시 정의한다. `:root` 값은 그대로다 → 기존 운영 화면 · 부품 진열(`/dev/parts`, 범위 없음 = 다크)은 변화 0(`tests/ui/token-regression.spec.ts` · `tests/ui/theme-scope.spec.ts`). 화면 설정은 「화면 설정」 창(`ThemeSettings`)에서 고르고 이 브라우저에 기억한다(`src/shared/lib/display-prefs.ts`, localStorage `scas-mock.display-prefs.v1`, 실패 · 깨진 값 → 기본값).**

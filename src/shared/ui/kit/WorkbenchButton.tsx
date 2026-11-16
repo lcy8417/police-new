@@ -20,7 +20,7 @@ const BASE =
 
 const SIZE_CLASS: Record<WorkbenchButtonSize, { box: string; icon: string; only: string }> = {
   md: { box: "h-[28px] gap-[6px] rounded-[8px] px-[11px] text-[12px]", icon: "size-[14px]", only: "w-[28px] justify-center px-0" },
-  sm: { box: "h-[24px] gap-[5px] rounded-[7px] px-[8px] text-[11.5px]", icon: "size-[13px]", only: "w-[24px] justify-center px-0" },
+  sm: { box: "h-[24px] gap-[5px] rounded-[7px] px-[8px] text-[11px]", icon: "size-[13px]", only: "w-[24px] justify-center px-0" },
 }
 
 const VARIANT_CLASS: Record<WorkbenchButtonVariant, string> = {

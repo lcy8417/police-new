@@ -13,7 +13,7 @@ import { viewToRatio, type RatioPoint } from "../model/zoom-link"
 type Look = "rgb" | "sketch"
 
 const BAR = "flex shrink-0 flex-wrap items-center gap-x-[8px] gap-y-[4px] bg-panel px-[10px] py-[5px]"
-const TAG = "pointer-events-none absolute z-[2] rounded-[5px] bg-canvas/90 px-[7px] py-[2px] font-code text-[10.5px] text-fg-2"
+const TAG = "pointer-events-none absolute z-[2] rounded-[5px] bg-canvas/90 px-[7px] py-[2px] font-code text-[10px] text-fg-2"
 /** 함께 확대 배율 → 고정 클래스(Tailwind 가 읽게 글자 그대로) */
 const PIN_SCALE: Record<LensZoom, string> = { 2: "scale-200", 3: "scale-300", 4: "scale-400" }
 const ZONE_NAMES = ["상", "중", "하"] as const
@@ -87,7 +87,7 @@ export function ComparePane(props: ComparePaneProps) {
   return (
     <section aria-label={title} data-compare-pane={side} className="flex min-h-0 min-w-0 flex-1 flex-col">
       <div className={cn(BAR, "border-0 border-b border-solid border-border py-[4px]")}>
-        <h3 aria-label={title} className="m-0 mr-[4px] text-[12px] font-bold whitespace-nowrap text-foreground">
+        <h3 aria-label={title} className="m-0 mr-[4px] text-[12.5px] font-bold whitespace-nowrap text-foreground">
           {title.split(" ")[0]}
         </h3>
         <ViewControls tune={tune} onTuneChange={props.onTuneChange} noBrightness rotatable />
@@ -161,7 +161,7 @@ export function ComparePane(props: ComparePaneProps) {
                     key={m.name}
                     aria-hidden="true"
                     style={{ top: pct(m.y) }}
-                    className="pointer-events-none absolute left-[4px] -translate-y-1/2 text-[10.5px] font-bold text-warn [text-shadow:0_1px_2px_var(--t-bg)]"
+                    className="pointer-events-none absolute left-[4px] -translate-y-1/2 text-[10px] font-bold text-warn [text-shadow:0_1px_2px_var(--t-bg)]"
                   >
                     {m.name}
                   </span>
