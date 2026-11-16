@@ -375,7 +375,7 @@ export function ResultConfirmScreen({
   onCrossReviewerChange,
   onRequestCrossReview,
   onPlusAction,
-  blockCount = 3,
+  blockCount: blockCountProp,
   onBlockCountChange,
   query = "",
   onQueryChange,
@@ -393,6 +393,8 @@ export function ResultConfirmScreen({
   const visible = filterBlocks(blocks, query, filters, ctx)
   const filterActive = hasActiveFilter(query, filters)
   const [rawStart, setStart] = React.useState(0)
+  // 보기 개수를 받지 않으면(r3 이전 모양) 블록을 모두 보인다 — 넘기기 단추도 그때는 없으므로 잘리면 안 된다
+  const blockCount = blockCountProp ?? Math.max(1, visible.length)
   const lastStart = Math.max(0, visible.length - blockCount)
   const start = Math.min(rawStart, lastStart)
   const groupOf = (key: ConfirmFilterKey, label: string, options: { value: string; label: string }[]): FilterGroup => ({
@@ -485,7 +487,7 @@ export function ResultConfirmScreen({
                 <ViewCountSwitch<BlockViewCount>
                   label="한 번에"
                   options={BLOCK_COUNTS}
-                  value={blockCount}
+                  value={blockCountProp ?? 5}
                   onChange={(n) => {
                     onBlockCountChange(n)
                     setStart(0)

@@ -34,7 +34,7 @@ const LOOK_ITEMS = [
 const COMPARE_OPTIONS: readonly CompareCount[] = ["1:1", "1:3", "1:5"]
 const DEFAULT_INTERVAL_MS = 2000
 
-const NO_ALIGNMENT ="정렬(ROI+방향)이 설정되지 않았습니다. 먼저 정렬을 저장해 주세요."
+const NO_ALIGNMENT = "정렬(ROI+방향)이 설정되지 않았습니다. 먼저 정렬을 저장해 주세요."
 const NOT_READY = "준비 중"
 // 판정 · 정렬 저장은 지금 앱에서 사건 조회 권한 묶음(CRIME_SEARCH) 안에 있다
 const WRITE_FEATURE: FeatureCode = "CRIME_SEARCH"

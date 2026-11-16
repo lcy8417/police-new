@@ -62,14 +62,16 @@ describe("S05 검색 결과 진열 페이지", () => {
     expect(last.querySelector("[data-grade]")).toHaveAttribute("data-grade", "danger")
   })
 
-  it("결과형태 Segmented 로 열 수가 바뀐다(신규 기능 끔 — 1차 기본 4열 · r3 에서 1–6개씩으로 늘림)", () => {
+  it("결과형태 1–4열 Segmented 로 열 수가 바뀐다(신규 기능 끔 — 1차 기본 4열 · r3 확장 5 · 6열)", () => {
     renderAt("?case=ready&plus=0")
     const seg = screen.getByRole("group", { name: "결과형태" })
     expect(seg).toHaveAttribute("data-part", "Segmented")
-    expect(within(seg).getAllByRole("button").map((b) => b.textContent)).toEqual(["1개", "2개", "3개", "4개", "5개", "6개"])
+    expect(within(seg).getAllByRole("button").map((b) => b.textContent).slice(0, 4)).toEqual(["1열", "2열", "3열", "4열"])
+    // r3 확장
+    expect(within(seg).getAllByRole("button").map((b) => b.textContent).slice(4)).toEqual(["5열", "6열"])
     const grid = document.querySelector("[data-result-grid]") as HTMLElement
     expect(grid).toHaveAttribute("data-columns", "4")
-    fireEvent.click(within(seg).getByRole("button", { name: "2개" }))
+    fireEvent.click(within(seg).getByRole("button", { name: "2열" }))
     expect(grid).toHaveAttribute("data-columns", "2")
   })
 
@@ -157,7 +159,7 @@ describe("S05 r2 — 시안 +α", () => {
     const grid = document.querySelector("[data-result-grid]") as HTMLElement
     expect(grid).toHaveAttribute("data-columns", "8")
     expect(screen.getByRole("button", { name: "촘촘 8열" })).toHaveAttribute("aria-pressed", "true")
-    fireEvent.click(within(screen.getByRole("group", { name: "결과형태" })).getByRole("button", { name: "4개" }))
+    fireEvent.click(within(screen.getByRole("group", { name: "결과형태" })).getByRole("button", { name: "4열" }))
     expect(grid).toHaveAttribute("data-columns", "4")
   })
 
@@ -293,9 +295,11 @@ describe("S05 r3 — 필터 · 빠른 찾기", () => {
 })
 
 describe("S05 r3 — 보기 개수 · 썸네일 · 기억", () => {
-  it("1–6개씩: 6개를 누르면 6열, 「촘촘 8열」은 꺼진다", () => {
+  it("결과형태 확장: 6열을 누르면 6열, 「촘촘 8열」은 꺼진다(8열일 때는 1–6열 칸이 눌리지 않음)", () => {
     renderAt("?case=ready")
-    fireEvent.click(within(screen.getByRole("group", { name: "결과형태" })).getByRole("button", { name: "6개" }))
+    const seg = screen.getByRole("group", { name: "결과형태" })
+    expect(within(seg).getAllByRole("button").every((b) => b.getAttribute("aria-pressed") === "false")).toBe(true)
+    fireEvent.click(within(seg).getByRole("button", { name: "6열" }))
     expect(document.querySelector("[data-result-grid]")).toHaveAttribute("data-columns", "6")
     expect(document.querySelector("[data-result-grid]")).toHaveClass("grid-cols-6")
     expect(screen.getByRole("button", { name: "촘촘 8열" })).toHaveAttribute("aria-pressed", "false")
@@ -315,7 +319,7 @@ describe("S05 r3 — 보기 개수 · 썸네일 · 기억", () => {
 
   it("결과형태 · 썸네일 · 필터는 화면별로 기억한다(다시 열어도 그대로)", () => {
     const first = renderAt("?case=ready")
-    fireEvent.click(within(screen.getByRole("group", { name: "결과형태" })).getByRole("button", { name: "3개" }))
+    fireEvent.click(within(screen.getByRole("group", { name: "결과형태" })).getByRole("button", { name: "3열" }))
     fireEvent.click(within(screen.getByRole("group", { name: "썸네일" })).getByRole("button", { name: "크게" }))
     fireEvent.click(chip(/^80↑/))
     first.unmount()
@@ -389,9 +393,11 @@ describe("S05 r3 — 자동 모드", () => {
     renderAt("?case=ready&plus=0")
     for (let i = 0; i < 42; i++) pressKey("PageDown")
     expect(screen.getByText("전체 857 중 841-857")).toBeInTheDocument()
+    // PgDn 은 새 쪽 첫 카드로 초점
+    expect(focusedRank()).toBe("841")
     goAuto()
     fireEvent.click(within(screen.getByRole("group", { name: "넘기는 간격" })).getByRole("button", { name: "1초" }))
-    steps(17, 1000)
+    steps(16, 1000)
     expect(focusedRank()).toBe("857")
     expect(screen.getByRole("button", { name: "일시정지" })).toBeInTheDocument()
     tick(1000)
@@ -417,6 +423,34 @@ describe("S05 r3 — 자동 모드", () => {
     expect(screen.getByRole("button", { name: "재생" })).toBeInTheDocument()
     tick(6000)
     expect(focusedRank()).toBe("2")
+  })
+
+  it("회귀: ← 를 먼저 누른 뒤 자동으로 바꿔도 한 주기가 지나기 전에는 걷지 않는다", () => {
+    renderAt("?case=ready")
+    pressKey("ArrowLeft")
+    expect(focusedRank()).toBe("20")
+    goAuto()
+    expect(screen.getByText("전체 857 중 1-20")).toBeInTheDocument()
+    expect(focusedRank()).toBe("20")
+    tick(1999)
+    expect(focusedRank()).toBe("20")
+    tick(1)
+    expect(screen.getByText("전체 857 중 21-40")).toBeInTheDocument()
+    expect(focusedRank()).toBe("21")
+  })
+
+  it("회귀: 자동 중 첫 걸음 전에 ← 를 누르고 마우스를 올렸다 내려도 걸음이 더 생기지 않는다", () => {
+    renderAt("?case=ready")
+    goAuto()
+    pressKey("ArrowLeft")
+    expect(focusedRank()).toBe("20")
+    const li = document.querySelector('[data-result-card][data-rank="5"]')?.closest("li") as HTMLElement
+    fireEvent.mouseEnter(li)
+    fireEvent.mouseLeave(li)
+    expect(screen.getByText("전체 857 중 1-20")).toBeInTheDocument()
+    expect(focusedRank()).toBe("20")
+    tick(1999)
+    expect(focusedRank()).toBe("20")
   })
 
   it("수동으로 돌리거나 화면을 떠나면 타이머가 0개", () => {
@@ -447,6 +481,10 @@ describe("S05 r3 — 단축키 · 전체 화면", () => {
     pressKey("ArrowLeft")
     pressKey("S")
     expect(screen.getByRole("button", { name: "1위 00758 확인대상 빼기" })).toHaveAttribute("aria-pressed", "true")
+    // 한글 입력 상태(「ㄴ」)여도 같은 자판 자리면 ★
+    fireEvent.keyDown(window, { key: "ㄴ", code: "KeyS" })
+    expect(screen.getByRole("button", { name: "1위 00758 확인대상 넣기" })).toHaveAttribute("aria-pressed", "false")
+    pressKey("S")
     pressKey("Enter")
     expect(screen.getByTestId("where")).toHaveTextContent("/dev/s06?ftwr=00758&rank=1")
   })
@@ -455,7 +493,6 @@ describe("S05 r3 — 단축키 · 전체 화면", () => {
     renderAt("?case=ready&plus=0")
     pressKey("PageDown")
     expect(screen.getByText("전체 857 중 21-40")).toBeInTheDocument()
-    pressKey("ArrowRight")
     expect(focusedRank()).toBe("21")
     pressKey("ArrowLeft")
     expect(screen.getByText("전체 857 중 1-20")).toBeInTheDocument()

@@ -169,7 +169,7 @@ export interface ResultConfirmScreenProps {
 
   // ── r3 편의(+α 아님 — showPlus 와 무관하게 보인다). 값은 제어형, 바꾸는 콜백을 넘기면 그 조작이 보인다 ──
 
-  /** 이미지 블록 보기 개수(기본 3) — 넘치면 이전 · 다음으로 넘긴다 */
+  /** 이미지 블록 보기 개수 — 넘치면 이전 · 다음으로 넘긴다. 없으면 모두 보인다(진열 기본은 3) */
   blockCount?: BlockViewCount
   onBlockCountChange?: (count: BlockViewCount) => void
   /** 빠른 찾기(이미지번호 · 확인대상 신발 번호) */

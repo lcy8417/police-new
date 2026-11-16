@@ -7,6 +7,7 @@ import { useAutoPlay } from "@/shared/lib"
 // 초점은 화면이 제어형으로 들고 이 시계는 「앞으로 / 뒤로 한 걸음」만 알린다(onStep(+1 | -1)).
 // 칸 수를 아주 크게 + 돌아가기라 시계 자체는 끝나지 않는다 — 「마지막에서 멈춤」은 화면이 onStep 에서 판단해 재생을 끈다.
 // 주기 변경 즉시 반영 · 일시정지 뒤 남은 시간부터 · 언마운트 · 수동 전환 때 타이머 정리는 useAutoPlay 가 한다.
+// match-compare/model/use-step-clock.ts 와 같은 동작(위젯끼리 가져다 쓰지 않으려고 두 벌 — 공용 훅에 goTo 가 생기면 둘 다 지운다).
 const CLOCK_COUNT = 1_000_000
 
 export type StepDir = 1 | -1
@@ -51,19 +52,20 @@ export function useStepClock({ auto, playing, hold, intervalMs, onStep }: UseSte
   })
 
   const want = auto && playing && !hold
-  const { play, pause, next, prev } = clock
+  const { play, pause, next } = clock
   useEffect(() => {
     if (want) play()
     else pause()
   }, [want, play, pause])
 
+  // 방향은 dirRef 로만 넘기고 시계는 늘 앞으로(next) — prev() 를 쓰면 시계가 마지막 칸으로 돌아가고,
+  // 그 뒤 play() 가 「마지막에서 멈춘 것」으로 읽어 처음 칸으로 되돌리며 걸음(+1)을 한 번 더 부른다.
   const step = useCallback(
     (dir: StepDir) => {
       dirRef.current = dir
-      if (dir === 1) next()
-      else prev()
+      next()
     },
-    [next, prev],
+    [next],
   )
 
   return { step, remainingRatio: auto && intervalMs > 0 ? clock.remainingMs / intervalMs : 0 }

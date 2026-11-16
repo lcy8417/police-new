@@ -19,7 +19,14 @@ export interface UseStepClockOptions {
   onStep: (dir: StepDir) => void
 }
 
-export function useStepClock({ auto, playing, hold, intervalMs, onStep }: UseStepClockOptions) {
+export interface UseStepClockResult {
+  /** 손으로 한 걸음(← →). 자동 모드면 주기도 처음부터 다시 센다 */
+  step: (dir: StepDir) => void
+  /** 다음 걸음까지 남은 시간 비율 0~1(수동이면 0) */
+  remainingRatio: number
+}
+
+export function useStepClock({ auto, playing, hold, intervalMs, onStep }: UseStepClockOptions): UseStepClockResult {
   const dirRef = useRef<StepDir>(1)
   const onStepRef = useRef(onStep)
   useEffect(() => {
@@ -39,19 +46,20 @@ export function useStepClock({ auto, playing, hold, intervalMs, onStep }: UseSte
   })
 
   const want = auto && playing && !hold
-  const { play, pause, next, prev } = clock
+  const { play, pause, next } = clock
   useEffect(() => {
     if (want) play()
     else pause()
   }, [want, play, pause])
 
+  // 방향은 dirRef 로만 넘기고 시계는 늘 앞으로(next) — prev() 를 쓰면 시계가 마지막 칸으로 돌아가고,
+  // 그 뒤 play() 가 「마지막에서 멈춘 것」으로 읽어 처음 칸으로 되돌리며 걸음(+1)을 한 번 더 부른다.
   const step = useCallback(
     (dir: StepDir) => {
       dirRef.current = dir
-      if (dir === 1) next()
-      else prev()
+      next()
     },
-    [next, prev],
+    [next],
   )
 
   return { step, remainingRatio: auto && intervalMs > 0 ? clock.remainingMs / intervalMs : 0 }

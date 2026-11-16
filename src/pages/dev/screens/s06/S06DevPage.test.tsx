@@ -327,6 +327,31 @@ describe("S06 r3 — 비교 개수 · 후보 넘기기", () => {
       expect(current()).toBe("300761 20")
     })
 
+    it("회귀: ← 를 먼저 누른 뒤 자동으로 바꿔도 후보를 건너뛰지 않는다", () => {
+      renderAt("?case=ready&ftwr=305659&rank=2")
+      pressKey("ArrowLeft")
+      expect(current()).toBe("00758 1")
+      goAuto()
+      expect(current()).toBe("00758 1")
+      tick(1999)
+      expect(current()).toBe("00758 1")
+      tick(1)
+      expect(current()).toBe("305659 2")
+    })
+
+    it("회귀: 자동 중 첫 걸음 전에 ← 를 누르고 마우스를 올렸다 내려도 걸음이 더 생기지 않는다", () => {
+      renderAt("?case=ready&ftwr=305659&rank=2")
+      goAuto()
+      pressKey("ArrowLeft")
+      expect(current()).toBe("00758 1")
+      const area = document.querySelector("[data-compare-area]") as HTMLElement
+      fireEvent.mouseEnter(area)
+      fireEvent.mouseLeave(area)
+      expect(current()).toBe("00758 1")
+      tick(1999)
+      expect(current()).toBe("00758 1")
+    })
+
     it("비교 그림에 마우스를 올리면 잠시 멈춘다 · 떠나면 타이머 0개", () => {
       const view = renderAt("?case=ready&ftwr=00758&rank=1")
       goAuto()

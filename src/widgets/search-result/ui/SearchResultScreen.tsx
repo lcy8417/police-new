@@ -44,7 +44,10 @@ import { ShortcutHelp } from "./ShortcutHelp"
 // 다음으로 → 스크롤 → 쪽 끝이면 다음 쪽 · 「어디까지 봤는지」 올림) · 전체 화면 · 단축키(← → Space Enter S ? Esc).
 // 값은 모두 제어형 props, 위젯 안 상태는 마우스 올림 멈춤 · 안내 열림 · 전체 화면 여부뿐.
 
-const COLUMN_OPTIONS = [1, 2, 3, 4, 5, 6] as const
+// SCAS 「결과형태」 글자 그대로(1–4열) + r3 확장 5 · 6열. 글자 → 열 수는 parseColumns
+const COLUMN_OPTIONS = ["1열", "2열", "3열", "4열", "5열", "6열"] as const
+type ColumnLabel = (typeof COLUMN_OPTIONS)[number]
+const parseColumns = (label: ColumnLabel): ResultColumns => Number(label.replace("열", "")) as ResultColumns
 const THUMB_OPTIONS: readonly ThumbSize[] = ["작게", "보통", "크게"]
 
 // 열 수 → 정적 클래스(Tailwind 가 읽을 수 있게 전부 적는다). 8 = 시안 「촘촘 8열」(+α)
@@ -225,6 +228,11 @@ export function SearchResultScreen({
     if (to !== undefined) onFocusChange?.(to)
   }, [page, visibleKey, onFocusChange])
 
+  // 쪽 · 보이는 카드가 바뀌면 마우스 올림 멈춤을 푼다(사라진 카드에서는 mouseleave 가 오지 않는다)
+  React.useEffect(() => {
+    setHold(false)
+  }, [page, visibleKey])
+
   // 초점 카드가 화면 밖이면 보이게(가까운 쪽으로만 — 움직임 줄이기와 무관하게 즉시)
   React.useEffect(() => {
     if (focus === null) return
@@ -280,12 +288,15 @@ export function SearchResultScreen({
         case "PageDown":
           if (hasNext) {
             e.preventDefault()
+            // 새 쪽의 첫 카드로 초점
+            pendingRef.current = "first"
             onPageChange(page + 1)
           }
           return
         case "PageUp":
           if (page > 1) {
             e.preventDefault()
+            pendingRef.current = "first"
             onPageChange(page - 1)
           }
           return
@@ -299,12 +310,12 @@ export function SearchResultScreen({
           e.preventDefault()
           onOpenResult(focusedRow.item, focusedRow.rank)
           return
-        case "s":
-        case "S":
-          if (!plus || !roles.analyst || !focusedRow) return
-          e.preventDefault()
-          toggleTarget({ rank: focusedRow.rank, ftwrId: focusedRow.item.ftwrId })
-          return
+      }
+      // S ★ — 한글 입력 상태(「ㄴ」)에서도 같은 자판 자리로 받는다
+      if (e.key === "s" || e.key === "S" || e.code === "KeyS") {
+        if (!plus || !roles.analyst || !focusedRow) return
+        e.preventDefault()
+        toggleTarget({ rank: focusedRow.rank, ftwrId: focusedRow.item.ftwrId })
       }
     }
   })
@@ -528,11 +539,12 @@ export function SearchResultScreen({
           ) : null}
           <span className="ml-auto inline-flex items-center gap-[6px]">
             {/* r3: 1–4열 그대로 + 5 · 6개씩 확장(SCAS 「결과형태」 자리) */}
-            <ViewCountSwitch
+            <ViewCountSwitch<string>
               label="결과형태"
               options={COLUMN_OPTIONS}
-              value={columns}
-              onChange={(n) => setColumns(n as ResultColumns)}
+              // 촘촘 8열(+α)이면 어느 칸도 눌리지 않는다
+              value={`${columns}열`}
+              onChange={(label) => setColumns(parseColumns(label as ColumnLabel))}
             />
             {/* SCAS 버튼 — 확인대상 보기 기능이 지금 앱에 없어 비활성(준비 중) */}
             <span title={NOT_READY} className="inline-flex">
