@@ -3,7 +3,6 @@ import * as React from "react"
 import { cn } from "@/shared/lib/utils"
 import { AiSuggestion, LiveDot } from "@/shared/ui/ai"
 import { Button } from "@/shared/ui/kit"
-import { TabMark, UnderlineTabs } from "@/shared/ui/panel"
 
 import type { ImageEditAiSuggestion, ImageEditHistoryEntry } from "../model/types"
 
@@ -97,85 +96,6 @@ function HashNote({ hash }: { hash: string }) {
       <b className="font-code font-medium text-fg-2">{hash}</b>
       <span>저장하면 편집본 해시와 이 이력이 사용 기록(S14)에 남습니다</span>
     </div>
-  )
-}
-
-type SideTab = "ai" | "history"
-
-/**
- * 사건 창 안 오른쪽 칸(11/17 「컴팩트하면서 고급지게」) — 같은 값을 칸 상자 셋 대신 밑줄 탭 둘로:
- * 「AI 제안」(제안 줄 + 원본 → 편집본) | 「편집 이력」(이력 + 원본 해시, 되돌리기는 탭 줄 오른쪽 끝). 내용은 탭 안에서 스크롤.
- */
-export function AiSideTabs({
-  suggestions,
-  onApplySuggestion,
-  beforeAfter,
-  history,
-  originalHash,
-  canUndo,
-  onUndo,
-  canEdit,
-}: AiSidePanelProps) {
-  const hasAi = (suggestions !== undefined && suggestions.length > 0) || beforeAfter !== undefined
-  const [tab, setTab] = React.useState<SideTab>(hasAi ? "ai" : "history")
-  const idPrefix = React.useId()
-  const tabs: [SideTab, React.ReactNode][] = []
-  if (hasAi) tabs.push(["ai", <>AI 제안<TabMark kind="count" count={suggestions?.length ?? 0} /></>])
-  if (history) tabs.push(["history", <>편집 이력<TabMark kind="count" count={history.length} /></>])
-  return (
-    <section aria-label="편집 보조" data-plus="" className="flex min-h-0 min-w-0 flex-col gap-[10px]">
-      <UnderlineTabs
-        label="편집 보조"
-        tabs={tabs}
-        value={tab}
-        onChange={setTab}
-        idPrefix={idPrefix}
-        end={
-          tab === "history" ? (
-            <Button size="sm" disabled={!canEdit || !canUndo} onClick={onUndo}>
-              <span aria-hidden="true">↶</span>되돌리기
-            </Button>
-          ) : (
-            // 좁은 칸(1400 아래 248px)에서는 탭 이름과 겹쳐 잘리므로 숨긴다 — 제안 줄 단추가 같은 말을 한다
-            <span className="hidden min-[1400px]:inline-flex">
-              <LiveDot state="busy" label="누르면 반영" />
-            </span>
-          )
-        }
-      />
-      <div role="tabpanel" aria-labelledby={`${idPrefix}-${tab}`} className="flex min-h-0 flex-1 flex-col gap-[14px] overflow-y-auto px-[2px]">
-        {tab === "ai" ? (
-          <>
-            {suggestions && suggestions.length > 0 ? (
-              <section aria-label="AI 제안" className="grid gap-[10px]">
-                {suggestions.map((s) => (
-                  <AiSuggestion
-                    key={s.id}
-                    title={s.title}
-                    reason={s.reason}
-                    actionLabel={s.actionLabel}
-                    actionTone={s.tone === "warn" ? "warn" : "default"}
-                    onApply={canEdit && onApplySuggestion ? () => onApplySuggestion(s.id) : undefined}
-                    className="border-0 border-b border-solid border-line-2 pb-[10px] last:border-b-0 last:pb-0"
-                  />
-                ))}
-              </section>
-            ) : null}
-            {beforeAfter ? (
-              <section aria-label="원본 → 편집본" className="grid gap-[6px]">
-                <h4 className="m-0 text-[11.5px] font-bold text-fg-2">원본 → 편집본</h4>
-                <BeforeAfterPair beforeAfter={beforeAfter} tall />
-              </section>
-            ) : null}
-          </>
-        ) : history ? (
-          <section aria-label="편집 이력" className="grid gap-[8px]">
-            <HistoryList history={history} />
-            {originalHash ? <HashNote hash={originalHash} /> : null}
-          </section>
-        ) : null}
-      </div>
-    </section>
   )
 }
 

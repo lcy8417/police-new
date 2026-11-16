@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Bandage, Contrast, Crop, Eraser, RotateCw, Ruler, Scan, Sparkles, type LucideIcon } from "lucide-react"
+import { Bandage, Check, Contrast, Crop, Eraser, Eye, RotateCw, Ruler, Save, Scan, Sparkles, Undo2, X, type LucideIcon } from "lucide-react"
 
 import type { ThresholdMode } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
@@ -429,6 +429,82 @@ function ToolRail({ p }: { p: CuttingPaneProps }) {
 /** 작업판 위 · 아래 막대(한 단 밝은 판 + 가는 선) */
 const STAGE_BAR = "flex shrink-0 flex-wrap items-center gap-x-[10px] gap-y-[4px] bg-panel px-[12px] py-[6px]"
 
+/** 작업판 동작 단추(어두운 판 위) — 높이 28 · 모서리 8 · 아이콘 + 글자. ghost / soft / primary 셋 */
+const WB_BTN =
+  "inline-flex h-[28px] shrink-0 cursor-pointer items-center gap-[6px] rounded-[8px] border border-solid px-[11px] text-[12px] font-semibold transition-colors duration-150 motion-reduce:transition-none disabled:cursor-default disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-1 focus-visible:outline-brand"
+const WB_GHOST = "border-transparent bg-transparent text-muted-foreground hover:bg-panel-3 hover:text-foreground"
+const WB_SOFT = "border-line-3 bg-panel-3 text-foreground hover:border-brand-line"
+const WB_PRI = "border-brand-3 bg-brand-3 text-paper [box-shadow:0_2px_8px_var(--t-panel-drop)] hover:bg-brand-2"
+
+/**
+ * SCAS 취소 · 확인 · 저장(11/17 사용자 「취소 확인 저장 이런 버튼이 너무 아카데믹함」) — 작업판 위 막대 오른쪽 끝에
+ * 편집 도구식 단추로: 취소(글자) · 확인(자르기 · 회전 확정, 옅은 판) · 저장(채움). 이름은 SCAS 말 그대로.
+ */
+function WorkbenchActions({ p }: { p: CuttingPaneProps }) {
+  return (
+    <span role="group" aria-label="편집 마무리" className="ml-auto inline-flex items-center gap-[6px]">
+      <button type="button" onClick={p.onCancel} className={cn(WB_BTN, WB_GHOST)}>
+        <X aria-hidden="true" className="size-[14px]" strokeWidth={2} />
+        취소
+      </button>
+      <button type="button" disabled={!p.access.canEdit} onClick={p.onConfirm} title="자르기 · 회전을 확정합니다" className={cn(WB_BTN, WB_SOFT)}>
+        <Check aria-hidden="true" className="size-[14px]" strokeWidth={2.2} />
+        확인
+      </button>
+      <span aria-hidden="true" className="mx-[2px] h-[18px] w-px bg-line-3" />
+      <button type="button" disabled={!p.access.canSave} onClick={p.onSave} className={cn(WB_BTN, WB_PRI)}>
+        <Save aria-hidden="true" className="size-[14px]" strokeWidth={2} />
+        저장
+      </button>
+    </span>
+  )
+}
+
+/** 편집 이력 한 단계 미리보기(작업대 위에 겹쳐 그림) */
+export interface CuttingPreview {
+  /** 0 = 받은 원본 */
+  no: number
+  label: string
+  src: string
+  /** 그 단계 모습 클래스(EditHistoryPane `stepLook`) */
+  look: string
+  /** 마지막 단계(= 지금)인가 — 그러면 「여기까지 되돌리기」 없음 */
+  isNow: boolean
+}
+
+/** 작업대 위 미리보기 판 — 그 단계 그림 + 위 띠(이름 · 여기까지 되돌리기 · 닫기). 캔버스 좌표 판정에 끼지 않게 판 전체가 덮는다 */
+function PreviewOverlay({ preview, canEdit, onClose, onRevert }: { preview: CuttingPreview; canEdit: boolean; onClose: () => void; onRevert?: () => void }) {
+  return (
+    <div role="region" aria-label="편집 이력 미리보기" className="absolute inset-0 z-[2] flex flex-col overflow-hidden rounded-[10px] bg-canvas">
+      <div className="flex shrink-0 items-center gap-[8px] border-0 border-b border-solid border-border bg-panel px-[12px] py-[7px]">
+        <Eye aria-hidden="true" className="size-[15px] text-brand" strokeWidth={1.9} />
+        <b className="text-[12.5px] font-bold text-foreground">
+          미리보기 · {preview.no === 0 ? "받은 원본" : `${preview.no}단계 ${preview.label}`}
+        </b>
+        <span className="text-[11px] text-muted-foreground">지금 사진은 바뀌지 않습니다</span>
+        <span className="ml-auto inline-flex gap-[6px]">
+          {!preview.isNow && onRevert ? (
+            <button type="button" disabled={!canEdit} onClick={onRevert} className={cn(WB_BTN, WB_SOFT)}>
+              <Undo2 aria-hidden="true" className="size-[14px]" strokeWidth={1.9} />
+              여기까지 되돌리기
+            </button>
+          ) : null}
+          <button type="button" onClick={onClose} aria-label="미리보기 닫기" className={cn(WB_BTN, WB_GHOST, "px-[8px]")}>
+            <X aria-hidden="true" className="size-[15px]" strokeWidth={2} />
+          </button>
+        </span>
+      </div>
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        <img
+          src={preview.src}
+          alt={`${preview.label} 미리보기`}
+          className={cn("absolute top-[16px] left-[16px] h-[calc(100%-32px)] w-[calc(100%-32px)] object-contain", preview.look)}
+        />
+      </div>
+    </div>
+  )
+}
+
 /**
  * 사건 창 안 이미지 커팅(11/17 사용자 「컴팩트하면서 고급지게」 → 「좌 중앙 우 느낌이 다르면 구분선이나 좀 차이를 줘 … 알록달록은 싫고」
  * → 「시인성 높여 … 옆에 클릭 선 말고 좀더 고급지고 전문적 느낌으로. 지금 너무 아카데믹한」) — 같은 상태 · 핸들러, 배치만 다르다.
@@ -438,7 +514,15 @@ const STAGE_BAR = "flex shrink-0 flex-wrap items-center gap-x-[10px] gap-y-[4px]
  *   가운데: 위 막대(보기 · 회전) · 지금 도구 막대(아이콘 · 이름 · 쓰임새 · 설정) · 사진(가장 어두운 바탕, 높이 꽉) · 아래 막대(빠른 보정)
  * 오른쪽 보조 칸(밝은 바탕 · 왼쪽 선)은 부르는 쪽(ImageEditScreen)이 둔다.
  */
-export function CuttingWindow(p: CuttingPaneProps) {
+export function CuttingWindow(
+  p: CuttingPaneProps & {
+    /** 편집 이력 한 단계 미리보기(없으면 그리지 않음) */
+    preview?: CuttingPreview | null
+    onClosePreview?: () => void
+    /** 미리 보는 단계까지 되돌리기 */
+    onRevertToPreview?: () => void
+  }
+) {
   const tool = p.activeTool
   const ToolIcon = tool ? WINDOW_TOOLS[tool].icon : null
   return (
@@ -447,7 +531,6 @@ export function CuttingWindow(p: CuttingPaneProps) {
         title="이미지 커팅"
         tip={`저장함 — ${saveNote(p)}`}
         sub={p.access.canEdit ? `원본 ${fmt(p.originalSize.width)} × ${fmt(p.originalSize.height)}` : "보기 전용 — 편집 · 저장은 사건 조회 또는 사건 등록 권한"}
-        end={<SaveButtons p={p} />}
       />
       <div
         data-theme="dark"
@@ -486,11 +569,22 @@ export function CuttingWindow(p: CuttingPaneProps) {
                 </div>
               </>
             ) : (
-              <span className={HINT}>왼쪽 도구를 고르면 여기에서 설정합니다.</span>
+              <span className={cn(HINT, "flex-1")}>왼쪽 도구를 고르면 여기에서 설정합니다.</span>
             )}
+            <WorkbenchActions p={p} />
           </div>
-          <div className="min-h-0 flex-1 p-[14px]">
+          <div className="relative min-h-0 flex-1 p-[14px]">
             <CanvasBox p={p} className="h-full border-line-3 [box-shadow:0_8px_24px_var(--t-panel-drop)]" />
+            {p.preview ? (
+              <div className="absolute inset-[14px]">
+                <PreviewOverlay
+                  preview={p.preview}
+                  canEdit={p.access.canEdit}
+                  onClose={() => p.onClosePreview?.()}
+                  onRevert={p.onRevertToPreview}
+                />
+              </div>
+            ) : null}
           </div>
           <div className={cn(STAGE_BAR, "border-0 border-t border-solid border-border")}>
             <span className="shrink-0 text-[10.5px] font-bold tracking-[0.04em] text-muted-foreground">빠른 보정</span>

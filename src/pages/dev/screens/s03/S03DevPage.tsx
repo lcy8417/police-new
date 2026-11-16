@@ -211,6 +211,10 @@ function S03Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S03Ca
         setHistory((h) => h.slice(0, -1))
         toast("한 단계 되돌렸습니다.")
       }}
+      onUndoTo={(no) => {
+        setHistory((h) => h.filter((e) => e.no <= no))
+        toast(no === 0 ? "받은 원본까지 되돌렸습니다." : `${no}단계까지 되돌렸습니다.`)
+      }}
       onRestore={() => {
         setRotation(S03_TILT)
         setHistory([])

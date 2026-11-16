@@ -5,10 +5,10 @@ import { Button, Chip, InlineError } from "@/shared/ui/kit"
 import { ButtonBar, Panel } from "@/shared/ui/panel"
 
 import { imageEditAccess } from "../model/access"
-import { hasCuttingSide } from "../model/layout"
 import type { ImageEditScreenProps } from "../model/types"
-import { AiSideTabs } from "./AiSidePanel"
 import { CuttingPane, CuttingWindow } from "./CuttingPane"
+import { stepLook } from "../model/step-look"
+import { EditHistoryPane } from "./EditHistoryPane"
 import { ViewerPane } from "./ViewerPane"
 
 /** 시안 창 위 설명 글(`cap`) */
@@ -29,6 +29,8 @@ function Caption({ children }: { children: React.ReactNode }) {
 export function ImageEditScreen(props: ImageEditScreenProps) {
   const { status, errorAt, onRetry, isAdmin, features, aprthngNo, showPlus = true } = props
   const access = imageEditAccess(isAdmin, features, showPlus)
+  // 사건 창 편집 이력 미리보기(보기 상태라 위젯이 든다) — 0 = 받은 원본, null = 미리보기 아님
+  const [previewNo, setPreviewNo] = React.useState<number | null>(null)
 
   const cuttingTitle = (
     <>
@@ -53,9 +55,24 @@ export function ImageEditScreen(props: ImageEditScreenProps) {
     )
   }
 
-  // 사건 창 안: 1차 편집만, 높이 꽉. 왼쪽 이미지 커팅 | 오른쪽 좁은 칸(AI 제안 · 편집 이력 탭)
+  // 사건 창 안: 1차 편집만, 높이 꽉. 왼쪽 이미지 커팅 | 오른쪽 좁은 칸 = 편집 이력만
+  // (11/17 사용자 「편집 이력만 남겨 AI 제안 빼 … 편집 이력은 당연 미리보기 가능해야하고. 각각 리스트마다」)
   if (props.inWindow) {
-    const side = hasCuttingSide({ ...props, plus: showPlus })
+    const history = props.editHistory
+    const side = showPlus && history !== undefined
+    const original = props.beforeAfter?.original
+    const shown = previewNo !== null && history && previewNo <= (history.at(-1)?.no ?? 0) ? previewNo : null
+    const previewEntry = shown === null ? undefined : shown === 0 ? { no: 0, label: "받은 원본" } : history?.find((h) => h.no === shown)
+    const lastNo = history?.at(-1)?.no ?? 0
+    const preview =
+      previewEntry && original && history
+        ? { no: previewEntry.no, label: previewEntry.label, src: original, look: stepLook(history, previewEntry.no), isNow: previewEntry.no === lastNo }
+        : null
+    const revertTo = (no: number) => {
+      if (props.onUndoTo) props.onUndoTo(no)
+      else for (let i = lastNo; i > no; i--) props.onUndo()
+      setPreviewNo(null)
+    }
     return (
       <section
         aria-label="이미지 편집"
@@ -65,21 +82,28 @@ export function ImageEditScreen(props: ImageEditScreenProps) {
         className={cn("grid h-full min-h-0 min-w-0 p-[12px]", side ? "grid-cols-[minmax(0,1fr)_248px] min-[1400px]:grid-cols-[minmax(0,1fr)_300px]" : "grid-cols-1")}
       >
         <div className={cn("flex min-h-0 min-w-0 flex-col", side && "pr-[14px]")}>
-          <CuttingWindow {...props} access={access} plus={showPlus} />
+          <CuttingWindow
+            {...props}
+            access={access}
+            plus={showPlus}
+            preview={preview}
+            onClosePreview={() => setPreviewNo(null)}
+            onRevertToPreview={preview ? () => revertTo(preview.no) : undefined}
+          />
         </div>
-        {side ? (
+        {side && history ? (
           // 오른쪽 보조 칸 — 흰 바탕 그대로, 왼쪽 가는 선으로 작업 칸과 나눈다(11/17 「좌 중앙 우 … 구분선」)
           <div className="flex min-h-0 min-w-0 flex-col border-0 border-l border-solid border-border pl-[14px]">
-          <AiSideTabs
-            suggestions={props.aiSuggestions}
-            onApplySuggestion={props.onApplyAiSuggestion}
-            beforeAfter={props.beforeAfter}
-            history={props.editHistory}
-            originalHash={props.originalHash}
-            canUndo={props.canUndo}
-            onUndo={props.onUndo}
-            canEdit={access.canEdit}
-          />
+            <EditHistoryPane
+              history={history}
+              originalSrc={original}
+              originalHash={props.originalHash}
+              previewNo={shown}
+              onPreview={setPreviewNo}
+              canUndo={props.canUndo}
+              onUndo={props.onUndo}
+              canEdit={access.canEdit}
+            />
           </div>
         ) : null}
       </section>

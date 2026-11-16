@@ -139,6 +139,8 @@ export interface ImageEditScreenProps {
   canUndo: boolean
   /** 한 단계 되돌리기 */
   onUndo: () => void
+  /** 편집 이력 n 단계까지 남기고 뒤를 되돌린다(0 = 받은 원본까지) — 사건 창 편집 이력 미리보기 「여기까지 되돌리기」. 없으면 onUndo 를 여러 번 */
+  onUndoTo?: (no: number) => void
   /** 원본 복원(SCAS 「처음상태」) */
   onRestore: () => void
   /** SCAS 「취소」 — 편집을 버리고 닫음 */
