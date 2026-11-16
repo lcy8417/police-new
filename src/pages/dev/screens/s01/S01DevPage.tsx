@@ -257,7 +257,7 @@ export function S01DevPage() {
           facts={s02FactsOf(openRow, flow, images.length, img)}
         />
       ) : win.tab === "edit" ? (
-        <S03Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} />
+        <S03Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} inWindow />
       ) : win.tab === "pattern" ? (
         <S04Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} />
       ) : win.tab === "search" ? (

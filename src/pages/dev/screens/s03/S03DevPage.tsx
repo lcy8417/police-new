@@ -135,7 +135,7 @@ function FakeCanvas({
   )
 }
 
-function S03Stage({ caseName, imageNo, go: goProp }: { caseName: S03Case; imageNo: string; go?: DevGo }) {
+function S03Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S03Case; imageNo: string; go?: DevGo; inWindow?: boolean }) {
   const mock = S03_MOCK[caseName]
   const viewer = useDevViewer()
   const plus = useDevPlus()
@@ -177,6 +177,7 @@ function S03Stage({ caseName, imageNo, go: goProp }: { caseName: S03Case; imageN
       isAdmin={viewer.isAdmin}
       features={viewer.features}
       showPlus={plus}
+      inWindow={inWindow}
       onPlusAction={notReady}
       aprthngNo={imageNo}
       originalSize={S03_ORIGINAL_SIZE}
@@ -256,11 +257,13 @@ export interface S03ContentProps {
   imageNo?: string
   /** 화면 옮기기(없으면 진열 주소 이동) — 사건 창은 탭 바꾸기로 받는다 */
   go?: DevGo
+  /** 사건 창 안(11/17) — 1차 편집만 · 높이 꽉 · 겹치는 제목 줄 없음(위젯 `inWindow`) */
+  inWindow?: boolean
 }
 
 /** S03 틀 없는 내용 — 진열 페이지와 사건 창(「이미지 편집」 탭)이 같이 쓴다 */
-export function S03Content({ devCase, imageNo = S03_APRTHNG_NO, go }: S03ContentProps) {
-  return <S03Stage key={devCase} caseName={devCase} imageNo={imageNo} go={go} />
+export function S03Content({ devCase, imageNo = S03_APRTHNG_NO, go, inWindow }: S03ContentProps) {
+  return <S03Stage key={devCase} caseName={devCase} imageNo={imageNo} go={go} inWindow={inWindow} />
 }
 
 // S03 이미지 편집 진열 페이지 — 정본 위젯에 가짜 값 · 이동 콜백만 넘긴다.

@@ -1,11 +1,14 @@
 import * as React from "react"
 
+import { cn } from "@/shared/lib/utils"
 import { Button, Chip, InlineError } from "@/shared/ui/kit"
 import { ButtonBar, Panel } from "@/shared/ui/panel"
 
 import { imageEditAccess } from "../model/access"
+import { hasCuttingSide } from "../model/layout"
 import type { ImageEditScreenProps } from "../model/types"
-import { CuttingPane } from "./CuttingPane"
+import { AiSideTabs } from "./AiSidePanel"
+import { CuttingPane, CuttingWindow } from "./CuttingPane"
 import { ViewerPane } from "./ViewerPane"
 
 /** 시안 창 위 설명 글(`cap`) */
@@ -46,6 +49,34 @@ export function ImageEditScreen(props: ImageEditScreenProps) {
             </div>
           )}
         </Panel>
+      </section>
+    )
+  }
+
+  // 사건 창 안: 1차 편집만, 높이 꽉. 왼쪽 이미지 커팅 | 오른쪽 좁은 칸(AI 제안 · 편집 이력 탭)
+  if (props.inWindow) {
+    const side = hasCuttingSide({ ...props, plus: showPlus })
+    return (
+      <section
+        aria-label="이미지 편집"
+        aria-busy={false}
+        data-screen="S03"
+        data-slot="image-edit-window"
+        className={cn("grid h-full min-h-0 min-w-0 gap-[14px] p-[12px]", side ? "grid-cols-[minmax(0,1fr)_300px]" : "grid-cols-1")}
+      >
+        <CuttingWindow {...props} access={access} plus={showPlus} />
+        {side ? (
+          <AiSideTabs
+            suggestions={props.aiSuggestions}
+            onApplySuggestion={props.onApplyAiSuggestion}
+            beforeAfter={props.beforeAfter}
+            history={props.editHistory}
+            originalHash={props.originalHash}
+            canUndo={props.canUndo}
+            onUndo={props.onUndo}
+            canEdit={access.canEdit}
+          />
+        ) : null}
       </section>
     )
   }

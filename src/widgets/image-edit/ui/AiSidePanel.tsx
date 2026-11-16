@@ -3,6 +3,7 @@ import * as React from "react"
 import { cn } from "@/shared/lib/utils"
 import { AiSuggestion, LiveDot } from "@/shared/ui/ai"
 import { Button } from "@/shared/ui/kit"
+import { TabMark, UnderlineTabs } from "@/shared/ui/panel"
 
 import type { ImageEditAiSuggestion, ImageEditHistoryEntry } from "../model/types"
 
@@ -47,6 +48,134 @@ export interface AiSidePanelProps {
   canEdit: boolean
 }
 
+/** 편집 이력 줄들(없으면 흐린 한 줄) */
+function HistoryList({ history }: { history: readonly ImageEditHistoryEntry[] }) {
+  return history.length > 0 ? (
+    <ol className="m-0 grid list-none gap-[6px] p-0">
+      {history.map((h) => (
+        <li key={h.no} className="grid grid-cols-[16px_minmax(0,1fr)_auto] items-center gap-[6px] text-[11px]">
+          <b className="font-code text-brand">{h.no}</b>
+          <span className="text-fg-2">{h.label}</span>
+          <span className="font-code text-[10px] text-dim">{h.at}</span>
+        </li>
+      ))}
+    </ol>
+  ) : (
+    <span className="text-[11px] text-dim">아직 편집하지 않았습니다.</span>
+  )
+}
+
+/** 원본 → 편집본 작은 그림 두 장. `tall` = 사건 창 오른쪽 칸(폭이 넓어 그림을 크게) */
+function BeforeAfterPair({ beforeAfter, tall = false }: { beforeAfter: { original: string; edited: string }; tall?: boolean }) {
+  const box = cn("relative overflow-hidden rounded-[5px] border border-solid", tall ? "h-[120px]" : "h-[96px]")
+  return (
+    <>
+      <div className="grid grid-cols-[1fr_14px_1fr] items-center gap-[4px]">
+        <span className={cn(box, "border-line-3")}>
+          <img src={beforeAfter.original} alt="받은 원본" className="size-full object-cover" />
+        </span>
+        <span aria-hidden="true" className="text-center font-code text-[11px] font-semibold text-dim">
+          ›
+        </span>
+        <span className={cn(box, "border-brand-line")}>
+          <img src={beforeAfter.edited} alt="저장될 편집본" className="size-full object-cover" />
+        </span>
+      </div>
+      <span className="flex justify-between text-[10px] text-dim">
+        <span>받은 그대로</span>
+        <span className="text-brand">저장될 모습</span>
+      </span>
+    </>
+  )
+}
+
+/** 원본 해시 줄 */
+function HashNote({ hash }: { hash: string }) {
+  return (
+    <div className="mt-[2px] grid gap-[2px] border-t border-solid border-line-2 pt-[6px] text-[10.5px] text-dim">
+      <span>원본 보관 · SHA-256</span>
+      <b className="font-code font-medium text-fg-2">{hash}</b>
+      <span>저장하면 편집본 해시와 이 이력이 사용 기록(S14)에 남습니다</span>
+    </div>
+  )
+}
+
+type SideTab = "ai" | "history"
+
+/**
+ * 사건 창 안 오른쪽 칸(11/17 「컴팩트하면서 고급지게」) — 같은 값을 칸 상자 셋 대신 밑줄 탭 둘로:
+ * 「AI 제안」(제안 줄 + 원본 → 편집본) | 「편집 이력」(이력 + 원본 해시, 되돌리기는 탭 줄 오른쪽 끝). 내용은 탭 안에서 스크롤.
+ */
+export function AiSideTabs({
+  suggestions,
+  onApplySuggestion,
+  beforeAfter,
+  history,
+  originalHash,
+  canUndo,
+  onUndo,
+  canEdit,
+}: AiSidePanelProps) {
+  const hasAi = (suggestions !== undefined && suggestions.length > 0) || beforeAfter !== undefined
+  const [tab, setTab] = React.useState<SideTab>(hasAi ? "ai" : "history")
+  const idPrefix = React.useId()
+  const tabs: [SideTab, React.ReactNode][] = []
+  if (hasAi) tabs.push(["ai", <>AI 제안<TabMark kind="count" count={suggestions?.length ?? 0} /></>])
+  if (history) tabs.push(["history", <>편집 이력<TabMark kind="count" count={history.length} /></>])
+  return (
+    <section aria-label="편집 보조" data-plus="" className="flex min-h-0 min-w-0 flex-col gap-[10px]">
+      <UnderlineTabs
+        label="편집 보조"
+        tabs={tabs}
+        value={tab}
+        onChange={setTab}
+        idPrefix={idPrefix}
+        end={
+          tab === "history" ? (
+            <Button size="sm" disabled={!canEdit || !canUndo} onClick={onUndo}>
+              <span aria-hidden="true">↶</span>되돌리기
+            </Button>
+          ) : (
+            <LiveDot state="busy" label="누르면 반영" />
+          )
+        }
+      />
+      <div role="tabpanel" aria-labelledby={`${idPrefix}-${tab}`} className="flex min-h-0 flex-1 flex-col gap-[14px] overflow-y-auto px-[2px]">
+        {tab === "ai" ? (
+          <>
+            {suggestions && suggestions.length > 0 ? (
+              <section aria-label="AI 제안" className="grid gap-[10px]">
+                {suggestions.map((s) => (
+                  <AiSuggestion
+                    key={s.id}
+                    title={s.title}
+                    reason={s.reason}
+                    actionLabel={s.actionLabel}
+                    actionTone={s.tone === "warn" ? "warn" : "default"}
+                    onApply={canEdit && onApplySuggestion ? () => onApplySuggestion(s.id) : undefined}
+                    className="border-0 border-b border-solid border-line-2 pb-[10px] last:border-b-0 last:pb-0"
+                  />
+                ))}
+              </section>
+            ) : null}
+            {beforeAfter ? (
+              <section aria-label="원본 → 편집본" className="grid gap-[6px]">
+                <h4 className="m-0 text-[11.5px] font-bold text-fg-2">원본 → 편집본</h4>
+                <BeforeAfterPair beforeAfter={beforeAfter} tall />
+              </section>
+            ) : null}
+          </>
+        ) : history ? (
+          <section aria-label="편집 이력" className="grid gap-[8px]">
+            <HistoryList history={history} />
+            {originalHash ? <HashNote hash={originalHash} /> : null}
+          </section>
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
 export function AiSidePanel({
   suggestions,
   onApplySuggestion,
@@ -89,21 +218,7 @@ export function AiSidePanel({
 
       {beforeAfter ? (
         <Side label="원본 → 편집본" head="원본 → 편집본">
-          <div className="grid grid-cols-[1fr_14px_1fr] items-center gap-[4px]">
-            <span className="relative h-[96px] overflow-hidden rounded-[5px] border border-solid border-line-3">
-              <img src={beforeAfter.original} alt="받은 원본" className="size-full object-cover" />
-            </span>
-            <span aria-hidden="true" className="text-center font-code text-[11px] font-semibold text-dim">
-              ›
-            </span>
-            <span className="relative h-[96px] overflow-hidden rounded-[5px] border border-solid border-brand-line">
-              <img src={beforeAfter.edited} alt="저장될 편집본" className="size-full object-cover" />
-            </span>
-          </div>
-          <span className="flex justify-between text-[10px] text-dim">
-            <span>받은 그대로</span>
-            <span className="text-brand">저장될 모습</span>
-          </span>
+          <BeforeAfterPair beforeAfter={beforeAfter} />
         </Side>
       ) : null}
 
@@ -124,26 +239,8 @@ export function AiSidePanel({
             </span>
           }
         >
-          {history.length > 0 ? (
-            <ol className="m-0 grid list-none gap-[6px] p-0">
-              {history.map((h) => (
-                <li key={h.no} className="grid grid-cols-[16px_minmax(0,1fr)_auto] items-center gap-[6px] text-[11px]">
-                  <b className="font-code text-brand">{h.no}</b>
-                  <span className="text-fg-2">{h.label}</span>
-                  <span className="font-code text-[10px] text-dim">{h.at}</span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <span className="text-[11px] text-dim">아직 편집하지 않았습니다.</span>
-          )}
-          {originalHash ? (
-            <div className="mt-[2px] grid gap-[2px] border-t border-solid border-line-2 pt-[6px] text-[10.5px] text-dim">
-              <span>원본 보관 · SHA-256</span>
-              <b className="font-code font-medium text-fg-2">{originalHash}</b>
-              <span>저장하면 편집본 해시와 이 이력이 사용 기록(S14)에 남습니다</span>
-            </div>
-          ) : null}
+          <HistoryList history={history} />
+          {originalHash ? <HashNote hash={originalHash} /> : null}
         </Side>
       ) : null}
     </div>

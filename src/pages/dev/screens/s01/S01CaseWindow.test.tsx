@@ -134,6 +134,33 @@ describe("S01 사건 창", () => {
       expect(within(d).getByRole("button", { name: "저장" })).toBeInTheDocument()
     })
 
+    it("이미지 편집 탭: 1차 편집만(2차 이미지 뷰어 · 시나리오 줄 · 제목 줄 ✕ · 「1차 작업」 꼬리표 없음), 저장 단추는 칸 머리, 오른쪽 「AI 제안 · 편집 이력」 탭", () => {
+      renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=1&tab=edit")
+      const d = dialog()
+      const cutting = within(d).getByRole("region", { name: "이미지 커팅" })
+      expect(within(d).queryByRole("region", { name: "이미지 뷰어" })).toBeNull()
+      expect(within(d).queryByText(/A · 1차 작업/)).toBeNull()
+      expect(within(d).queryByText(/B · 2차 작업/)).toBeNull()
+      expect(within(d).queryByRole("button", { name: "이미지 커팅 닫기" })).toBeNull()
+      expect(within(d).queryByText("1차 작업", { selector: "[data-part=Chip]" })).toBeNull()
+      // 머리 줄 = 제목 + 취소 · 확인 · 저장(저장만 채움)
+      const head = cutting.querySelector('[data-slot="panel-pane-head"]') as HTMLElement
+      expect(within(head).getByRole("heading", { name: "이미지 커팅" })).toBeInTheDocument()
+      expect(within(head).getAllByRole("button").map((b) => b.textContent).filter((t) => t !== "i")).toEqual(["취소", "확인", "저장"])
+      expect(within(head).getByRole("button", { name: "저장" })).toHaveAttribute("data-part-variant", "sm-pri")
+      // 도구는 세로 칸, SCAS 아래 버튼 줄은 그대로
+      expect(within(within(cutting).getByRole("group", { name: "도구" })).getByRole("button", { name: "이진화" })).toBeInTheDocument()
+      expect(within(cutting).getByRole("group", { name: "SCAS 아래 버튼 줄" })).toBeInTheDocument()
+      // 오른쪽 칸: 탭 둘, 이력 탭에서 되돌리기
+      const side = within(d).getByRole("tablist", { name: "편집 보조" })
+      expect(within(side).getAllByRole("tab").map((t) => t.textContent)).toEqual(["AI 제안3", "편집 이력3"])
+      fireEvent.click(within(within(d).getByRole("region", { name: "AI 제안" })).getByRole("button", { name: "맞추기" }))
+      fireEvent.click(within(side).getByRole("tab", { name: /편집 이력/ }))
+      expect(within(within(d).getByRole("region", { name: "편집 이력" })).getAllByRole("listitem")).toHaveLength(4)
+      fireEvent.click(within(d).getByRole("button", { name: "되돌리기" }))
+      expect(within(within(d).getByRole("region", { name: "편집 이력" })).getAllByRole("listitem")).toHaveLength(3)
+    })
+
     it("?plus=0: 흐름 줄 · 탭은 그대로 보인다", () => {
       renderAt("/dev/s01?case=ready&plus=0&open=00001-25-0649&img=1&tab=info")
       expect(within(screen.getByRole("list", { name: "사건 진행 흐름" })).getAllByRole("listitem")).toHaveLength(5)

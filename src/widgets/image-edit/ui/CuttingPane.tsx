@@ -4,8 +4,10 @@ import type { ThresholdMode } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
 import { AiProgress, AiTag, ScanOverlay } from "@/shared/ui/ai"
 import { Button, Field, Segmented } from "@/shared/ui/kit"
+import { PaneHead } from "@/shared/ui/panel"
 
 import type { ImageEditAccess } from "../model/access"
+import { hasCuttingSide } from "../model/layout"
 import type { ImageEditScreenProps, ImageEditTool } from "../model/types"
 import { AiSidePanel } from "./AiSidePanel"
 import { ScasButtonRow } from "./ScasButtonRow"
@@ -43,7 +45,7 @@ const num = (v: string, fallback: number) => {
   return Number.isFinite(n) ? n : fallback
 }
 
-type CuttingPaneProps = Omit<
+export type CuttingPaneProps = Omit<
   ImageEditScreenProps,
   "status" | "errorAt" | "onRetry" | "isAdmin" | "features" | "aprthngNo" | "viewerImage" | "adjustments" | "onAdjustmentsChange" | "onClose"
 > & {
@@ -53,8 +55,8 @@ type CuttingPaneProps = Omit<
   plus: boolean
 }
 
-/** 도구별 설정 줄(지금 앱 EditToolbar 위줄 자리) */
-function ToolOptions(p: CuttingPaneProps) {
+/** 도구별 설정 줄(지금 앱 EditToolbar 위줄 자리). `bare` = 사건 창 안 — 테두리 상자 없이 한 줄 */
+function ToolOptions(p: CuttingPaneProps & { bare?: boolean }) {
   const { activeTool, denoiseState } = p
   const { canEdit } = p.access
   const showDenoise = activeTool === "denoise" || denoiseState !== "idle"
@@ -136,7 +138,10 @@ function ToolOptions(p: CuttingPaneProps) {
     <div
       role="group"
       aria-label="도구 설정"
-      className="flex flex-col gap-[6px] rounded-[8px] border border-solid border-line-2 bg-panel-2 px-[10px] py-[6px]"
+      className={cn(
+        "flex flex-col gap-[6px]",
+        p.bare ? "shrink-0 px-[2px]" : "rounded-[8px] border border-solid border-line-2 bg-panel-2 px-[10px] py-[6px]"
+      )}
     >
       {body && activeTool !== "denoise" ? <div className="flex flex-wrap items-center gap-[8px]">{body}</div> : null}
       {showDenoise ? (
@@ -161,22 +166,16 @@ function ToolOptions(p: CuttingPaneProps) {
   )
 }
 
-/** A — 1차 이미지 커팅(저장함). SCAS 이미지 커팅 창의 버튼 자리 그대로 + 도구 줄 덧붙임 + (r2) 오른쪽 칸 */
-export function CuttingPane(p: CuttingPaneProps) {
-  const { access, plus } = p
-  const { canEdit } = access
-  const fmt = (n: number) => n.toLocaleString("ko-KR")
-  const tags = plus ? p.canvasTags : undefined
-  // 시안: 되돌리기는 편집 이력 머리에 있다. 이력 칸이 없으면(신규 끄기) 1차 자리(아래 줄 끝)
-  const undoInHistory = plus && p.editHistory !== undefined
-  const hasSide = plus && (p.aiSuggestions !== undefined || p.beforeAfter !== undefined || p.editHistory !== undefined)
+const fmt = (n: number) => n.toLocaleString("ko-KR")
 
-  const canvas = (
-    // 좌표 캔버스 자리(슬롯). 겹 장식은 모두 pointer-events-none
-    <div className="relative h-[536px] min-w-0 overflow-hidden rounded-[10px] border border-solid border-border bg-canvas">
+/** 좌표 캔버스 칸(슬롯) + 위 꼬리표. 겹 장식은 모두 pointer-events-none. 크기는 부르는 쪽이 `className` 으로 */
+function CanvasBox({ p, className }: { p: CuttingPaneProps; className: string }) {
+  const tags = p.plus ? p.canvasTags : undefined
+  return (
+    <div className={cn("relative min-w-0 overflow-hidden rounded-[10px] border border-solid border-border bg-canvas", className)}>
       {p.canvasSlot}
       <ScanOverlay active={p.denoiseState === "running"} />
-      {plus ? (
+      {p.plus ? (
         // 시안: A 캔버스는 AI가 족적 축을 읽는 동안 4.5초 주기로 훑는다
         <ScanOverlay active data-plus="" className="motion-safe:[animation-duration:4.5s]" />
       ) : null}
@@ -195,83 +194,193 @@ export function CuttingPane(p: CuttingPaneProps) {
       </span>
     </div>
   )
+}
+
+/** 사건 창 도구 막대 앞 흐린 이름(「확대」 · 「회전」) */
+const BAR_LABEL = "text-[11px] text-muted-foreground"
+
+/** SCAS −[확대]+ · 좌[각도]우 두 묶음. `compact` = 사건 창 한 줄 도구 막대(칸 높이를 단추 sm 24 에 맞춤 · 앞 흐린 이름) */
+function ZoomRotate({ p, compact = false }: { p: CuttingPaneProps; compact?: boolean }) {
+  const { canEdit } = p.access
+  const field = compact ? "h-[24px] w-[54px] px-[4px] text-center" : "w-[56px] justify-center"
+  const variant = compact ? "mono-sm" : "mono"
+  return (
+    <>
+      <span className="inline-flex items-center gap-[3px]">
+        {compact ? <span className={cn(BAR_LABEL, "mr-[3px]")}>확대</span> : null}
+        <Button size="sm" aria-label="축소" onClick={() => p.onZoomChange(Math.max(10, p.zoom - 10))}>
+          −
+        </Button>
+        <Field
+          type="number"
+          variant={variant}
+          aria-label="확대율"
+          value={p.zoom}
+          onChange={(e) => p.onZoomChange(num(e.target.value, p.zoom))}
+          className={field}
+        />
+        <Button size="sm" aria-label="확대" onClick={() => p.onZoomChange(p.zoom + 10)}>
+          +
+        </Button>
+      </span>
+      <span className="inline-flex items-center gap-[3px]">
+        {compact ? <span className={cn(BAR_LABEL, "mr-[3px]")}>회전</span> : null}
+        <Button size="sm" disabled={!canEdit} onClick={() => p.onRotate("left")}>
+          좌
+        </Button>
+        <Field
+          type="number"
+          variant={variant}
+          aria-label="회전 각도"
+          value={p.rotateStep}
+          readOnly={!canEdit}
+          onChange={(e) => p.onRotateStepChange(num(e.target.value, p.rotateStep))}
+          className={field}
+        />
+        <Button size="sm" disabled={!canEdit} onClick={() => p.onRotate("right")}>
+          우
+        </Button>
+      </span>
+    </>
+  )
+}
+
+/** SCAS 취소 · 확인 · 저장(저장만 채움) */
+function SaveButtons({ p }: { p: CuttingPaneProps }) {
+  return (
+    <>
+      <Button size="sm" onClick={p.onCancel}>
+        취소
+      </Button>
+      <Button size="sm" disabled={!p.access.canEdit} onClick={p.onConfirm}>
+        확인
+      </Button>
+      <Button size="sm" variant="pri" disabled={!p.access.canSave} onClick={p.onSave}>
+        저장
+      </Button>
+    </>
+  )
+}
+
+/** 덧붙인 도구 단추들(SCAS 버튼 뒤, 표 순서). `block` = 세로 칸에서 폭 꽉 · 왼쪽 맞춤 */
+function ToolButtons({ p, block = false }: { p: CuttingPaneProps; block?: boolean }) {
+  const { canEdit } = p.access
+  const wide = block ? "w-full justify-start" : undefined
+  return (
+    <>
+      {TOOLS.map(({ tool, label, icon }) => {
+        const on = p.activeTool === tool
+        return (
+          <React.Fragment key={tool}>
+            <Button
+              size="sm"
+              aria-pressed={on}
+              disabled={!canEdit}
+              onClick={() => p.onToolChange(on ? null : tool)}
+              className={cn(wide, on && PRESSED)}
+            >
+              {icon ? <span aria-hidden="true">{icon}</span> : null}
+              {label}
+            </Button>
+            {tool === "crop" && p.plus ? (
+              // 시안 「↻ 회전 손잡이」 — 자르기 틀 위 손잡이를 따로 켜는 신규 버튼(동작 없음)
+              <Button size="sm" data-plus="" disabled={!canEdit} onClick={() => p.onPlusAction?.("회전 손잡이")} className={wide}>
+                <span aria-hidden="true">↻</span>회전 손잡이
+              </Button>
+            ) : null}
+          </React.Fragment>
+        )
+      })}
+    </>
+  )
+}
+
+/** SCAS 아래 버튼 줄(처음상태 … 상하반전). 이력 칸이 있으면 되돌리기는 이력 머리로 간다(시안) */
+function BottomRow({ p, className }: { p: CuttingPaneProps; className?: string }) {
+  const { canEdit } = p.access
+  const undoInHistory = p.plus && p.editHistory !== undefined
+  return (
+    <ScasButtonRow
+      label="SCAS 아래 버튼 줄"
+      locked={!canEdit}
+      actions={{ 처음상태: p.onRestore }}
+      highlight={p.plus && p.recommendFlip ? "좌우반전" : undefined}
+      className={className}
+      trailing={
+        undoInHistory ? undefined : (
+          <Button size="sm" disabled={!canEdit || !p.canUndo} onClick={p.onUndo}>
+            되돌리기
+          </Button>
+        )
+      }
+    />
+  )
+}
+
+/** 「저장함」 안내 글(무엇이 저장되나) */
+const saveNote = (p: CuttingPaneProps) =>
+  p.plus && p.originalHash
+    ? "잘린 사진이 사건 이미지가 되고, 받은 원본은 해시와 함께 따로 보관됩니다(되돌리기 가능)."
+    : "자르고 돌린 사진이 사건 이미지로 저장됩니다(받은 원본은 따로 보관)."
+
+/**
+ * 사건 창 안 이미지 커팅(11/17 사용자 「컴팩트하면서 고급지게」) — 같은 상태 · 핸들러, 배치만 다르다.
+ * 머리(PaneHead) 오른쪽 끝 = 취소 · 확인 · 저장, 그 아래 한 줄 = −[확대]+ · 좌[각도]우 · 맞춤 · 100%,
+ * 본문 = 왼쪽 세로 도구 칸 | 캔버스(남은 높이 꽉), 바닥 = SCAS 아래 버튼 줄. 점선 상자 · 색 띠 설명은 없애고 안내는 ⓘ · 회색 한 줄.
+ */
+export function CuttingWindow(p: CuttingPaneProps) {
+  return (
+    <section aria-label="이미지 커팅" className="flex min-h-0 min-w-0 flex-col gap-[8px]">
+      <PaneHead
+        title="이미지 커팅"
+        tip={`저장함 — ${saveNote(p)}`}
+        sub={p.access.canEdit ? `원본 ${fmt(p.originalSize.width)} × ${fmt(p.originalSize.height)}` : "보기 전용 — 편집 · 저장은 사건 조회 또는 사건 등록 권한"}
+        end={<SaveButtons p={p} />}
+      />
+      <div role="group" aria-label="보기 · 회전" className="flex shrink-0 flex-wrap items-center gap-x-[10px] gap-y-[4px]">
+        <ZoomRotate p={p} compact />
+        <span aria-hidden="true" className="h-[16px] w-px bg-line-3" />
+        <span className="inline-flex gap-[4px]">
+          <Button size="sm" onClick={p.onFit}>
+            맞춤
+          </Button>
+          <Button size="sm" onClick={p.onActualSize}>
+            100%
+          </Button>
+        </span>
+      </div>
+      <ToolOptions {...p} bare />
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,116px)_minmax(0,1fr)] gap-[8px]">
+        <div role="group" aria-label="도구" className="flex min-h-0 flex-col gap-[4px] overflow-y-auto">
+          <ToolButtons p={p} block />
+        </div>
+        <CanvasBox p={p} className="h-full" />
+      </div>
+      <BottomRow p={p} className="shrink-0 justify-start" />
+    </section>
+  )
+}
+
+/** A — 1차 이미지 커팅(저장함). SCAS 이미지 커팅 창의 버튼 자리 그대로 + 도구 줄 덧붙임 + (r2) 오른쪽 칸 */
+export function CuttingPane(p: CuttingPaneProps) {
+  const { canEdit } = p.access
+  const hasSide = hasCuttingSide(p)
+  const canvas = <CanvasBox p={p} className="h-[536px]" />
 
   return (
     <section aria-label="이미지 커팅" className="flex min-w-0 flex-col gap-[8px]">
       {/* SCAS 위 버튼 줄: −[확대]+ 좌[각도]우 … 취소 · 확인 · 저장 */}
       <div className="flex flex-wrap items-center gap-[10px]">
-        <span className="inline-flex items-center gap-[3px]">
-          <Button size="sm" aria-label="축소" onClick={() => p.onZoomChange(Math.max(10, p.zoom - 10))}>
-            −
-          </Button>
-          <Field
-            type="number"
-            variant="mono"
-            aria-label="확대율"
-            value={p.zoom}
-            onChange={(e) => p.onZoomChange(num(e.target.value, p.zoom))}
-            className="w-[56px] justify-center"
-          />
-          <Button size="sm" aria-label="확대" onClick={() => p.onZoomChange(p.zoom + 10)}>
-            +
-          </Button>
-        </span>
-        <span className="inline-flex items-center gap-[3px]">
-          <Button size="sm" disabled={!canEdit} onClick={() => p.onRotate("left")}>
-            좌
-          </Button>
-          <Field
-            type="number"
-            variant="mono"
-            aria-label="회전 각도"
-            value={p.rotateStep}
-            readOnly={!canEdit}
-            onChange={(e) => p.onRotateStepChange(num(e.target.value, p.rotateStep))}
-            className="w-[56px] justify-center"
-          />
-          <Button size="sm" disabled={!canEdit} onClick={() => p.onRotate("right")}>
-            우
-          </Button>
-        </span>
+        <ZoomRotate p={p} />
         <span className="ml-auto inline-flex gap-[4px]">
-          <Button size="sm" onClick={p.onCancel}>
-            취소
-          </Button>
-          <Button size="sm" disabled={!canEdit} onClick={p.onConfirm}>
-            확인
-          </Button>
-          <Button size="sm" variant="pri" disabled={!access.canSave} onClick={p.onSave}>
-            저장
-          </Button>
+          <SaveButtons p={p} />
         </span>
       </div>
 
       {/* 덧붙인 도구 줄(SCAS 버튼 뒤) */}
       <div className="flex flex-wrap items-center gap-[4px] rounded-[8px] border border-dashed border-line-3 px-[6px] py-[4px]">
         <span className="mr-[2px] text-[11px] text-dim">도구(덧붙임)</span>
-        {TOOLS.map(({ tool, label, icon }) => {
-          const on = p.activeTool === tool
-          return (
-            <React.Fragment key={tool}>
-              <Button
-                size="sm"
-                aria-pressed={on}
-                disabled={!canEdit}
-                onClick={() => p.onToolChange(on ? null : tool)}
-                className={cn(on && PRESSED)}
-              >
-                {icon ? <span aria-hidden="true">{icon}</span> : null}
-                {label}
-              </Button>
-              {tool === "crop" && plus ? (
-                // 시안 「↻ 회전 손잡이」 — 자르기 틀 위 손잡이를 따로 켜는 신규 버튼(동작 없음)
-                <Button size="sm" data-plus="" disabled={!canEdit} onClick={() => p.onPlusAction?.("회전 손잡이")}>
-                  <span aria-hidden="true">↻</span>회전 손잡이
-                </Button>
-              ) : null}
-            </React.Fragment>
-          )
-        })}
+        <ToolButtons p={p} />
         <span aria-hidden="true" className="mx-[4px] h-[18px] w-px bg-line-3" />
         <Button size="sm" onClick={p.onFit}>
           맞춤
@@ -301,30 +410,12 @@ export function CuttingPane(p: CuttingPaneProps) {
         canvas
       )}
 
-      <ScasButtonRow
-        label="SCAS 아래 버튼 줄"
-        locked={!canEdit}
-        actions={{ 처음상태: p.onRestore }}
-        highlight={plus && p.recommendFlip ? "좌우반전" : undefined}
-        trailing={
-          undoInHistory ? undefined : (
-            <Button size="sm" disabled={!canEdit || !p.canUndo} onClick={p.onUndo}>
-              되돌리기
-            </Button>
-          )
-        }
-      />
+      <BottomRow p={p} />
 
       <p className="flex items-center gap-[8px] rounded-[8px] border border-solid border-ok-line bg-ok-bg px-[10px] py-[7px] text-[11.5px] text-ok-fg">
-        {plus && p.originalHash ? (
-          <span>
-            <b>저장함</b> · 잘린 사진이 사건 이미지가 되고, 받은 원본은 해시와 함께 따로 보관됩니다(되돌리기 가능).
-          </span>
-        ) : (
-          <span>
-            <b>저장함</b> · 자르고 돌린 사진이 사건 이미지로 저장됩니다(받은 원본은 따로 보관).
-          </span>
-        )}
+        <span>
+          <b>저장함</b> · {saveNote(p)}
+        </span>
       </p>
     </section>
   )
