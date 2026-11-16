@@ -15,7 +15,7 @@ import {
   Segmented,
   type DataGridColumn,
 } from "@/shared/ui/kit"
-import { ButtonBar, Panel, SearchForm, Stepper, type SearchFormRow } from "@/shared/ui/panel"
+import { ButtonBar, Panel, SearchForm, Stepper, UnderlineTabs, type SearchFormRow } from "@/shared/ui/panel"
 import { EvidenceImage } from "@/shared/ui/viewer"
 
 import { CaseImageDrop } from "./CaseImageDrop"
@@ -97,6 +97,9 @@ export function CaseDetailScreen({
   // 전사판 안내 칩: flipRefs 를 주면 그 장을 볼 때만(사건 창 — 사건마다 다르다), 안 주면 시안처럼 늘
   const selectedSeq = selected ? String(imageSeq(selected.fileName)) : ""
   const showFlip = Boolean(extra) && (!extra?.flipRefs || extra.flipRefs.includes(selectedSeq))
+  // 사건 창 안(11/17 사용자 「사건 정보, 현장 이미지 정보는 탭으로 좌우 이동하고 세로 꽉 채우던지」): 오른쪽 두 표를 탭으로
+  const [formTab, setFormTab] = React.useState<"case" | "image">("case")
+  const formTabsId = React.useId()
   // r3: 이미지 목록 파일명 검색(제어형). 큰 그림 · 선택은 전체 기준, 표만 거른다
   const visibleImages = React.useMemo(() => {
     const q = imageQuery.trim().toLowerCase()
@@ -354,6 +357,133 @@ export function CaseDetailScreen({
         </ButtonBar>
   )
 
+  const imageChip = selected ? (
+    <Chip variant="blue-mono-h20" partId="S02-10">
+      {selected.fileName.replace(/^.*(_\d+)\.[^.]+$/, "$1")}
+    </Chip>
+  ) : null
+  const scopeTools = extra ? (
+    <span data-plus className="flex items-center gap-[6px]">
+      <Segmented
+        aria-label="적용 범위"
+        value={applyScope}
+        onValueChange={(v) => setApplyScope(v as "one" | "all")}
+        items={[
+          { value: "one", label: "이 이미지만" },
+          { value: "all", label: "선택한 이미지 모두 적용" },
+        ]}
+      />
+      <Button size="sm" locked={!canEdit} onClick={() => onMockAction?.("수정")}>
+        수정
+      </Button>
+    </span>
+  ) : null
+  const saveBar = canEdit ? (
+    <div className="flex flex-wrap items-center justify-end gap-[10px] px-[4px]">
+      {mode === "register" ? (
+        <label className="mr-auto flex items-center gap-[6px] text-[12px] text-muted-foreground">
+          <Checkbox
+            checked={continuous}
+            onCheckedChange={(c) => onContinuousChange(c === true)}
+            aria-label="저장 후 연속 등록"
+          />
+          저장 후 다음 사건 연속 등록
+        </label>
+      ) : null}
+      <Button size="sm" onClick={onReset}>
+        초기화
+      </Button>
+      <Button size="sm" variant="pri" disabled={saving} onClick={onSave}>
+        {saving ? "저장 중..." : "저장"}
+      </Button>
+    </div>
+  ) : null
+  const errorLine = errorMessage ? (
+    <p
+      role="alert"
+      className="m-0 rounded-[6px] border border-solid border-danger-line bg-danger-bg px-[10px] py-[7px] text-[12.5px] text-danger-fg"
+    >
+      {errorMessage}
+    </p>
+  ) : null
+
+  // 사건 창 안: 왼쪽 족윤적 이미지(높이 꽉) | 오른쪽 「사건정보 | 현장 이미지 정보」 탭(표는 그 안에서 스크롤, 저장 줄은 바닥).
+  // 두 칸 머리를 같은 높이 · 같은 밑선으로 맞추고, 소제목은 밑줄 탭 모양(13 굵게 · 고른 것 brand 밑줄 2px)으로 바꾼다
+  // (11/17 사용자 「오른쪽 정렬 안 맞는건?? … 저 소제목 디자인 바꿔」). 단독 진열(S02)은 SCAS 시안 그대로 Band.
+  if (inWindow && status === "ready") {
+    return (
+      <div data-slot="case-detail-window" className="grid h-full min-h-0 grid-cols-[300px_minmax(0,1fr)] gap-[14px] p-[12px]">
+        <section aria-label="족윤적 이미지" className="flex min-h-0 flex-col gap-[8px]">
+          <div className="flex shrink-0 items-end gap-2 border-b border-solid border-border px-1">
+            <h3 className="-mb-px m-0 inline-flex items-center gap-1.5 border-0 border-b-2 border-solid border-brand pt-[7px] pb-2 text-[13px] font-bold text-brand-3">
+              족윤적 이미지
+            </h3>
+            <span className="ml-auto self-center">{imageChip}</span>
+          </div>
+          <div className="min-h-0 flex-1">
+            {selected && extra ? (
+              <EvidenceWithAi src={selected.src} alt={`${selected.fileName} 미리보기`} caption={selected.fileName} plus={extra} fill />
+            ) : selected ? (
+              <EvidenceImage
+                src={selected.src}
+                alt={`${selected.fileName} 미리보기`}
+                caption={selected.fileName}
+                ruler
+                className="aspect-auto h-full"
+              />
+            ) : (
+              <p className="m-0 grid h-full place-items-center rounded-[10px] border border-dashed border-line-3 text-[12px] text-muted-foreground">
+                이미지 없음
+              </p>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-[6px]">
+            {showFlip ? (
+              <Chip data-plus variant="amber" partId="S02-05">
+                {extra?.flipNote}
+              </Chip>
+            ) : null}
+            <Button size="sm" className="ml-auto" disabled={!selected} onClick={() => selected && onOpenImageEdit(selected.id)}>
+              이미지 커팅 열기
+            </Button>
+          </div>
+        </section>
+
+        <section aria-label="사건 · 현장 이미지 정보" className="flex min-h-0 min-w-0 flex-col gap-[8px]">
+          <UnderlineTabs
+            label="정보"
+            tabs={[
+              ["case", "사건정보"],
+              [
+                "image",
+                <span key="image" className="inline-flex items-center gap-1.5">
+                  현장 이미지 정보 {imageChip}
+                </span>,
+              ],
+            ]}
+            value={formTab}
+            onChange={setFormTab}
+            idPrefix={formTabsId}
+            end={
+              formTab === "image" ? (
+                scopeTools
+              ) : extra ? (
+                <span data-plus className="text-[11px] text-dim">
+                  대부분 공문 그대로 · 수정은 창 머리 ⋯ 메뉴로
+                </span>
+              ) : null
+            }
+          />
+          <div role="tabpanel" aria-labelledby={`${formTabsId}-${formTab}`} className="flex min-h-0 flex-1 flex-col gap-[8px] overflow-auto">
+            {errorLine}
+            <SearchForm columns={2} rows={formTab === "case" ? caseRows : imageRows} />
+          </div>
+          {saveBar ? <div className="shrink-0 border-0 border-t border-solid border-border pt-[8px]">{saveBar}</div> : null}
+        </section>
+      </div>
+    )
+  }
+
   return (
     <Panel aria-busy={status === "loading" ? "true" : undefined} title={headTitle} actions={headActions}>
       {status === "loading" ? (
@@ -473,65 +603,20 @@ export function CaseDetailScreen({
                 </span>
               ) : null}
             </Band>
-            {errorMessage ? (
-              <p
-                role="alert"
-                className="m-0 rounded-[6px] border border-solid border-danger-line bg-danger-bg px-[10px] py-[7px] text-[12.5px] text-danger-fg"
-              >
-                {errorMessage}
-              </p>
-            ) : null}
+            {errorLine}
             <SearchForm columns={2} rows={caseRows} />
             <Band
               title={
                 <>
                   현장 이미지 정보
-                  {selected ? (
-                    <Chip variant="blue-mono-h20" partId="S02-10">
-                      {selected.fileName.replace(/^.*(_\d+)\.[^.]+$/, "$1")}
-                    </Chip>
-                  ) : null}
+                  {imageChip}
                 </>
               }
             >
-              {extra ? (
-                <span data-plus className="flex items-center gap-[6px]">
-                  <Segmented
-                    aria-label="적용 범위"
-                    value={applyScope}
-                    onValueChange={(v) => setApplyScope(v as "one" | "all")}
-                    items={[
-                      { value: "one", label: "이 이미지만" },
-                      { value: "all", label: "선택한 이미지 모두 적용" },
-                    ]}
-                  />
-                  <Button size="sm" locked={!canEdit} onClick={() => onMockAction?.("수정")}>
-                    수정
-                  </Button>
-                </span>
-              ) : null}
+              {scopeTools}
             </Band>
             <SearchForm columns={2} rows={imageRows} />
-            {canEdit ? (
-              <div className="flex flex-wrap items-center justify-end gap-[10px] px-[4px]">
-                {mode === "register" ? (
-                  <label className="mr-auto flex items-center gap-[6px] text-[12px] text-muted-foreground">
-                    <Checkbox
-                      checked={continuous}
-                      onCheckedChange={(c) => onContinuousChange(c === true)}
-                      aria-label="저장 후 연속 등록"
-                    />
-                    저장 후 다음 사건 연속 등록
-                  </label>
-                ) : null}
-                <Button size="sm" onClick={onReset}>
-                  초기화
-                </Button>
-                <Button size="sm" variant="pri" disabled={saving} onClick={onSave}>
-                  {saving ? "저장 중..." : "저장"}
-                </Button>
-              </div>
-            ) : null}
+            {saveBar}
           </div>
         </div>
       )}

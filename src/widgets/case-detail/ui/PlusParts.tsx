@@ -60,17 +60,20 @@ export function EvidenceWithAi({
   alt,
   caption,
   plus,
+  fill = false,
 }: {
   src: string
   alt: string
   caption: string
   plus: CaseDetailPlus
+  /** 높이를 부모에 맞춰 꽉 채움(사건 창 — 11/17) — 기본은 시안 높이 300 */
+  fill?: boolean
 }) {
   const [view, setView] = React.useState<View>("raw")
   const look: EvidenceLook = view === "binary" ? "binary" : "raw"
   return (
     // 시안: 왼쪽 칸 폭 전체 · 높이 300(2:3 틀 대신)
-    <EvidenceImage src={src} alt={alt} caption={caption} ruler look={look} className="aspect-auto h-[300px]">
+    <EvidenceImage src={src} alt={alt} caption={caption} ruler look={look} className={fill ? "aspect-auto h-full" : "aspect-auto h-[300px]"}>
       {view !== "binary" ? (
         <>
           <span

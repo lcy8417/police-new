@@ -26,19 +26,24 @@ export interface UnderlineTabsProps<K extends string> {
   endKey?: K
   /** 주면 탭마다 id = `${idPrefix}-${열쇠}` */
   idPrefix?: string
+  /** 줄 오른쪽 끝 고를 수 없는 자리(그 탭의 도구 · 안내 글) — 11/17 사건 창 사건 정보 탭 안 「사건정보 | 현장 이미지 정보」 */
+  end?: ReactNode
   /** 위치 식별자(`data-part-id`) */
   partId?: string
 }
 
 /** [UI] 밑줄 탭 줄(window 변형) — 고른 탭 = brand 밑줄 2px + brand-3 글자 */
-export function UnderlineTabs<K extends string>({ label, tabs, value, onChange, lead, endKey, idPrefix, partId }: UnderlineTabsProps<K>) {
-  return (
+export function UnderlineTabs<K extends string>({ label, tabs, value, onChange, lead, endKey, idPrefix, end, partId }: UnderlineTabsProps<K>) {
+  const list = (
     <div
-      {...partAttrs("UnderlineTabs", { variant: "window", id: partId })}
+      {...(end ? {} : partAttrs("UnderlineTabs", { variant: "window", id: partId }))}
       role="tablist"
       aria-label={label}
-      data-slot="panel-underline-tabs"
-      className="flex shrink-0 items-center gap-0.5 overflow-x-auto border-b border-solid border-border bg-panel px-3.5 [scrollbar-width:none]"
+      data-slot={end ? undefined : "panel-underline-tabs"}
+      className={cn(
+        "flex shrink-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none]",
+        end ? "min-w-0" : "border-b border-solid border-border bg-panel px-3.5"
+      )}
     >
       {lead}
       {tabs.map(([key, name]) => {
@@ -63,6 +68,18 @@ export function UnderlineTabs<K extends string>({ label, tabs, value, onChange, 
           </button>
         )
       })}
+    </div>
+  )
+  if (!end) return list
+  // 오른쪽 끝 자리는 탭 목록(tablist) 밖 — 같은 줄 · 같은 밑선
+  return (
+    <div
+      {...partAttrs("UnderlineTabs", { variant: "window", id: partId })}
+      data-slot="panel-underline-tabs"
+      className="flex shrink-0 items-end gap-3 border-b border-solid border-border bg-panel px-3.5"
+    >
+      {list}
+      <div className="ml-auto flex shrink-0 items-center gap-1.5 self-center py-1">{end}</div>
     </div>
   )
 }

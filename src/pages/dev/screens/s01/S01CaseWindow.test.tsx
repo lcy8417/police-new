@@ -116,6 +116,24 @@ describe("S01 사건 창", () => {
       expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual(["사건복사", "수정"])
     })
 
+    it("사건 정보 탭: 왼쪽 족윤적 이미지 | 오른쪽 「사건정보 · 현장 이미지 정보」 탭(한 번에 한 표), 현장 이미지 탭에서만 적용 범위 도구", () => {
+      renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=2&tab=info")
+      const d = dialog()
+      expect(within(d).getByRole("region", { name: "족윤적 이미지" })).toBeInTheDocument()
+      const tabs = within(within(d).getByRole("tablist", { name: "정보" })).getAllByRole("tab")
+      expect(tabs.map((t) => t.textContent)).toEqual(["사건정보", "현장 이미지 정보 _2"])
+      expect(tabs[0]).toHaveAttribute("aria-selected", "true")
+      expect(within(d).getByLabelText("사건등록번호")).toBeInTheDocument()
+      expect(within(d).queryByLabelText("채취 장소")).toBeNull()
+      expect(within(d).queryByRole("group", { name: "적용 범위" })).toBeNull()
+      fireEvent.click(tabs[1])
+      expect(within(d).queryByLabelText("사건등록번호")).toBeNull()
+      expect(within(d).getByLabelText("채취 장소")).toBeInTheDocument()
+      expect(within(d).getByRole("group", { name: "적용 범위" })).toBeInTheDocument()
+      // 저장 줄은 두 탭 공통 바닥
+      expect(within(d).getByRole("button", { name: "저장" })).toBeInTheDocument()
+    })
+
     it("?plus=0: 흐름 줄 · 탭은 그대로 보인다", () => {
       renderAt("/dev/s01?case=ready&plus=0&open=00001-25-0649&img=1&tab=info")
       expect(within(screen.getByRole("list", { name: "사건 진행 흐름" })).getAllByRole("listitem")).toHaveLength(5)
