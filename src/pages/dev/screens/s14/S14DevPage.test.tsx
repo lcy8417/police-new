@@ -151,3 +151,50 @@ describe("S14 사용·감사 기록 진열 페이지", () => {
     expect(cell?.className).toMatch(/whitespace-normal/)
   })
 })
+
+describe("S14 사용·감사 기록 — r2 시안 구성", () => {
+  it("시간대별 사용량 차트 · 이상 징후 7일 · 기록 무결성(해시 사슬)을 시안 문구로 보인다", () => {
+    admin("ready")
+    const act = screen.getByRole("region", { name: "시간대별 사용량" })
+    expect(within(act).getByText("시간대별 사용량 · 오늘")).toBeInTheDocument()
+    expect(within(act).getByRole("img", { name: "시간대별 사용량" })).toBeInTheDocument()
+    expect(within(act).getByText("10시 61건")).toBeInTheDocument()
+    expect(within(act).getByText("실패·권한 없음")).toBeInTheDocument()
+    const alerts = screen.getByRole("region", { name: "이상 징후" })
+    expect(within(alerts).getByText("이상 징후 · 최근 7일")).toBeInTheDocument()
+    expect(within(alerts).getByText("업무 시간 밖 대량 내려받기")).toBeInTheDocument()
+    expect(within(alerts).getByText("확인 전 1")).toBeInTheDocument()
+    const integrity = screen.getByRole("region", { name: "기록 무결성" })
+    expect(within(integrity).getByRole("img", { name: "해시 사슬" })).toBeInTheDocument()
+    // 기록 번호(색 아님)
+    expect(within(integrity).getByText("#459")).toBeInTheDocument() // hex-ok
+    expect(within(integrity).getByText("✓ 변조 없음")).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: "감사 항목" })).toHaveTextContent("신발 승인")
+    expect(screen.getByText(/보존 기간: 접속·사용 기록/)).toBeInTheDocument()
+  })
+
+  it("?plus=0 이면 [data-plus] 가 없고 1차 필터 · 표는 그대로다", () => {
+    const { container } = renderAt("?case=ready&as=admin&plus=0")
+    expect(container.querySelectorAll("[data-plus]")).toHaveLength(0)
+    expect(screen.queryByRole("region", { name: "시간대별 사용량" })).toBeNull()
+    expect(screen.getByRole("search", { name: "사용 기록 필터" })).toBeInTheDocument()
+    expect(list()).toBeInTheDocument()
+  })
+
+  it("불러오는 중 · 실패에는 요약 숫자를 보이지 않는다", () => {
+    admin("error")
+    expect(screen.queryByRole("region", { name: "시간대별 사용량" })).toBeNull()
+    expect(screen.getByRole("button", { name: "다시" })).toBeInTheDocument()
+  })
+
+  it("관리자만 엑셀 내보내기 · 요약 칸이 보이고, 기술책임자는 가드만 보인다", () => {
+    const { unmount } = admin("ready")
+    expect(screen.getByRole("button", { name: "엑셀 내보내기" })).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: "기록 무결성" })).toBeInTheDocument()
+    unmount()
+    renderAt("?case=ready&as=verifier")
+    expect(screen.getByText("관리자만 볼 수 있습니다")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "엑셀 내보내기" })).toBeNull()
+    expect(screen.queryByRole("region", { name: "기록 무결성" })).toBeNull()
+  })
+})

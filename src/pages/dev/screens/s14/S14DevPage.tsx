@@ -3,8 +3,8 @@ import { toast } from "sonner"
 
 import { LOG_PAGE_SIZE, AdminLogsScreen, type LogFilters, type LogTab, type SessionTimeline } from "@/widgets/admin-logs-screen"
 
-import { devScreen, DevScreenFrame, useDevCase, useDevViewer } from "../frame"
-import { MANY_SESSIONS, MOCK_ACTIONS, MOCK_EVENTS, MOCK_LOG_USERS, MOCK_SESSIONS, MOCK_TIMELINES } from "./mock-cases"
+import { devScreen, DevScreenFrame, useDevCase, useDevPlus, useDevViewer } from "../frame"
+import { MANY_SESSIONS, MOCK_ACTIONS, MOCK_EVENTS, MOCK_INSIGHTS, MOCK_LOG_USERS, MOCK_SESSIONS, MOCK_TIMELINES } from "./mock-cases"
 
 const info = devScreen("s14")
 
@@ -15,6 +15,7 @@ const dateOf = (iso: string) => iso.slice(0, 10)
 export function S14DevPage() {
   const activeCase = useDevCase(info.cases, "ready")
   const viewer = useDevViewer()
+  const plus = useDevPlus()
   const [tab, setTab] = useState<LogTab>("sessions")
   const [filters, setFilters] = useState<LogFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(1)
@@ -66,6 +67,9 @@ export function S14DevPage() {
   return (
     <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
       <AdminLogsScreen
+        showPlus={plus}
+        insights={MOCK_INSIGHTS}
+        onExport={() => toast("시안 — 기능 준비 중")}
         status={status}
         errorAt="14:05"
         onRetry={() => toast("다시 확인합니다(진열용)")}

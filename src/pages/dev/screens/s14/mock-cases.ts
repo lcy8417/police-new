@@ -1,5 +1,5 @@
 import type { ActionInfo, ActivityResult, AdminEvent, AdminSession } from "@/entities/admin"
-import type { SessionTimeline } from "@/widgets/admin-logs-screen"
+import type { AdminLogsInsights, SessionTimeline } from "@/widgets/admin-logs-screen"
 
 import { MOCK_USERS } from "../s13/mock-cases"
 
@@ -107,3 +107,65 @@ export const MANY_SESSIONS: AdminSession[] = Array.from({ length: 62 }, (_, i) =
     eventCnt: i % 7,
   })
 )
+
+// ── r2(시안 r3 +α) 요약 칸 예시 값 — 시안 s14-admin-logs.js 그대로(서버 API 에 없는 집계) ──
+
+export const MOCK_INSIGHTS: AdminLogsInsights = {
+  activity: {
+    hourly: [0, 0, 0, 0, 0, 0, 0, 0, 6, 58, 61, 55, 24, 34, 52, 49, 41, 32, 0, 0, 0, 0, 0, 0],
+    weekAvg: [0, 0, 0, 0, 0, 0, 0, 1, 9, 50, 57, 52, 22, 36, 49, 47, 40, 26, 6, 1, 0, 2, 0, 0],
+    nowHour: 18,
+    total: 412,
+    logins: 38,
+    offHours: 0,
+    failures: 3,
+  },
+  alerts: [
+    { tone: "bad", title: "업무 시간 밖 대량 내려받기", detail: "seo0322 · 07-23 21:47 · 원본 이미지 46건 (기준 20건·예시)", badge: "확인 전", badgeTone: "red" },
+    { tone: "bad", title: "로그인 연속 실패 → 계정 잠금", detail: "lee0508 · 07-22 17:58–18:03 · 5회 · 10.21.8.***", badge: "잠금 유지", badgeTone: "amber" },
+    { tone: "warn", title: "관리자가 본인 권한 변경 시도", detail: "admin01 · 07-20 10:02 · 서버가 거절", badge: "거절됨", badgeTone: "default" },
+    { tone: "warn", title: "권한 없는 기능 반복 시도", detail: "park0412 · 오늘 12:04·12:06 · 승인·삭제", badge: "2건", badgeTone: "default" },
+    { tone: "ok", title: "같은 아이디 두 곳 동시 로그인", detail: "없음", badge: "0건", badgeTone: "none" },
+  ],
+  integrity: {
+    chain: [
+      { no: 455, hash: "a91f" },
+      { no: 456, hash: "07c2" },
+      { no: 457, hash: "e4b8" },
+      { no: 458, hash: "5d30" },
+      { no: 459, hash: "c16e" },
+    ],
+    checks: [
+      { text: "오늘 기록 459건 · 사슬 끊김 0", note: "18:00 검사" },
+      { text: "보관 저장소 사본과 일치", note: "매일 02:00" },
+      { text: "지운 기록 0 · 고친 기록 0", note: "고칠 수 없음" },
+      { text: "이 화면을 본 일도 기록됨", note: "오늘 6회" },
+    ],
+  },
+  auditKinds: [
+    { label: "조회", count: 212, desc: "사건·신발·이미지를 열어 본 기록", tone: "default" },
+    { label: "검색", count: 96, desc: "문양 검색·재검색(검색번호)", tone: "blue" },
+    { label: "등록", count: 34, desc: "사건·신발·확인대상 등록", tone: "green" },
+    { label: "수정", count: 41, desc: "문양·기본정보·판단 수정", tone: "amber" },
+    { label: "삭제", count: 3, desc: "무엇을 지웠는지 원본 값과 함께", tone: "red" },
+    { label: "보고서 생성", count: 8, desc: "감정서 초안·확정", tone: "violet" },
+    { label: "다운로드", count: 11, desc: "파일·이미지 내려받기", tone: "blue" },
+    { label: "출력", count: 7, desc: "인쇄(프린터 이름)", tone: "violet" },
+    { label: "교차 검증", count: 6, desc: "요청·접수·의견 일치/불일치", tone: "violet" },
+    { label: "결재", count: 4, desc: "결재 요청·완료(기술책임자)", tone: "violet" },
+    { label: "신발 승인", count: 37, desc: "신발 DB 확정(승인 담당)", tone: "green" },
+  ],
+  exportRules: [
+    "감정서·원본 이미지 내려받기는 감정관·관리자만",
+    "모든 파일에 내려받은 사람·시각 워터마크",
+    "하루 20건 넘으면 관리자 확인 (예시 기준)",
+    "원본 이미지와 처리 이미지는 따로 저장, 원본은 고칠 수 없음",
+  ],
+  adminActs: [
+    { at: "07-24 09:10", who: "admin01", text: "park0412 문양 입력 담당 지정" },
+    { at: "07-23 14:00", who: "admin01", text: "jang0105 신발 승인 담당 지정" },
+    { at: "07-23 16:40", who: "admin01", text: "기초코드 FT002200 사용여부 Y → N" },
+    { at: "07-22 18:20", who: "admin01", text: "lee0508 잠금 사유 확인 요청(대구청)" },
+    { at: "07-22 10:00", who: "admin01", text: "모델 검색 v3.1 운영 전환" },
+  ],
+}

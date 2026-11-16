@@ -26,7 +26,58 @@ export interface SessionTimeline {
   events: AdminEvent[]
 }
 
+/** 기능 종류 칩 색(시안 ACT: 조회 기본 · 검색 파랑 · 등록 초록 · 수정 주황 · 삭제 빨강 · 보고서 보라 …) */
+export type AuditKindTone = "default" | "blue" | "green" | "amber" | "red" | "violet"
+
+/** 이상 징후 한 줄(시안 핀 11) */
+export interface LogAlert {
+  /** bad = 확인 필요(!) · warn = 주의(?) · ok = 없음(✓) */
+  tone: "bad" | "warn" | "ok"
+  title: string
+  /** 아래 흐린 글자(누가 · 언제 · 몇 건) */
+  detail: string
+  /** 오른쪽 칩 글자 */
+  badge: string
+  badgeTone: "red" | "amber" | "default" | "none"
+}
+
+/**
+ * S14 시안 r3 요약 칸 값(시간대별 사용량 · 이상 징후 · 기록 무결성 · 감사 항목 · 내려받기 제한 · 관리자 행위).
+ * 지금 서버 API 에 없는 집계라 진열 페이지가 시안 예시 값을 넘긴다.
+ */
+export interface AdminLogsInsights {
+  activity: {
+    /** 0~23시 오늘 한 시간 기능 기록 수 */
+    hourly: number[]
+    /** 0~23시 최근 7일 평균 */
+    weekAvg: number[]
+    /** 「지금」 선을 그을 시(0~24) */
+    nowHour: number
+    /** 오늘 기능 기록 수 */
+    total: number
+    /** 로그인 · 업무 시간 밖 · 실패·권한 없음 */
+    logins: number
+    offHours: number
+    failures: number
+  }
+  alerts: LogAlert[]
+  integrity: {
+    /** 해시 사슬 끝 5개(번호 · 지문 앞 4자) */
+    chain: { no: number; hash: string }[]
+    checks: { text: string; note: string }[]
+  }
+  auditKinds: { label: string; count: number; desc: string; tone: AuditKindTone }[]
+  exportRules: string[]
+  adminActs: { at: string; who: string; text: string }[]
+}
+
 export interface AdminLogsScreenProps {
+  /** 신규(+α) 요소 보이기 — 요약 칸 · 보존 기간 · 엑셀 · 감사 항목 등 (기본 true) */
+  showPlus?: boolean
+  /** 시안 r3 요약 칸 값. 없으면 그 칸들을 그리지 않는다 */
+  insights?: AdminLogsInsights | null
+  /** 「엑셀 내보내기」(동작 없는 신규 버튼 — 진열은 「시안 — 기능 준비 중」) */
+  onExport?: () => void
   /** 현재 탭의 목록 조회 상태 */
   status: ScreenStatus
   /** error 일 때 확인을 시도한 시각 「시:분」 */
