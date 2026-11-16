@@ -225,7 +225,9 @@ export function ScasShell({
             {headerEnd}
           </div>
         </header>
-        <div className="relative min-w-0 flex-1 overflow-hidden px-[22px] pt-1 pb-6">{children}</div>
+        {/* 넘침은 자르되 스크롤 칸은 만들지 않는다(overflow-clip) — 판 위에 여는 창 틀(CaseWindowFrame)의 sticky 가
+            바깥 진열 틀 스크롤을 따라가게 */}
+        <div className="relative min-w-0 flex-1 overflow-clip px-[22px] pt-1 pb-6">{children}</div>
       </div>
     </div>
   )

@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 import { AiTag } from "@/shared/ui/ai";
-import { Button, Chip, Field } from "@/shared/ui/kit";
-import { ButtonBar, Panel, Stepper } from "@/shared/ui/panel";
+import { Button, Chip, Field, StatePill } from "@/shared/ui/kit";
+import { ButtonBar, CaseWindowFrame, Panel, Stepper, WindowHead, WindowRail, WorkTabStrip } from "@/shared/ui/panel";
 
 import { AI_FIXTURE_RENDERS } from "./fixtures-ai";
 import { KIT_FIXTURE_RENDERS } from "./fixtures-kit";
@@ -11,6 +11,22 @@ import { VIEWER_FIXTURE_RENDERS } from "./fixtures-viewer";
 // 진열 예시를 그리는 쪽(id → 그리기). 진열 화면만 읽는다 — 데이터는 fixtures-meta.ts.
 // 시안과 같은 글자로 그리고, 부품에는 props 만 넘긴다(className · 손으로 쓴 data-part-* 금지).
 // 부모에서 상속되는 줄 높이 같은 맥락은 fixtures-meta.ts 의 boxClass 로 상자에 준다.
+
+const noop = () => undefined;
+const WINDOW_TABS = [
+  { id: "a", label: "00001-25-0649 · 주거침입" },
+  { id: "b", label: "00001-25-0647 · 절도" },
+];
+const WINDOW_RAIL = [
+  {
+    name: "신발",
+    items: [
+      { id: "1", name: "_1", sub: "00001-25-0649_1", pill: <StatePill tone="done">발견</StatePill> },
+      { id: "2", name: "_2", sub: "00001-25-0649_2", pill: <StatePill tone="fact">검색됨</StatePill> },
+      { id: "3", name: "_3", sub: "00001-25-0649_3", pill: <StatePill tone="pending">등록</StatePill> },
+    ],
+  },
+];
 
 const BASE_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
   // Button
@@ -206,6 +222,36 @@ const BASE_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
       steps={["접수", "1차 작업", "검색·판정", "교차 검증", "감정서", "결재"]}
       current={1}
       partId="S02-42"
+    />
+  ),
+  // r4 창 부품(로망 이식) — 진열만(noMockup)
+  "S01-96": () => (
+    <CaseWindowFrame
+      label="진열 — 사건 창"
+      onClose={noop}
+      partId="S01-96"
+      tabs={<WorkTabStrip tabs={WINDOW_TABS} activeId="a" onSelect={noop} onClose={noop} />}
+      head={<WindowHead mark="주" title="00001-25-0649" subtitle="주거침입" tags={["대구청"]} onPrev={noop} onNext={noop} prevOff onClose={noop} />}
+      rail={<WindowRail label="진열 — 이미지 목록" groups={WINDOW_RAIL} selectedId="1" onSelect={noop} />}
+    >
+      <p className="m-0 p-4 text-[12px] text-muted-foreground">본문 자리</p>
+    </CaseWindowFrame>
+  ),
+  "S01-97": () => (
+    <WorkTabStrip tabs={WINDOW_TABS} activeId="a" onSelect={noop} onClose={noop} full="최대 8개까지 열 수 있어요" partId="S01-97" />
+  ),
+  "S01-98": () => <WindowRail label="진열 — 현장 이미지" groups={WINDOW_RAIL} selectedId="1" onSelect={noop} partId="S01-98" />,
+  "S01-99": () => (
+    <WindowHead
+      mark="주"
+      title="00001-25-0649"
+      subtitle="주거침입"
+      tags={["대구청", "07-24 등록", "12장", "이미지 확인 중"]}
+      onPrev={noop}
+      onNext={noop}
+      prevOff
+      onClose={noop}
+      partId="S01-99"
     />
   ),
 };

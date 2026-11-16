@@ -15,3 +15,8 @@ export { PageHead, type PageHeadProps } from "./PageHead"
 export { Stepper, type StepperProps } from "./Stepper"
 export { ThemeScope, type ThemeScopeProps } from "./ThemeScope"
 export { ThemeSettings, type ThemeSettingsProps } from "./ThemeSettings"
+// r4 창 부품(로망 「거래처 창」 이식)
+export { CaseWindowFrame, type CaseWindowFrameProps } from "./window/CaseWindowFrame"
+export { WorkTabStrip, type WorkTabStripProps, type WorkTabItem } from "./window/WorkTabStrip"
+export { WindowRail, type WindowRailProps, type WindowRailItem, type WindowRailGroup } from "./window/WindowRail"
+export { WindowHead, type WindowHeadProps } from "./window/WindowHead"

@@ -86,6 +86,10 @@
 | S01 목록 빈 · 실패 안내 | ListNote | 새로 | 로망 이식(`ListTable`) |
 | S01 표 상태 알약 | StatePill | 새로 | 로망 이식(`kit/item/StatePill`) — 회색, 실제 문제만 danger + 「!」 |
 | 진열 화면 kit 수 동그라미 | CountDot | 새로 | 로망 이식(`board/CountDot`) — 앱 틀 메뉴 건수에도 씀 |
+| S01 사건 창 틀(목록 위 오른쪽 · 가림막 · Esc) | CaseWindowFrame | 새로 | 로망 이식(romang `shared/ui/panel/window/ClientWindowFrame` + `use-client-window-escape`) — wide 기본, 머리 + 왼쪽 목록 232 + 본문 격자 |
+| S01 사건 창 위 작업 탭 줄 | WorkTabStrip | 새로 | 로망 이식(`window/WorkTabStrip`) — 고른 탭 bg-brand-3, 최대 8개 까닭 한 줄 |
+| S01 사건 창 왼쪽 이미지 목록 | WindowRail | 새로 | 로망 `qa/HistoryRail`(시안 office-qa `.rail .ritem`) · `doc/DocListRail` 생김새 — 줄 = 썸네일 + 이름 + 알약, 고른 줄 bg-brand-bg + aria-current |
+| S01 사건 창 어두운 머리 | WindowHead | 새로 | 로망 이식(`head/WorkWindowHead` · `HeadParts`) — 머리글자 · 이름 · 꼬리표 · ‹ › ✕, ⋯ 메뉴는 뺌 |
 
 ## 승인 (spec §8 「만들 부품」 표 = 사용자 승인)
 
@@ -141,3 +145,7 @@
 승인: 11/16 사용자 — ListNote
 승인: 11/16 사용자 — StatePill
 승인: 11/16 사용자 — CountDot
+승인: 11/16 사용자 — CaseWindowFrame
+승인: 11/16 사용자 — WorkTabStrip
+승인: 11/16 사용자 — WindowRail
+승인: 11/16 사용자 — WindowHead

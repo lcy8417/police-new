@@ -51,6 +51,8 @@ export interface PartFixture {
   shotMaxDiffPixels?: number;
 }
 
+const NO_MOCKUP_WINDOW = "r4 로망 창 부품 이식 — r3 시안에 짝이 없다(생김새 정본은 로망 ClientWindowFrame · WorkTabStrip · HistoryRail · WorkWindowHead, 색만 경찰 토큰). 진열만 한다";
+
 // 부품이 구현되면 한 줄씩 늘린다. 변형마다 대표 1개(같은 변형의 다른 자리 id 는 값이 같아 생략).
 const BASE_PART_FIXTURES: PartFixture[] = [
   // Button
@@ -103,6 +105,12 @@ const BASE_PART_FIXTURES: PartFixture[] = [
   { id: "S01-44", part: "Stepper", parentWidth: 101.94, surface: "panel", boxClass: "grid text-[12px] leading-[normal] text-fg-2" },
   // Stepper labeled(r2 검수) — S02 사건관리 창 제목 줄의 이름 있는 단계 띠
   { id: "S02-42", part: "Stepper", variant: "labeled", parentWidth: 400, surface: "panel", boxClass: "flex items-center" },
+  // r4 창 부품(로망 「거래처 창」 이식) — r3 시안에 짝이 없다(생김새 정본 = 로망, 색만 경찰 토큰). 진열만 한다.
+  // 창 틀은 판을 꽉 채우는 겹이라 진열 상자를 relative + 높이 360 으로 만든다(부모 맥락).
+  { id: "S01-96", part: "CaseWindowFrame", variant: "wide", parentWidth: 900, surface: "canvas", boxClass: "relative h-[360px] overflow-clip", noMockup: NO_MOCKUP_WINDOW },
+  { id: "S01-97", part: "WorkTabStrip", parentWidth: 640, surface: "canvas", noMockup: NO_MOCKUP_WINDOW },
+  { id: "S01-98", part: "WindowRail", parentWidth: 232, surface: "panel", boxClass: "flex h-[260px]", noMockup: NO_MOCKUP_WINDOW },
+  { id: "S01-99", part: "WindowHead", parentWidth: 900, surface: "panel", noMockup: NO_MOCKUP_WINDOW },
 ];
 
 // 갈래별 진열 데이터를 이어 붙인다(잠금, Task 5).
