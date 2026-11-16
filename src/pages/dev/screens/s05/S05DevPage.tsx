@@ -70,6 +70,8 @@ export interface S05ContentProps {
   go?: DevGo
   /** 사건 창 안(11/17) — 먹색 작업판 · 1위부터 이어진 순위 목록 · 자동 스크롤 · 빠른 비교(위젯 `inWindow`) */
   inWindow?: boolean
+  /** 보여 줄 검색 번호(문양 코드 탭 검색 이력 「자세히 →」에서 넘어옴) — 없으면 시안 값 */
+  searchNo?: string
 }
 
 // S05 검색 결과 진열 페이지: 쪽 번호 · 이진화/원본 보기 · 확인대상(★)을 여기서 들고(제어형), 카드를 누르면 S06 으로 간다.
@@ -83,7 +85,7 @@ export function S05DevPage() {
 }
 
 /** S05 틀 없는 내용 — 진열 페이지와 사건 창(「검색 결과」 탭)이 같이 쓴다 */
-export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, inWindow }: S05ContentProps) {
+export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, inWindow, searchNo }: S05ContentProps) {
   const nav = useDevNavigate()
   const to = go ?? nav
   const viewer = useDevViewer()
@@ -120,14 +122,16 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
       : makeResults(page, imageFor)
   }, [activeCase, page, soleUrls, inWindow, windowCount])
   const baseInsight = useMemo(
-    () =>
-      makeInsight({
+    () => ({
+      ...makeInsight({
         scene: sceneImage,
         shoe: fakeSoleUrl({ kind: "shoe", zones: ZONES[0] }),
         side: fakeSideShoeUrl(),
         aiTop: (zones) => fakeSoleUrl({ kind: "shoe", zones }),
       }),
-    [sceneImage],
+      ...(searchNo ? { searchNo } : {}),
+    }),
+    [sceneImage, searchNo],
   )
   // 「어디까지 봤는지」는 초점이 지나가며 올라간다(제어형)
   const insight = useMemo(() => ({ ...baseInsight, seenUpTo: seen.upTo, seenAt: seen.at }), [baseInsight, seen])

@@ -210,6 +210,9 @@ export function S01DevPage() {
     const next = writeCaseWindow(params, { ...win, tab, img })
     if (extra.ftwr) next.set("ftwr", extra.ftwr)
     if (extra.rank) next.set("rank", extra.rank)
+    // 문양 코드 검색 이력 「자세히 →」 = 그 검색 번호의 결과로(검색 결과 탭이 읽는다)
+    if (extra.run) next.set("run", extra.run)
+    else if (tab !== "search") next.delete("run")
     setParams(next)
   }
 
@@ -246,7 +249,7 @@ export function S01DevPage() {
       ) : win.tab === "pattern" ? (
         <S04Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} inWindow />
       ) : win.tab === "search" ? (
-        <S05Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} inWindow />
+        <S05Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} inWindow searchNo={params.get("run") ?? undefined} />
       ) : win.tab === "compare" ? (
         <S06Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} inWindow />
       ) : (
