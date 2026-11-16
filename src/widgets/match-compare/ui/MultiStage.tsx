@@ -1,5 +1,6 @@
 import { cn } from "@/shared/lib/utils"
 
+import { candidateWindow } from "../model/stage"
 import type { CompareCandidate, MatchImage } from "../model/types"
 
 // r3 「1:3 · 1:5」 비교: 왼쪽 현장(유류) 1장 + 지금 후보부터 n장을 나란히. 사진만 놓는 보기라 대응 박스 · 선은 1:1 에서 본다.
@@ -14,13 +15,6 @@ const COLS: Record<number, string> = { 3: "grid-cols-4", 5: "grid-cols-6" }
 function percent(similarity: number | string): string {
   const v = typeof similarity === "number" ? similarity : Number.parseFloat(similarity)
   return Number.isFinite(v) ? `${Math.round(Math.min(100, Math.max(0, v)))}%` : "—"
-}
-
-/** 지금 후보가 맨 앞에 오도록 n칸 창(끝에서는 마지막 n칸) */
-export function candidateWindow(length: number, current: number, n: number): { start: number; end: number } {
-  const size = Math.min(n, length)
-  const start = Math.max(0, Math.min(current, length - size))
-  return { start, end: start + size }
 }
 
 const HEAD = "truncate rounded-[4px] bg-strip px-[6px] py-[3px] text-[11.5px] text-muted-foreground"

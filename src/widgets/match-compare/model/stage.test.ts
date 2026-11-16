@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { containPoint, crimeToStage, shoeToStage, STAGE, STAGE_W } from "./stage"
+import { candidateWindow, containPoint, crimeToStage, shoeToStage, STAGE, STAGE_W } from "./stage"
 
 describe("stage — 유류 | 발견 고정 배치 좌표", () => {
   it("무대 폭은 245 + 10 + 205 = 460", () => {
@@ -22,5 +22,14 @@ describe("stage — 유류 | 발견 고정 배치 좌표", () => {
     const [cx, cy] = crimeToStage({ width: 1000, height: 1500 }, 500, 750)
     expect(cx).toBeCloseTo(STAGE.crimeW / 2, 5)
     expect(cy).toBeCloseTo(STAGE.h / 2, 5)
+  })
+})
+
+describe("candidateWindow — 1:3 · 1:5 후보 창", () => {
+  it("지금 후보가 맨 앞, 끝에서는 마지막 n칸, 후보가 n보다 적으면 전부", () => {
+    expect(candidateWindow(20, 0, 3)).toEqual({ start: 0, end: 3 })
+    expect(candidateWindow(20, 7, 5)).toEqual({ start: 7, end: 12 })
+    expect(candidateWindow(20, 19, 5)).toEqual({ start: 15, end: 20 })
+    expect(candidateWindow(2, 1, 5)).toEqual({ start: 0, end: 2 })
   })
 })
