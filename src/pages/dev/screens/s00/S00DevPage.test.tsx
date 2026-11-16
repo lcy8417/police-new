@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
-import { MemoryRouter, Route, Routes } from "react-router-dom"
+import { MemoryRouter } from "react-router-dom"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { resetDisplayPrefsCache, setDisplayPrefs } from "@/shared/lib/display-prefs"
@@ -163,19 +163,39 @@ describe("S00 로그인 진열 페이지 — r2 시안 구성", () => {
     Reflect.deleteProperty(document, "timeline")
   })
 
-  it("홍보성 첫 문장 · 목표 숫자 · 역할별 첫 화면은 없고, 로그인 카드 제목이 화면 첫 제목이다(사용자 피드백 2026-11-16)", () => {
+  it("홍보 문구 · 목표 숫자 · 역할별 첫 화면 대신 플랫폼 소개(이름 · 하는 일 · 처리 순서)와 가운데 로그인 카드(사용자 피드백 2026-11-16)", () => {
     renderAt("?case=ready&as=analyst")
     expect(screen.queryByText(/현장 족적 한 장으로/)).toBeNull()
     expect(screen.queryByText("857 → 10")).toBeNull()
     expect(screen.queryByText("감정서 자동 채움")).toBeNull()
     expect(screen.queryByText(/로그인하면 처음 열리는 화면/)).toBeNull()
-    expect(screen.queryByRole("region", { name: "역할별 첫 화면" })).toBeNull()
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("로그인")
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("족윤적 감정 플랫폼")
+    expect(screen.getByText(/AI는 추천만 하고, 판정은 감정관이 합니다/)).toBeInTheDocument()
+    const flow = screen.getByRole("list", { name: "처리 순서" })
+    expect(within(flow).getAllByRole("listitem").map((li) => li.textContent?.replace(/[→\d]/g, "").trim())).toEqual([
+      "현장 족적",
+      "이진화",
+      "문양 추출",
+      "신발 검색",
+      "정밀 대조",
+      "감정서",
+    ])
+    expect(screen.getByRole("heading", { level: 2, name: "로그인" })).toBeInTheDocument()
+  })
+
+  it("AI 감정 흐름은 로그인 뒤 배경 장식이다 — 화면 낭독기에서 숨고(inert) 누를 수 없다", () => {
+    renderAt("?case=ready")
+    const backdrop = document.querySelector("[data-login-backdrop-demo]") as HTMLElement
+    expect(backdrop).toHaveAttribute("aria-hidden", "true")
+    expect(backdrop).toHaveAttribute("inert")
+    expect(backdrop.className).toContain("pointer-events-none")
+    expect(screen.queryByRole("region", { name: "AI 감정 시연" })).toBeNull()
+    expect(screen.getByRole("region", { name: "AI 감정 시연", hidden: true })).toBeInTheDocument()
   })
 
   it("AI 감정 시연 6단계를 시안 문구 그대로 보인다", () => {
     renderAt("?case=ready")
-    const demo = screen.getByRole("region", { name: "AI 감정 시연" })
+    const demo = screen.getByRole("region", { name: "AI 감정 시연", hidden: true })
     expect(within(demo).getByText("AI 감정 흐름 — 사건 00001-25-0649 · 현장 이미지 _2")).toBeInTheDocument()
     for (const t of ["현장 족적", "이진화", "문양 추출", "신발 검색", "1:1 정밀 대조", "감정서 초안"]) {
       expect(within(demo).getAllByText(t).length).toBeGreaterThan(0)
@@ -208,7 +228,7 @@ describe("S00 로그인 진열 페이지 — r2 시안 구성", () => {
     const { animate } = stubMotion(true)
     renderAt("?case=ready")
     expect(animate).not.toHaveBeenCalled()
-    const demo = screen.getByRole("region", { name: "AI 감정 시연" })
+    const demo = screen.getByRole("region", { name: "AI 감정 시연", hidden: true })
     expect(demo).toHaveAttribute("data-demo-motion", "still")
     expect(demo.querySelector('[data-rank-row="305657"]')).toHaveStyle({ top: "0px" })
     expect(within(demo).getByText("87%")).toBeInTheDocument()
@@ -221,7 +241,7 @@ describe("S00 로그인 진열 페이지 — r2 시안 구성", () => {
     try {
       renderAt("?case=ready")
       expect(animate).not.toHaveBeenCalled()
-      const demo = screen.getByRole("region", { name: "AI 감정 시연" })
+      const demo = screen.getByRole("region", { name: "AI 감정 시연", hidden: true })
       expect(demo).toHaveAttribute("data-demo-motion", "still")
       expect(demo.querySelector("[data-demo-stamp]")).toHaveTextContent("초안")
     } finally {
@@ -255,35 +275,22 @@ describe("S00 로그인 진열 페이지 — r2 시안 구성", () => {
       demoArt: art,
     }
     const { unmount } = render(<LoginScreen {...base} reducedMotion />)
-    expect(screen.getByRole("region", { name: "AI 감정 시연" })).toHaveAttribute("data-demo-motion", "still")
+    expect(screen.getByRole("region", { name: "AI 감정 시연", hidden: true })).toHaveAttribute("data-demo-motion", "still")
     expect(animate).not.toHaveBeenCalled()
     unmount()
     render(<LoginScreen {...base} />)
-    expect(screen.getByRole("region", { name: "AI 감정 시연" })).toHaveAttribute("data-demo-motion", "running")
+    expect(screen.getByRole("region", { name: "AI 감정 시연", hidden: true })).toHaveAttribute("data-demo-motion", "running")
     expect(animate).toHaveBeenCalled()
   })
 
   it("움직임이 허용되면 14초 반복 애니메이션을 모두 같은 시작 시각으로 건다", () => {
     const { animate, animations } = stubMotion(false)
     renderAt("?case=ready")
-    expect(screen.getByRole("region", { name: "AI 감정 시연" })).toHaveAttribute("data-demo-motion", "running")
+    expect(screen.getByRole("region", { name: "AI 감정 시연", hidden: true })).toHaveAttribute("data-demo-motion", "running")
     expect(animate.mock.calls.length).toBeGreaterThan(40)
     const options = animate.mock.calls[0] as unknown as [Keyframe[], KeyframeAnimationOptions]
     expect(options[1]).toMatchObject({ duration: 14000, iterations: Infinity })
     expect(new Set(animations.map((a) => a.startTime))).toEqual(new Set([1000]))
-  })
-
-  it("시연 단계 줄을 누르면 해당 진열 화면으로 간다", () => {
-    render(
-      <MemoryRouter initialEntries={["/dev/s00?case=ready&as=analyst"]}>
-        <Routes>
-          <Route path="/dev/s00" element={<S00DevPage />} />
-          <Route path="/dev/s06" element={<p>S06 진열</p>} />
-        </Routes>
-      </MemoryRouter>,
-    )
-    fireEvent.click(screen.getByTitle("S06 화면 열기"))
-    expect(screen.getByText("S06 진열")).toBeInTheDocument()
   })
 
   it("?plus=0 이면 [data-plus] 가 하나도 없다(비밀번호 변경 포함)", () => {
