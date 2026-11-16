@@ -163,24 +163,15 @@ describe("S00 로그인 진열 페이지 — r2 시안 구성", () => {
     Reflect.deleteProperty(document, "timeline")
   })
 
-  it("홍보 문구 · 목표 숫자 · 역할별 첫 화면 대신 플랫폼 소개(이름 · 하는 일 · 처리 순서)와 가운데 로그인 카드(사용자 피드백 2026-11-16)", () => {
+  it("홍보 문구 · 목표 숫자 · 역할별 첫 화면 · 플랫폼 소개 상자 없이 가운데 로그인 카드 제목이 첫 제목이다(사용자 피드백 2026-11-16)", () => {
     renderAt("?case=ready&as=analyst")
     expect(screen.queryByText(/현장 족적 한 장으로/)).toBeNull()
     expect(screen.queryByText("857 → 10")).toBeNull()
     expect(screen.queryByText("감정서 자동 채움")).toBeNull()
     expect(screen.queryByText(/로그인하면 처음 열리는 화면/)).toBeNull()
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("족윤적 감정 플랫폼")
-    expect(screen.getByText(/AI는 추천만 하고, 판정은 감정관이 합니다/)).toBeInTheDocument()
-    const flow = screen.getByRole("list", { name: "처리 순서" })
-    expect(within(flow).getAllByRole("listitem").map((li) => li.textContent?.replace(/[→\d]/g, "").trim())).toEqual([
-      "현장 족적",
-      "이진화",
-      "문양 추출",
-      "신발 검색",
-      "정밀 대조",
-      "감정서",
-    ])
-    expect(screen.getByRole("heading", { level: 2, name: "로그인" })).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "족윤적 감정 플랫폼" })).toBeNull()
+    expect(screen.queryByRole("list", { name: "처리 순서" })).toBeNull()
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("로그인")
   })
 
   it("AI 감정 흐름은 로그인 뒤 배경 장식이다 — 화면 낭독기에서 숨고(inert) 누를 수 없다", () => {
@@ -193,13 +184,12 @@ describe("S00 로그인 진열 페이지 — r2 시안 구성", () => {
     expect(screen.getByRole("region", { name: "AI 감정 시연", hidden: true })).toBeInTheDocument()
   })
 
-  it("AI 감정 시연 6단계를 시안 문구 그대로 보인다", () => {
+  it("배경 시연은 제목 띠 · 단계 줄 없이 카드 4장만 시안 문구 그대로 보인다(위가 잘려 보여 뺌)", () => {
     renderAt("?case=ready")
     const demo = screen.getByRole("region", { name: "AI 감정 시연", hidden: true })
-    expect(within(demo).getByText("AI 감정 흐름 — 사건 00001-25-0649 · 현장 이미지 _2")).toBeInTheDocument()
-    for (const t of ["현장 족적", "이진화", "문양 추출", "신발 검색", "1:1 정밀 대조", "감정서 초안"]) {
-      expect(within(demo).getAllByText(t).length).toBeGreaterThan(0)
-    }
+    expect(within(demo).queryByText("AI 감정 흐름 — 사건 00001-25-0649 · 현장 이미지 _2")).toBeNull()
+    expect(within(demo).queryByText("LIVE DEMO")).toBeNull()
+    expect(demo.querySelector('button[title$="화면 열기"]')).toBeNull()
     // ① 문양 「AI 제안」 ② 128,406 → 857건 · 137위 → 1위(▲136) ③ 지표 4개 · 87% ④ 1–6항 + 「초안」 도장
     expect(within(demo).getAllByText("AI 제안")).toHaveLength(3)
     expect(within(demo).getByText("타원 배열")).toBeInTheDocument()

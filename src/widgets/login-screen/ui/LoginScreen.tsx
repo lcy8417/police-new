@@ -116,38 +116,6 @@ function AgencyBand() {
   )
 }
 
-const FLOW = ["현장 족적", "이진화", "문양 추출", "신발 검색", "정밀 대조", "감정서"] as const
-
-/** 이 플랫폼이 무엇인지 — 홍보 문구 대신 하는 일과 처리 순서만(사용자 피드백 2026-11-16) */
-function PlatformIntro() {
-  return (
-    <div
-      data-plus
-      className="mb-[16px] w-full rounded-[14px] border border-solid border-line-2 bg-panel/75 px-[24px] pt-[18px] pb-[16px] text-center backdrop-blur-md [box-shadow:0_12px_40px_-12px_var(--t-ai-tag-drop)]"
-    >
-      <h1 className="m-0 text-[24px] leading-[1.3] font-bold tracking-[-0.01em]">족윤적 감정 플랫폼</h1>
-      <p className="mx-auto mt-[6px] mb-0 max-w-[36em] text-[13px] leading-[1.6] [text-wrap:balance] text-fg-2">
-        현장 족적 이미지로 문양을 추출하고 신발 DB를 검색해 대조합니다. AI는 추천만 하고, 판정은 감정관이 합니다.
-      </p>
-      <ol aria-label="처리 순서" className="mx-auto mt-[12px] mb-0 flex list-none flex-nowrap items-center justify-center gap-[4px] p-0">
-        {FLOW.map((step, i) => (
-          <li key={step} className="flex shrink-0 items-center gap-[4px]">
-            <Chip className="h-[22px] border-brand-line bg-panel text-[11.5px] text-fg-2">
-              <b className="font-code text-[10px] text-brand">{i + 1}</b>
-              {step}
-            </Chip>
-            {i < FLOW.length - 1 && (
-              <span aria-hidden="true" className="text-[11px] text-dim">
-                →
-              </span>
-            )}
-          </li>
-        ))}
-      </ol>
-    </div>
-  )
-}
-
 /**
  * S00 로그인 · 비밀번호 변경(같은 카드의 두 상태). 셸 밖 전체 화면이라 바탕은 이 화면이 그린다.
  * 값은 모두 props(제어형)이고 서버 호출은 없다. 거절 문구는 서버가 준 그대로 보인다.
@@ -172,8 +140,8 @@ export function LoginScreen(props: LoginScreenProps) {
 
   const title = isLogin ? "로그인" : "비밀번호 변경"
   const titleId = `${baseId}-title`
-  // 소개(플랫폼 이름)가 있으면 그것이 첫 제목, 없으면(신규 끔) 로그인 카드 제목이 첫 제목.
-  const Heading = showPlus ? "h2" : "h1"
+  // 소개 문구를 뺀 뒤로는 로그인 카드 제목이 화면의 첫 제목이다(사용자 피드백 2026-11-16).
+  const Heading = "h1"
 
   const alert =
     message === null ? null : attempts ? (
@@ -362,10 +330,10 @@ export function LoginScreen(props: LoginScreenProps) {
 
   return (
     <main className="relative min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto bg-canvas text-foreground">
-      <div className="relative min-h-full">
+      <div className="relative flex min-h-full flex-col">
         <LoginBackdrop showPlus={showPlus} />
         {showPlus ? (
-          <div className="relative flex min-h-full flex-col">
+          <div className="relative flex flex-1 flex-col">
             <AgencyBand />
             <div className="relative flex flex-1 items-center justify-center px-[24px] py-[40px]">
               {/* 배경: AI 감정 흐름(어떻게 돌아가는지)을 크게 · 흐리게 깔아 둔다. 장식이라 누를 수 없고 화면 낭독기도 건너뛴다. */}
@@ -381,9 +349,9 @@ export function LoginScreen(props: LoginScreenProps) {
                   }
                 >
                   {/* 화면을 가득 채우게 크게(대문짝만하게) — 흐림 없이 투명도만 */}
-                  {/* 시연 원래 폭(카드 898px + 여백) 그대로 가운데 두고 1.6배로 키운다 */}
-                  <div className="w-[932px] shrink-0 origin-center scale-[1.6] opacity-70">
-                    <LoginDemo art={props.demoArt} reducedMotion={props.reducedMotion} />
+                  {/* 카드 4장(898px)만 가운데 두고 1.5배로 키운다 — 1440 폭에서 양 끝이 잘리지 않게 */}
+                  <div className="shrink-0 origin-center scale-[1.5] opacity-70">
+                    <LoginDemo art={props.demoArt} reducedMotion={props.reducedMotion} backdrop />
                   </div>
                 </div>
               )}
@@ -393,7 +361,6 @@ export function LoginScreen(props: LoginScreenProps) {
                 className="pointer-events-none absolute top-1/2 left-1/2 h-[720px] w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,color-mix(in_srgb,var(--t-bg)_55%,transparent),transparent)]"
               />
               <div className="relative z-[1] flex w-full max-w-[640px] flex-col items-center">
-                <PlatformIntro />
                 <div className="w-full max-w-[420px]">{card}</div>
                 <p className="mt-[14px] mb-0 rounded-[8px] bg-panel/70 px-[10px] py-[4px] text-center text-[11px] leading-[1.6] text-dim backdrop-blur-sm">
                   뒤 화면은 AI 감정 흐름 예시입니다 · AI 결과는 「추천」으로만 표시되며 감정관이 확인해야 사건 결과에 들어갑니다.
@@ -402,7 +369,7 @@ export function LoginScreen(props: LoginScreenProps) {
             </div>
           </div>
         ) : (
-          <div className="relative flex min-h-full items-center justify-center px-[16px] py-[40px]">
+          <div className="relative flex flex-1 items-center justify-center px-[16px] py-[40px]">
             <div className="relative w-full max-w-[400px]">
               {card}
               <p className="mt-[20px] mb-0 text-center text-[11px] text-dim">인가된 사용자만 접근할 수 있으며, 모든 사용 기록이 저장됩니다.</p>

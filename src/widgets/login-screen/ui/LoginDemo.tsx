@@ -83,10 +83,32 @@ export interface LoginDemoProps {
   onOpenStep?: (screen: DemoScreen) => void
   /** 앱 「움직임 줄이기」 — 켜면 시연이 다 끝난 모양으로 멈춘다(운영체제 설정과 함께 본다) */
   reducedMotion?: boolean
+  /** 로그인 뒤 배경용 — 제목 띠 · 단계 줄 없이 카드 4장만(사용자 피드백 2026-11-16: 위가 잘려 보임) */
+  backdrop?: boolean
 }
 
-export const LoginDemo = memo(function LoginDemo({ art, onOpenStep, reducedMotion = false }: LoginDemoProps) {
+function DemoCardsRow({ art }: { art: LoginDemoArt }) {
+  return (
+    <div className="flex items-stretch gap-[14px]">
+      <ExtractCard art={art} />
+      <SearchCard art={art} />
+      <CompareCard art={art} />
+      <ReportCard art={art} />
+    </div>
+  )
+}
+
+export const LoginDemo = memo(function LoginDemo({ art, onOpenStep, reducedMotion = false, backdrop = false }: LoginDemoProps) {
   const origin = useDemoOrigin(reducedMotion)
+  if (backdrop) {
+    return (
+      <DemoClockContext.Provider value={origin}>
+        <div role="region" aria-label="AI 감정 시연" data-demo-motion={origin === null ? "still" : "running"} className="w-max">
+          <DemoCardsRow art={art} />
+        </div>
+      </DemoClockContext.Provider>
+    )
+  }
   return (
     <DemoClockContext.Provider value={origin}>
       <Panel
@@ -112,12 +134,7 @@ export const LoginDemo = memo(function LoginDemo({ art, onOpenStep, reducedMotio
                   <RailStep key={s.screen} step={s} index={i} onOpen={onOpenStep} />
                 ))}
               </div>
-              <div className="flex items-stretch gap-[14px]">
-                <ExtractCard art={art} />
-                <SearchCard art={art} />
-                <CompareCard art={art} />
-                <ReportCard art={art} />
-              </div>
+              <DemoCardsRow art={art} />
             </div>
           </FitWidth>
         </div>
