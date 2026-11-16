@@ -35,7 +35,7 @@ export function DialogShell({ open, onOpenChange, title, size = "default", actio
         showCloseButton={false}
         aria-describedby={undefined}
         className={cn(
-          "flex max-h-[90vh] flex-col gap-0 p-0 rounded-[12px] border-brand-line bg-panel text-foreground [box-shadow:0_24px_70px_var(--t-panel-drop)]",
+          "flex max-h-[90vh] flex-col gap-0 p-0 rounded-[12px] border-brand-line bg-panel text-foreground shadow-[0_24px_70px_var(--t-panel-drop)]",
           SIZE_CLASS[size]
         )}
       >
