@@ -10,13 +10,23 @@ import {
   type CompareCount,
 } from "@/widgets/match-compare"
 
-import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevPlus, useDevViewer } from "../frame"
+import {
+  DevScreenFrame,
+  SCREEN_CASES,
+  devScreen,
+  isIntervalMs,
+  oneOf,
+  useDevCase,
+  useDevNavigate,
+  useDevPlus,
+  useDevViewer,
+  useRememberedState,
+} from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { FakeSole, fakeSoleUrl, SOLE_PALETTE } from "../mock-assets/FakeSole"
 import { resolvePalette, type ZoneTriple } from "../mock-assets/fake-art"
 import { svgToUrl } from "../mock-assets/svg-url"
 import { makeResults } from "../s05/mock-cases"
-import { isIntervalMs, oneOf, REMEMBER_PREFIX, useRememberedState } from "../s05/use-remembered-state"
 import { AlignmentDecor } from "./AlignmentDecor"
 import { fakeSideShoeUrl } from "./fake-side-shoe"
 import {
@@ -35,7 +45,6 @@ import {
 
 const info = devScreen("s06")
 const ZONES: ZoneTriple = ["herring", "grid", "tri"]
-const KEY = `${REMEMBER_PREFIX}s06:`
 const COMPARE_VALUES: readonly CompareCount[] = ["1:1", "1:3", "1:5"]
 
 // 후보 밑창 무늬(첫 칸은 2차 발견 이미지 무늬 그대로)
@@ -92,8 +101,8 @@ export function S06DevPage() {
   const ftwrId = current.ftwrId
   const ranking = current.rank
   const currentCandidate = candidates.find((c) => c.ftwrId === ftwrId) ?? candidates[0]
-  const [compareCount, setCompareCount] = useRememberedState<CompareCount>(`${KEY}compare`, "1:1", oneOf(COMPARE_VALUES))
-  const [intervalMs, setIntervalMs] = useRememberedState<number>(`${KEY}interval`, 2000, isIntervalMs)
+  const [compareCount, setCompareCount] = useRememberedState<CompareCount>("s06", "compare", "1:1", oneOf(COMPARE_VALUES))
+  const [intervalMs, setIntervalMs] = useRememberedState<number>("s06", "interval", 2000, isIntervalMs)
   const [autoMode, setAutoMode] = useState<CompareAutoMode>("manual")
   const [playing, setPlaying] = useState(false)
 

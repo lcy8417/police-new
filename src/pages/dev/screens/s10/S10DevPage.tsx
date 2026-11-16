@@ -17,11 +17,14 @@ import {
   DevScreenFrame,
   SCREEN_CASES,
   devScreen,
+  isIntervalMs,
+  isStringArray,
+  oneOf,
   useDevCase,
   useDevPlus,
   useDevViewer,
+  useRememberedState,
 } from "../frame";
-import { usePersistedState } from "./use-persisted-state";
 import {
   makeS10AiDetails,
   makeS10AllShoes,
@@ -34,12 +37,7 @@ import {
   type S10Case,
 } from "./mock-cases";
 
-const isStringArray = (v: unknown): v is string[] =>
-  Array.isArray(v) && v.every((x) => typeof x === "string");
-const isCardSize = (v: unknown): v is ShoeCardSize =>
-  v === "작게" || v === "보통" || v === "크게";
-const isInterval = (v: unknown): v is number =>
-  typeof v === "number" && v >= 500 && v <= 10000;
+const isCardSize = oneOf<ShoeCardSize>(["작게", "보통", "크게"]);
 
 type QuickValues = { status: string[]; dup: string[] };
 const EMPTY_QUICK: QuickValues = { status: [], dup: [] };
@@ -108,9 +106,9 @@ function S10Body({ caseName }: { caseName: S10Case }) {
   // ---- r3: 빠른 찾기 · 카드 크기 · 열 · 자동 넘기기(모두 이 페이지가 들고 있다) ----
   const [query, setQuery] = React.useState("");
   const [quickValues, setQuickValues] = React.useState<QuickValues>(EMPTY_QUICK);
-  const [cardSize, setCardSize] = usePersistedState<ShoeCardSize>("dev.s10.cardSize", "보통", isCardSize);
-  const [hiddenColumns, setHiddenColumns] = usePersistedState<string[]>("dev.s10.hiddenColumns", [], isStringArray);
-  const [intervalMs, setIntervalMs] = usePersistedState<number>("dev.s10.autoInterval", 2000, isInterval);
+  const [cardSize, setCardSize] = useRememberedState<ShoeCardSize>("s10", "cardSize", "보통", isCardSize);
+  const [hiddenColumns, setHiddenColumns] = useRememberedState<string[]>("s10", "hiddenColumns", [], isStringArray);
+  const [intervalMs, setIntervalMs] = useRememberedState<number>("s10", "interval", 2000, isIntervalMs);
   const [autoMode, setAutoMode] = React.useState<"manual" | "auto">("manual");
 
   // 작업 상태 칩은 신규(+α) 값이라 신규를 끄면 칩도 거르기도 없다. 화류번호 · 모델명 · 상표 검색은 항상 있다.

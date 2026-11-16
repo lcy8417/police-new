@@ -10,7 +10,19 @@ import {
   type ThumbSize,
 } from "@/widgets/search-result"
 
-import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevPlus, useDevViewer } from "../frame"
+import {
+  DevScreenFrame,
+  SCREEN_CASES,
+  devScreen,
+  isIntervalMs,
+  isStringListRecord,
+  oneOf,
+  useDevCase,
+  useDevNavigate,
+  useDevPlus,
+  useDevViewer,
+  useRememberedState,
+} from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
 import type { ZoneTriple } from "../mock-assets/fake-art"
@@ -27,10 +39,8 @@ import {
   S05_SEEN_UP_TO,
   S05_TOTAL,
 } from "./mock-cases"
-import { isIntervalMs, isStringListRecord, oneOf, REMEMBER_PREFIX, useRememberedState } from "./use-remembered-state"
 
 const info = devScreen("s05")
-const KEY = `${REMEMBER_PREFIX}s05:`
 const COLUMN_VALUES: readonly (ResultColumns | null)[] = [null, 1, 2, 3, 4, 5, 6, 8]
 const THUMB_VALUES: readonly ThumbSize[] = ["작게", "보통", "크게"]
 
@@ -60,10 +70,10 @@ export function S05DevPage() {
   const [targets, setTargets] = useState<readonly SearchTarget[]>(INITIAL_TARGETS)
 
   // r3 보기 설정 — 결과형태 · 썸네일 · 간격 · 필터는 이 브라우저에 기억(결과형태 null = 화면 기본: +α 8열 · 아니면 4열)
-  const [columns, setColumns] = useRememberedState<ResultColumns | null>(`${KEY}columns`, null, oneOf(COLUMN_VALUES))
-  const [thumbSize, setThumbSize] = useRememberedState<ThumbSize>(`${KEY}thumb`, "보통", oneOf(THUMB_VALUES))
-  const [intervalMs, setIntervalMs] = useRememberedState<number>(`${KEY}interval`, 2000, isIntervalMs)
-  const [filters, setFilters] = useRememberedState<Record<string, string[]>>(`${KEY}filters`, {}, isStringListRecord)
+  const [columns, setColumns] = useRememberedState<ResultColumns | null>("s05", "columns", null, oneOf(COLUMN_VALUES))
+  const [thumbSize, setThumbSize] = useRememberedState<ThumbSize>("s05", "thumb", "보통", oneOf(THUMB_VALUES))
+  const [intervalMs, setIntervalMs] = useRememberedState<number>("s05", "interval", 2000, isIntervalMs)
+  const [filters, setFilters] = useRememberedState<Record<string, string[]>>("s05", "filters", {}, isStringListRecord)
   const [query, setQuery] = useState("")
   // 자동 모드는 기억하지 않는다(다시 열 때 저절로 넘어가지 않게)
   const [autoMode, setAutoMode] = useState<AutoMode>("manual")

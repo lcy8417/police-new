@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
-import { EVENT_COLUMN_DEFS, LOG_PAGE_SIZE, SESSION_COLUMNS, AdminLogsScreen, type LogFilters, type LogTab, type SessionTimeline } from "@/widgets/admin-logs-screen"
+import {
+  EVENT_COLUMN_DEFS,
+  LOG_PAGE_SIZE,
+  LOG_PAGE_SIZES,
+  SESSION_COLUMNS,
+  AdminLogsScreen,
+  type LogFilters,
+  type LogTab,
+  type SessionTimeline,
+} from "@/widgets/admin-logs-screen"
 
-import { devScreen, DevScreenFrame, useDevCase, useDevPlus, useDevViewer } from "../frame"
+import { devScreen, DevScreenFrame, oneOf, subsetOf, useDevCase, useDevPlus, useDevViewer, useRememberedState } from "../frame"
 import {
   MANY_SESSIONS,
   MOCK_ACTIONS,
@@ -17,6 +26,11 @@ import {
 } from "./mock-cases"
 
 const info = devScreen("s14")
+const SESSION_KEYS: string[] = SESSION_COLUMNS.map((c) => c.key)
+const EVENT_KEYS: string[] = EVENT_COLUMN_DEFS.map((c) => c.key)
+const isSessionKeys = subsetOf(SESSION_KEYS)
+const isEventKeys = subsetOf(EVENT_KEYS)
+const isPageSize = oneOf<number>([LOG_PAGE_SIZE, ...LOG_PAGE_SIZES])
 
 const DEFAULT_FILTERS: LogFilters = { userId: "", from: "2026-11-10", to: "2026-11-16", result: "", actionCode: "", targetNo: "" }
 const dateOf = (iso: string) => iso.slice(0, 10)
@@ -29,10 +43,11 @@ export function S14DevPage() {
   const [tab, setTab] = useState<LogTab>("sessions")
   const [filters, setFilters] = useState<LogFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState<number>(LOG_PAGE_SIZE)
+  // r3 보기 설정(설계서 §14-6): 줄 수 · 보이는 열은 이 브라우저에 기억. 빠른 찾기 글자는 이번 화면에서만
+  const [pageSize, setPageSize] = useRememberedState<number>("s14", "pageSize", LOG_PAGE_SIZE, isPageSize)
   const [quickQuery, setQuickQuery] = useState("")
-  const [sessionColumns, setSessionColumns] = useState<string[]>(SESSION_COLUMNS.map((c) => c.key))
-  const [eventColumns, setEventColumns] = useState<string[]>(EVENT_COLUMN_DEFS.map((c) => c.key))
+  const [sessionColumns, setSessionColumns] = useRememberedState<string[]>("s14", "sessionColumns", SESSION_KEYS, isSessionKeys)
+  const [eventColumns, setEventColumns] = useRememberedState<string[]>("s14", "eventColumns", EVENT_KEYS, isEventKeys)
   const [expandedIds, setExpandedIds] = useState<string[]>([])
   const [timelines, setTimelines] = useState<Record<string, SessionTimeline>>({})
   const timers = useRef<number[]>([])

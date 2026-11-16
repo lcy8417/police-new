@@ -17,7 +17,17 @@ import {
   type UsersFilterProps,
 } from "@/widgets/admin-users-screen"
 
-import { devScreen, DevScreenFrame, SCREEN_CASES, useDevCase, useDevPlus, useDevViewer } from "../frame"
+import {
+  devScreen,
+  DevScreenFrame,
+  isStringListRecord,
+  SCREEN_CASES,
+  subsetOf,
+  useDevCase,
+  useDevPlus,
+  useDevViewer,
+  useRememberedState,
+} from "../frame"
 import {
   MOCK_ADMIN_HISTORY,
   MOCK_CURRENT_USER_ID,
@@ -34,6 +44,8 @@ import {
 } from "./mock-cases"
 
 const info = devScreen("s13")
+const COLUMN_KEYS: string[] = USER_COLUMNS.map((c) => c.key)
+const isColumnKeys = subsetOf(COLUMN_KEYS)
 
 const draftOf = (u: AdminUser): UserDraft => ({ userNm: u.userNm, userSe: u.userSe, orgId: u.orgId, features: u.features, roles: u.roles })
 
@@ -43,8 +55,11 @@ export function S13DevPage() {
   const viewer = useDevViewer()
   const plus = useDevPlus()
   const [duties, setDuties] = useState<Record<string, ShoeDuty[]>>(MOCK_DUTIES)
-  const [filter, setFilter] = useState<UserFilterValue>(EMPTY_USER_FILTER)
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(USER_COLUMNS.map((c) => c.key))
+  // r3 보기 설정(설계서 §14-6): 거르기 칩 · 보이는 열은 이 브라우저에 기억. 검색어는 이번 화면에서만
+  const [query, setQuery] = useState(EMPTY_USER_FILTER.query)
+  const [groups, setGroups] = useRememberedState<Record<string, string[]>>("s13", "filters", EMPTY_USER_FILTER.groups, isStringListRecord)
+  const filter: UserFilterValue = { query, groups }
+  const [visibleColumns, setVisibleColumns] = useRememberedState<string[]>("s13", "columns", COLUMN_KEYS, isColumnKeys)
   const [users, setUsers] = useState<AdminUser[]>(MOCK_USERS)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(MOCK_USERS[0].userId)
   const [edits, setEdits] = useState<Record<string, Partial<UserDraft>>>({})
@@ -90,10 +105,13 @@ export function S13DevPage() {
   const rows = status === "empty" ? [] : filterUsers(users, duties, activeFilter)
   const filterProps: UsersFilterProps = {
     query: filter.query,
-    onQueryChange: (query) => setFilter((f) => ({ ...f, query })),
+    onQueryChange: setQuery,
     groups: userFilterGroups(users, MOCK_ROLES, duties, activeFilter, plus),
-    onGroupChange: (key, values) => setFilter((f) => ({ ...f, groups: { ...f.groups, [key]: values } })),
-    onClear: () => setFilter(EMPTY_USER_FILTER),
+    onGroupChange: (key, values) => setGroups((g) => ({ ...g, [key]: values })),
+    onClear: () => {
+      setQuery(EMPTY_USER_FILTER.query)
+      setGroups(EMPTY_USER_FILTER.groups)
+    },
     total: status === "empty" ? 0 : users.length,
   }
 

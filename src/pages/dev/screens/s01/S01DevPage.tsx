@@ -13,10 +13,13 @@ import {
   DevScreenFrame,
   SCREEN_CASES,
   devScreen,
+  isStringArray,
+  oneOf,
   useDevCase,
   useDevNavigate,
   useDevPlus,
   useDevViewer,
+  useRememberedState,
 } from "../frame"
 import {
   EMPTY_FILTERS,
@@ -26,13 +29,11 @@ import {
   S01_TASKS,
   makeCaseRows,
 } from "./mock-cases"
-import { usePersistedState } from "./use-persisted-state"
 
 const info = devScreen("s01")
 
-const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string")
-const isPageSize = (v: unknown): v is number => v === 10 || v === 20 || v === 50
-const isRowHeight = (v: unknown): v is CaseListRowHeight => v === "보통" || v === "촘촘"
+const isPageSize = oneOf<number>([10, 20, 50])
+const isRowHeight = oneOf<CaseListRowHeight>(["보통", "촘촘"])
 
 /** 빠른 찾기 칩 값(묶음 key → 고른 값들). 묶음 안은 「또는」, 묶음끼리는 「그리고」 */
 type QuickValues = Record<string, string[]>
@@ -54,9 +55,9 @@ export function S01DevPage() {
   const [page, setPage] = React.useState(1)
   const [query, setQuery] = React.useState("")
   const [quickValues, setQuickValues] = React.useState<QuickValues>(EMPTY_QUICK)
-  const [hiddenColumns, setHiddenColumns] = usePersistedState<string[]>("dev.s01.hiddenColumns", [], isStringArray)
-  const [pageSize, setPageSize] = usePersistedState<number>("dev.s01.pageSize", S01_PAGE_SIZE, isPageSize)
-  const [rowHeight, setRowHeight] = usePersistedState<CaseListRowHeight>("dev.s01.rowHeight", "보통", isRowHeight)
+  const [hiddenColumns, setHiddenColumns] = useRememberedState<string[]>("s01", "hiddenColumns", [], isStringArray)
+  const [pageSize, setPageSize] = useRememberedState<number>("s01", "pageSize", S01_PAGE_SIZE, isPageSize)
+  const [rowHeight, setRowHeight] = useRememberedState<CaseListRowHeight>("s01", "rowHeight", "보통", isRowHeight)
 
   // 목록 열에 값이 있는 조건은 모두 건다(피해자 · 사건장소 · 검거여부 · 타기관여부는 위젯에서 「준비 중」으로 잠김)
   const has = (value: string, needle: string) => value.includes(needle.trim())

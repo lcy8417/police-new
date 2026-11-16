@@ -1,8 +1,11 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { S04DevPage } from "./S04DevPage"
+
+// r3 보기 설정(검색 이력 열)은 localStorage 에 기억되므로 테스트마다 비운다
+beforeEach(() => window.localStorage.clear())
 
 function Landing() {
   const { pathname, search } = useLocation()
@@ -477,6 +480,18 @@ describe("S04DevPage — 시안 r2 신규 기능 · 연출", () => {
         "검색일",
         "매칭된 신발 정보",
       ])
+    })
+
+    it("고른 검색 이력 열은 다시 열어도 기억된다(검색어는 아님)", () => {
+      const first = renderAt("/dev/s04?case=ready")
+      fireEvent.click(within(region()).getByRole("button", { name: /열 선택/ }))
+      fireEvent.click(within(region()).getByRole("checkbox", { name: /^순위/ }))
+      fireEvent.change(within(region()).getByLabelText("검색어"), { target: { value: "현장문양" } })
+      first.unmount()
+      renderAt("/dev/s04?case=ready")
+      expect(within(region()).getAllByRole("columnheader").map((h) => h.textContent)).not.toContain("순위")
+      expect(within(region()).getAllByRole("columnheader")[0]).toHaveTextContent("검색번호")
+      expect(within(region()).getByLabelText("검색어")).toHaveValue("")
     })
   })
 })

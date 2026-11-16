@@ -1,9 +1,12 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
 
 import { S13DevPage } from "./S13DevPage"
 import { MOCK_FEATURES, MOCK_USERS } from "./mock-cases"
+
+// r3 보기 설정(열 · 거르기 칩)은 localStorage 에 기억되므로 테스트마다 비운다
+beforeEach(() => window.localStorage.clear())
 
 const renderAt = (query: string) =>
   render(
@@ -295,6 +298,30 @@ describe("S13 사용자 관리 — r2 시안 구성", () => {
     expect(within(grid).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["아이디", "이름", "구분(역할)", "상태", "마지막 로그인"])
     fireEvent.click(within(grid).getByRole("checkbox", { name: /소속 관서/ }))
     expect(within(grid).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["아이디", "이름", "구분(역할)", "소속 관서", "상태", "마지막 로그인"])
+  })
+
+  it("r3 고른 열 · 거르기 칩은 다시 열어도 기억되고(검색어는 아님), 깨진 저장값이면 기본값", () => {
+    const first = admin("ready")
+    const grid = () => screen.getByRole("region", { name: "사용자 목록" })
+    const filter = () => screen.getByRole("search")
+    fireEvent.click(within(grid()).getByRole("button", { name: /열 선택/ }))
+    fireEvent.click(within(grid()).getByRole("checkbox", { name: /소속 관서/ }))
+    fireEvent.click(within(within(filter()).getByRole("group", { name: "상태" })).getByRole("button", { name: /잠금/ }))
+    fireEvent.change(within(filter()).getByLabelText("검색어"), { target: { value: "lee" } })
+    first.unmount()
+
+    const second = admin("ready")
+    expect(within(grid()).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["아이디", "이름", "구분(역할)", "상태", "마지막 로그인"])
+    expect(within(within(filter()).getByRole("group", { name: "상태" })).getByRole("button", { name: /잠금/ })).toHaveAttribute("aria-pressed", "true")
+    expect(within(grid()).queryByText("park0412")).toBeNull()
+    expect(within(filter()).getByLabelText("검색어")).toHaveValue("")
+    second.unmount()
+
+    window.localStorage.setItem("scas-dev:s13:columns", JSON.stringify(["없는열"]))
+    window.localStorage.setItem("scas-dev:s13:filters", "{깨짐")
+    admin("ready")
+    expect(within(grid()).getAllByRole("columnheader")).toHaveLength(6)
+    expect(within(grid()).getByText("park0412")).toBeInTheDocument()
   })
 
   it("표 구분 아래 신발 DB 담당 ◇ 칩 · 「소속 관서 · 전체」 · 상세 머리 「그 뒤 실패 n회」", () => {

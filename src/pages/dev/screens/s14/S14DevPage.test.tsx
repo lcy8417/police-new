@@ -1,8 +1,11 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it } from "vitest"
 
 import { S14DevPage } from "./S14DevPage"
+
+// r3 보기 설정(줄 수 · 열)은 localStorage 에 기억되므로 테스트마다 비운다
+beforeEach(() => window.localStorage.clear())
 
 const renderAt = (query: string) =>
   render(
@@ -276,6 +279,27 @@ describe("S14 사용·감사 기록 — r2 시안 구성", () => {
       fireEvent.click(screen.getByRole("button", { name: "100개" }))
       expect(screen.getByRole("button", { name: /다음/ })).toBeDisabled()
       expect(within(list()).getAllByRole("row")).toHaveLength(1 + 62)
+    })
+
+    it("줄 수 · 로그인 기록 열 · 기능 기록 열은 다시 열어도 기억된다(빠른 검색 글자는 아님)", () => {
+      const first = admin("full-page")
+      fireEvent.click(screen.getByRole("button", { name: "100개" }))
+      fireEvent.click(within(list()).getByRole("button", { name: /열 선택/ }))
+      fireEvent.click(within(list()).getByRole("checkbox", { name: /^종료 사유/ }))
+      fireEvent.change(within(list()).getByLabelText("검색어"), { target: { value: "kim" } })
+      fireEvent.click(tabButton("기능 기록"))
+      const events = screen.getByRole("region", { name: "기능 기록" })
+      fireEvent.click(within(events).getByRole("button", { name: /열 선택/ }))
+      fireEvent.click(within(events).getByRole("checkbox", { name: /^처리 시간/ }))
+      first.unmount()
+
+      admin("full-page")
+      expect(screen.getByRole("button", { name: /다음/ })).toBeDisabled()
+      expect(within(list()).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["", "사용자", "로그인", "로그아웃", "IP", "이벤트 수", "실패 수"])
+      expect(within(list()).getByLabelText("검색어")).toHaveValue("")
+      fireEvent.click(tabButton("기능 기록"))
+      const region = screen.getByRole("region", { name: "기능 기록" })
+      expect(within(region).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["시각", "사용자", "기능", "대상", "결과"])
     })
 
     it("?plus=0 에서도 빠른 검색 · 열 선택이 보인다", () => {

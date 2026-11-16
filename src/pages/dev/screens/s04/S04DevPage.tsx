@@ -25,7 +25,17 @@ import {
   type ZoneConfidenceTag,
 } from "@/widgets/pattern-code"
 
-import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevPlus, useDevViewer } from "../frame"
+import {
+  DevScreenFrame,
+  SCREEN_CASES,
+  devScreen,
+  subsetOf,
+  useDevCase,
+  useDevNavigate,
+  useDevPlus,
+  useDevViewer,
+  useRememberedState,
+} from "../frame"
 import { FakePhoto } from "../mock-assets/FakePhoto"
 import {
   DEFAULT_CODE_NOTE,
@@ -47,6 +57,8 @@ import {
 } from "./mock-cases"
 
 const info = devScreen("s04")
+const HISTORY_KEYS: string[] = HISTORY_COLUMNS.map((c) => c.key)
+const isHistoryKeys = subsetOf(HISTORY_KEYS)
 
 /** 동작이 아직 없는 신규 버튼(spec §13-4) */
 const notReady = (label: string) => toast("시안 — 기능 준비 중", { description: label })
@@ -115,7 +127,8 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
   const [meta, setMeta] = React.useState<PatternMetaMap>(mock.meta)
   const [imageStatuses, setImageStatuses] = React.useState<Record<string, ImageCodingStatus>>(S04_IMAGE_STATUSES)
   const [historyQuery, setHistoryQuery] = React.useState("")
-  const [historyColumns, setHistoryColumns] = React.useState<string[]>(HISTORY_COLUMNS.map((c) => c.key))
+  // r3 보기 설정(설계서 §14-6): 검색 이력 보이는 열은 이 브라우저에 기억. 검색어는 이번 화면에서만
+  const [historyColumns, setHistoryColumns] = useRememberedState<string[]>("s04", "historyColumns", HISTORY_KEYS, isHistoryKeys)
   const [soleText, setSoleText] = React.useState("")
   const [searchMethod, setSearchMethod] = React.useState<SearchMethod>("image")
   const [selectedSearchNo, setSelectedSearchNo] = React.useState<number | undefined>(mock.history[0]?.searchNo)
