@@ -78,4 +78,42 @@ export interface CaseDetailScreenProps {
   onOpenImageEdit: (imageId: string) => void
   /** 「검색 (문양 상세보기) →」(S04) */
   onOpenSearch: () => void
+  /** (+α) 신규 기능 숨김 — 기본 true. false 면 `data-plus` 요소가 하나도 없다 */
+  showPlus?: boolean
+  /** (+α) 시안 r3 의 값(단계 띠 · 접수 경로 · AI 점검 …). 없으면 +α 칸을 그리지 않는다 */
+  plus?: CaseDetailPlus
+  /** 아직 기능이 없는 버튼(이전 · 다음 · 수정 · _5 삭제 · 반전 적용)을 눌렀을 때 — 이름을 넘긴다(시안 — 기능 준비 중) */
+  onMockAction?: (label: string) => void
+}
+
+/** AI 1차 작업 점검 카드의 한 줄 */
+export interface CaseDetailAiCheckItem {
+  tone: "ok" | "warn" | "bad"
+  /** 줄 글자 앞부분 `같은 사진 의심` */
+  text: string
+  /** 진하게 보이는 이미지 번호 `_4 ↔ _5` */
+  refs?: string
+  /** 흐린 두 번째 줄 */
+  detail?: string
+  /** 오른쪽 덧붙임: 버튼은 감정관이 눌러야 반영 / 칩은 안내 글자 */
+  action?: { kind: "button" | "chip-warn" | "chip"; label: string }
+}
+
+export interface CaseDetailPlus {
+  /** 단계 띠 지금 칸(0부터: 접수 · 1차 작업 · 검색·판정 · 교차 검증 · 감정서 · 결재) */
+  stage: number
+  /** 접수 경로 줄 */
+  source: { label: string; note: string; analyst: string; assignment: string }
+  /** 필수 칸 채움 */
+  required: { done: number; total: number; remaining: string }
+  /** 족윤적 이미지 위 AI 표시 */
+  overlay: { areaPercent: number; rulerText: string }
+  /** 전사판이라 좌우반전이 필요하다는 안내 칩 */
+  flipNote: string
+  /** 같은 사진으로 의심되는 장: 파일 끝 번호 `_5` → 짝 `_4` */
+  duplicates: Readonly<Record<string, string>>
+  /** AI 1차 작업 점검 카드 */
+  aiCheck: { imageCount: number; seconds: number; items: readonly CaseDetailAiCheckItem[] }
+  /** 채취 방법이 「기타」일 때 AI 제안 */
+  methodSuggestion: { value: string; reason: string }
 }

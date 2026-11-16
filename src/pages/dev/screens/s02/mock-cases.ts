@@ -1,4 +1,4 @@
-import type { CaseDetailForm, CaseImage } from "@/widgets/case-detail"
+import type { CaseDetailForm, CaseDetailPlus, CaseImage } from "@/widgets/case-detail"
 
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 
@@ -73,3 +73,33 @@ export function makeImages(caseNo: string): CaseImage[] {
     src: fakePhotoUrl({ seed: n, tag: String(n), rotate: -4 + (n % 5) }),
   }))
 }
+
+/** (+α) 시안 r3 값: 단계 띠 · 접수 경로 · 필수 칸 · AI 표시 · AI 1차 작업 점검 · 채취 방법 제안(이름은 가림) */
+export const S02_PLUS: CaseDetailPlus = {
+  stage: 1,
+  source: {
+    label: "공문 자동 접수 · 07-24 09:10",
+    note: "문서접수대장 연동",
+    analyst: "담당 감정관 박○○ 경위",
+    assignment: "배당 절차: 확인 필요",
+  },
+  required: { done: 14, total: 15, remaining: "채취 방법 확인" },
+  overlay: { areaPercent: 94, rulerText: "자 인식 · 1px=0.12mm" },
+  flipNote: "전사판 → 좌우반전 필요",
+  duplicates: { _5: "_4" },
+  aiCheck: {
+    imageCount: 12,
+    seconds: 4,
+    items: [
+      { tone: "warn", text: "같은 사진 의심", refs: "_4 ↔ _5", detail: "크기·그림 98% 같음", action: { kind: "button", label: "_5 삭제" } },
+      { tone: "warn", text: "전사판 사진", refs: "_2 _7", detail: "좌우반전 필요", action: { kind: "button", label: "반전 적용" } },
+      { tone: "warn", text: "채취 방법 「기타」", refs: "_2", detail: "전사지 보임 → 전사판채취법?", action: { kind: "chip-warn", label: "오른쪽 ↗" } },
+      { tone: "bad", text: "흐린 사진", refs: "_9", detail: "윤곽 판독 어려움 · 재촬영 요청?", action: { kind: "chip", label: "보류" } },
+      { tone: "ok", text: "자 인식 11/12장 · 기울기 보정값 준비" },
+    ],
+  },
+  methodSuggestion: { value: "전사판채취법", reason: "전사지 경계 · 뒤집힌 글자 · 신뢰 0.91" },
+}
+
+/** (+α) 시안의 올리는 중 예시: _13 이 68% */
+export const S02_DEMO_UPLOAD = { fileName: "_13", percent: 68 }

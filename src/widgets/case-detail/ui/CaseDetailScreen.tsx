@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { FEATURES } from "@/entities/session"
+import { FEATURES, type FeatureCode } from "@/entities/session"
 import { cn } from "@/shared/lib/utils"
 import {
   Button,
@@ -11,10 +11,14 @@ import {
   Field,
   InlineError,
   RadioRow,
+  Segmented,
   type DataGridColumn,
 } from "@/shared/ui/kit"
-import { ButtonBar, Panel, SearchForm, type SearchFormRow } from "@/shared/ui/panel"
+import { AiProgress } from "@/shared/ui/ai"
+import { ButtonBar, Panel, SearchForm, Stepper, type SearchFormRow } from "@/shared/ui/panel"
 import { EvidenceImage } from "@/shared/ui/viewer"
+
+import { AiCheckCard, DuplicateChip, EvidenceWithAi, MethodSuggestion, SourceLine, UploadHint } from "./PlusParts"
 
 import { imageSeq } from "../model/validate-case-detail"
 import type { CaseDetailFieldName, CaseDetailScreenProps, CaseImage } from "../model/types"
@@ -63,14 +67,25 @@ export function CaseDetailScreen({
   onCopy,
   onOpenImageEdit,
   onOpenSearch,
+  showPlus = true,
+  plus,
+  onMockAction,
 }: CaseDetailScreenProps) {
   const fileInput = React.useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = React.useState(false)
+  const [applyScope, setApplyScope] = React.useState<"one" | "all">("one")
+  const extra = showPlus ? plus : undefined
 
   // 0~100 밖의 값은 막대가 틀 밖으로 나가지 않게 줄인다
   const percent = uploading ? Math.min(100, Math.max(0, Math.round(uploading.percent))) : 0
   const canEdit = isAdmin || features.includes(FEATURES.CRIME_REGISTER)
   const canSearch = isAdmin || features.includes(FEATURES.CRIME_SEARCH)
+  const has = (code: FeatureCode) => isAdmin || features.includes(code)
+  // 시안 data-role: 「검색」은 감정관 · 관리자, 기술책임자는 읽기 전용 칩, 수사관은 「의뢰한 사건만」 칩
+  const verifierView = showPlus && !isAdmin && !canEdit && has(FEATURES.REPORT_APPROVE)
+  const investigatorView = showPlus && !isAdmin && canEdit && !canSearch
+  const canGoSearch = canSearch && !verifierView
+  const analystView = has(FEATURES.EXAM_DECIDE)
 
   // 파일명 끝 숫자 순서(_1 → _12)
   const sorted = React.useMemo(
@@ -95,7 +110,19 @@ export function CaseDetailScreen({
         />
       ),
     },
-    { key: "name", header: "파일명칭", render: (i) => <span className="font-code text-[11.5px]">{i.fileName}</span> },
+    {
+      key: "name",
+      header: "파일명칭",
+      render: (i) => {
+        const dupOf = extra?.duplicates[/(_\d+)\.[^.]+$/.exec(i.fileName)?.[1] ?? ""]
+        return (
+          <>
+            <span className="font-code text-[11.5px]">{i.fileName}</span>
+            {dupOf ? <DuplicateChip of={dupOf} /> : null}
+          </>
+        )
+      },
+    },
     {
       key: "size",
       header: "파일크기",
@@ -178,7 +205,29 @@ export function CaseDetailScreen({
     { label: "채취자 계급", field: pendingText("채취자 계급") },
     { label: "채취 장소", field: text("pickPlace", "채취 장소") },
     { label: "채취자 이름", field: pendingText("채취자 이름") },
-    { label: "발견 방법", field: text("pickMthCode", "발견 방법", "mono") },
+    {
+      label: "발견 방법",
+      // 입력 칸 위치는 늘 같게 둔다(「기타」를 고치는 동안 칸이 다시 만들어져 커서가 빠지지 않도록)
+      field: (
+        <div className="grid gap-[4px]">
+          <span className="flex items-center gap-[6px]">
+            {text("pickMthCode", "발견 방법", "mono")}
+            {extra && form.pickMthCode === "기타" ? (
+              <Chip data-plus variant="amber-h18" className="shrink-0">
+                확인 필요
+              </Chip>
+            ) : null}
+          </span>
+          {extra && form.pickMthCode === "기타" ? (
+            <MethodSuggestion
+              suggestion={extra.methodSuggestion}
+              canApply={canEdit}
+              onApply={() => onFieldChange("pickMthCode", extra.methodSuggestion.value)}
+            />
+          ) : null}
+        </div>
+      ),
+    },
     { label: "감정물 종류", field: pendingText("감정물 종류") },
     { label: "제조사", field: pendingText("제조사") },
     { label: "족적 구분", field: pendingRadio("족적 구분", ["좌", "우", "불상"]) },
@@ -200,26 +249,60 @@ export function CaseDetailScreen({
           {mode === "detail" && aprthngNo ? (
             <span className="font-code text-[12px] font-normal text-muted-foreground">{aprthngNo}</span>
           ) : null}
+          {mode === "detail" && extra ? (
+            <Stepper
+              data-plus
+              variant="labeled"
+              partId="S02-42"
+              steps={["접수", "1차 작업", "검색·판정", "교차 검증", "감정서", "결재"]}
+              current={extra.stage}
+              className="ml-[14px]"
+            />
+          ) : null}
         </span>
       }
       actions={
         <ButtonBar variant="modal-head" aria-label="사건 상세 도구">
           {mode === "detail" ? (
             <>
-              {/* 이전 · 다음 사건 이동은 지금 앱에 없어 잠근다(spec §5-2 규칙 3) */}
-              <span title="준비 중" className="inline-flex">
-                <Button size="sm" disabled>
-                  이전
-                </Button>
-              </span>
-              <span title="준비 중" className="inline-flex">
-                <Button size="sm" disabled>
-                  다음
-                </Button>
-              </span>
+              {/* 이전 · 다음 사건 이동은 지금 앱에 없다: +α 를 켜면 시안대로 활성 모양 + 준비 중 알림, 끄면 1차처럼 잠금 */}
+              {showPlus ? (
+                <>
+                  <Button size="sm" onClick={() => onMockAction?.("이전")}>
+                    이전
+                  </Button>
+                  <Button size="sm" onClick={() => onMockAction?.("다음")}>
+                    다음
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <span title="준비 중" className="inline-flex">
+                    <Button size="sm" disabled>
+                      이전
+                    </Button>
+                  </span>
+                  <span title="준비 중" className="inline-flex">
+                    <Button size="sm" disabled>
+                      다음
+                    </Button>
+                  </span>
+                </>
+              )}
               {canEdit ? (
                 <Button size="sm" onClick={onCopy}>
                   사건복사
+                </Button>
+              ) : null}
+              {extra ? (
+                <Button
+                  data-plus
+                  size="sm"
+                  locked={!canEdit}
+                  roleLock
+                  onClick={() => onMockAction?.("수정")}
+                >
+                  수정
                 </Button>
               ) : null}
             </>
@@ -227,12 +310,28 @@ export function CaseDetailScreen({
           <Button size="sm" onClick={onClose}>
             닫기
           </Button>
-          {mode === "detail" && canSearch ? (
+          {mode === "detail" && canGoSearch ? (
             <>
               <span aria-hidden="true" className="h-[20px] w-px bg-line-3" />
               <Button size="sm" variant="pri" onClick={onOpenSearch}>
                 검색 (문양 상세보기) →
               </Button>
+            </>
+          ) : null}
+          {mode === "detail" && verifierView ? (
+            <>
+              <span aria-hidden="true" className="h-[20px] w-px bg-line-3" />
+              <Chip data-plus variant="h22" partId="S02-11">
+                기술책임자 · 읽기 전용
+              </Chip>
+            </>
+          ) : null}
+          {mode === "detail" && investigatorView ? (
+            <>
+              <span aria-hidden="true" className="h-[20px] w-px bg-line-3" />
+              <Chip data-plus variant="h22">
+                수사관 · 의뢰한 사건만
+              </Chip>
             </>
           ) : null}
         </ButtonBar>
@@ -251,8 +350,15 @@ export function CaseDetailScreen({
           {/* 왼쪽: 족윤적 이미지 + 이미지 목록(SCAS 자리 그대로) */}
           <div className="grid content-start gap-[8px]">
             <Band title="족윤적 이미지" />
-            <div className="mx-auto w-full max-w-[200px]">
-              {selected ? (
+            <div className={cn("mx-auto w-full", extra ? "max-w-none" : "max-w-[200px]")}>
+              {selected && extra ? (
+                <EvidenceWithAi
+                  src={selected.src}
+                  alt={`${selected.fileName} 미리보기`}
+                  caption={selected.fileName}
+                  plus={extra}
+                />
+              ) : selected ? (
                 <EvidenceImage
                   src={selected.src}
                   alt={`${selected.fileName} 미리보기`}
@@ -266,6 +372,11 @@ export function CaseDetailScreen({
               )}
             </div>
             <div className="flex items-center gap-[6px]">
+              {extra ? (
+                <Chip data-plus variant="amber" partId="S02-05">
+                  {extra.flipNote}
+                </Chip>
+              ) : null}
               <Button size="sm" disabled={!selected} onClick={() => selected && onOpenImageEdit(selected.id)}>
                 이미지 커팅 열기
               </Button>
@@ -284,14 +395,18 @@ export function CaseDetailScreen({
                 </>
               ) : null}
             </Band>
-            <DataGrid
-              columns={columns}
-              rows={sorted}
-              rowKey={(i) => i.id}
-              selectedKey={selected?.id}
-              onRowClick={(i) => onSelectImage(i.id)}
-              emptyText="이미지 없음"
-            />
+            <div className="overflow-x-auto">
+              <DataGrid
+                columns={columns}
+                rows={sorted}
+                rowKey={(i) => i.id}
+                selectedKey={selected?.id}
+                onRowClick={(i) => onSelectImage(i.id)}
+                emptyText="이미지 없음"
+                // 시안 이미지 목록: 칸 좌우 6px · 행 30(+α 를 켰을 때만 — 칩이 붙어도 300px 칸에 들어가게)
+                className={extra ? "[&_td]:h-[30px] [&_td]:px-[6px] [&_th]:h-[28px] [&_th]:px-[6px]" : undefined}
+              />
+            </div>
             {canEdit ? (
               <div
                 onDragOver={(e) => {
@@ -316,18 +431,23 @@ export function CaseDetailScreen({
                       <span className="truncate">{uploading.fileName} 업로드 중</span>
                       <span>{percent}%</span>
                     </span>
-                    <span
-                      role="progressbar"
-                      aria-label="업로드"
-                      aria-valuenow={percent}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      className="h-[4px] overflow-hidden rounded-[2px] bg-line-3"
-                    >
-                      <i className="block h-full bg-brand-2" style={{ width: `${percent}%` }} />
-                    </span>
+                    {extra ? (
+                      <AiProgress state="running" value={percent / 100} label="업로드" />
+                    ) : (
+                      <span
+                        role="progressbar"
+                        aria-label="업로드"
+                        aria-valuenow={percent}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        className="h-[4px] overflow-hidden rounded-[2px] bg-line-3"
+                      >
+                        <i className="block h-full bg-brand-2" style={{ width: `${percent}%` }} />
+                      </span>
+                    )}
                   </span>
                 ) : null}
+                {extra ? <UploadHint /> : null}
                 <input
                   ref={fileInput}
                   type="file"
@@ -342,11 +462,19 @@ export function CaseDetailScreen({
                 />
               </div>
             ) : null}
+            {extra && analystView ? <AiCheckCard plus={extra} onMockAction={onMockAction} /> : null}
           </div>
 
           {/* 오른쪽: 사건정보(지금 앱 입력 7칸) */}
           <div className="grid min-w-0 content-start gap-[8px]">
-            <Band title="사건정보" />
+            {extra ? <SourceLine plus={extra} /> : null}
+            <Band title="사건정보">
+              {extra ? (
+                <span data-plus className="text-[11px] text-dim">
+                  대부분 공문 그대로 · 수정은 「수정」으로
+                </span>
+              ) : null}
+            </Band>
             {errorMessage ? (
               <p
                 role="alert"
@@ -356,8 +484,34 @@ export function CaseDetailScreen({
               </p>
             ) : null}
             <SearchForm columns={2} rows={caseRows} />
-            <Band title="현장 이미지 정보">
-              {selected ? <Chip variant="blue-mono-h20">{selected.fileName.replace(/^.*(_\d+)\.[^.]+$/, "$1")}</Chip> : null}
+            <Band
+              title={
+                <>
+                  현장 이미지 정보
+                  {selected ? (
+                    <Chip variant="blue-mono-h20" partId="S02-10">
+                      {selected.fileName.replace(/^.*(_\d+)\.[^.]+$/, "$1")}
+                    </Chip>
+                  ) : null}
+                </>
+              }
+            >
+              {extra ? (
+                <span data-plus className="flex items-center gap-[6px]">
+                  <Segmented
+                    aria-label="적용 범위"
+                    value={applyScope}
+                    onValueChange={(v) => setApplyScope(v as "one" | "all")}
+                    items={[
+                      { value: "one", label: "이 이미지만" },
+                      { value: "all", label: "선택한 이미지 모두 적용" },
+                    ]}
+                  />
+                  <Button size="sm" locked={!canEdit} onClick={() => onMockAction?.("수정")}>
+                    수정
+                  </Button>
+                </span>
+              ) : null}
             </Band>
             <SearchForm columns={2} rows={imageRows} />
             {canEdit ? (

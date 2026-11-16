@@ -459,7 +459,7 @@ export function CaseListScreen({
   const showTotal = (status === "ready" || status === "empty") && total !== undefined
 
   return (
-    <div className="grid gap-[12px]" aria-busy={status === "loading" ? "true" : undefined}>
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-[12px]" aria-busy={status === "loading" ? "true" : undefined}>
       <Panel partId="S01-14">
         <SearchForm columns={3} rows={formRows} />
         {showPlus ? <PlusTiles isAdmin={isAdmin} features={features} aiPrep={aiPrep} tasks={tasks} /> : null}

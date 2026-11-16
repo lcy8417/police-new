@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from "vitest"
 
 import { S02DevPage } from "./S02DevPage"
 
+const toastMock = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn() }))
+vi.mock("sonner", () => ({ toast: toastMock }))
+
 function Where() {
   const { pathname, search } = useLocation()
   return <p data-testid="where">{pathname + search}</p>
@@ -23,13 +26,98 @@ function renderAt(url: string) {
 const DETAIL = "/dev/s02?id=00001-25-0649&case=ready"
 
 describe("S02DevPage 사건 상세·등록", () => {
-  it("앱에 없는 「이전」 · 「다음」 은 잠기고 「준비 중」 안내가 붙는다", () => {
-    renderAt(DETAIL)
+  it("+α 를 끄면 「이전」 · 「다음」 은 1차처럼 잠기고 「준비 중」 안내가 붙는다", () => {
+    renderAt(`${DETAIL}&plus=0`)
     for (const name of ["이전", "다음"]) {
       const btn = screen.getByRole("button", { name })
       expect(btn).toBeDisabled()
       expect(btn.parentElement).toHaveAttribute("title", "준비 중")
     }
+  })
+
+  describe("r2 시안 +α", () => {
+    it("단계 띠 · AI 1차 작업 점검 · 필수 칸 원형 진행 · 접수 경로 · 채취 방법 AI 제안이 시안 문구 그대로 보인다", () => {
+      const { container } = renderAt(`${DETAIL}&as=analyst`)
+      const stepper = container.querySelector('[data-part="Stepper"][data-part-variant="labeled"]')!
+      expect(stepper.textContent).toBe("접수1차 작업검색·판정교차 검증감정서결재")
+      expect(stepper.querySelector('[aria-current="step"]')!.textContent).toBe("1차 작업")
+      expect(screen.getByText("AI 1차 작업 점검")).toBeInTheDocument()
+      expect(screen.getByText("_4 ↔ _5")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "_5 삭제" })).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "반전 적용" })).toBeInTheDocument()
+      expect(screen.getByText(/자 인식 11\/12장/)).toBeInTheDocument()
+      expect(screen.getByText("필수 14 / 15")).toBeInTheDocument()
+      expect(screen.getByText("공문 자동 접수 · 07-24 09:10")).toBeInTheDocument()
+      expect(screen.getByText("자 인식 · 1px=0.12mm")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "AI 표시" })).toBeInTheDocument()
+      expect(screen.getByText("올리자마자 AI가 중복·전사판·화질·자를 점검합니다")).toBeInTheDocument()
+      expect(screen.getByText("중복? _4")).toBeInTheDocument()
+      expect(screen.getByText("전사판채취법")).toBeInTheDocument()
+      expect(screen.getByText("근거: 전사지 경계 · 뒤집힌 글자 · 신뢰 0.91")).toBeInTheDocument()
+    })
+
+    it("?plus=0 이면 [data-plus] 가 하나도 없고 1차 내용은 그대로", () => {
+      const { container } = renderAt(`${DETAIL}&plus=0`)
+      expect(container.querySelectorAll("[data-plus]")).toHaveLength(0)
+      expect(screen.queryByText("AI 1차 작업 점검")).toBeNull()
+      expect(screen.queryByText("필수 14 / 15")).toBeNull()
+      expect(screen.getByLabelText("사건 이름")).toHaveValue("주거침입")
+      expect(screen.getByText("00001-25-0649_3.jpg")).toBeInTheDocument()
+      expect(screen.queryByRole("progressbar")).toBeNull()
+    })
+
+    it("보는 사람에 따라 AI 점검 · 검색 · 읽기 전용 칩이 달라진다(시안 data-role)", () => {
+      const a = renderAt(`${DETAIL}&as=analyst`)
+      expect(screen.getByText("AI 1차 작업 점검")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /문양 상세보기/ })).toBeInTheDocument()
+      for (const b of screen.getAllByRole("button", { name: "수정" })) expect(b).toBeEnabled()
+      a.unmount()
+
+      const v = renderAt(`${DETAIL}&as=verifier`)
+      expect(screen.queryByText("AI 1차 작업 점검")).toBeNull()
+      expect(screen.queryByRole("button", { name: /문양 상세보기/ })).toBeNull()
+      expect(screen.getByText("기술책임자 · 읽기 전용")).toBeInTheDocument()
+      for (const b of screen.getAllByRole("button", { name: "수정" })) expect(b).toBeDisabled()
+      v.unmount()
+
+      renderAt(`${DETAIL}&as=investigator`)
+      expect(screen.getByText("수사관 · 의뢰한 사건만")).toBeInTheDocument()
+      expect(screen.queryByText("AI 1차 작업 점검")).toBeNull()
+    })
+
+    it("이전 · 다음 · 수정 · _5 삭제는 「시안 — 기능 준비 중」 알림", () => {
+      toastMock.mockClear()
+      renderAt(`${DETAIL}&as=analyst`)
+      for (const name of ["이전", "다음", "_5 삭제", "반전 적용"]) {
+        fireEvent.click(screen.getByRole("button", { name }))
+      }
+      expect(toastMock).toHaveBeenCalledTimes(4)
+      expect(toastMock).toHaveBeenCalledWith("시안 — 기능 준비 중")
+    })
+
+    it("채취 방법 AI 제안 「적용」은 발견 방법 칸에 값을 넣고 제안이 사라진다", () => {
+      renderAt(`${DETAIL}&as=analyst`)
+      expect(screen.getByLabelText("발견 방법")).toHaveValue("기타")
+      fireEvent.click(screen.getByRole("button", { name: "적용" }))
+      expect(screen.getByLabelText("발견 방법")).toHaveValue("전사판채취법")
+      expect(screen.queryByText("근거: 전사지 경계 · 뒤집힌 글자 · 신뢰 0.91")).toBeNull()
+    })
+
+    it("「원본 / 이진화 / AI 표시」를 바꾸면 이진화에서 AI 겹침이 빠지고 필터가 걸린다", () => {
+      const { container } = renderAt(`${DETAIL}&as=analyst`)
+      expect(container.querySelector('[data-part="ScanOverlay"]')).not.toBeNull()
+      fireEvent.click(screen.getByRole("button", { name: "이진화" }))
+      expect(container.querySelector('[data-part="ScanOverlay"]')).toBeNull()
+      expect(container.querySelector('[data-part="EvidenceImage"]')).toHaveAttribute("data-part-variant", "binary")
+    })
+
+    it("움직임 줄이기: 스캔 선 · 업로드 막대는 motion-safe 로만 움직인다", () => {
+      const { container } = renderAt(`${DETAIL}&as=analyst`)
+      expect(container.querySelector('[data-part="ScanOverlay"]')!.className).toContain("motion-safe:animate-fx-scan")
+      const upload = screen.getByRole("progressbar", { name: "업로드" })
+      expect(upload.querySelector("i")!.className).toContain("motion-safe:")
+      expect(upload).toHaveAttribute("aria-valuenow", "68")
+    })
   })
 
   it("ready 케이스에 사건정보 7칸을 그리고 사건등록번호는 필수로 표시한다", () => {
@@ -143,7 +231,7 @@ describe("S02DevPage 사건 상세·등록", () => {
       act(() => {
         vi.advanceTimersByTime(700)
       })
-      expect(screen.queryByRole("progressbar")).toBeNull()
+      expect(screen.queryByRole("progressbar", { name: "업로드" })).toBeNull()
       expect(screen.getByText("00001-25-0649_13.jpg")).toBeInTheDocument()
     } finally {
       vi.useRealTimers()
