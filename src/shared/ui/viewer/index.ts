@@ -2,3 +2,4 @@
 export { EvidenceImage, type EvidenceImageProps, type EvidenceLook } from "./EvidenceImage"
 export { SoleThumb, type SoleThumbProps, type SoleThumbSize } from "./SoleThumb"
 export { PatternIcon, type PatternIconProps, type PatternIconSize } from "./PatternIcon"
+export { ZoneBands, type ZoneBand, type ZoneBandsProps } from "./ZoneBands"
