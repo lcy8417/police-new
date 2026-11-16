@@ -16,6 +16,9 @@ export {
 } from "./ui/decorations"
 export type {
   DenoiseState,
+  FoundImage,
+  ImageEditAiSuggestion,
+  ImageEditHistoryEntry,
   ImageEditScreenProps,
   ImageEditTool,
   PolygonTool,

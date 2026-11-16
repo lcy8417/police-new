@@ -16,20 +16,23 @@ export interface ScasButtonRowProps {
   locked?: boolean
   /** 줄 끝에 덧붙이는 버튼(SCAS 뒤) */
   trailing?: React.ReactNode
+  /** 먼저 누르라고 권하는 버튼(시안 핀 4 — 주황 `warn`) */
+  highlight?: ScasBottomButton
   className?: string
 }
 
 const ON = "bg-brand-bg text-foreground [box-shadow:inset_0_0_0_1px_var(--t-brand)]"
 
-export function ScasButtonRow({ label, actions, pressed = {}, locked = false, trailing, className }: ScasButtonRowProps) {
+export function ScasButtonRow({ label, actions, pressed = {}, locked = false, trailing, highlight, className }: ScasButtonRowProps) {
   return (
     <div role="group" aria-label={label} className={cn("flex flex-wrap justify-center gap-[5px]", className)}>
       {SCAS_BOTTOM_BUTTONS.map((name) => {
         const action = actions[name]
+        const variant = name === highlight ? "warn" : "default"
         if (!action) {
           return (
             <span key={name} title="준비 중" className="inline-flex">
-              <Button size="sm" disabled>
+              <Button size="sm" variant={variant} disabled>
                 {name}
               </Button>
             </span>
@@ -39,6 +42,7 @@ export function ScasButtonRow({ label, actions, pressed = {}, locked = false, tr
           <Button
             key={name}
             size="sm"
+            variant={variant}
             aria-pressed={pressed[name]}
             disabled={locked}
             onClick={action}

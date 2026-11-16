@@ -36,8 +36,49 @@ export interface ViewAdjustments {
   grayscale: boolean
 }
 
+/** AI 제안 한 줄(시안 핀 11 — 기울기 맞추기 · 족적만 자르기 · 좌우반전). 누를 때만 반영된다 */
+export interface ImageEditAiSuggestion {
+  /** 제안 식별자(누름 콜백으로 돌려준다) */
+  id: string
+  /** 제안 이름(예 「기울기 맞추기」) */
+  title: string
+  /** 흐린 근거 한 줄(예 「족적 축 −4.2°」) */
+  reason: string
+  /** 버튼 글자(예 「맞추기」 · 「적용」 · 「반전」) */
+  actionLabel: string
+  /** warn = 되돌리기 어려운 변경이라 주황 버튼(시안 「반전」) */
+  tone?: "default" | "warn"
+}
+
+/** 편집 이력 한 줄(시안 핀 12) */
+export interface ImageEditHistoryEntry {
+  /** 순서 번호(1부터) */
+  no: number
+  /** 한 일(예 「좌로 4° 회전」) */
+  label: string
+  /** 한 시각 「시:분:초」(KST) */
+  at: string
+}
+
+/** B 보기용 뷰어 옆에 나란히 띄우는 발견(검색 결과) 이미지 — 시안 핀 6 */
+export interface FoundImage {
+  /** 그림 주소 */
+  src: string
+  /** 대체글 */
+  alt: string
+  /** 창 머리 글자(예 「발견 이미지 · 305659」) */
+  label: string
+}
+
 /** S03 이미지 편집 화면이 받는 값. 저장되는 값은 모두 제어형(spec §6-1). */
 export interface ImageEditScreenProps {
+  /**
+   * 시안 r2 신규(+α · 실증) 요소를 보일까(기본 true). false 면 `data-plus` 요소를 모두 숨기고 1차 모양으로 돌아간다.
+   * 실증 역할 잠금(시안 `data-lock`)도 true 일 때만 건다(spec §13-3 · §13-5).
+   */
+  showPlus?: boolean
+  /** 동작이 아직 없는 신규 버튼을 눌렀을 때(버튼 글자를 넘긴다). 진열 페이지는 「시안 — 기능 준비 중」 알림 */
+  onPlusAction?: (label: string) => void
   /** 화면 조회 상태(이미지 1장 편집이라 「결과 없음」 상태가 없다) */
   status: Exclude<ScreenStatus, "empty">
   /** 조회 실패 시각 「시:분」 */
@@ -108,4 +149,26 @@ export interface ImageEditScreenProps {
   onAdjustmentsChange: (next: ViewAdjustments) => void
   /** B 「닫기」 */
   onClose: () => void
+
+  // ── 시안 r2 신규(+α) — 값이 없으면 그 칸을 그리지 않는다 ──
+  /** A 캔버스 칸 AI 꼬리표 — 자 인식 눈금(예 「1 cm = 120 px」) · 족적 축(예 「−4.2°」) */
+  canvasTags?: { ruler: string; axis: string }
+  /** 채취 방법이 전사판이라 SCAS 「좌우반전」을 주황으로 권한다(시안 핀 4, 자동으로 뒤집지 않음) */
+  recommendFlip?: boolean
+  /** A 오른쪽 칸 「AI 제안」 줄들 */
+  aiSuggestions?: readonly ImageEditAiSuggestion[]
+  /** AI 제안 버튼을 누름 */
+  onApplyAiSuggestion?: (id: string) => void
+  /** A 오른쪽 칸 「원본 → 편집본」 작은 그림 두 장 */
+  beforeAfter?: { original: string; edited: string }
+  /** A 오른쪽 칸 「편집 이력」(되돌리기는 `onUndo`) */
+  editHistory?: readonly ImageEditHistoryEntry[]
+  /** 받은 원본의 SHA-256 해시(줄여 보이는 글자, 예 「9f3a 71c0 … 4be2 c21e」) */
+  originalHash?: string
+  /** B 왼쪽 창 머리 글자(예 「유류 이미지 · _2」) */
+  viewerLabel?: string
+  /** B 오른쪽 창 — 발견 이미지 */
+  foundImage?: FoundImage
+  /** B 「✦ 이 화면 그대로 AI 문양 다시 추출 → S04」(시안 핀 8, 저장하지 않음) */
+  onReextractFromView?: () => void
 }
