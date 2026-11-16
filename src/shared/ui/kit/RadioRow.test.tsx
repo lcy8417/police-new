@@ -37,4 +37,37 @@ describe("RadioRow", () => {
     expect(onValueChange).not.toHaveBeenCalled()
     expect(screen.getByRole("radiogroup")).toHaveAttribute("data-part-state", "disabled")
   })
+
+  it("선택된 칸만 Tab 으로 들어간다(없으면 첫 칸)", () => {
+    const { rerender } = render(<RadioRow name="kind" options={OPTIONS} value="B" onValueChange={() => {}} />)
+    const [a, b] = screen.getAllByRole("radio")
+    expect(a).toHaveAttribute("tabindex", "-1")
+    expect(b).toHaveAttribute("tabindex", "0")
+    rerender(<RadioRow name="kind" options={OPTIONS} value={null} onValueChange={() => {}} />)
+    const [a2, b2] = screen.getAllByRole("radio")
+    expect(a2).toHaveAttribute("tabindex", "0")
+    expect(b2).toHaveAttribute("tabindex", "-1")
+  })
+
+  it("방향키로 다음 · 이전 칸을 고르고 처음과 끝은 이어진다", () => {
+    const onValueChange = vi.fn()
+    render(<RadioRow name="kind" options={OPTIONS} value="A" onValueChange={onValueChange} />)
+    const [a, b] = screen.getAllByRole("radio")
+    fireEvent.keyDown(a, { key: "ArrowRight" })
+    expect(onValueChange).toHaveBeenLastCalledWith("B")
+    expect(b).toHaveFocus()
+    fireEvent.keyDown(a, { key: "ArrowLeft" })
+    expect(onValueChange).toHaveBeenLastCalledWith("B")
+    fireEvent.keyDown(b, { key: "ArrowDown" })
+    expect(onValueChange).toHaveBeenLastCalledWith("A")
+    fireEvent.keyDown(a, { key: "ArrowUp" })
+    expect(onValueChange).toHaveBeenLastCalledWith("B")
+  })
+
+  it("disabled 면 방향키도 고르지 않는다", () => {
+    const onValueChange = vi.fn()
+    render(<RadioRow name="kind" options={OPTIONS} value="A" onValueChange={onValueChange} disabled />)
+    fireEvent.keyDown(screen.getAllByRole("radio")[0], { key: "ArrowRight" })
+    expect(onValueChange).not.toHaveBeenCalled()
+  })
 })

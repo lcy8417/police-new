@@ -47,6 +47,10 @@ export function Combobox({
     ? items.filter((i) => i.label.toLowerCase().includes(needle) || (i.path ?? "").toLowerCase().includes(needle))
     : items
 
+  // 목록이 줄어도 가리키는 칸이 범위를 벗어나지 않게 그릴 때마다 맞춘다
+  const activeIdx = Math.max(0, Math.min(active, matches.length - 1))
+  const optionId = (i: number) => `${listId}-opt-${i}`
+
   const choose = (item: ComboboxItem) => {
     onValueChange(item.value)
     setQuery(null)
@@ -57,12 +61,12 @@ export function Combobox({
     if (e.key === "ArrowDown") {
       e.preventDefault()
       setOpen(true)
-      setActive((a) => Math.min(a + 1, matches.length - 1))
+      setActive(Math.min(activeIdx + 1, matches.length - 1))
     } else if (e.key === "ArrowUp") {
       e.preventDefault()
-      setActive((a) => Math.max(a - 1, 0))
+      setActive(Math.max(activeIdx - 1, 0))
     } else if (e.key === "Enter") {
-      const item = matches[active]
+      const item = matches[activeIdx]
       if (open && item) {
         e.preventDefault()
         choose(item)
@@ -80,6 +84,7 @@ export function Combobox({
         role="combobox"
         aria-expanded={open}
         aria-controls={listId}
+        aria-activedescendant={open && matches.length > 0 ? optionId(activeIdx) : undefined}
         aria-autocomplete="list"
         autoComplete="off"
         placeholder={placeholder}
@@ -90,6 +95,7 @@ export function Combobox({
           setOpen(true)
         }}
         onFocus={() => setOpen(true)}
+        // 칸을 떠나면 확정하지 않은 입력 글자는 버리고, 확정된 선택(없으면 빈 칸)을 다시 보인다
         onBlur={() => {
           setQuery(null)
           setOpen(false)
@@ -108,16 +114,17 @@ export function Combobox({
             matches.map((item, i) => (
               <li
                 key={item.value}
+                id={optionId(i)}
                 role="option"
                 aria-selected={item.value === value}
-                data-active={i === active || undefined}
+                data-active={i === activeIdx || undefined}
                 // 입력 칸이 초점을 잃어 목록이 닫히기 전에 클릭이 닿도록
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => choose(item)}
                 onMouseEnter={() => setActive(i)}
                 className={cn(
                   "flex items-baseline gap-[8px] px-[8px] py-[6px] rounded-[4px] cursor-pointer text-fg-2",
-                  i === active && "bg-brand-bg"
+                  i === activeIdx && "bg-brand-bg"
                 )}
               >
                 <span>{item.label}</span>

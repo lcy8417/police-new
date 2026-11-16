@@ -71,4 +71,49 @@ describe("Combobox", () => {
     const { input } = setup({ value: "dg-w" })
     expect(input.value).toBe("서부서")
   })
+
+  it("한 항목만 남긴 뒤 Enter 로 그 항목을 고른다", () => {
+    const { input, onValueChange } = setup()
+    fireEvent.change(input, { target: { value: "동부" } })
+    fireEvent.keyDown(input, { key: "Enter" })
+    expect(onValueChange).toHaveBeenCalledWith("dg-e")
+    expect(onValueChange).toHaveBeenCalledTimes(1)
+  })
+
+  it("목록이 줄어도 Enter 는 남은 항목 중 하나를 고른다", () => {
+    const onValueChange = vi.fn()
+    const { rerender } = render(<Combobox items={ITEMS} value={null} onValueChange={onValueChange} />)
+    const input = screen.getByRole("combobox")
+    fireEvent.change(input, { target: { value: "동" } })
+    fireEvent.keyDown(input, { key: "ArrowDown" })
+    rerender(<Combobox items={ITEMS.slice(0, 1)} value={null} onValueChange={onValueChange} />)
+    fireEvent.keyDown(input, { key: "Enter" })
+    expect(onValueChange).toHaveBeenCalledWith("dg-e")
+  })
+
+  it("칸을 떠나면 확정 안 한 입력은 버리고 확정된 선택 이름을 보인다", () => {
+    const { input } = setup({ value: "dg-w" })
+    fireEvent.change(input, { target: { value: "동" } })
+    expect(input.value).toBe("동")
+    fireEvent.blur(input)
+    expect(input.value).toBe("서부서")
+    expect(screen.queryByRole("listbox")).toBeNull()
+  })
+
+  it("선택이 없으면 떠난 뒤 빈 칸", () => {
+    const { input } = setup()
+    fireEvent.change(input, { target: { value: "동" } })
+    fireEvent.blur(input)
+    expect(input.value).toBe("")
+  })
+
+  it("방향키로 옮기면 aria-activedescendant 가 따라간다", () => {
+    const { input } = setup()
+    fireEvent.change(input, { target: { value: "동" } })
+    const options = screen.getAllByRole("option")
+    expect(input).toHaveAttribute("aria-activedescendant", options[0].id)
+    fireEvent.keyDown(input, { key: "ArrowDown" })
+    expect(input).toHaveAttribute("aria-activedescendant", options[1].id)
+    expect(options[0].id).not.toBe(options[1].id)
+  })
 })

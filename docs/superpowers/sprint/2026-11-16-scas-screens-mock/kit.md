@@ -7,12 +7,12 @@
 | 부품 | 파일 | 변형 열에 쓸 말 |
 |---|---|---|
 | Segmented | `src/shared/ui/kit/Segmented.tsx` | [새로] 기본 · `scas`(밝은 눌림). 눌린 칸 `aria-pressed`. toggle-group은 감싸지 않음(radio 역할이라 시안 선택자 `aria-pressed`와 다름) |
-| RadioRow | `src/shared/ui/kit/RadioRow.tsx` | [새로] ◉○ 한 줄 · 상태 `disabled` |
-| Combobox | `src/shared/ui/kit/Combobox.tsx` | [새로] 검색형 한 칸 · 결과에 경로 · 방향키/Enter. 내부는 Field `pick` 재사용 |
+| RadioRow | `src/shared/ui/kit/RadioRow.tsx` | [새로] ◉○ 한 줄 · 상태 `disabled` · 방향키 이동 · 선택 칸만 Tab(`name`은 묶음 접근성 이름 `aria-label`) |
+| Combobox | `src/shared/ui/kit/Combobox.tsx` | [새로] 검색형 한 칸 · 결과에 경로 · 방향키/Enter · `aria-activedescendant` · 칸을 떠나면 확정 안 한 입력은 버림. 내부는 Field `pick` 재사용 |
 | StatusDot | `src/shared/ui/kit/StatusDot.tsx` | [새로] 변형 `ok` · `warn` · `danger` · `off`(글자 필수) |
 | Avatar | `src/shared/ui/kit/Avatar.tsx` | [새로] 기본 · `blue` · `teal` · `violet` · `amber`. 크기는 28 고정(S13의 44는 미지원) |
 | DataGrid | `src/shared/ui/kit/DataGrid.tsx` | [새로] 열 정의 · 선택 행(`aria-selected`) · 빈 목록 문구. `tr.fx-new`는 아직 없음(움직임 부품 쪽) |
-| Pagination | `src/shared/ui/kit/Pagination.tsx` | [새로] 「전체 n 중 a-b」 / total 없으면 「a-b」. 「더 보기」(S14)·« » 처음/끝 이동은 없음 |
+| Pagination | `src/shared/ui/kit/Pagination.tsx` | [새로] 「전체 n 중 a-b」 / total 없으면 「a-b」, total 0이면 「전체 0」, 마지막 쪽을 넘으면 마지막 쪽 범위. 버튼 이름은 보이는 글자 「이전」 · 「다음」. 「더 보기」(S14)·« » 처음/끝 이동은 없음 |
 | DialogShell | `src/shared/ui/kit/DialogShell.tsx` | [새로] 기본 · `large`(폭 90%). shadcn dialog 감쌈 |
 | InlineError | `src/shared/ui/kit/InlineError.tsx` | [새로] 회색 「확인 못 함 · 시:분 · 다시」 |
 

@@ -16,23 +16,29 @@ export interface PaginationProps {
 }
 
 export function Pagination({ total, page, pageSize, hasNext, onPageChange, partId, className }: PaginationProps) {
-  const from = (page - 1) * pageSize + 1
-  const to = total === undefined ? page * pageSize : Math.min(page * pageSize, total)
+  // 전체 개수가 있으면 마지막 쪽을 넘는 쪽 번호는 마지막 쪽으로 보인다
+  const lastPage = total === undefined ? page : Math.max(1, Math.ceil(total / pageSize))
+  const shown = Math.min(page, lastPage)
+  const from = (shown - 1) * pageSize + 1
+  const to = total === undefined ? shown * pageSize : Math.min(shown * pageSize, total)
   const range = `${from}-${to}`
+  const label = total === undefined ? range : total === 0 ? "전체 0" : `전체 ${total} 중 ${range}`
   return (
     <div
       {...partAttrs("Pagination", { id: partId })}
       className={cn("flex items-center justify-between gap-[10px] px-[14px] py-[10px] text-[12px] text-muted-foreground", className)}
     >
       <span className="inline-flex items-center gap-[6px]">
-        <Button size="sm" disabled={page <= 1} aria-label="이전 쪽" onClick={() => onPageChange(page - 1)}>
-          ‹ 이전
+        <Button size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+          <span aria-hidden="true">‹</span>
+          이전
         </Button>
-        <Button size="sm" disabled={!hasNext} aria-label="다음 쪽" onClick={() => onPageChange(page + 1)}>
-          다음 ›
+        <Button size="sm" disabled={!hasNext} onClick={() => onPageChange(page + 1)}>
+          다음
+          <span aria-hidden="true">›</span>
         </Button>
       </span>
-      <span className="font-code tabular-nums">{total === undefined ? range : `전체 ${total} 중 ${range}`}</span>
+      <span className="font-code tabular-nums">{label}</span>
     </div>
   )
 }
