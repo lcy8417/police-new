@@ -44,6 +44,21 @@ const dialogOf = (p) => p.getByRole("dialog", { name: /사건 창$/ })
 const btn = (name, scope) => (p) => (scope ? scope(p) : p).getByRole("button", { name, exact: typeof name === "string" }).first()
 const role = (r, name, scope) => (p) => (scope ? scope(p) : p).getByRole(r, { name, exact: typeof name === "string" }).first()
 const css = (selector) => (p) => p.locator(selector).first()
+/** 이름이 맞는 단추 가운데 지금 화면(세로) 안에 보이는 첫 것 — 목록을 내린 뒤 찍는 그림용 */
+const visibleBtn = (name, scope) => async (p) => {
+  const all = (scope ? scope(p) : p).getByRole("button", { name })
+  const n = await all.count()
+  for (let i = 0; i < n; i++) {
+    // 가운데 점에서 실제로 맨 위에 보이는 요소가 이 단추인가(목록 칸 밖으로 스크롤돼 가려진 것은 빼기)
+    const shown = await all.nth(i).evaluate((el) => {
+      const r = el.getBoundingClientRect()
+      const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)
+      return r.height > 0 && hit !== null && (hit === el || el.contains(hit))
+    })
+    if (shown) return all.nth(i)
+  }
+  return all.first()
+}
 
 const pause = (p, ms = 400) => p.waitForTimeout(ms)
 async function click(p, locator, ms = 450) {
@@ -97,7 +112,7 @@ const CAPTURES = [
   {
     file: "1-3-display-settings.png",
     title: "화면 설정",
-    desc: "위 막대 ⚙ 「화면 설정」 — 테마 · 글꼴 · 글자 크기",
+    desc: "위 막대 ☀ 「화면 설정」 — 테마 · 글꼴 · 글자 크기",
     path: "/dev/s01?as=analyst",
     steps: async (p) => click(p, btn("화면 설정")),
     marks: [
@@ -274,10 +289,11 @@ const CAPTURES = [
         await pause(p, 300)
       }
     },
+    // ② = 따라다니는 확대경 원(바깥 상자 아님), ③ = 오른쪽 위 「확대 보기」 칸(3회차 검수 — 문양 목록에 찍히던 것)
     marks: [
       ["확대경 단추", btn("확대경", dialogOf)],
-      ["확대경", css("[data-lens]")],
-      ["확대 보기 칸", role("region", "문양 목록", dialogOf)],
+      ["확대경", css('[data-slot="pattern-lens"]')],
+      ["확대 보기 칸", role("region", "확대 보기", dialogOf)],
     ],
   },
   {
@@ -327,36 +343,39 @@ const CAPTURES = [
     marks: [["검색 이력 탭", role("tab", "검색 이력", dialogOf)], ["검색 이력", role("tabpanel", "검색 이력", dialogOf)]],
   },
 
-  // 3-5 검색 결과
+  // 3-5 검색 결과 — 신발 번호는 검색 결과(가짜 신발 DB 계산)에 따라 바뀌므로 순위 앞머리로 찾는다(3회차 검수 — 옛 고정 번호로 못 찾던 것)
   {
     file: "3-5-1-results-1.png",
     title: "검색 결과 — 한 줄 1개",
     desc: "후보를 하나씩 크게",
     path: win("search"),
     steps: async (p) => click(p, btn("1개", dialogOf), 600),
-    marks: [["한 줄 개수", role("group", "한 줄 개수", dialogOf)], ["1위 카드", btn(/^1위 00758 유사도/, dialogOf)]],
-  },
-  {
-    file: "3-5-2-results-3.png",
-    title: "검색 결과 — 한 줄 3개",
-    desc: "후보 3개씩",
-    path: win("search"),
-    steps: async (p) => click(p, btn("3개", dialogOf), 600),
-    marks: [["한 줄 개수", role("group", "한 줄 개수", dialogOf)]],
+    marks: [["한 줄 개수", role("group", "한 줄 개수", dialogOf)], ["1위 카드", btn(/^1위 \S+ 유사도/, dialogOf)]],
   },
   {
     file: "3-5-3-results-5.png",
     title: "검색 결과 — 한 줄 5개(기본)",
     desc: "순위 내림차순 한 목록 — 본 위치 · 확인대상 · 원본/이진화 · 수동/자동",
     path: win("search"),
+    // 목록을 조금 내려 「여기까지 봤음」 줄과 본 위치가 생기게 한 뒤 찍는다(손 스크롤도 본 위치를 올림)
+    steps: async (p) => {
+      await dialogOf(p).locator("[data-result-grid]").first().evaluate((el) => {
+        const box = el.parentElement
+        if (box) {
+          box.scrollTop = 420
+          box.dispatchEvent(new Event("scroll"))
+        }
+      })
+      await pause(p, 600)
+    },
     marks: [
       ["현장 족적", role("region", "현장 족적", dialogOf)],
-      ["본 위치 · 이어 보기", btn("137위부터 이어 보기", dialogOf)],
-      ["확인대상", btn("2위 · 305659", dialogOf)],
+      ["본 위치 · 이어 보기", btn(/위부터 이어 보기$/, dialogOf)],
+      ["확인대상", btn(/^\d+위 · /, dialogOf)],
       ["본 것 거르기", role("group", "본 것 거르기", dialogOf)],
       ["원본 · 이진화", role("group", "결과 이미지 보기", dialogOf)],
       ["수동 · 자동", role("group", "넘김", dialogOf)],
-      ["확인대상 넣기(★)", btn("1위 00758 확인대상 넣기", dialogOf)],
+      ["확인대상 넣기(★)", visibleBtn(/^\d+위 \S+ 확인대상 넣기$/, dialogOf)],
     ],
   },
   {
@@ -365,7 +384,11 @@ const CAPTURES = [
     desc: "자동 넘김 속도 · 쪽 넘김을 정한다",
     path: win("search"),
     steps: async (p) => click(p, btn("자동 설정", dialogOf), 500),
-    marks: [["자동 설정 단추", btn("자동 설정", dialogOf)]],
+    // 「확대」 그림이 설정 창 전체를 담게 창도 번호 요소로 둔다(3회차 검수 — ⚙ 둘레만 잘리던 것)
+    marks: [
+      ["자동 설정 단추", btn("자동 설정", dialogOf)],
+      ["자동 설정 창", role("dialog", "자동 설정", dialogOf), { frame: true }],
+    ],
   },
   {
     file: "3-5-5-quick-compare.png",
@@ -373,10 +396,13 @@ const CAPTURES = [
     desc: "카드에 마우스를 올리면 현장과 나란히 빠른 비교 — Enter 정밀 대조 · S 확인대상",
     path: win("search"),
     steps: async (p) => {
-      await btn(/^3위 281904 유사도/, dialogOf)(p).hover()
+      await btn(/^3위 \S+ 유사도/, dialogOf)(p).hover()
       await pause(p, 900)
     },
-    marks: [["올린 카드", btn(/^3위 281904 유사도/, dialogOf)]],
+    marks: [
+      ["올린 카드", btn(/^3위 \S+ 유사도/, dialogOf)],
+      ["빠른 비교", (p) => p.getByRole("tooltip", { name: /^빠른 비교/ }).first()],
+    ],
   },
 
   // 3-6 정밀 대조
@@ -499,12 +525,17 @@ const CAPTURES = [
   {
     file: "5-2-change-permission.png",
     title: "권한 바꾸기",
-    desc: "역할 프리셋을 고르거나 기능 권한을 하나씩 켜고 끈 뒤 「역할 저장」",
+    desc: "역할 체크 → 「역할 저장」, 개인 기능 권한 스위치 → 「권한 저장」(역할 프리셋은 시안)",
     path: "/dev/s13?as=admin",
-    // 화면 안에 보이는 첫 권한(사건 등록)을 켠다 — 아래쪽 권한을 누르면 화면이 밀려 머리가 잘린다
-    steps: async (p) => click(p, role("switch", "사건 등록"), 500),
+    // 역할 하나를 더 체크하고(「역할 저장」이 켜짐), 화면 안에 보이는 첫 권한(사건 등록)을 켠다(「권한 저장」이 켜짐).
+    // 아래쪽 권한을 누르면 화면이 밀려 머리가 잘린다(3회차 검수 — 잠긴 「역할 저장」에 번호가 찍히던 것)
+    steps: async (p) => {
+      await click(p, role("checkbox", "기술책임자"), 400)
+      await click(p, role("switch", "사건 등록"), 500)
+    },
     marks: [
-      ["역할 프리셋", role("group", "역할 프리셋")],
+      ["역할 프리셋(시안)", role("group", "역할 프리셋")],
+      ["역할 체크", role("checkbox", "기술책임자")],
       ["역할 저장", btn("역할 저장")],
       ["기능 권한", role("region", "기능 권한")],
       ["바꾼 권한", role("switch", "사건 등록")],
@@ -538,9 +569,11 @@ const CAPTURES = [
       await btn("비밀번호 초기화")(p).scrollIntoViewIfNeeded()
       await click(p, btn("비밀번호 초기화"), 600)
     },
+    // 「확대」 그림이 창 전체(제목 · 라벨 포함)를 담게 창을 테두리 요소로 둔다(번호는 그리지 않음 — 3회차 검수)
     marks: [
       ["임시 비밀번호", role("textbox", /임시 비밀번호/)],
       ["초기화", btn("초기화", (p) => p.getByRole("dialog").last())],
+      ["비밀번호 초기화 창", (p) => p.getByRole("dialog").last(), { frame: true }],
     ],
   },
 
@@ -563,12 +596,13 @@ const CAPTURES = [
     desc: "로그인 한 번(세션)을 펼치면 그 사이의 기능 기록",
     path: "/dev/s14?as=admin",
     steps: async (p) => {
-      const b = btn("기능 기록 펼치기")(p)
+      // 펼침 단추 이름은 줄마다 다르다(「<이름> <시각> 로그인 기능 기록 펼치기」 — 3회차 검수)
+      const b = btn(/기능 기록 펼치기$/)(p)
       await b.scrollIntoViewIfNeeded()
       await b.click()
       await pause(p, 600)
     },
-    marks: [["펼친 세션", btn(/기능 기록 접기|기능 기록 펼치기/)]],
+    marks: [["펼친 세션", btn(/기능 기록 (접기|펼치기)$/)]],
   },
 
   // 7장 설정 바꾸는 법
@@ -596,7 +630,7 @@ const CAPTURES = [
 
 async function boxOf(p, find) {
   try {
-    const loc = find(p)
+    const loc = await find(p)
     if ((await loc.count()) === 0) return null
     const b = await loc.boundingBox({ timeout: 1500 })
     if (!b) return null
@@ -633,8 +667,9 @@ async function main() {
       if (cap.steps) await cap.steps(page)
       await page.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {})
       const marks = []
-      for (const [i, [label, find]] of (cap.marks ?? []).entries()) {
-        marks.push({ n: i + 1, label, box: await boxOf(page, find) })
+      // 세 번째 값 { frame: true } = 번호는 그리지 않고 「확대」 잘라 내기 범위에만 넣는 테두리 요소
+      for (const [i, [label, find, opt]] of (cap.marks ?? []).entries()) {
+        marks.push({ n: i + 1, label, box: await boxOf(page, find), ...(opt?.frame ? { frame: true } : {}) })
       }
       await page.screenshot({ path: path.join(OUT, cap.file) })
       const missing = marks.filter((m) => !m.box).map((m) => m.label)

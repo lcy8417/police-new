@@ -248,7 +248,8 @@ async function annotateAll(figures, captureIndex, viewport) {
       warnings.push(`캡처 없음: ${fig.name}`)
       continue
     }
-    const wanted = fig.numbers.length ? fig.numbers : cap.marks.map((m) => m.n)
+    // 원고에 (n) 설명이 없는 그림은 번호를 그리지 않는다(원고 규칙 — 3회차 검수: 전체 번호를 그리던 것)
+    const wanted = fig.numbers
     const marks = []
     for (const n of wanted) {
       const m = cap.marks.find((x) => x.n === n)
@@ -261,13 +262,15 @@ async function annotateAll(figures, captureIndex, viewport) {
     await page.setContent(annotateHtml(dataUrl, viewport, marks, fig.crop ? 10 : 13), { waitUntil: "load" })
     const file = path.join(ANNOTATED, `${fig.key}.jpg`)
     // 「확대」: 번호 붙인 요소들을 감싸는 부분만 잘라 크게(작은 단추가 모인 그림용)
+    // 테두리 요소(capture.mjs marks 의 { frame: true } — 열린 창 전체 등)도 잘라 내기 범위에 넣는다(번호는 안 그림)
     let clip
-    if (fig.crop && marks.length) {
+    const area = [...marks, ...cap.marks.filter((m) => m.frame && m.box)]
+    if (fig.crop && area.length) {
       const pad = 48
-      const x0 = Math.max(0, Math.min(...marks.map((m) => m.box.x)) - pad)
-      const y0 = Math.max(0, Math.min(...marks.map((m) => m.box.y)) - pad)
-      const x1 = Math.min(viewport.width, Math.max(...marks.map((m) => m.box.x + m.box.width)) + pad)
-      const y1 = Math.min(viewport.height, Math.max(...marks.map((m) => m.box.y + m.box.height)) + pad)
+      const x0 = Math.max(0, Math.min(...area.map((m) => m.box.x)) - pad)
+      const y0 = Math.max(0, Math.min(...area.map((m) => m.box.y)) - pad)
+      const x1 = Math.min(viewport.width, Math.max(...area.map((m) => m.box.x + m.box.width)) + pad)
+      const y1 = Math.min(viewport.height, Math.max(...area.map((m) => m.box.y + m.box.height)) + pad)
       clip = { x: x0, y: y0, width: x1 - x0, height: y1 - y0 }
     }
     await page.screenshot({ path: file, type: "jpeg", quality: 84, ...(clip ? { clip } : {}) })
