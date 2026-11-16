@@ -5,7 +5,7 @@ import { partAttrs } from "../part-attrs"
 
 // 시안 `.seg` 의 부품판. 눌린 칸은 `aria-pressed="true"`(시안 선택자 그대로).
 // `scas` 는 시안 `.is-scas` — SCAS 화면 모양을 재현하는 자리의 눌림 색(밝은 바탕).
-// 시안 값 #e9ecf3 · #1f2a5a 은 토큰이 없어 가장 가까운 fg · panel 로 대신한다(노트 「토큰 빈틈」).
+// 시안의 밝은 눌림 색(바탕 · 글자)은 토큰이 없어 가장 가까운 fg · panel 로 대신한다(노트 「토큰 빈틈」).
 export interface SegmentedItem {
   value: string
   label: React.ReactNode
