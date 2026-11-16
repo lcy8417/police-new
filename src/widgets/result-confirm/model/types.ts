@@ -181,3 +181,69 @@ export interface ResultConfirmScreenProps {
   /** 「조건 지우기」 — 글자 · 칩 모두 비움 */
   onClearFilters?: () => void
 }
+
+// ── 사건 창 「결과 확인」 탭(R6 — 사건 전체 판정 한 화면) ─────────────────────────
+
+/** 판정 줄의 확인대상 신발(발견) 또는 아직 판정 전의 1위 후보 */
+export interface ConfirmRowShoe {
+  /** 신발 ID — 문자열(앞자리 0 보존) */
+  ftwrId: string
+  /** 밑창 썸네일 URL */
+  image: string
+  /** 유사도 퍼센트 0~100 */
+  score: number
+  /** 검색 순위(1부터) */
+  ranking: number
+}
+
+/** 이미지(감정물) 한 장의 판정 줄 */
+export interface ConfirmRow {
+  /** 사건 안 이미지 번호(「1」 → 화면 「_1」) */
+  no: string
+  /** 감정물 번호, 예 00001-25-0649_1 */
+  imageNo: string
+  /** 신발 · 타이어 */
+  kind: string
+  /** 현장 이미지 썸네일 URL */
+  thumb: string
+  /** 마지막 검색 번호 — 없으면 검색 안 함 */
+  searchNo: string | null
+  /** 저장된 판정 — 없으면 판정 전 */
+  judgement: Judgement | null
+  /** 발견이면 확인대상 신발, 판정 전이면 검색 1위 후보(`candidate`), 그 밖은 null */
+  shoe: ConfirmRowShoe | null
+}
+
+/** 교차 검증 상태 — none 아직 요청 안 함 · requested 요청함(검증 중) · done 검증 끝 */
+export type CrossReviewState = "none" | "requested" | "done"
+
+export interface ConfirmWindowProps {
+  /** 조회 상태 */
+  status: ScreenStatus
+  /** 조회 실패 시각 「시:분」 */
+  errorAt?: string
+  onRetry: () => void
+  isAdmin: boolean
+  features: readonly FeatureCode[]
+  /** 감정번호(머리 흐린 글자) */
+  aprthngNo: string
+  /** 이미지별 판정 줄(번호 순서) */
+  rows: readonly ConfirmRow[]
+  /** 판정 바꿈(누르면 바로 저장) — 없으면 판정 단추가 잠긴다 */
+  onJudgementChange?: (row: ConfirmRow, result: Judgement) => void
+  /** 판정을 바꿀 수 없는 까닭(예 교차 검증 중) — 있으면 판정 단추가 잠기고 마우스 설명에 보인다 */
+  lockedReason?: string
+  /** 줄 끝 「열기」 — 그 이미지의 검색 결과 · 정밀 대조 탭으로 */
+  onOpenImage?: (row: ConfirmRow) => void
+  /** 교차 검증 상태 */
+  crossReview: CrossReviewState
+  /** 교차 검증자 후보(본인 제외) */
+  reviewers: readonly { value: string; label: string }[]
+  /** 고른 교차 검증자 */
+  reviewer: string | null
+  onReviewerChange: (value: string) => void
+  /** 「교차 검증 요청」 — 모든 이미지 판정 뒤 */
+  onRequestCrossReview: (reviewer: string) => void
+  /** 「감정서로」 — 교차 검증이 끝난 뒤 */
+  onToReport: () => void
+}

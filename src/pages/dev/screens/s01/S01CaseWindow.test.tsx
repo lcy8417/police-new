@@ -412,7 +412,16 @@ describe("S01 사건 창", () => {
     expect(within(dialog()).getByRole("region", { name: "유류 · 발견 대조" })).toBeInTheDocument()
     fireEvent.click(tabs.getByRole("tab", { name: /결과 확인/ }))
     expect(query().get("tab")).toBe("confirm")
-    expect(within(dialog()).getByLabelText("00001-25-0646_1 검색결과")).toBeInTheDocument()
+    // R6: 그 사건(0646 — 발견 · 불발견 · 감정불능 1장씩) 값으로 이미지별 판정 줄
+    expect(within(dialog()).getByRole("group", { name: "00001-25-0646_1 판정" })).toBeInTheDocument()
+    expect(within(dialog()).getByTestId("confirm-conclusion")).toHaveTextContent("발견")
+  })
+
+  it("결과 확인 탭은 연 사건의 이미지 수 · 판정으로 줄을 만든다(0649 = 12장, 판정 1)", () => {
+    renderAt("/dev/s01?case=ready&open=00001-25-0649&tab=confirm")
+    expect(within(dialog()).getByRole("group", { name: "00001-25-0649_12 판정" })).toBeInTheDocument()
+    expect(within(dialog()).queryByRole("group", { name: "00001-25-0646_1 판정" })).toBeNull()
+    expect(within(dialog()).getByText("판정 1 / 12")).toBeInTheDocument()
   })
 
   it("왼쪽 목록 줄을 누르면 그 이미지로(img)", () => {

@@ -4,7 +4,14 @@ import { toast } from "sonner"
 
 import type { CrimeHistoryRow } from "@/entities/crime"
 import { toKstIso } from "@/shared/lib/kst"
-import { ResultConfirmScreen, type BlockViewCount, type ConfirmImageBlock, type Judgement } from "@/widgets/result-confirm"
+import {
+  ConfirmWindow,
+  ResultConfirmScreen,
+  type BlockViewCount,
+  type ConfirmImageBlock,
+  type ConfirmRow,
+  type Judgement,
+} from "@/widgets/result-confirm"
 
 import {
   DevScreenFrame,
@@ -19,6 +26,7 @@ import {
   useRememberedState,
   type DevGo,
 } from "../frame"
+import type { S07Facts } from "../s01/case-flow"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
 import type { ZoneTriple } from "../mock-assets/fake-art"
@@ -62,13 +70,69 @@ export interface S07ContentProps {
   devCase: (typeof SCREEN_CASES.s07)[number]
   /** 화면 옮기기(없으면 진열 주소 이동) — 사건 창은 탭 바꾸기로 받는다 */
   go?: DevGo
+  /** 사건 창 안(R6) — 사건 전체 판정 한 화면(위젯 ConfirmWindow). `facts` 와 같이 준다 */
+  inWindow?: boolean
+  /** 사건 창에서 연 그 사건 값(S01 `s07FactsOf` — 목록 행 · 이미지 목록에서 만든 판정 줄 · 교차 검증 상태) */
+  facts?: S07Facts
 }
 
 /**
- * S07 틀 없는 내용 — 진열 페이지와 사건 창(사건 단위 「결과 확인」 탭)이 같이 쓴다. `?ftwr=` 는 주소에서 읽는다.
- * 가짜 이미지 블록 · 이력은 시안 0646 값 그대로다(어느 사건 창에서 열어도 같다).
+ * S07 틀 없는 내용 — 진열 페이지와 사건 창(사건 단위 「결과 확인」 탭)이 같이 쓴다.
+ * 사건 창(`inWindow` + `facts`)은 그 사건 값으로 이미지별 판정 줄을 그리고, 단독 진열은 시안 0646 블록 그대로다.
  */
-export function S07Content({ devCase: activeCase, go }: S07ContentProps) {
+export function S07Content(props: S07ContentProps) {
+  return props.inWindow && props.facts ? (
+    <S07WindowContent devCase={props.devCase} facts={props.facts} go={props.go} />
+  ) : (
+    <S07StandaloneContent {...props} />
+  )
+}
+
+/** 사건 창 결과 확인 — 판정은 누르면 바로 저장(진열용 알림), 교차 검증 요청 · 감정서로 */
+function S07WindowContent({ devCase, facts, go }: { devCase: S07ContentProps["devCase"]; facts: S07Facts; go?: DevGo }) {
+  const nav = useDevNavigate()
+  const to = go ?? nav
+  const viewer = useDevViewer()
+  const [picked, setPicked] = useState<Record<string, Judgement>>({})
+  const [requested, setRequested] = useState(false)
+  const [reviewer, setReviewer] = useState<string | null>(null)
+  const rows = useMemo<ConfirmRow[]>(
+    () => facts.rows.map((r) => (picked[r.no] ? { ...r, judgement: picked[r.no] } : r)),
+    [facts.rows, picked],
+  )
+  const crossReview = requested && facts.crossReview === "none" ? "requested" : facts.crossReview
+  // 요청 전이면 고를 수 있는 검증자 목록, 요청 뒤면 그 사람 이름 하나
+  const reviewers = facts.crossReviewer ? [{ value: "assigned", label: facts.crossReviewer }] : REVIEWERS
+  return (
+    <ConfirmWindow
+      status={devCase === "empty" ? "ready" : devCase}
+      errorAt={S07_ERROR_AT}
+      onRetry={() => toast("판정 목록을 다시 불러옵니다(진열용)")}
+      isAdmin={viewer.isAdmin}
+      features={viewer.features}
+      aprthngNo={facts.aprthngNo}
+      rows={devCase === "empty" ? [] : rows}
+      onJudgementChange={(row, result) => {
+        setPicked((prev) => ({ ...prev, [row.no]: result }))
+        toast.success(`_${row.no} ${LABEL[result]} 저장(진열용)`)
+      }}
+      lockedReason={crossReview === "none" ? undefined : (facts.lockedReason ?? "교차 검증 중에는 판정을 바꿀 수 없습니다")}
+      onOpenImage={(row) => to(row.judgement === "found" ? "/dev/s06" : "/dev/s05", { image: row.imageNo })}
+      crossReview={crossReview}
+      reviewers={reviewers}
+      reviewer={facts.crossReviewer ? "assigned" : reviewer}
+      onReviewerChange={setReviewer}
+      onRequestCrossReview={(r) => {
+        setRequested(true)
+        const name = REVIEWERS.find((x) => x.value === r)?.label ?? r
+        toast.success(`교차 검증 요청 → ${name}(진열용)`)
+      }}
+      onToReport={() => toast(PLUS_NOT_READY, { description: "감정서 작성" })}
+    />
+  )
+}
+
+function S07StandaloneContent({ devCase: activeCase, go }: S07ContentProps) {
   const nav = useDevNavigate()
   const to = go ?? nav
   const { search } = useLocation()

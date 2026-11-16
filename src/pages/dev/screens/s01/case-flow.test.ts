@@ -17,7 +17,8 @@ const imageRefs = (row: CaseListRow, plus = true) => {
 describe("사건 창 흐름 파생(case-flow)", () => {
   it("흐름은 5칸(결재 없음), 지금 칸은 목록 「사건 진행」과 같은 근거 — 옛 결재 · 결재완료는 감정서 끝", () => {
     expect([...FLOW_STAGES]).toEqual(["접수", "1차 작업", "검색·판정", "교차 검증", "감정서"])
-    const expected: Record<string, string> = { 결재: "감정서", 감정서: "감정서", "교차 검증": "교차 검증", 검증요청: "교차 검증", 결재완료: "감정서" }
+    // 단계 이름에 「결재」는 없다(옛 결재 = 감정서, 결재완료 = 완료)
+    const expected: Record<string, string> = { 감정서: "감정서", "교차 검증": "교차 검증", 검증요청: "교차 검증", 완료: "감정서" }
     for (const row of rows.slice(0, 7)) {
       const label = stageLabel(row.stage)
       const now = FLOW_STAGES[flowStageOf(row)]

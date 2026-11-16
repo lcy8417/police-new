@@ -1,7 +1,9 @@
 import type { CaseListFilters, CaseListRow, CaseListRowSummary } from "@/widgets/case-list"
 import type { CaseImageStatus, CaseWindowImage } from "@/widgets/case-window"
+import type { ConfirmRow, Judgement } from "@/widgets/result-confirm"
 
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
+import type { ZoneTriple } from "../mock-assets/fake-art"
 
 // S01 가짜 데이터. 숫자 · 이름은 시안(s01-case-list.js) 예시값과 맞춘다(감정번호 00001-25-0646 등, 이름은 가림).
 export const S01_TOTAL = 116
@@ -110,10 +112,47 @@ export function makeCaseImages(row: CaseListRow): CaseWindowImage[] {
   }))
 }
 
-/** 사건 진행 단계 이름(목록 「사건 진행」 열과 같은 말) */
+/** 사건 진행 단계 이름(목록 「사건 진행」 열과 같은 말 — 결재 없음: 옛 3 · 4 단계는 감정서 · 완료) */
 export function stageLabel(stage: number | undefined): string {
   if (stage === undefined || stage < 0) return "이미지 확인 중"
-  return ["검증요청", "교차 검증", "감정서", "결재", "결재완료"][stage] ?? "이미지 확인 중"
+  return ["검증요청", "교차 검증", "감정서", "감정서", "완료"][stage] ?? "이미지 확인 중"
+}
+
+/** 결과 확인 탭의 확인대상 · 1위 후보 신발(검색 결과 탭 가짜 값과 같은 번호) */
+const CONFIRM_SHOES: readonly { ftwrId: string; zones: ZoneTriple }[] = [
+  { ftwrId: "00758", zones: ["herring", "grid", "tri"] },
+  { ftwrId: "305659", zones: ["grid", "grid", "lines"] },
+  { ftwrId: "281904", zones: ["wave", "grid", "blocks"] },
+  { ftwrId: "274466", zones: ["dots", "grid", "herring"] },
+  { ftwrId: "SH-20251", zones: ["tri", "wave", "blocks"] },
+]
+
+let confirmShoeThumbs: string[] | null = null
+
+/**
+ * 사건 창 「결과 확인」 탭 판정 줄 — 그 사건의 이미지 목록(makeCaseImages) 상태에서 만든다.
+ * 발견 = 확인대상 신발 · 점수, 불발견 · 확인 = 검색했고 매칭 없음, 감정불능 = 검색 안 함, 검색됨 = 판정 전(1위 후보), 등록 = 검색 전.
+ */
+export function makeConfirmRows(row: CaseListRow): ConfirmRow[] {
+  confirmShoeThumbs ??= CONFIRM_SHOES.map((s) => fakeSoleUrl({ kind: "shoe", zones: [...s.zones] }))
+  const thumbsOf = confirmShoeThumbs
+  return makeCaseImages(row).map((img, i) => {
+    const k = (i + Number(row.aprthngNo.slice(-2))) % CONFIRM_SHOES.length
+    const shoe = { ftwrId: CONFIRM_SHOES[k].ftwrId, image: thumbsOf[k], score: Math.round((84.1 - i * 2.7) * 10) / 10, ranking: 1 + (i % 3) }
+    const searchNo = String(572420 - i * 37)
+    const judgement: Judgement | null =
+      img.status === "발견" ? "found" : img.status === "불발견" || img.status === "확인" ? "notFound" : img.status === "감정불능" ? "unable" : null
+    const searched = img.status !== "등록" && img.status !== "감정불능"
+    return {
+      no: img.no,
+      imageNo: img.imageNo,
+      kind: img.kind,
+      thumb: img.thumbSrc ?? thumbFor(i),
+      searchNo: searched ? searchNo : null,
+      judgement,
+      shoe: img.status === "발견" || img.status === "검색됨" ? shoe : null,
+    }
+  })
 }
 
 /** 시안 7건을 돌려 가며 전체 116건을 만든다. 감정번호는 0649 에서 하나씩 내려간다. */

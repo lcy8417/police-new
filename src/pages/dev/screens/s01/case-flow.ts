@@ -1,5 +1,8 @@
 import type { CaseListRow } from "@/widgets/case-list"
 import type { CaseWindowImage, CaseWindowStage, CaseWindowTab, CaseWindowTabMark } from "@/widgets/case-window"
+import type { CrossReviewState } from "@/widgets/result-confirm"
+
+import { makeConfirmRows } from "./mock-cases"
 
 // 사건 창 머리 흐름 한 줄 · 탭 표시 · S02 값의 가짜 값 — 목록 행(mock-cases)의 숫자에서만 만들어 서로 맞게 한다.
 // 11/16 사용자 「이 단계에서 할 일은 없애고 … 그냥 플로우가 이렇다 이정도만. 결재는 없어」 — 흐름 5칸, 할 일 상자 없음.
@@ -100,6 +103,23 @@ export function s02FactsOf(row: CaseListRow, flow: CaseFlow, imageCount: number,
     flipRefs: flow.ai?.flip ?? [],
   }
 }
+
+/** 사건 창 「결과 확인」 탭(S07 내용)에 넘기는 그 사건 값 — 판정 줄은 이미지 목록에서, 교차 검증 상태는 흐름 단계에서 */
+export function s07FactsOf(row: CaseListRow, flow: CaseFlow) {
+  const s = row.stage ?? -1
+  const crossReview: CrossReviewState = s < 0 ? "none" : s <= 1 ? "requested" : "done"
+  return {
+    aprthngNo: row.aprthngNo,
+    rows: makeConfirmRows(row),
+    crossReview,
+    /** 요청한 교차 검증자 이름(목록 행 값) — 요청 전이면 없음 */
+    crossReviewer: crossReview === "none" ? undefined : (row.crossReviewer ?? "김○○ 경사"),
+    lockedReason:
+      crossReview === "none" ? undefined : flow.currentStage >= 4 ? "교차 검증이 끝나 판정이 잠겼습니다" : "교차 검증 중에는 판정을 바꿀 수 없습니다",
+  }
+}
+
+export type S07Facts = ReturnType<typeof s07FactsOf>
 
 /** 고른 이미지 기준 탭 표시(사건 정보 = 사건 빈 칸 수, 결과 확인 = 사건 전체) */
 export function tabMarksOf(

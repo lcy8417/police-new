@@ -121,6 +121,10 @@
 | 확대 보기 칸 안 확대 그림 | LensView | 새로 | viewer — 확대경이 본 자리를 같은 배율로 고정 칸에(pointer-events-none 장식) |
 | 문양 코드 탭 · 신발 편집 · 검색 결과 · 정밀 대조 확대경(지름 최소 48 · 보는 자리 알림) | LensBox | 확장 | `onLensMove`(비율 좌표 · 상자 크기) — 좌표 계약 안 건드림 |
 | S01 사건 창 작업 탭 줄 오른쪽 끝 「+」(사건 찾아 열기 · 기능 열기 작은 메뉴, 최대 8개 까닭) | WorkTabAdd | 새로 | panel window — 찾기 칸 + 묶음 목록(값 · 콜백만), Esc · 바깥 누름 닫힘(11/17 사용자 「오른쪽에 + 버튼으로 기존 기능들이나 사건들 추가」) |
+| S01 사건 창 결과 확인 탭 이미지별 판정 표(먹색 작업판 — 썸네일 · 번호 · 검색 여부 · 판정 발견/불발견/감정불능 · 확인대상 신발 · 점수, R6) | ListHeadRow · ListRow · StatePill · WorkbenchButton · PaneHead | 그대로 | 그 사건 값(목록 행 · 이미지 목록)으로 줄을 만든다. 판정 = WorkbenchButton sm aria-pressed 세 개 |
+| S01 사건 창 결과 확인 탭 오른쪽 칸(사건 결론 · 교차 검증자 · 감정서) · 바닥 단추 줄(교차 검증 요청 · 감정서로) | PaneHead · WorkbenchButton · StatePill | 그대로 | 결재 단계 없음(11/16 사용자 「결재는 없어」) |
+| S01 사건 창 사건 정보 탭 「이미지 커팅 열기」 · 초기화 · 저장 · 적용 범위 「수정」(R6 단추 통일) | WorkbenchButton | 그대로 | 창 모드만 — 단독 진열 `/dev/s02` 는 SCAS kit Button 그대로 |
+| S00 로그인 · S13 사용자 관리 · S14 사용 기록 안쪽 정리(R6 — 큰 KPI 카드 · 설명 · 색 띠 줄임) | BoardFrame · BoardLid · LidChip · LidChipGroup · LidSearch · LidSeparator · LidResetLink · ListHeadRow · ListRow · ListNameCell · ListFoot · ListNote · StatePill · WorkbenchButton · PaneHead | 그대로 | 표는 사건관리 목록과 같은 로망 목록 표 부품. 기능(거르기 · 잠금 해제 · 비밀번호 초기화 · 권한 바꾸기 · 기록 거르기 · 세션 펼치기) 그대로 |
 
 ## 승인 (spec §8 「만들 부품」 표 = 사용자 승인)
 

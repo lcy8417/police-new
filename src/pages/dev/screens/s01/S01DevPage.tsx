@@ -22,7 +22,7 @@ import {
 } from "../frame"
 import { S02Content } from "../s02"
 import { CaseWindowUpload } from "./CaseWindowUpload"
-import { caseFlowOf, s02FactsOf, tabMarksOf } from "./case-flow"
+import { caseFlowOf, s02FactsOf, s07FactsOf, tabMarksOf } from "./case-flow"
 import { S03Content } from "../s03"
 import { S04Content } from "../s04"
 import { S05Content } from "../s05"
@@ -255,7 +255,7 @@ export function S01DevPage() {
       ) : win.tab === "compare" ? (
         <S06Content key={key} devCase="ready" imageNo={imageNo} go={windowGo} inWindow />
       ) : (
-        <S07Content key={key} devCase="ready" go={windowGo} />
+        <S07Content key={key} devCase="ready" go={windowGo} inWindow facts={s07FactsOf(openRow, flow)} />
       )
     // 작업 탭 줄 「+」(11/17 사용자 「오른쪽에 + 버튼으로 기존 기능들이나 사건들 추가」): 사건 찾아 열기 · 기능 열기
     const needleAdd = addQuery.trim().toLowerCase()
