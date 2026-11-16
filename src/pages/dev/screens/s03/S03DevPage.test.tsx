@@ -197,6 +197,15 @@ describe("S03DevPage — 시안 r2 신규 기능 · 연출", () => {
     for (const label of ["밝기", "대비", "감마", "임계값"]) expect(within(viewer).getByLabelText(label)).toBeInTheDocument()
     expect(screen.queryByText("AI 제안")).toBeNull()
     expect(screen.queryByText("발견 이미지 · 305659")).toBeNull()
+    // 시안 목업 설명 줄(A · 1차 작업 / B · 2차 작업)도 신규 연출 — 끄면 없다
+    expect(screen.queryByText(/A · 1차 작업 —/)).toBeNull()
+    expect(screen.queryByText(/B · 2차 작업 —/)).toBeNull()
+  })
+
+  it("신규 켜기(기본)면 시안 목업 설명 줄 A · B 가 보인다", () => {
+    renderAt("/dev/s03?case=ready")
+    expect(screen.getByText("A · 1차 작업 — 사건관리 팝업에서 족윤적 이미지를 누를 때")).toBeInTheDocument()
+    expect(screen.getByText("B · 2차 작업 — 검색 중 이미지를 두 번 누를 때")).toBeInTheDocument()
   })
 
   it("신규 켜기(기본)면 [data-plus] 가 있고 끄기와 달리 보인다", () => {

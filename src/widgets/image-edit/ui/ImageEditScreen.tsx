@@ -9,8 +9,13 @@ import { CuttingPane } from "./CuttingPane"
 import { ViewerPane } from "./ViewerPane"
 
 /** 시안 창 위 설명 글(`cap`) */
+// 시안 목업 설명 줄(「A · 1차 작업 — …」) — 신규 연출이라 `showPlus` 일 때만 보인다(운영 1차 모양에는 없음)
 function Caption({ children }: { children: React.ReactNode }) {
-  return <p className="m-0 px-[4px] font-code text-[11px] font-semibold tracking-[0.06em] text-fg-2">{children}</p>
+  return (
+    <p data-plus="" className="m-0 px-[4px] font-code text-[11px] font-semibold tracking-[0.06em] text-fg-2">
+      {children}
+    </p>
+  )
 }
 
 /**
@@ -52,7 +57,7 @@ export function ImageEditScreen(props: ImageEditScreenProps) {
       ) : null}
       <div className="grid min-w-0 items-start gap-[10px] xl:grid-cols-[minmax(0,650fr)_minmax(0,512fr)]">
         <div className="flex min-w-0 flex-col gap-[6px]">
-          <Caption>A · 1차 작업 — 사건관리 팝업에서 족윤적 이미지를 누를 때</Caption>
+          {showPlus ? <Caption>A · 1차 작업 — 사건관리 팝업에서 족윤적 이미지를 누를 때</Caption> : null}
           <Panel
             title={cuttingTitle}
             actions={
@@ -70,7 +75,7 @@ export function ImageEditScreen(props: ImageEditScreenProps) {
           </Panel>
         </div>
         <div className="flex min-w-0 flex-col gap-[6px]">
-          <Caption>B · 2차 작업 — 검색 중 이미지를 두 번 누를 때</Caption>
+          {showPlus ? <Caption>B · 2차 작업 — 검색 중 이미지를 두 번 누를 때</Caption> : null}
           <Panel
             title={showPlus && props.foundImage ? "이미지 뷰어 · 나란히" : "이미지 뷰어"}
             actions={
