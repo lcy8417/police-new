@@ -105,7 +105,11 @@ function S07WindowContent({ devCase, facts, go }: { devCase: S07ContentProps["de
   )
   const crossReview = requested && facts.crossReview === "none" ? "requested" : facts.crossReview
   // 요청 전이면 고를 수 있는 검증자 목록, 요청 뒤면 그 사람 이름 하나
-  const reviewers = facts.crossReviewer ? [{ value: "assigned", label: facts.crossReviewer }] : REVIEWERS
+  // 판정한 본인은 교차 검증자로 고를 수 없다(DB §5-C — 1회차 검수)
+  const me = viewer.who.split(" ")[0]
+  const reviewers = facts.crossReviewer
+    ? [{ value: "assigned", label: facts.crossReviewer }]
+    : REVIEWERS.filter((r) => !r.label.startsWith(me))
   return (
     <ConfirmWindow
       status={devCase === "empty" ? "ready" : devCase}

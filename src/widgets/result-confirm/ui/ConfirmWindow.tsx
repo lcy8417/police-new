@@ -23,6 +23,7 @@ const OPTIONS: readonly Judgement[] = ["found", "notFound", "unable"]
 /** 표 칸 폭 — 머리 줄과 줄이 같이 쓴다 */
 const COLS = "grid grid-cols-[112px_92px_minmax(164px,1.1fr)_minmax(120px,1fr)_56px_24px] gap-x-2.5"
 const NOT_SEARCHED = "검색하지 않은 이미지는 발견 판정을 할 수 없습니다"
+const NO_SHOE = "확인대상 신발이 없어 발견 판정을 할 수 없습니다 — 정밀 대조에서 확인대상을 정하세요"
 
 const CROSS_PILL: Record<CrossReviewState, { tone: "pending" | "fact" | "done"; text: string }> = {
   none: { tone: "pending", text: "요청 전" },
@@ -76,7 +77,10 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
     return (
       <span role="group" aria-label={`_${row.no} 판정`} className="inline-flex items-center gap-[2px]">
         {OPTIONS.map((j) => {
-          const blocked = j === "found" && row.searchNo === null
+          // 발견 = 확인대상(또는 후보) 신발이 있어야 한다(DB 판정 제약 §5-C — 1회차 검수). 불발견 · 감정불능은 신발 없이도
+          const notSearched = j === "found" && row.searchNo === null
+          const noShoe = j === "found" && !notSearched && row.shoe === null
+          const blocked = notSearched || noShoe
           return (
             <WorkbenchButton
               key={j}
@@ -84,7 +88,7 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
               variant="ghost"
               aria-pressed={row.judgement === j}
               disabled={locked || blocked}
-              title={blocked ? NOT_SEARCHED : (lockedReason ?? undefined)}
+              title={notSearched ? NOT_SEARCHED : noShoe ? NO_SHOE : (lockedReason ?? undefined)}
               onClick={() => props.onJudgementChange?.(row, j)}
             >
               {JUDGEMENT_LABEL[j]}

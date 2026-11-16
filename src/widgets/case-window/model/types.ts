@@ -98,6 +98,11 @@ export interface CaseWindowProps {
   menu?: readonly CaseWindowMenuItem[]
   /** 왼쪽 목록 맨 아래(사진 추가 · 끌어 놓기) */
   railFooter?: ReactNode
+  /**
+   * 보일 작업 탭(권한별 — 1회차 검수). 없으면 6개 모두. 수사관은 검색 · 대조 · 판정 권한이 없어 「사건 정보」만
+   * (DB 설계서 §2-1.4 · §6 — 진행 상태 · 자기가 올린 이미지만).
+   */
+  visibleTabs?: readonly CaseWindowTab[]
   /** 본문 — 고른 탭의 화면 내용(부르는 쪽이 넣는다) */
   children: ReactNode
 }

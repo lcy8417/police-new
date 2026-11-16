@@ -25,6 +25,7 @@ import {
   type WorkStore,
 } from "../frame"
 import { sampleSoleUrl } from "../mock-assets/sample-images"
+import { S05_RUN_NO_FIELD } from "../s05/mock-cases"
 import { CONFIRM_TARGET_FIELD, type ConfirmTarget } from "../s06"
 import { S02Content } from "../s02"
 import { CaseWindowUpload } from "./CaseWindowUpload"
@@ -99,7 +100,14 @@ export function S01DevPage() {
   const [rowHeight, setRowHeight] = useRememberedState<CaseListRowHeight>("s01", "rowHeight", "보통", isRowHeight)
 
   // 11/17 사용자 「상세 검색은 그냥 필터로 대체될 거 같은데」: SCAS 검색 양식은 뺐다 — 전체 사건 안에서 막대 찾기 · 뚜껑 칩으로만 거른다
-  const matched = allRows
+  // 수사관(사건 조회 CRIME_SEARCH 없이 진행 상태 조회 CASE_STATUS_VIEW 만): 자기 관서가 의뢰한 사건만(DB 설계서 §2-1.4 · §6 — 1회차 검수)
+  const canSearch = viewer.isAdmin || viewer.features.includes(FEATURES.CRIME_SEARCH)
+  const statusOnly = !canSearch && viewer.features.includes(FEATURES.CASE_STATUS_VIEW)
+  const myOffice = viewer.org.split(" ")[0]
+  const matched = React.useMemo(
+    () => (statusOnly ? allRows.filter((r) => r.requestOffice === myOffice) : allRows),
+    [allRows, statusOnly, myOffice],
+  )
 
   // 빠른 찾기: 위 막대 「바로 찾기」 글자 + 뚜껑 칩
   const me = viewer.who.split(" ")[0]
@@ -178,17 +186,23 @@ export function S01DevPage() {
   // 작업 탭 줄 「+」 메뉴 찾기 칸
   const [addQuery, setAddQuery] = React.useState("")
   // 신발 DB 슬라이드 패널(11/17 — 위 막대 「신발 DB」, `?shoe=1`). 열려 있으면 사건 창은 그 뒤에 숨는다(닫으면 다시 보임)
-  const shoeOpen = params.get("shoe") === "1"
+  // 신발 DB 는 신발 조회(SHOE_VIEW) 권한이 있어야 연다 — 수사관은 주소로 열어도 안 열림(1회차 검수)
+  const shoeInfo = devScreen("s10")
+  const canShoe = !shoeInfo.feature || viewer.isAdmin || viewer.features.includes(shoeInfo.feature)
+  const shoeOpen = params.get("shoe") === "1" && canShoe
   const closeShoe = () => {
     const next = new URLSearchParams(params)
     next.delete("shoe")
     setParams(next)
   }
-  const win = shoeOpen ? null : readCaseWindow(params)
+  const rawWin = shoeOpen ? null : readCaseWindow(params)
+  // 수사관은 「사건 정보」(진행 상태 · 자기가 올린 이미지)만 — 이미지 편집 · 문양 · 검색 · 대조 · 판정 탭은 없다(주소로 와도 사건 정보로)
+  const win: CaseWindowQuery | null = rawWin && statusOnly && rawWin.tab !== "info" ? { ...rawWin, tab: "info" } : rawWin
   // 사건 창 작업 보관함(1회차 검수 — 탭을 옮겨도 문양 · 가중치 · 검색 이력 · 확인대상 · 판정 · 편집 이력이 남게).
   // 본문(S02–S07 내용)은 탭마다 새로 그려지므로 작업 값은 여기(S01)가 사건 · 이미지별로 든다(frame/work-memory)
   const [workStore] = React.useState<WorkStore>(() => new Map())
-  const rowOf = (no: string) => allRows.find((r) => r.aprthngNo === no)
+  // 볼 수 있는 사건만 창으로 연다(수사관은 다른 관서 사건을 주소로 열어도 안 열림)
+  const rowOf = (no: string) => matched.find((r) => r.aprthngNo === no)
   const imagesOf = (no: string) => {
     const row = rowOf(no)
     return row ? makeCaseImages(row) : []
@@ -264,8 +278,11 @@ export function S01DevPage() {
       rows: baseFacts.rows.map((r) => {
         const t = readWork<ConfirmTarget>(workStore, imageScope(win.open, r.no), CONFIRM_TARGET_FIELD)
         if (!t) return r
+        // 그 장에서 결과 탭이 본 검색번호가 있으면 그 번호(검색한 장 — 발견 판정 가능)
+        const runNo = readWork<number>(workStore, imageScope(win.open, r.no), S05_RUN_NO_FIELD)
         return {
           ...r,
+          searchNo: runNo !== undefined ? String(runNo) : r.searchNo,
           shoe: {
             ftwrId: t.ftwrId,
             image: sampleSoleUrl(t.ftwrId, { kind: "shoe" }),
@@ -302,9 +319,7 @@ export function S01DevPage() {
     // 작업 탭 줄 「+」(11/17 사용자 「오른쪽에 + 버튼으로 기존 기능들이나 사건들 추가」): 사건 찾아 열기 · 기능 열기
     const needleAdd = addQuery.trim().toLowerCase()
     const full = win.tabs.length >= MAX_OPEN_CASES
-    const caseHits = (needleAdd === "" ? allRows : allRows.filter((r) => [r.aprthngNo, r.docNo, r.caseName].some((t) => t.toLowerCase().includes(needleAdd)))).slice(0, 6)
-    const shoeInfo = devScreen("s10")
-    const canShoe = !shoeInfo.feature || viewer.isAdmin || viewer.features.includes(shoeInfo.feature)
+    const caseHits = (needleAdd === "" ? matched : matched.filter((r) => [r.aprthngNo, r.docNo, r.caseName].some((t) => t.toLowerCase().includes(needleAdd)))).slice(0, 6)
     const tabAdd = (
       <WorkTabAdd
         label="탭 추가"
@@ -386,6 +401,7 @@ export function S01DevPage() {
         images={images}
         selectedImage={img}
         tab={win.tab}
+        visibleTabs={statusOnly ? ["info"] : undefined}
         openCases={win.tabs.map((no) => ({ aprthngNo: no, caseName: rowOf(no)?.caseName ?? "" }))}
         openCasesFull={win.tabs.length >= MAX_OPEN_CASES ? OPEN_CASES_FULL : undefined}
         prevOff={!prev}

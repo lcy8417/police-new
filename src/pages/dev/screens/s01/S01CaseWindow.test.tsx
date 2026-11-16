@@ -466,6 +466,20 @@ describe("S01 사건 창", () => {
     expect(within(row.parentElement as HTMLElement).getByText("02219")).toBeInTheDocument()
   })
 
+  it("1회차 검수 — 수사관은 자기 관서(대구청) 의뢰만 열리고, 창은 「사건 정보」 탭만, 신발 DB 패널은 주소로도 안 열림", () => {
+    // 0647 은 경북청 의뢰 — 수사관(대구청)은 목록 · 창 모두 안 보임
+    const other = renderAt("/dev/s01?case=ready&as=investigator&open=00001-25-0647&tab=info")
+    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(screen.queryByText("00001-25-0647")).toBeNull()
+    other.unmount()
+    // 0649 는 대구청 — 열리지만 검색 결과 탭 주소로 와도 사건 정보만
+    renderAt("/dev/s01?case=ready&as=investigator&open=00001-25-0649&img=1&tab=search&shoe=1")
+    const tabs = within(dialog().closest('[data-slot="case-window-tabbed"]') as HTMLElement)
+    expect(tabs.getByRole("tab", { name: /사건 정보/ })).toHaveAttribute("aria-selected", "true")
+    for (const name of [/이미지 편집/, /문양 코드/, /검색 결과/, /정밀 대조/, /결과 확인/]) expect(tabs.queryByRole("tab", { name })).toBeNull()
+    expect(screen.queryByRole("dialog", { name: "신발 DB" })).toBeNull()
+  })
+
   it("1회차 검수 — 사건 · 이미지를 바꾸면 앞 이미지의 검색 문맥(ftwr · rank · run)을 지운다", () => {
     renderAt("/dev/s01?case=ready&open=00001-25-0649&img=1&tab=search&run=572419&ftwr=00758&rank=1")
     fireEvent.click(screen.getByRole("navigation", { name: /현장 이미지/ }).querySelectorAll('[data-slot="window-rail-item"]')[2])

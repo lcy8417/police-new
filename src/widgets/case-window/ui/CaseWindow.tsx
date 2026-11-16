@@ -74,6 +74,7 @@ export function CaseWindow({
   tabMarks,
   menu,
   railFooter,
+  visibleTabs,
   children,
 }: CaseWindowProps) {
   const baseId = React.useId()
@@ -130,7 +131,7 @@ export function CaseWindow({
     const m = tabMarks?.[key]
     return m ? <TabMark kind={m.kind} count={m.count} /> : null
   }
-  const tabList: [CaseWindowTab, React.ReactNode][] = [
+  const allTabs: [CaseWindowTab, React.ReactNode][] = [
     ...IMAGE_TABS.map((t): [CaseWindowTab, React.ReactNode] => [
       t.key,
       <>
@@ -148,6 +149,8 @@ export function CaseWindow({
       </>,
     ],
   ]
+  // 권한에 없는 작업 탭은 그리지 않는다(쓰는 쪽이 지금 탭도 보이는 탭으로 맞춰 넘긴다)
+  const tabList = visibleTabs ? allTabs.filter(([key]) => visibleTabs.includes(key)) : allTabs
 
   return (
     <CaseWindowFrame

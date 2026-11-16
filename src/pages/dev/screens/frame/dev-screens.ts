@@ -38,7 +38,8 @@ export interface DevScreenInfo {
 
 export const DEV_SCREENS: readonly DevScreenInfo[] = [
   { id: "s00", screen: "S00", title: "로그인", cases: SCREEN_CASES.s00, defaultViewer: "analyst" },
-  { id: "s01", screen: "S01", title: "사건관리", cases: SCREEN_CASES.s01, feature: FEATURES.CRIME_SEARCH, defaultViewer: "analyst" },
+  // 사건관리 목록은 진행 상태 조회(CASE_STATUS_VIEW)로 연다 — 수사관도 자기 관서 의뢰의 진행을 본다(DB 설계서 §5-A · 1회차 검수)
+  { id: "s01", screen: "S01", title: "사건관리", cases: SCREEN_CASES.s01, feature: FEATURES.CASE_STATUS_VIEW, defaultViewer: "analyst" },
   { id: "s02", screen: "S02", title: "사건 상세", cases: SCREEN_CASES.s02, feature: FEATURES.CRIME_SEARCH, defaultViewer: "analyst" },
   { id: "s03", screen: "S03", title: "이미지 편집", cases: SCREEN_CASES.s03, feature: FEATURES.CRIME_SEARCH, defaultViewer: "analyst" },
   { id: "s04", screen: "S04", title: "문양 코드", cases: SCREEN_CASES.s04, feature: FEATURES.CRIME_SEARCH, defaultViewer: "analyst" },
