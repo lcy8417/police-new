@@ -7,7 +7,15 @@ export type {
   OverviewCount,
   RoleShareTone,
   ShoeDuty,
-  UsersFilterSummary,
+  UsersFilterProps,
   UserDialogState,
   UserDraft,
 } from "./model/types"
+export {
+  EMPTY_USER_FILTER,
+  USER_COLUMNS,
+  filterUsers,
+  isUserFilterActive,
+  userFilterGroups,
+  type UserFilterValue,
+} from "./model/user-filter"

@@ -4,7 +4,18 @@ import { toast } from "sonner"
 import type { AdminUser } from "@/entities/admin"
 import { passwordRuleError } from "@/entities/session"
 import { USER_FORM_MESSAGES, USER_ID_PATTERN } from "@/features/admin-users"
-import { AdminUsersScreen, type ShoeDuty, type UserDialogState, type UserDraft } from "@/widgets/admin-users-screen"
+import {
+  AdminUsersScreen,
+  EMPTY_USER_FILTER,
+  USER_COLUMNS,
+  filterUsers,
+  userFilterGroups,
+  type ShoeDuty,
+  type UserDialogState,
+  type UserDraft,
+  type UserFilterValue,
+  type UsersFilterProps,
+} from "@/widgets/admin-users-screen"
 
 import { devScreen, DevScreenFrame, SCREEN_CASES, useDevCase, useDevPlus, useDevViewer } from "../frame"
 import {
@@ -13,7 +24,6 @@ import {
   MOCK_DUTIES,
   MOCK_DUTY_ROLE_CODES,
   MOCK_FEATURES,
-  MOCK_FILTER_SUMMARY,
   MOCK_LOGIN_META,
   MOCK_ORGS,
   MOCK_OVERVIEW,
@@ -33,7 +43,8 @@ export function S13DevPage() {
   const viewer = useDevViewer()
   const plus = useDevPlus()
   const [duties, setDuties] = useState<Record<string, ShoeDuty[]>>(MOCK_DUTIES)
-  const [query, setQuery] = useState("")
+  const [filter, setFilter] = useState<UserFilterValue>(EMPTY_USER_FILTER)
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(USER_COLUMNS.map((c) => c.key))
   const [users, setUsers] = useState<AdminUser[]>(MOCK_USERS)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(MOCK_USERS[0].userId)
   const [edits, setEdits] = useState<Record<string, Partial<UserDraft>>>({})
@@ -74,9 +85,17 @@ export function S13DevPage() {
   }
 
   const status = activeCase
-  // 아이디 · 이름 검색(신규 필터 칸) — 신규를 끄면 걸지 않는다
-  const q = plus ? query.trim().toLowerCase() : ""
-  const rows = status === "empty" ? [] : users.filter((u) => !q || u.userId.toLowerCase().includes(q) || u.userNm.toLowerCase().includes(q))
+  // r3: 아이디·이름 검색 + 역할 · 신발 DB · 상태 거르기(신규 아님 — plus 와 무관). 신발 DB 묶음만 신규 개념이라 plus 일 때
+  const activeFilter = plus ? filter : { ...filter, groups: { ...filter.groups, duty: [] } }
+  const rows = status === "empty" ? [] : filterUsers(users, duties, activeFilter)
+  const filterProps: UsersFilterProps = {
+    query: filter.query,
+    onQueryChange: (query) => setFilter((f) => ({ ...f, query })),
+    groups: userFilterGroups(users, MOCK_ROLES, duties, activeFilter, plus),
+    onGroupChange: (key, values) => setFilter((f) => ({ ...f, groups: { ...f.groups, [key]: values } })),
+    onClear: () => setFilter(EMPTY_USER_FILTER),
+    total: status === "empty" ? 0 : users.length,
+  }
 
   return (
     <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
@@ -92,9 +111,9 @@ export function S13DevPage() {
         }}
         dutyRoleCodes={MOCK_DUTY_ROLE_CODES}
         presetHint={MOCK_PRESET_HINT}
-        filterSummary={MOCK_FILTER_SUMMARY}
-        userQuery={query}
-        onUserQueryChange={setQuery}
+        filter={filterProps}
+        visibleColumns={visibleColumns}
+        onVisibleColumnsChange={setVisibleColumns}
         onOpenOrgFilter={() => toast("시안 — 기능 준비 중")}
         loginMeta={MOCK_LOGIN_META}
         overview={MOCK_OVERVIEW}

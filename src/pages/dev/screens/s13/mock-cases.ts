@@ -1,6 +1,6 @@
 import type { AdminUser, FeatureInfo, Org, RoleInfo } from "@/entities/admin"
 import { FEATURE_LABELS, FEATURE_ORDER, FEATURES } from "@/entities/session"
-import type { AdminHistoryRow, AdminUsersOverview, ShoeDuty, UsersFilterSummary } from "@/widgets/admin-users-screen"
+import type { AdminHistoryRow, AdminUsersOverview, ShoeDuty } from "@/widgets/admin-users-screen"
 
 // S13 사용자 관리 진열용 가짜 값. 이름은 가렸고(박○○), 기능 목록은 서버 `GET /admin/features` 모양 12종 그대로.
 
@@ -95,27 +95,6 @@ export const MOCK_DUTY_ROLE_CODES = ["EXAMINER"]
 
 /** 역할 프리셋 설명(시안) */
 export const MOCK_PRESET_HINT = "감정관 = 검색·판단·교차 검증·감정서 작성 / 기술책임자 = 감정서 결재"
-
-/** 위 필터 칸 칩 숫자(시안 — 전체 38명 기준) */
-export const MOCK_FILTER_SUMMARY: UsersFilterSummary = {
-  roles: [
-    { label: "전체", count: 38, tone: "blue" },
-    { label: "수사관", count: 18 },
-    { label: "감정관", count: 14 },
-    { label: "기술책임자", count: 3, tone: "violet" },
-    { label: "관리자", count: 3 },
-  ],
-  duties: [
-    { label: "등록", count: 1 },
-    { label: "문양 입력", count: 3 },
-    { label: "승인", count: 1 },
-  ],
-  states: [
-    { label: "사용", count: 34, tone: "green" },
-    { label: "잠금", count: 1, tone: "amber" },
-    { label: "중지", count: 3 },
-  ],
-}
 
 /** 상세 머리 「PC · 그 뒤 실패 n회」(시안 park0412 = 10.14.43.*** · 0회, 나머지는 S14 로그인 기록과 같은 값) */
 export const MOCK_LOGIN_META: Record<string, { ip: string; failCount: number }> = {

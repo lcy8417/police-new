@@ -231,16 +231,47 @@ describe("S13 사용자 관리 — r2 시안 구성", () => {
     expect(within(presets).getAllByRole("row")).toHaveLength(1 + 6 + 1 + 3)
   })
 
-  it("필터 칸(검색 · 역할 · 신발 DB · 상태 칩)과 검색으로 표가 걸러진다", () => {
+  it("r3 거르기 줄: 검색 · 역할 · 신발 DB · 상태 묶음이 있고 검색으로 표가 걸러진다", () => {
     admin("ready")
-    const filter = screen.getByRole("search", { name: "사용자 거르기" })
-    for (const t of ["전체 38", "기술책임자 3", "문양 입력 3", "승인 1", "사용 34", "잠금 1", "중지 3"]) {
-      expect(within(filter).getByText(t)).toBeInTheDocument()
-    }
-    fireEvent.change(within(filter).getByLabelText("아이디·이름 검색"), { target: { value: "jang" } })
+    const filter = screen.getByRole("search")
+    for (const g of ["역할", "신발 DB", "상태"]) expect(within(filter).getByRole("group", { name: g })).toBeInTheDocument()
+    fireEvent.change(within(filter).getByLabelText("검색어"), { target: { value: "jang" } })
     const grid = screen.getByRole("region", { name: "사용자 목록" })
     expect(within(grid).getByText("jang0105")).toBeInTheDocument()
     expect(within(grid).queryByText("park0412")).toBeNull()
+  })
+
+  it("r3 상태 · 역할 칩으로 걸러지고, 0건이면 「조건에 맞는 항목 없음」과 「조건 지우기」", () => {
+    admin("ready")
+    const filter = screen.getByRole("search")
+    const grid = screen.getByRole("region", { name: "사용자 목록" })
+    fireEvent.click(within(within(filter).getByRole("group", { name: "상태" })).getByRole("button", { name: /잠금/ }))
+    expect(within(grid).getByText("lee0508")).toBeInTheDocument()
+    expect(within(grid).queryByText("park0412")).toBeNull()
+    fireEvent.click(within(within(filter).getByRole("group", { name: "역할" })).getByRole("button", { name: /기술책임자/ }))
+    // 잠금 AND 기술책임자 = 없음
+    expect(within(grid).getByText("조건에 맞는 항목 없음")).toBeInTheDocument()
+    expect(within(grid).queryByText("결과 없음")).toBeNull()
+    fireEvent.click(within(grid).getByRole("button", { name: "조건 지우기" }))
+    expect(within(grid).getByText("park0412")).toBeInTheDocument()
+  })
+
+  it("r3 ?plus=0 에서도 거르기 줄이 보이고 신발 DB 묶음만 없다", () => {
+    renderAt("?case=ready&as=admin&plus=0")
+    const filter = screen.getByRole("search")
+    expect(within(filter).getByRole("group", { name: "역할" })).toBeInTheDocument()
+    expect(within(filter).queryByRole("group", { name: "신발 DB" })).toBeNull()
+  })
+
+  it("r3 열 선택: 아이디는 고정, 끄면 열이 빠지고 순서는 그대로", () => {
+    admin("ready")
+    const grid = screen.getByRole("region", { name: "사용자 목록" })
+    fireEvent.click(within(grid).getByRole("button", { name: /열 선택/ }))
+    expect(within(grid).getByRole("checkbox", { name: /아이디/ })).toBeDisabled()
+    fireEvent.click(within(grid).getByRole("checkbox", { name: /소속 관서/ }))
+    expect(within(grid).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["아이디", "이름", "구분(역할)", "상태", "마지막 로그인"])
+    fireEvent.click(within(grid).getByRole("checkbox", { name: /소속 관서/ }))
+    expect(within(grid).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["아이디", "이름", "구분(역할)", "소속 관서", "상태", "마지막 로그인"])
   })
 
   it("표 구분 아래 신발 DB 담당 ◇ 칩 · 「소속 관서 · 전체」 · 상세 머리 「그 뒤 실패 n회」", () => {

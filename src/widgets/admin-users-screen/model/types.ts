@@ -1,5 +1,6 @@
 import type { AdminUser, FeatureInfo, Org, RoleCode, RoleInfo } from "@/entities/admin"
 import type { FeatureCode, UserSe } from "@/entities/session"
+import type { FilterGroup } from "@/shared/ui/kit"
 import type { ScreenStatus } from "@/shared/lib/screen-status"
 
 /** 선택한 사용자의 아직 저장하지 않은 편집 값(제어형 — 보관은 쓰는 쪽) */
@@ -74,11 +75,15 @@ export interface AdminHistoryRow {
 /** 신발 DB 분업 중 서버 기능 코드가 아직 없는 둘(시안 코드). 신발 등록은 서버 기능 SHOE_EDIT 그대로 */
 export type ShoeDuty = "SHOE_PATTERN" | "SHOE_APPROVE"
 
-/** 위 필터 칸의 칩 숫자(시안 핀 — 전체 계정 기준 집계) */
-export interface UsersFilterSummary {
-  roles: { label: string; count: number; tone?: "blue" | "violet" }[]
-  duties: { label: string; count: number }[]
-  states: { label: string; count: number; tone?: "green" | "amber" }[]
+/** 사용자 표 위 거르기 줄(r3) — 값은 제어형, 걸러진 `users` 는 쓰는 쪽이 넘긴다 */
+export interface UsersFilterProps {
+  query: string
+  onQueryChange: (query: string) => void
+  groups: FilterGroup[]
+  onGroupChange: (key: string, values: string[]) => void
+  onClear: () => void
+  /** 걸러지기 전 전체 사용자 수 */
+  total: number
 }
 
 export interface AdminUsersScreenProps {
@@ -92,11 +97,11 @@ export interface AdminUsersScreenProps {
   dutyRoleCodes?: string[]
   /** 역할 프리셋 줄 아래 설명(시안 「감정관 = … / 기술책임자 = …」) */
   presetHint?: string
-  /** 위 필터 칸 칩 숫자 */
-  filterSummary?: UsersFilterSummary | null
-  /** 아이디 · 이름 검색어(제어형) */
-  userQuery?: string
-  onUserQueryChange?: (value: string) => void
+  /** 거르기 줄(r3, 신규 아님 — plus 와 무관하게 보임). 없으면 줄을 그리지 않는다 */
+  filter?: UsersFilterProps
+  /** 사용자 표에 보일 열 key(r3, 제어형). 없으면 전부 */
+  visibleColumns?: string[]
+  onVisibleColumnsChange?: (keys: string[]) => void
   /** 사용자 표 머리 「소속 관서 · 전체 ▾」 */
   onOpenOrgFilter?: () => void
   /** 상세 머리 「PC 주소 · 그 뒤 실패 n회」 — 사용자 ID → 값 */

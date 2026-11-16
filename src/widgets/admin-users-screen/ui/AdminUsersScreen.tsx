@@ -2,15 +2,15 @@ import { UserPlus } from "lucide-react"
 
 import type { AdminUser } from "@/entities/admin"
 import { formatKstDateTime } from "@/shared/lib"
-import { Button, Chip, DataGrid, InlineError, type DataGridColumn } from "@/shared/ui/kit"
+import { Button, Chip, ColumnPicker, DataGrid, FilterBar, InlineError, type DataGridColumn } from "@/shared/ui/kit"
 import { ButtonBar, Crumb, PageHead, Panel } from "@/shared/ui/panel"
 
 import { DUTY_COLUMNS, dutiesOf } from "../model/effective-permissions"
 import type { AdminUsersScreenProps } from "../model/types"
+import { USER_COLUMNS } from "../model/user-filter"
 import { AdminHistory, EffectivePermissions, RolePresetTable } from "./PermissionPanels"
 import { UserDetail } from "./UserDetail"
 import { UserDialogs } from "./UserDialogs"
-import { UsersFilterPanel } from "./UsersFilterPanel"
 import { UsersOverviewTiles } from "./UsersOverviewTiles"
 import { UserStatusChip } from "./UserStatusChip"
 
@@ -70,6 +70,11 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
     },
   ]
 
+  const visibleKeys = new Set(props.visibleColumns ?? USER_COLUMNS.map((c) => c.key))
+  const shownColumns = columns.filter((c) => c.key === "userId" || visibleKeys.has(c.key))
+  const filter = props.filter
+  const filterActive = filter ? filter.query.trim() !== "" || filter.groups.some((g) => g.value.length > 0) : false
+
   const selected = users.find((u) => u.userId === props.selectedUserId) ?? null
 
   const list = (() => {
@@ -84,10 +89,23 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
         </div>
       )
     }
+    if (status === "ready" && filter && filterActive && users.length === 0) {
+      // 거른 결과 0건 — 조회 실패(InlineError) · 데이터 없음(결과 없음)과 다른 모양
+      return (
+        <div className="px-[14px] py-[28px] text-center">
+          <p role="status" className="m-0 mb-[8px] text-[12.5px] text-dim">
+            조건에 맞는 항목 없음
+          </p>
+          <Button size="sm" onClick={filter.onClear}>
+            조건 지우기
+          </Button>
+        </div>
+      )
+    }
     return (
       <div className="overflow-x-auto">
         <DataGrid
-          columns={columns}
+          columns={shownColumns}
           rows={status === "empty" ? [] : users}
           rowKey={(u) => u.userId}
           selectedKey={props.selectedUserId ?? undefined}
@@ -122,7 +140,22 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
         }
       />
       {showPlus && ready && props.overview && <UsersOverviewTiles overview={props.overview} />}
-      {showPlus && <UsersFilterPanel summary={props.filterSummary ?? null} query={props.userQuery ?? ""} onQueryChange={props.onUserQueryChange} />}
+      {filter && (
+        <Panel aria-label="사용자 거르기" className="mb-[12px]">
+          <div className="px-[14px] py-[10px]">
+            <FilterBar
+              query={filter.query}
+              onQueryChange={filter.onQueryChange}
+              filters={filter.groups}
+              onFilterChange={filter.onGroupChange}
+              onClear={filter.onClear}
+              resultCount={ready ? users.length : undefined}
+              total={ready ? filter.total : undefined}
+              searchPlaceholder="아이디·이름"
+            />
+          </div>
+        </Panel>
+      )}
       <div className="grid items-start gap-[12px] xl:grid-cols-[minmax(0,640px)_minmax(0,1fr)]">
         <div className="grid min-w-0 gap-[12px]">
         <section aria-label="사용자 목록" className="min-w-0">
@@ -142,6 +175,11 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
                     </Button>
                   </span>
                 )}
+                <ColumnPicker
+                  columns={USER_COLUMNS}
+                  visible={props.visibleColumns ?? USER_COLUMNS.map((c) => c.key)}
+                  onChange={(keys) => props.onVisibleColumnsChange?.(keys)}
+                />
                 <ButtonBar>
                   <Button size="sm" variant="pri" disabled={status === "loading"} onClick={() => props.onDialogChange({ kind: "create", draft: { userId: "", userNm: "", userSe: "USER", initialPassword: "", features: [] }, error: null })}>
                     <UserPlus aria-hidden="true" className="size-[12px]" />
