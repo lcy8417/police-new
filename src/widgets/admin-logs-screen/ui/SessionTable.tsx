@@ -17,15 +17,15 @@ const LOGOUT_REASON_LABELS: Record<LogoutReason, string> = {
   PASSWORD_RESET: "비밀번호 초기화",
 }
 
-const COLUMNS = [
-  { label: "", right: false },
-  { label: "사용자", right: false },
-  { label: "로그인", right: false },
-  { label: "로그아웃", right: false },
-  { label: "종료 사유", right: false },
-  { label: "IP", right: false },
-  { label: "이벤트 수", right: true },
-  { label: "실패 수", right: true },
+const ALL_COLUMNS = [
+  { key: "expand", label: "", right: false },
+  { key: "user", label: "사용자", right: false },
+  { key: "login", label: "로그인", right: false },
+  { key: "logout", label: "로그아웃", right: false },
+  { key: "reason", label: "종료 사유", right: false },
+  { key: "ip", label: "IP", right: false },
+  { key: "events", label: "이벤트 수", right: true },
+  { key: "fails", label: "실패 수", right: true },
 ]
 
 const TH = "h-[34px] border-b border-solid border-border bg-strip px-[10px] text-[11.5px] font-semibold whitespace-nowrap text-muted-foreground"
@@ -37,22 +37,28 @@ interface SessionTableProps {
   onRetryTimeline: (sessionId: string) => void
   expandedSessionIds: string[]
   onToggleSession: (sessionId: string, open: boolean) => void
+  /** 보일 열 key(r3). 없으면 전부. 펼침 칸 · 사용자는 항상 보인다 */
+  visibleColumns?: string[]
+  /** 빈 표 글자(거른 결과 0건 안내는 쓰는 쪽이 따로 그린다) */
+  emptyText?: string
 }
 
 /**
  * 로그인 기록 표. DataGrid 에는 행 펼침이 없어(노트에 요청) 같은 토큰으로 이 화면 안에서 그린다.
  * 펼침은 펼칠 때 기능 기록을 불러와야 해서 제어형(expandedSessionIds + onToggleSession)이다.
  */
-export function SessionTable({ sessions, timelines, onRetryTimeline, expandedSessionIds, onToggleSession }: SessionTableProps) {
+export function SessionTable({ sessions, timelines, onRetryTimeline, expandedSessionIds, onToggleSession, visibleColumns, emptyText = "결과 없음" }: SessionTableProps) {
   const expanded = new Set(expandedSessionIds)
+  const COLUMNS = ALL_COLUMNS.filter((c) => c.key === "expand" || c.key === "user" || !visibleColumns || visibleColumns.includes(c.key))
+  const show = (key: string) => COLUMNS.some((c) => c.key === key)
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-[12.5px]">
         <thead>
           <tr>
-            {COLUMNS.map((c, i) => (
-              <th key={i} scope="col" className={cn(TH, c.right ? "text-right" : "text-left")}>
+            {COLUMNS.map((c) => (
+              <th key={c.key} scope="col" className={cn(TH, c.right ? "text-right" : "text-left")}>
                 {c.label}
               </th>
             ))}
@@ -62,7 +68,7 @@ export function SessionTable({ sessions, timelines, onRetryTimeline, expandedSes
           {sessions.length === 0 ? (
             <tr>
               <td colSpan={COLUMNS.length} className="h-[44px] border-b border-solid border-line-2 text-center text-muted-foreground">
-                결과 없음
+                {emptyText}
               </td>
             </tr>
           ) : (
@@ -86,18 +92,20 @@ export function SessionTable({ sessions, timelines, onRetryTimeline, expandedSes
                       <span className="break-all text-foreground">{s.userNm}</span>{" "}
                       <span className="font-code text-[11.5px] break-all text-dim">{s.userId}</span>
                     </td>
-                    <td className={cn(TD, "font-code text-[12px] whitespace-nowrap tabular-nums")}>{formatKstDateTime(s.loginDt)}</td>
-                    <td className={cn(TD, "whitespace-nowrap")}>
-                      {s.logoutDt ? (
-                        <span className="font-code text-[12px] tabular-nums">{formatKstDateTime(s.logoutDt)}</span>
-                      ) : (
-                        <Chip className="border-ok-line bg-ok-bg text-ok-fg">사용 중</Chip>
-                      )}
-                    </td>
-                    <td className={cn(TD, "whitespace-nowrap text-muted-foreground")}>{s.logoutReason ? LOGOUT_REASON_LABELS[s.logoutReason] : "—"}</td>
-                    <td className={cn(TD, "h-auto py-[6px] font-code text-[12px] whitespace-normal break-all text-muted-foreground")}>{s.ipAddr ?? "—"}</td>
-                    <td className={cn(TD, "text-right font-code tabular-nums")}>{s.eventCnt}</td>
-                    <td className={cn(TD, "text-right font-code tabular-nums", s.failCnt > 0 ? "font-semibold text-danger" : "text-faint")}>{s.failCnt}</td>
+                    {show("login") && <td className={cn(TD, "font-code text-[12px] whitespace-nowrap tabular-nums")}>{formatKstDateTime(s.loginDt)}</td>}
+                    {show("logout") && (
+                      <td className={cn(TD, "whitespace-nowrap")}>
+                        {s.logoutDt ? (
+                          <span className="font-code text-[12px] tabular-nums">{formatKstDateTime(s.logoutDt)}</span>
+                        ) : (
+                          <Chip className="border-ok-line bg-ok-bg text-ok-fg">사용 중</Chip>
+                        )}
+                      </td>
+                    )}
+                    {show("reason") && <td className={cn(TD, "whitespace-nowrap text-muted-foreground")}>{s.logoutReason ? LOGOUT_REASON_LABELS[s.logoutReason] : "—"}</td>}
+                    {show("ip") && <td className={cn(TD, "h-auto py-[6px] font-code text-[12px] whitespace-normal break-all text-muted-foreground")}>{s.ipAddr ?? "—"}</td>}
+                    {show("events") && <td className={cn(TD, "text-right font-code tabular-nums")}>{s.eventCnt}</td>}
+                    {show("fails") && <td className={cn(TD, "text-right font-code tabular-nums", s.failCnt > 0 ? "font-semibold text-danger" : "text-faint")}>{s.failCnt}</td>}
                   </tr>
                   {open && (
                     <tr>

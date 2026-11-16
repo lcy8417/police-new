@@ -10,3 +10,4 @@ export type {
   ResultFilter,
   SessionTimeline,
 } from "./model/types"
+export { EVENT_COLUMN_DEFS, LOG_PAGE_SIZES, SESSION_COLUMNS, quickFilterEvents, quickFilterSessions } from "./model/quick-search"

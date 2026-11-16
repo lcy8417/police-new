@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
-import { LOG_PAGE_SIZE, AdminLogsScreen, type LogFilters, type LogTab, type SessionTimeline } from "@/widgets/admin-logs-screen"
+import { EVENT_COLUMN_DEFS, LOG_PAGE_SIZE, SESSION_COLUMNS, AdminLogsScreen, type LogFilters, type LogTab, type SessionTimeline } from "@/widgets/admin-logs-screen"
 
 import { devScreen, DevScreenFrame, useDevCase, useDevPlus, useDevViewer } from "../frame"
 import {
@@ -29,6 +29,10 @@ export function S14DevPage() {
   const [tab, setTab] = useState<LogTab>("sessions")
   const [filters, setFilters] = useState<LogFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState<number>(LOG_PAGE_SIZE)
+  const [quickQuery, setQuickQuery] = useState("")
+  const [sessionColumns, setSessionColumns] = useState<string[]>(SESSION_COLUMNS.map((c) => c.key))
+  const [eventColumns, setEventColumns] = useState<string[]>(EVENT_COLUMN_DEFS.map((c) => c.key))
   const [expandedIds, setExpandedIds] = useState<string[]>([])
   const [timelines, setTimelines] = useState<Record<string, SessionTimeline>>({})
   const timers = useRef<number[]>([])
@@ -65,14 +69,14 @@ export function S14DevPage() {
       (!plus || !filters.targetNo || (e.targetId ?? "").includes(filters.targetNo.trim())) &&
       inRange(e.occurredDt)
   )
-  const slice = <T,>(all: T[]) => all.slice((page - 1) * LOG_PAGE_SIZE, page * LOG_PAGE_SIZE)
+  const slice = <T,>(all: T[]) => all.slice((page - 1) * pageSize, page * pageSize)
 
   const shownTab = !plus && tab === "admin" ? "sessions" : tab
   const allShown = shownTab === "sessions" ? allSessions : shownTab === "events" ? allEvents : MOCK_ADMIN_ACTIONS
   const shown = slice<unknown>(allShown)
   // 「더 보기」: 다음 쪽이 있으면 넘기고, 없으면 시안 알림
   const handleLoadMore = () => {
-    if (page * LOG_PAGE_SIZE < allShown.length) setPage(page + 1)
+    if (page * pageSize < allShown.length) setPage(page + 1)
     else toast("시안 — 기능 준비 중")
   }
   const status =
@@ -113,6 +117,17 @@ export function S14DevPage() {
         onToggleSession={toggleSession}
         page={page}
         onPageChange={setPage}
+        pageSize={pageSize}
+        onPageSizeChange={(n) => {
+          setPageSize(n)
+          setPage(1)
+        }}
+        quickQuery={quickQuery}
+        onQuickQueryChange={setQuickQuery}
+        sessionColumns={sessionColumns}
+        onSessionColumnsChange={setSessionColumns}
+        eventColumns={eventColumns}
+        onEventColumnsChange={setEventColumns}
       />
     </DevScreenFrame>
   )

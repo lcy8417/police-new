@@ -225,4 +225,63 @@ describe("S14 사용·감사 기록 — r2 시안 구성", () => {
     expect(screen.queryByRole("button", { name: "엑셀 내보내기" })).toBeNull()
     expect(screen.queryByRole("region", { name: "기록 무결성" })).toBeNull()
   })
+
+  describe("r3 빠른 검색 · 열 고르기 · 줄 수", () => {
+    const quick = () => within(list()).getByLabelText("검색어")
+
+    it("빠른 검색이 보이는 로그인 기록 줄을 아이디로 거르고, 0건이면 안내 · 조건 지우기", () => {
+      admin("ready")
+      fireEvent.change(quick(), { target: { value: "kim03" } })
+      expect(within(list()).getByText("kim0301")).toBeInTheDocument()
+      expect(within(list()).queryByText("park0412")).toBeNull()
+      fireEvent.change(quick(), { target: { value: "zzzz" } })
+      expect(within(list()).getByText("조건에 맞는 항목 없음")).toBeInTheDocument()
+      expect(within(list()).queryByText("결과 없음")).toBeNull()
+      fireEvent.click(within(list()).getAllByRole("button", { name: "조건 지우기" }).at(-1)!)
+      expect(within(list()).getByText("park0412")).toBeInTheDocument()
+    })
+
+    it("기능 기록 탭에서는 기능 이름 · 대상 번호로 거른다", () => {
+      admin("ready")
+      fireEvent.click(tabButton("기능 기록"))
+      const region = screen.getByRole("region", { name: "기능 기록" })
+      fireEvent.change(within(region).getByLabelText("검색어"), { target: { value: "2944" } })
+      expect(within(region).getAllByText("SCAS수사부-2944").length).toBeGreaterThan(0)
+      expect(within(region).queryByText("00001-25-0646")).toBeNull()
+      fireEvent.change(within(region).getByLabelText("검색어"), { target: { value: "문양 검색" } })
+      expect(within(region).getAllByText("문양 검색").length).toBeGreaterThan(0)
+      expect(within(region).queryByText("감정서 출력")).toBeNull()
+    })
+
+    it("열 선택: 사용자(아이디)는 고정, 끄면 열이 빠지고 순서는 그대로", () => {
+      admin("ready")
+      fireEvent.click(within(list()).getByRole("button", { name: /열 선택/ }))
+      expect(within(list()).getByRole("checkbox", { name: /사용자/ })).toBeDisabled()
+      fireEvent.click(within(list()).getByRole("checkbox", { name: /^종료 사유/ }))
+      expect(within(list()).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["", "사용자", "로그인", "로그아웃", "IP", "이벤트 수", "실패 수"])
+    })
+
+    it("기능 기록 열도 따로 고른다", () => {
+      admin("ready")
+      fireEvent.click(tabButton("기능 기록"))
+      const region = screen.getByRole("region", { name: "기능 기록" })
+      fireEvent.click(within(region).getByRole("button", { name: /열 선택/ }))
+      fireEvent.click(within(region).getByRole("checkbox", { name: /^처리 시간/ }))
+      expect(within(region).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["시각", "사용자", "기능", "대상", "결과"])
+    })
+
+    it("줄 수 100으로 바꾸면 62개가 한 쪽에 다 나오고 다음 쪽이 막힌다", () => {
+      admin("full-page")
+      expect(screen.getByRole("button", { name: /다음/ })).toBeEnabled()
+      fireEvent.click(screen.getByRole("button", { name: "100개" }))
+      expect(screen.getByRole("button", { name: /다음/ })).toBeDisabled()
+      expect(within(list()).getAllByRole("row")).toHaveLength(1 + 62)
+    })
+
+    it("?plus=0 에서도 빠른 검색 · 열 선택이 보인다", () => {
+      renderAt("?case=ready&as=admin&plus=0")
+      expect(within(list()).getByLabelText("검색어")).toBeInTheDocument()
+      expect(within(list()).getByRole("button", { name: /열 선택/ })).toBeInTheDocument()
+    })
+  })
 })

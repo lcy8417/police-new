@@ -2,9 +2,10 @@ import { Info } from "lucide-react"
 
 import type { AdminEvent } from "@/entities/admin"
 import { formatKstDateTime } from "@/shared/lib"
-import { Button, Chip, DataGrid, InlineError, Pagination, Segmented, type DataGridColumn } from "@/shared/ui/kit"
+import { Button, Chip, ColumnPicker, DataGrid, FilterBar, InlineError, Pagination, Segmented, ViewCountSwitch, type DataGridColumn } from "@/shared/ui/kit"
 import { Crumb, PageHead, Panel } from "@/shared/ui/panel"
 
+import { EVENT_COLUMN_DEFS, LOG_PAGE_SIZES, SESSION_COLUMNS, quickFilterEvents, quickFilterSessions } from "../model/quick-search"
 import type { AdminActionRow, AdminLogsScreenProps, LogTab } from "../model/types"
 import { LogFilterBar } from "./LogFilterBar"
 import { LogPulseRow, LogSidePanels } from "./LogInsights"
@@ -68,9 +69,18 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
 
   const adminRows = props.adminActions ?? []
   const rows: unknown[] = tab === "sessions" ? props.sessions : tab === "events" ? props.events : adminRows
-  const hasNext = rows.length >= LOG_PAGE_SIZE
+  const pageSize = props.pageSize ?? LOG_PAGE_SIZE
+  const hasNext = rows.length >= pageSize
   // 마지막 쪽이면 전체 개수를 알 수 있다(앞 쪽은 꽉 찼으므로)
-  const total = hasNext ? undefined : (props.page - 1) * LOG_PAGE_SIZE + rows.length
+  const total = hasNext ? undefined : (props.page - 1) * pageSize + rows.length
+  // r3: 빠른 검색(보이는 줄만) · 열 고르기
+  const quick = props.quickQuery ?? ""
+  const quickOn = quick.trim() !== "" && tab !== "admin"
+  const quickSessions = quickFilterSessions(props.sessions, quick)
+  const quickEvents = quickFilterEvents(props.events, quick)
+  const eventKeys = props.eventColumns ?? EVENT_COLUMN_DEFS.map((c) => c.key)
+  const eventColumns = EVENT_COLUMNS.filter((c) => c.key === "user" || eventKeys.includes(c.key))
+  const sessionKeys = props.sessionColumns ?? SESSION_COLUMNS.map((c) => c.key)
   const regionLabel = tab === "sessions" ? "로그인 기록" : tab === "events" ? "기능 기록" : "관리자 행위 기록"
   const counts = showPlus ? (props.tabCounts ?? null) : null
   const tabLabel = (label: string, count: number | undefined) => (
@@ -110,11 +120,24 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
         </div>
       )
     }
+    if (!empty && quickOn && (tab === "sessions" ? quickSessions : quickEvents).length === 0) {
+      // 검색 결과 0건 — 조회 실패 · 데이터 없음(결과 없음)과 다른 모양
+      return (
+        <div className="px-[14px] py-[28px] text-center">
+          <p role="status" className="m-0 mb-[8px] text-[12.5px] text-dim">
+            조건에 맞는 항목 없음
+          </p>
+          <Button size="sm" onClick={() => props.onQuickQueryChange?.("")}>
+            조건 지우기
+          </Button>
+        </div>
+      )
+    }
     return tab === "sessions" ? (
-      <SessionTable sessions={empty ? [] : props.sessions} timelines={props.timelines} onRetryTimeline={props.onRetryTimeline} expandedSessionIds={props.expandedSessionIds} onToggleSession={props.onToggleSession} />
+      <SessionTable sessions={empty ? [] : quickSessions} timelines={props.timelines} onRetryTimeline={props.onRetryTimeline} expandedSessionIds={props.expandedSessionIds} onToggleSession={props.onToggleSession} visibleColumns={sessionKeys} />
     ) : (
       <div className="overflow-x-auto">
-        <DataGrid columns={EVENT_COLUMNS} rows={empty ? [] : props.events} rowKey={(e) => String(e.logId)} />
+        <DataGrid columns={eventColumns} rows={empty ? [] : quickEvents} rowKey={(e) => String(e.logId)} />
       </div>
     )
   })()
@@ -135,10 +158,32 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
                 onValueChange={(v) => props.onTabChange(v as LogTab)}
                 className="my-[6px]"
               />
-              <span className="ml-auto text-[12px] text-dim">50개씩 · 최신순</span>
+              <span className="ml-auto text-[12px] text-dim">{pageSize}개씩 · 최신순</span>
+              <ViewCountSwitch label="줄 수" options={LOG_PAGE_SIZES} value={pageSize as 50 | 100} onChange={(n) => props.onPageSizeChange?.(n)} />
+              {tab === "sessions" && (
+                <ColumnPicker columns={SESSION_COLUMNS} visible={sessionKeys} onChange={(k) => props.onSessionColumnsChange?.(k)} />
+              )}
+              {tab === "events" && (
+                <ColumnPicker columns={EVENT_COLUMN_DEFS} visible={eventKeys} onChange={(k) => props.onEventColumnsChange?.(k)} />
+              )}
             </>
           }
         >
+          {tab !== "admin" && (
+            <div className="border-b border-solid border-border px-[14px] py-[8px]">
+              <FilterBar
+                query={quick}
+                onQueryChange={(q) => props.onQuickQueryChange?.(q)}
+                filters={[]}
+                onFilterChange={() => undefined}
+                onClear={() => props.onQuickQueryChange?.("")}
+                resultCount={status === "ready" ? (tab === "sessions" ? quickSessions : quickEvents).length : undefined}
+                total={status === "ready" ? rows.length : undefined}
+                searchPlaceholder="아이디 · 기능 · 대상 번호"
+                partId="s14-quick-search"
+              />
+            </div>
+          )}
           {body}
           {showPlus && status === "ready" && (
             <div data-plus className="px-[14px] pt-[10px] text-center">
@@ -148,7 +193,7 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
             </div>
           )}
           {(status === "ready" || (status === "empty" && props.page > 1)) && (
-            <Pagination page={props.page} pageSize={LOG_PAGE_SIZE} total={total} hasNext={hasNext} onPageChange={props.onPageChange} />
+            <Pagination page={props.page} pageSize={pageSize} total={total} hasNext={hasNext} onPageChange={props.onPageChange} />
           )}
         </Panel>
       </section>

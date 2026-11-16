@@ -99,6 +99,17 @@ export interface AdminLogsScreenProps {
   adminActions?: AdminActionRow[]
   /** 표 아래 「더 보기」(시안). 쪽 넘김은 그대로 둔다 */
   onLoadMore?: () => void
+  /** r3: 한 쪽에 보일 줄 수 50 · 100(제어형, 기본 50). 신규 아님 — plus 와 무관 */
+  pageSize?: number
+  onPageSizeChange?: (size: number) => void
+  /** r3: 빠른 검색어 — 지금 보이는 줄의 아이디 · 기능 · 대상 번호를 거른다(서버 조회 아님) */
+  quickQuery?: string
+  onQuickQueryChange?: (query: string) => void
+  /** r3: 로그인 기록 · 기능 기록 표에 보일 열 key(제어형, 없으면 전부) */
+  sessionColumns?: string[]
+  onSessionColumnsChange?: (keys: string[]) => void
+  eventColumns?: string[]
+  onEventColumnsChange?: (keys: string[]) => void
   /** 현재 탭의 목록 조회 상태 */
   status: ScreenStatus
   /** error 일 때 확인을 시도한 시각 「시:분」 */
