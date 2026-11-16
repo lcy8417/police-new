@@ -11,6 +11,8 @@ interface LogFilterBarProps {
   onReset: () => void
   users: AdminUser[]
   actions: ActionInfo[]
+  /** 신규 「대상 번호」 칸(시안 핀 1) */
+  showPlus?: boolean
 }
 
 function Labeled({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
@@ -30,8 +32,8 @@ const RESULT_ITEMS: { value: ResultFilter | "all"; label: string }[] = [
   { value: "DENIED", label: "권한 없음" },
 ]
 
-/** 사용 기록 필터 막대: 사용자 · 기간 · 결과 · 기능 + 「필터 초기화」. 값은 모두 제어형. */
-export function LogFilterBar({ filters, onChange, onReset, users, actions }: LogFilterBarProps) {
+/** 사용 기록 필터 막대: 사용자 · 기간 · 결과 · 기능 (+ 신규 「대상 번호」) + 「필터 초기화」. 값은 모두 제어형. */
+export function LogFilterBar({ filters, onChange, onReset, users, actions, showPlus = false }: LogFilterBarProps) {
   const baseId = useId()
   const set = <K extends keyof LogFilters>(key: K, value: LogFilters[K]) => onChange({ ...filters, [key]: value })
   const userItems = [{ value: "", label: "전체 사용자" }, ...users.map((u) => ({ value: u.userId, label: `${u.userNm} (${u.userId})` }))]
@@ -60,6 +62,19 @@ export function LogFilterBar({ filters, onChange, onReset, users, actions }: Log
       <Labeled label="기능">
         <Combobox className="w-[200px]" items={actionItems} value={filters.actionCode} onValueChange={(v) => set("actionCode", v)} />
       </Labeled>
+      {showPlus && (
+        <div data-plus className="min-w-0">
+          <Labeled label="대상 번호" htmlFor={`${baseId}-target`}>
+            <Field
+              id={`${baseId}-target`}
+              className="w-[180px]"
+              placeholder="감정번호·화류번호 등"
+              value={filters.targetNo ?? ""}
+              onChange={(e) => set("targetNo", e.target.value)}
+            />
+          </Labeled>
+        </div>
+      )}
       <Button variant="ghost" className="ml-auto" onClick={onReset}>
         필터 초기화
       </Button>

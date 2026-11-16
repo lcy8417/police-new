@@ -4,11 +4,21 @@ import { toast } from "sonner"
 import { LOG_PAGE_SIZE, AdminLogsScreen, type LogFilters, type LogTab, type SessionTimeline } from "@/widgets/admin-logs-screen"
 
 import { devScreen, DevScreenFrame, useDevCase, useDevPlus, useDevViewer } from "../frame"
-import { MANY_SESSIONS, MOCK_ACTIONS, MOCK_EVENTS, MOCK_INSIGHTS, MOCK_LOG_USERS, MOCK_SESSIONS, MOCK_TIMELINES } from "./mock-cases"
+import {
+  MANY_SESSIONS,
+  MOCK_ACTIONS,
+  MOCK_ADMIN_ACTIONS,
+  MOCK_EVENTS,
+  MOCK_INSIGHTS,
+  MOCK_LOG_USERS,
+  MOCK_SESSIONS,
+  MOCK_TAB_COUNTS,
+  MOCK_TIMELINES,
+} from "./mock-cases"
 
 const info = devScreen("s14")
 
-const DEFAULT_FILTERS: LogFilters = { userId: "", from: "2026-11-10", to: "2026-11-16", result: "", actionCode: "" }
+const DEFAULT_FILTERS: LogFilters = { userId: "", from: "2026-11-10", to: "2026-11-16", result: "", actionCode: "", targetNo: "" }
 const dateOf = (iso: string) => iso.slice(0, 10)
 
 // S14 사용·감사 기록 진열 페이지: 탭 · 필터 · 쪽 번호를 여기서 들고(제어형) 가짜 목록을 걸러 넘긴다.
@@ -52,11 +62,19 @@ export function S14DevPage() {
       (!filters.userId || e.userId === filters.userId) &&
       (!filters.result || e.result === filters.result) &&
       (!filters.actionCode || e.actionCode === filters.actionCode) &&
+      (!plus || !filters.targetNo || (e.targetId ?? "").includes(filters.targetNo.trim())) &&
       inRange(e.occurredDt)
   )
   const slice = <T,>(all: T[]) => all.slice((page - 1) * LOG_PAGE_SIZE, page * LOG_PAGE_SIZE)
 
-  const shown = tab === "sessions" ? slice(allSessions) : slice(allEvents)
+  const shownTab = !plus && tab === "admin" ? "sessions" : tab
+  const allShown = shownTab === "sessions" ? allSessions : shownTab === "events" ? allEvents : MOCK_ADMIN_ACTIONS
+  const shown = slice<unknown>(allShown)
+  // 「더 보기」: 다음 쪽이 있으면 넘기고, 없으면 시안 알림
+  const handleLoadMore = () => {
+    if (page * LOG_PAGE_SIZE < allShown.length) setPage(page + 1)
+    else toast("시안 — 기능 준비 중")
+  }
   const status =
     activeCase === "loading" || activeCase === "error"
       ? activeCase
@@ -69,6 +87,9 @@ export function S14DevPage() {
       <AdminLogsScreen
         showPlus={plus}
         insights={MOCK_INSIGHTS}
+        tabCounts={MOCK_TAB_COUNTS}
+        adminActions={slice(MOCK_ADMIN_ACTIONS)}
+        onLoadMore={handleLoadMore}
         onExport={() => toast("시안 — 기능 준비 중")}
         status={status}
         errorAt="14:05"

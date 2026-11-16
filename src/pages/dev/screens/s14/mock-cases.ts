@@ -1,5 +1,5 @@
 import type { ActionInfo, ActivityResult, AdminEvent, AdminSession } from "@/entities/admin"
-import type { AdminLogsInsights, SessionTimeline } from "@/widgets/admin-logs-screen"
+import type { AdminActionRow, AdminLogsInsights, SessionTimeline } from "@/widgets/admin-logs-screen"
 
 import { MOCK_USERS } from "../s13/mock-cases"
 
@@ -109,6 +109,22 @@ export const MANY_SESSIONS: AdminSession[] = Array.from({ length: 62 }, (_, i) =
 )
 
 // ── r2(시안 r3 +α) 요약 칸 예시 값 — 시안 s14-admin-logs.js 그대로(서버 API 에 없는 집계) ──
+
+/** 탭 옆 숫자(시안: 로그인 38 · 기능 412 · 관리자 행위 9) */
+export const MOCK_TAB_COUNTS = { sessions: 38, events: 412, admin: 9 } as const
+
+/** 관리자 행위 탭 9줄 — 시안 S14 「관리자 행위 · 최근」 5줄 + S13 관리자 변경 이력 · 예외 사유(같은 사건) */
+export const MOCK_ADMIN_ACTIONS: AdminActionRow[] = [
+  { at: "07-24 09:10", who: "admin01", text: "park0412 문양 입력 담당 지정" },
+  { at: "07-23 16:40", who: "admin01", text: "기초코드 FT002200 사용여부 Y → N" },
+  { at: "07-23 14:00", who: "admin01", text: "jang0105 신발 승인 담당 지정" },
+  { at: "07-22 18:20", who: "admin01", text: "lee0508 잠금 사유 확인 요청(대구청)" },
+  { at: "07-22 18:03", who: "시스템", text: "lee0508 계정 잠금 — 비밀번호 5회 연속 실패", tone: "warn" },
+  { at: "07-22 10:00", who: "admin01", text: "모델 검색 v3.1 운영 전환" },
+  { at: "07-21 11:20", who: "admin01", text: "choi0115 역할 감정관 → 기술책임자" },
+  { at: "07-20 10:02", who: "admin01", text: "본인 권한 변경 시도 — 거절: 본인 권한은 다른 관리자만", tone: "danger" },
+  { at: "07-19", who: "admin01", text: "han0911 신발 조회 켬 — 경북청 신발 조회 협조" },
+]
 
 export const MOCK_INSIGHTS: AdminLogsInsights = {
   activity: {

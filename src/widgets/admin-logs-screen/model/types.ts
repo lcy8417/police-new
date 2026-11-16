@@ -16,9 +16,24 @@ export interface LogFilters {
   result: ResultFilter
   /** 기능 이름표 코드(기능 기록 탭만) */
   actionCode: string
+  /** 대상 번호(감정번호 · 화류번호 등, 기능 기록 탭만) — 신규(+α) 칸, 지금 서버 API 에는 없음 */
+  targetNo?: string
 }
 
-export type LogTab = "sessions" | "events"
+/** 탭 — `admin`(관리자 행위)은 신규(+α) 탭이라 `showPlus` 일 때만 보인다 */
+export type LogTab = "sessions" | "events" | "admin"
+
+/** 관리자 행위 탭 한 줄(시안 핀 5 — 서버 API 가 아직 없어 쓰는 쪽이 넘김) */
+export interface AdminActionRow {
+  /** 「MM-DD HH:mm」 */
+  at: string
+  /** 한 관리자(또는 시스템) */
+  who: string
+  /** 무엇을 했나 */
+  text: string
+  /** 강조: 잠금 = warn, 거절 = danger */
+  tone?: "warn" | "danger"
+}
 
 /** 한 로그인의 기능 타임라인(행을 펼칠 때 따로 불러오므로 상태도 따로) */
 export interface SessionTimeline {
@@ -78,6 +93,12 @@ export interface AdminLogsScreenProps {
   insights?: AdminLogsInsights | null
   /** 「엑셀 내보내기」(동작 없는 신규 버튼 — 진열은 「시안 — 기능 준비 중」) */
   onExport?: () => void
+  /** 탭 옆 숫자(시안 38 · 412 · 9) */
+  tabCounts?: { sessions: number; events: number; admin: number } | null
+  /** 관리자 행위 탭 목록(최신순) */
+  adminActions?: AdminActionRow[]
+  /** 표 아래 「더 보기」(시안). 쪽 넘김은 그대로 둔다 */
+  onLoadMore?: () => void
   /** 현재 탭의 목록 조회 상태 */
   status: ScreenStatus
   /** error 일 때 확인을 시도한 시각 「시:분」 */

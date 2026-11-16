@@ -13,6 +13,8 @@ const renderAt = (query: string) =>
 
 const admin = (c: string) => renderAt(`?case=${c}&as=admin`)
 const list = () => screen.getByRole("region", { name: "로그인 기록" })
+// r2: 탭 이름 뒤에 시안 숫자(38 · 412 · 9)가 붙는다(신규 끄면 없음)
+const tabButton = (name: string) => screen.getByRole("button", { name: new RegExp(`^${name}\\s?\\d*$`) })
 
 describe("S14 사용·감사 기록 진열 페이지", () => {
   it("ready 케이스에 필터 막대(사용자 · 결과 · 기능 · 기간)와 세션 표를 그린다", () => {
@@ -95,7 +97,7 @@ describe("S14 사용·감사 기록 진열 페이지", () => {
 
   it("기능 기록 탭은 결과 칩 성공 · 실패 · 권한 없음을 보인다", () => {
     admin("ready")
-    fireEvent.click(screen.getByRole("button", { name: "기능 기록" }))
+    fireEvent.click(tabButton("기능 기록"))
     const events = screen.getByRole("region", { name: "기능 기록" })
     expect(within(events).getAllByText("성공").length).toBeGreaterThan(0)
     expect(within(events).getAllByText("실패").length).toBeGreaterThan(0)
@@ -104,7 +106,7 @@ describe("S14 사용·감사 기록 진열 페이지", () => {
 
   it("결과 필터를 「실패만」으로 바꾸면 기능 기록이 실패만 남는다", () => {
     admin("ready")
-    fireEvent.click(screen.getByRole("button", { name: "기능 기록" }))
+    fireEvent.click(tabButton("기능 기록"))
     fireEvent.click(screen.getByRole("button", { name: "실패만" }))
     const events = screen.getByRole("region", { name: "기능 기록" })
     expect(within(events).queryByText("성공")).toBeNull()
@@ -114,7 +116,7 @@ describe("S14 사용·감사 기록 진열 페이지", () => {
 
   it("필터에 걸리는 기록이 없으면 「결과 없음」(실패와 구분)", () => {
     admin("ready")
-    fireEvent.click(screen.getByRole("button", { name: "기능 기록" }))
+    fireEvent.click(tabButton("기능 기록"))
     fireEvent.change(screen.getByLabelText("시작 날짜"), { target: { value: "2026-12-01" } })
     fireEvent.change(screen.getByLabelText("끝 날짜"), { target: { value: "2026-12-02" } })
     expect(screen.getByText("결과 없음")).toBeInTheDocument()
@@ -173,9 +175,35 @@ describe("S14 사용·감사 기록 — r2 시안 구성", () => {
     expect(screen.getByText(/보존 기간: 접속·사용 기록/)).toBeInTheDocument()
   })
 
+  it("탭 숫자(38 · 412 · 9) · 관리자 행위 탭 · 대상 번호 칸 · 더 보기를 시안대로 보인다", () => {
+    admin("ready")
+    expect(tabButton("로그인 기록")).toHaveAccessibleName("로그인 기록 38")
+    expect(tabButton("기능 기록")).toHaveTextContent("412")
+    fireEvent.click(tabButton("관리자 행위"))
+    const adminTab = screen.getByRole("region", { name: "관리자 행위 기록" })
+    expect(within(adminTab).getByText("모델 검색 v3.1 운영 전환")).toBeInTheDocument()
+    expect(within(adminTab).getAllByRole("row")).toHaveLength(10) // 머리 1 + 9줄
+    expect(within(adminTab).getByText("전체 9 중 1-9")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "더 보기" })).toBeInTheDocument()
+    expect(screen.getByLabelText("대상 번호")).toHaveAttribute("placeholder", "감정번호·화류번호 등")
+  })
+
+  it("「대상 번호」를 넣으면 기능 기록이 그 번호로 걸러진다", () => {
+    admin("ready")
+    fireEvent.click(tabButton("기능 기록"))
+    fireEvent.change(screen.getByLabelText("대상 번호"), { target: { value: "SCAS수사부-2944" } })
+    const events = screen.getByRole("region", { name: "기능 기록" })
+    expect(within(events).queryByText("00001-25-0646")).toBeNull()
+    expect(within(events).getAllByText("SCAS수사부-2944").length).toBeGreaterThan(0)
+  })
+
   it("?plus=0 이면 [data-plus] 가 없고 1차 필터 · 표는 그대로다", () => {
     const { container } = renderAt("?case=ready&as=admin&plus=0")
     expect(container.querySelectorAll("[data-plus]")).toHaveLength(0)
+    expect(screen.queryByRole("button", { name: /관리자 행위/ })).toBeNull()
+    expect(screen.queryByLabelText("대상 번호")).toBeNull()
+    expect(screen.queryByRole("button", { name: "더 보기" })).toBeNull()
+    expect(screen.getByRole("button", { name: "기능 기록" })).toBeInTheDocument()
     expect(screen.queryByRole("region", { name: "시간대별 사용량" })).toBeNull()
     expect(screen.getByRole("search", { name: "사용 기록 필터" })).toBeInTheDocument()
     expect(list()).toBeInTheDocument()
