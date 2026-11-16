@@ -108,7 +108,7 @@ describe("S01DevPage 사건관리 목록", () => {
     const bar = screen.getByRole("group", { name: "사건관리 목록 도구" })
     const names = Array.from(bar.querySelectorAll("button"))
       .map((el) => el.textContent?.replace(/[◉○]\s?/, "").trim())
-    expect(names).toEqual(["목록보기", "문양보기", "엑셀", expect.stringMatching(/^열 선택/), "등록"])
+    expect(names).toEqual(["상세 검색", "목록보기", "문양보기", "엑셀", expect.stringMatching(/^열 선택/), "등록"])
     openDetail()
     const detail = screen.getByRole("group", { name: "상세 검색 도구" })
     expect(Array.from(detail.querySelectorAll("button")).map((el) => el.textContent?.trim())).toEqual(["초기화", "조회"])
@@ -140,7 +140,8 @@ describe("S01DevPage 사건관리 목록", () => {
     // SCAS 툴바 앞뒤 순서는 그대로(초기화 · 조회는 r4 에서 상세 검색 안으로)
     const bar = screen.getByRole("group", { name: "사건관리 목록 도구" })
     const names = Array.from(bar.querySelectorAll("button")).map((el) => el.textContent?.replace(/[◉○]\s?/, "").trim())
-    expect(names.slice(0, 3)).toEqual(["목록보기", "문양보기", "엑셀"])
+    // 찾기 칸 · 「상세 검색」은 뚜껑 한 줄을 위해 머리 줄 맨 앞(SCAS 툴바 단추들 앞)
+    expect(names.slice(0, 4)).toEqual(["상세 검색", "목록보기", "문양보기", "엑셀"])
   })
 
   describe("r2 시안 +α", () => {

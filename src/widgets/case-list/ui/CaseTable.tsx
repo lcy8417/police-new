@@ -70,7 +70,7 @@ export function CaseTable<Row>({
               title={c.title}
               {...(c.plus ? { "data-plus": "" } : {})}
               className={cn(
-                "h-8 whitespace-nowrap border-b border-solid border-border bg-panel px-[6px] py-0 text-[10.5px] font-normal text-muted-foreground",
+                "h-8 whitespace-nowrap border-b border-solid border-border bg-panel px-[4px] py-0 text-[10.5px] font-normal text-muted-foreground",
                 c.align === "right" ? "text-right" : "text-left"
               )}
             >
@@ -120,7 +120,7 @@ export function CaseTable<Row>({
                     key={c.key}
                     {...(c.plus ? { "data-plus": "" } : {})}
                     className={cn(
-                      "whitespace-nowrap border-b border-solid border-border px-[6px] py-0 text-fg-2",
+                      "whitespace-nowrap border-b border-solid border-border px-[4px] py-0 text-fg-2",
                       compact ? "h-[30px]" : "h-[36px]",
                       c.align === "right" && "text-right",
                       selected ? "bg-brand-bg" : "group-hover:bg-brand-bg/60",

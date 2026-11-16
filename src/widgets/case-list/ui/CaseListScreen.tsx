@@ -495,7 +495,8 @@ export function CaseListScreen({
     )
   )
   const doc = col("docNo", "문서번호", (r) => <span className="font-code text-[11.5px]">{dash(r.docNo)}</span>)
-  const name = col("caseName", "사건명", (r) => <Clip text={r.caseName} max="max-w-[10rem]" />)
+  // 1440 폭에서 표가 판 안에 들어오게 긴 글 칸은 좁게 자르고 전체는 title 로(로망 목록 = 고정 폭 · 말줄임)
+  const name = col("caseName", "사건명", (r) => <Clip text={r.caseName} max="max-w-[6rem]" />)
   // 머리 글자는 짧게(한 줄) — 원래 이름은 마우스 설명 · 열 선택 목록에
   const req = col(
     "req",
@@ -509,7 +510,7 @@ export function CaseListScreen({
     { label: "의뢰관서 (SCAS번호)", title: "의뢰관서 (SCAS번호)" }
   )
   const proc = col("proc", "처리관서", (r) => <Clip text={r.processOffice} max="max-w-[10rem]" />)
-  const occ = col("occ", "발생관서", (r) => <Clip text={r.occurOffice} max="max-w-[10rem]" />)
+  const occ = col("occ", "발생관서", (r) => <Clip text={r.occurOffice} max="max-w-[5.5rem]" />)
   // 상태 표시는 회색 알약, 실제 문제(용의자 유 · 감정불능)만 색
   const kind = col("kind", "처리 구분", (r) => <StatePill tone="fact">{r.kind}</StatePill>)
   const count = col(
@@ -597,7 +598,35 @@ export function CaseListScreen({
           <LiveDot data-plus state="busy" label={`실시간 · ${liveAt} 갱신`} className="gap-[5px] text-[12px] text-dim" />
         ) : null}
         <ButtonBar aria-label="사건관리 목록 도구" className="gap-[8px]">
-          <span className="mr-[4px] inline-flex">
+          {/* 찾기 칸 · 상세 검색은 뚜껑이 한 줄에 들어가도록 머리 줄로 올렸다(1440 폭에서 뚜껑 두 줄 접힘 해소) */}
+          {quick ? (
+            <LidSearch
+              className="ml-0 min-w-[180px] flex-[0_1_230px] border border-solid border-line-3 shadow-none"
+              inputProps={{
+                value: quick.query,
+                onChange: (e) => quick.onQueryChange(e.target.value),
+                placeholder: quick.placeholder ?? "감정번호 · 문서번호 · 사건명",
+                "aria-label": "검색어",
+              }}
+              onClear={() => quick.onQueryChange("")}
+              clearLabel="검색어 지우기"
+            />
+          ) : null}
+          <Button
+            size="sm"
+            className={cn(HEAD_BTN, "gap-1", detailOpen && "border-brand-line bg-brand-bg text-brand-3")}
+            aria-expanded={detailOpen}
+            aria-controls={detailId}
+            onClick={() => setDetailOpen((o) => !o)}
+          >
+            상세 검색
+            <ChevronDown
+              aria-hidden
+              className={cn("size-3.5 transition-transform motion-reduce:transition-none", detailOpen && "rotate-180")}
+            />
+          </Button>
+          <span aria-hidden="true" className="mx-[2px] h-[18px] w-px bg-line-3" />
+          <span className="mr-[4px] inline-flex shrink-0 whitespace-nowrap [&>*]:flex-nowrap">
             <RadioRow
               name="보기"
               value="list"
@@ -625,7 +654,9 @@ export function CaseListScreen({
             </span>
           )}
           {onHiddenColumnsChange && listed ? (
-            <ColumnPicker columns={pickerColumns} visible={columns.map((c) => c.key)} onChange={handleColumnsChange} />
+            <span className="inline-flex shrink-0 whitespace-nowrap">
+              <ColumnPicker columns={pickerColumns} visible={columns.map((c) => c.key)} onChange={handleColumnsChange} />
+            </span>
           ) : null}
           {canRegister ? (
             <Button size="sm" variant="pri" className={HEAD_BTN} onClick={onRegister}>
@@ -651,7 +682,8 @@ export function CaseListScreen({
             ? quick.groups.map((g, i) => (
                 <React.Fragment key={g.key}>
                   {i > 0 ? <LidSeparator /> : null}
-                  <LidGroup group={g} onChange={quick.onGroupChange} />
+                  {/* 칩 글자가 뜻을 말하는 묶음(진행 상태 · 사건결과)은 보이는 이름을 생략해 뚜껑을 한 줄로 — 「현장 · 대조」만 이름이 필요 */}
+                  <LidGroup group={g} onChange={quick.onGroupChange} label={g.key === "kind"} />
                 </React.Fragment>
               ))
             : null}
@@ -660,33 +692,6 @@ export function CaseListScreen({
               <span aria-hidden="true">✕ </span>조건 지우기
             </LidResetLink>
           ) : null}
-          <span className="ml-auto inline-flex items-center gap-2">
-            <LidChip
-              active={detailOpen}
-              aria-expanded={detailOpen}
-              aria-controls={detailId}
-              onClick={() => setDetailOpen((o) => !o)}
-            >
-              상세 검색
-              <ChevronDown
-                aria-hidden
-                className={cn("size-3.5 transition-transform motion-reduce:transition-none", detailOpen && "rotate-180")}
-              />
-            </LidChip>
-            {quick ? (
-              <LidSearch
-                className="ml-0 min-w-[180px] flex-[0_1_220px]"
-                inputProps={{
-                  value: quick.query,
-                  onChange: (e) => quick.onQueryChange(e.target.value),
-                  placeholder: quick.placeholder ?? "감정번호 · 문서번호 · 사건명",
-                  "aria-label": "검색어",
-                }}
-                onClear={() => quick.onQueryChange("")}
-                clearLabel="검색어 지우기"
-              />
-            ) : null}
-          </span>
         </BoardLid>
 
         {/* 상세 검색(SCAS 3열×5행 양식 — 순서 그대로) — 기본 접힘 */}
