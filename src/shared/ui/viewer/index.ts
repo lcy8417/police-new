@@ -3,3 +3,4 @@ export { EvidenceImage, type EvidenceImageProps, type EvidenceLook } from "./Evi
 export { SoleThumb, type SoleThumbProps, type SoleThumbSize } from "./SoleThumb"
 export { PatternIcon, type PatternIconProps, type PatternIconSize } from "./PatternIcon"
 export { ZoneBands, type ZoneBand, type ZoneBandsProps } from "./ZoneBands"
+export { CompareView, type CompareMode, type CompareViewProps } from "./CompareView"
