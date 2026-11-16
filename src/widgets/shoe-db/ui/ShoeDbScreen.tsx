@@ -1,3 +1,5 @@
+import * as React from "react"
+
 import type { Shoe } from "@/entities/shoe"
 import { FEATURES } from "@/entities/session"
 import { Button, Chip, Combobox, DataGrid, Field, InlineError, Pagination, RadioRow, Segmented, type DataGridColumn } from "@/shared/ui/kit"
@@ -5,10 +7,15 @@ import { ButtonBar, Crumb, PageHead, Panel, SearchForm, type SearchFormRow } fro
 import { SoleThumb } from "@/shared/ui/viewer"
 
 import type { ShoeDbFilters, ShoeDbScreenProps } from "../model/types"
+import { ShoeCard } from "./ShoeCard"
 import { ShoeInfoDialog } from "./ShoeInfoDialog"
+import { StageStrip } from "./StageStrip"
 
-// S10 신발문양 관리: 검색 폼 3열 → 목록 머리 + 툴바 → 목록(표 / 카드) → 쪽 넘김. 행을 누르면 같은 자리 레이어 창 1겹.
-const PENDING = "준비 중"
+// S10 신발문양 관리: 검색 폼 3열 → 목록 머리 + 툴바 → (신규) 작업 단계 줄 → 목록(표 / 카드) → 쪽 넘김. 행을 누르면 같은 자리 레이어 창 1겹.
+const AI_RECOMMEND_OPTIONS = [
+  { value: "all", label: "전체" },
+  { value: "check", label: "확인 필요" },
+]
 
 const SEX_OPTIONS = [
   { value: "all", label: "전체" },
@@ -33,7 +40,13 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
   const { status, errorAt, onRetry, isAdmin, features, filters, onFiltersChange, officeItems, onSearch, onReset } = props
   const { view, onViewChange, shoes, total, page, pageSize, onPageChange, selectedId, onOpenShoe, onRegister, dialog } = props
 
+  const { showPlus = true, onPlusAction, stageSummary, cardInfo, aiDetails } = props
+
   const canEdit = isAdmin || features.includes(FEATURES.SHOE_EDIT)
+  const canAiReview = isAdmin || features.includes(FEATURES.SHOE_COLLECT_REVIEW)
+  // 「AI 추천」 칸은 눌림만 화면에 둔다(거르기 자체는 준비 중 알림)
+  const [aiRecommend, setAiRecommend] = React.useState("all")
+  const plan = (what: string) => () => onPlusAction(what)
   const set = (patch: Partial<ShoeDbFilters>) => onFiltersChange({ ...filters, ...patch })
   const text = (key: keyof ShoeDbFilters, label: string) => (
     <Field aria-label={label} value={(filters[key] as string | null) ?? ""} onChange={(e) => set({ [key]: e.target.value })} />
@@ -64,6 +77,26 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
     },
     { label: "화종", field: text("shoeKind", "화종") },
     { label: "비고", field: text("remark", "비고") },
+    ...(showPlus
+      ? [
+          {
+            label: "AI 추천",
+            field: (
+              <span data-plus="" className="inline-flex">
+                <RadioRow
+                  name="AI 추천"
+                  options={AI_RECOMMEND_OPTIONS}
+                  value={aiRecommend}
+                  onValueChange={(v) => {
+                    setAiRecommend(v)
+                    onPlusAction("AI 추천 거르기")
+                  }}
+                />
+              </span>
+            ),
+          },
+        ]
+      : []),
   ]
 
   const columns: DataGridColumn<Shoe>[] = [
@@ -97,23 +130,18 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
       <Button size="sm" variant="pri" onClick={onSearch}>
         조회
       </Button>
-      <span title={PENDING} className="inline-flex">
-        <Button size="sm" disabled>
-          엑셀
-        </Button>
-      </span>
+      <Button size="sm" onClick={plan("엑셀")}>
+        엑셀
+      </Button>
       {canEdit && (
         <>
-          <span title={PENDING} className="inline-flex">
-            <Button size="sm" variant="danger" disabled>
-              삭제
-            </Button>
-          </span>
-          <span title={PENDING} className="inline-flex">
-            <Button size="sm" variant="ok" disabled>
-              승인
-            </Button>
-          </span>
+          {/* 시안 data-lock=admin: 관리자만 누르고 그 밖은 잠긴 모양 */}
+          <Button size="sm" variant="danger" locked={!isAdmin} onClick={plan("삭제")}>
+            삭제
+          </Button>
+          <Button size="sm" variant="ok" locked={!isAdmin} title="승인 담당만" onClick={plan("승인")}>
+            승인
+          </Button>
           <Button size="sm" onClick={onRegister}>
             등록
           </Button>
@@ -125,11 +153,9 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
       {canEdit && (
         <>
           <span aria-hidden="true" className="h-[20px] w-px bg-line-3" />
-          <span title={PENDING} className="inline-flex">
-            <Button size="sm" disabled>
-              엑셀 일괄 등록
-            </Button>
-          </span>
+          <Button size="sm" onClick={plan("엑셀 일괄 등록")}>
+            엑셀 일괄 등록
+          </Button>
         </>
       )}
     </ButtonBar>
@@ -146,15 +172,16 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
     )
   } else if (view === "pattern" && status === "ready") {
     body = (
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(110px,1fr))] gap-[8px] px-[14px] py-[10px]">
+      <div className="grid grid-cols-[repeat(9,minmax(0,1fr))] gap-[8px] px-[14px] py-[10px]">
         {shoes.map((s) => (
-          <div key={s.ftwrId} className="grid min-w-0 gap-[4px] rounded-[8px] border border-solid border-line-2 bg-panel-2 p-[4px]">
-            <button type="button" aria-label={`${s.ftwrId} 열기`} onClick={() => onOpenShoe(s.ftwrId)} className="flex h-[92px] cursor-pointer items-center justify-center overflow-hidden rounded-[6px] border border-solid border-border bg-canvas p-0">
-              {s.image && <img src={s.image} alt="" className="size-full object-contain" />}
-            </button>
-            <span className="truncate font-code text-[11.5px]">{s.ftwrId}</span>
-            <Chip className="justify-self-start">{hasPattern(s) ? "입력" : "미입력"}</Chip>
-          </div>
+          <ShoeCard
+            key={s.ftwrId}
+            shoe={s}
+            selected={s.ftwrId === selectedId}
+            hasPattern={hasPattern(s)}
+            info={showPlus ? cardInfo?.[s.ftwrId] : undefined}
+            onOpen={onOpenShoe}
+          />
         ))}
       </div>
     )
@@ -171,6 +198,11 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
         <SearchForm columns={3} rows={rows} />
       </Panel>
       <Panel variant="tc" title="신발문양 관리 목록" actions={toolbar}>
+        {showPlus && stageSummary && (
+          <div data-plus="">
+            <StageStrip summary={stageSummary} />
+          </div>
+        )}
         <div className="max-w-full overflow-x-auto">{body}</div>
         {(status === "ready" || status === "empty") && (
           <Pagination total={status === "empty" ? 0 : total} page={page} pageSize={pageSize} hasNext={page * pageSize < total} onPageChange={onPageChange} />
@@ -180,6 +212,12 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
         <ShoeInfoDialog
           dialog={dialog}
           canEdit={canEdit}
+          isAdmin={isAdmin}
+          canAiReview={canAiReview}
+          showPlus={showPlus}
+          onPlusAction={onPlusAction}
+          detail={aiDetails?.[dialog.form.ftwrId]}
+          workStatus={cardInfo?.[dialog.form.ftwrId]?.status}
           onFormChange={props.onFormChange}
           onSave={props.onSave}
           onClose={props.onCloseDialog}

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import type { Shoe } from "@/entities/shoe";
@@ -14,10 +15,14 @@ import {
   SCREEN_CASES,
   devScreen,
   useDevCase,
+  useDevPlus,
   useDevViewer,
 } from "../frame";
 import {
+  makeS10AiDetails,
   makeS10Shoes,
+  S10_CARD_INFO,
+  S10_STAGE_SUMMARY,
   S10_DUPLICATE_MESSAGE,
   S10_EMPTY_FILTERS,
   S10_OFFICES,
@@ -55,10 +60,16 @@ export function S10DevPage() {
 
 function S10Body({ caseName }: { caseName: S10Case }) {
   const viewer = useDevViewer();
+  const showPlus = useDevPlus();
+  const [params] = useSearchParams();
   const [shoes] = React.useState(makeS10Shoes);
+  const [aiDetails] = React.useState(makeS10AiDetails);
   const [filters, setFilters] =
     React.useState<ShoeDbFilters>(S10_EMPTY_FILTERS);
-  const [view, setView] = React.useState<ShoeDbView>("list");
+  // 시안 기본은 문양보기(카드). `?view=list` 로 표를 먼저 볼 수 있다
+  const [view, setView] = React.useState<ShoeDbView>(
+    params.get("view") === "list" ? "list" : "pattern",
+  );
   const [page, setPage] = React.useState(1);
   const [selectedId, setSelectedId] = React.useState<string | undefined>();
   const [dialog, setDialog] = React.useState<ShoeDialogState | null>(() =>
@@ -84,7 +95,11 @@ function S10Body({ caseName }: { caseName: S10Case }) {
     const shoe = shoes.find((s) => s.ftwrId === ftwrId);
     if (!shoe) return;
     setSelectedId(ftwrId);
-    setDialog({ mode: "edit", form: shoe });
+    setDialog({
+      mode: "edit",
+      form: shoe,
+      initialTab: params.get("tab") === "pattern" ? "pattern" : "basic",
+    });
   };
 
   const save = () => {
@@ -102,6 +117,11 @@ function S10Body({ caseName }: { caseName: S10Case }) {
 
   return (
     <ShoeDbScreen
+      showPlus={showPlus}
+      onPlusAction={() => toast("시안 — 기능 준비 중")}
+      stageSummary={S10_STAGE_SUMMARY}
+      cardInfo={S10_CARD_INFO}
+      aiDetails={aiDetails}
       status={status}
       errorAt="14:32"
       onRetry={() => toast("다시 조회합니다 (시안)")}

@@ -41,6 +41,8 @@ export interface ShoeDialogState {
   form: Shoe
   /** 저장 실패 문구(서버가 주는 한국어 그대로, 예 「이미 등록된 번호입니다」) */
   saveError?: string
+  /** 처음 보일 탭(기본 기본정보) */
+  initialTab?: "basic" | "pattern"
 }
 
 export interface ShoeOfficeItem {
@@ -48,7 +50,75 @@ export interface ShoeOfficeItem {
   label: string
 }
 
+/** 카드 · 창 머리의 작업 상태(시안 칩) */
+export type ShoeWorkStatus = "승인 대기" | "문양 대기" | "측면 없음" | "AI 확인 필요"
+
+/** 카드 위 AI 표시: 숫자 = 문양 제안 확신도(0~1), scan = 지금 AI 가 읽는 중, dup = 중복 의심 */
+export type ShoeCardMark = number | "scan" | "dup"
+
+export interface ShoeCardInfo {
+  status: ShoeWorkStatus
+  mark?: ShoeCardMark
+}
+
+/** 분업 단계 한 칸(시안 「작업 단계」 줄) */
+export interface ShoeStageInfo {
+  title: string
+  count: number
+  /** 담당 설명(예 「등록 담당 → 문양 입력 담당」) */
+  owner: string
+  /** 지금 보는 단계(파랑) */
+  active?: boolean
+  /** 단계 아래 AI 표식 글자 */
+  aiLabel?: string
+  aiTone?: "ai" | "warn"
+  /** AI 표식에 맥박 점(진행 중) */
+  aiBusy?: boolean
+}
+
+/** 미승인 막대 + 오늘 승인 진행(시안 줄 오른쪽) */
+export interface ShoeBacklogInfo {
+  monthLabel: string
+  total: number
+  /** 막대 조각: 문양 대기 · 그룹 대기 · 승인 대기 */
+  parts: { label: string; count: number; tone: "line" | "violet" | "blue" }[]
+  todayDone: number
+  todayLimit: number
+  note: string
+}
+
+export interface ShoeStageSummary {
+  stages: ShoeStageInfo[]
+  backlog: ShoeBacklogInfo
+}
+
+/** 신발 하나의 AI 사전 작업 상세(레이어 창 문양정보 탭) */
+export interface ShoeAiDetail {
+  /** 상 · 중 · 하 AI 확신도 */
+  conf: { top: number; mid: number; bottom: number }
+  /** 가려진 부분(예 가격표로 18%) */
+  occlusion: { percent: number; obstacle: string }
+  /** 상 · 하가 같은 문양이라 한 번에 채우는 제안 */
+  sameKind: { label: string; code: string; hint: string }
+  /** 중복 의심 후보 */
+  duplicate?: { ftwrId: string; image: string; similarity: number; registeredAt: string }
+  /** 진행 흐름 칩(등록 → 문양 입력 → 현재 단계) */
+  flow: { registered: string; patterned: string; current: string }
+  /** 승인 조건 */
+  conditions: { ok: string[]; warn?: string }
+}
+
 export interface ShoeDbScreenProps {
+  /** 신규 · 파일럿 요소 보이기(기본 true). 끄면 지금 기능만 남는다 */
+  showPlus?: boolean
+  /** 동작 없는 시안 버튼을 눌렀을 때(진열 페이지가 「시안 — 기능 준비 중」을 알린다) */
+  onPlusAction: (action: string) => void
+  /** 신규: 분업 단계 줄 + 미승인 막대 */
+  stageSummary?: ShoeStageSummary
+  /** 신규: 신발별 카드 표시(키 = 화류번호) */
+  cardInfo?: Record<string, ShoeCardInfo>
+  /** 신규: 신발별 AI 상세(키 = 화류번호) */
+  aiDetails?: Record<string, ShoeAiDetail>
   status: ScreenStatus
   /** 조회 실패 시각 「시:분」 */
   errorAt?: string
