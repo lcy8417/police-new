@@ -1,5 +1,5 @@
 import type { Shoe } from "@/entities/shoe"
-import type { ShoeDbFilters, ShoeOfficeItem } from "@/widgets/shoe-db"
+import type { ShoeAiDetail, ShoeCardInfo, ShoeDbFilters, ShoeOfficeItem, ShoeStageSummary } from "@/widgets/shoe-db"
 
 import type { SCREEN_CASES } from "../frame/dev-screens"
 import type { ZoneTriple } from "../mock-assets/fake-art"
@@ -44,10 +44,83 @@ const ZONES: ZoneTriple[] = [
 
 const LONG_MODEL = "에어 줌 페가수스 트레일 고어텍스 방수 경량 러닝화 남녀공용 2025 봄여름 신상 한정판 컬러웨이"
 
-// 색 토큰을 읽어야 해서 호출 때 만든다.
+// 시안 r3 예시값 — 2025-03 등록분 536건 중 1쪽, 작업 단계(분업) 줄, 카드 위 AI 표시
+export const S10_STAGE_SUMMARY: ShoeStageSummary = {
+  stages: [
+    { title: "등록됨 · 문양 대기", count: 214, owner: "등록 담당 → 문양 입력 담당", aiLabel: "AI 문양 제안 198 / 214", aiBusy: true },
+    { title: "문양 입력됨 · 그룹 대기", count: 98, owner: "그룹 담당", aiLabel: "AI 그룹 후보 71" },
+    { title: "승인 대기", count: 224, owner: "승인 담당", active: true, aiLabel: "AI 확인 필요 9", aiTone: "warn" },
+    { title: "승인", count: 0, owner: "신발 DB 확정" },
+  ],
+  backlog: {
+    monthLabel: "2025-03 미승인",
+    total: 536,
+    parts: [
+      { label: "문양 대기", count: 214, tone: "line" },
+      { label: "그룹 대기", count: 98, tone: "violet" },
+      { label: "승인 대기", count: 224, tone: "blue" },
+    ],
+    todayDone: 37,
+    todayLimit: 50,
+    note: "하루 50매면 3월분 약 11일",
+  },
+}
+
+export const S10_CARD_INFO: Record<string, ShoeCardInfo> = {
+  "303352": { status: "승인 대기", mark: 0.95 },
+  "303351": { status: "승인 대기", mark: 0.93 },
+  "303349": { status: "AI 확인 필요", mark: "dup" },
+  "303348": { status: "문양 대기", mark: 0.88 },
+  "303347": { status: "승인 대기", mark: 0.91 },
+  "303346": { status: "측면 없음" },
+  "303344": { status: "문양 대기", mark: "scan" },
+  "303342": { status: "승인 대기", mark: 0.96 },
+  "303341": { status: "승인 대기", mark: 0.94 },
+  "303340": { status: "문양 대기", mark: 0.82 },
+  "303339": { status: "AI 확인 필요", mark: 0.61 },
+  "303338": { status: "승인 대기", mark: 0.92 },
+  "303337": { status: "문양 대기", mark: 0.9 },
+  "303336": { status: "승인 대기", mark: 0.89 },
+  "303335": { status: "문양 대기", mark: 0.86 },
+}
+
+// 색 토큰을 읽어야 해서 호출 때 만든다. 303349 의 창 상세(시안 모달 예시)
+export function makeS10AiDetails(): Record<string, ShoeAiDetail> {
+  return {
+    "303349": {
+      conf: { top: 0.94, mid: 0.58, bottom: 0.94 },
+      occlusion: { percent: 18, obstacle: "가격표" },
+      sameKind: { label: "헤링본", code: "n32_04", hint: "행 3번 → 1번" },
+      duplicate: {
+        ftwrId: "298114",
+        image: fakeSoleUrl({ kind: "shoe", zones: ["herring", "grid", "herring"] }),
+        similarity: 0.96,
+        registeredAt: "2023-11",
+      },
+      flow: { registered: "등록 · 서○○ 03-14", patterned: "문양 입력 · 박○○ 07-24", current: "승인 대기" },
+      conditions: { ok: ["측면", "바닥", "상·중·하"], warn: "AI 확인 필요 2건 ✗ (가림 1 · 중복 의심 1)" },
+    },
+  }
+}
+
 export function makeS10Shoes(): Shoe[] {
   const ids = ["00758", "303352", "303351", "303349", "303348", "303347", "303346", "303344", "303342", "303341", "303340", "303339", "303338", "303337", "303336", "303335"]
-  return ids.map((id, i) => ({
+  return ids.map((id, i) => id === "303349" ? {
+    ftwrId: id,
+    ftwrGroupId: "G041",
+    ftwrGroupNm: "브랜드3-013",
+    modlNm: "모델 103",
+    brandCode: "B0041",
+    makrCode: "M013",
+    colctPlace: "공식몰",
+    colctYear: "2025",
+    image: fakeSoleUrl({ kind: "shoe", zones: ["herring", "grid", "herring"] }),
+    // 시안 모달 예시: 상·하 헤링본, 중 격자 + 마크, 윤곽 s10c
+    top: ["n32_04"],
+    mid: ["n21_05", "s81b"],
+    bottom: ["n32_04"],
+    outline: ["s10c"],
+  } : ({
     ftwrId: id,
     ftwrGroupId: `G${String(i + 38).padStart(3, "0")}`,
     ftwrGroupNm: i === 0 ? "crocs(크록스)-038" : `브랜드${i}-0${i + 10}`,

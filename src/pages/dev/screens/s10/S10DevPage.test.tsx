@@ -1,8 +1,14 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { S10DevPage } from "./S10DevPage"
+
+// 알림은 Toaster 없이 호출만 확인한다
+const toastMock = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }))
+vi.mock("sonner", () => ({ toast: toastMock }))
+beforeEach(() => toastMock.mockClear())
+const PLANNED = "시안 — 기능 준비 중"
 
 const renderAt = (query: string) =>
   render(
@@ -13,10 +19,14 @@ const renderAt = (query: string) =>
 
 // 진열 막대(data-dev-bar)와 껍데기 메뉴에도 「등록」 글자가 있을 수 있어 툴바 버튼만 이름으로 찾는다
 const button = (name: string) => screen.queryByRole("button", { name })
+// r2: 진열 기본 보기는 시안대로 문양보기(카드). 표가 필요한 시험은 목록보기로 바꾼다
+const toList = () => fireEvent.click(screen.getByRole("button", { name: "목록보기" }))
+const plusEls = () => document.querySelectorAll("[data-plus]")
 
 describe("S10 신발문양 관리 진열 페이지", () => {
   it("ready 케이스에 신발 목록과 00758 을 그대로 그린다", () => {
     renderAt("case=ready&as=admin")
+    toList()
     expect(screen.getByRole("table")).toBeInTheDocument()
     expect(screen.getByText("00758")).toBeInTheDocument()
   })
@@ -30,13 +40,17 @@ describe("S10 신발문양 관리 진열 페이지", () => {
     })
   })
 
-  it("검색 폼은 3열이고 11칸이 4행에 놓인다", () => {
-    const { container } = renderAt("case=ready&as=admin")
+  it("검색 폼은 3열이고 지금 11칸(신규 켜면 AI 추천 포함 12칸)이 4행에 놓인다", () => {
+    const { container, unmount } = renderAt("case=ready&as=admin&plus=0")
     const form = container.querySelector('[data-part="SearchForm"]')
     expect(form).toHaveAttribute("data-part-variant", "col3")
     const labelCount = form!.querySelectorAll(":scope > div > div:nth-child(odd)").length
     expect(labelCount).toBe(11)
     expect(Math.ceil(labelCount / 3)).toBe(4)
+    unmount()
+    const on = renderAt("case=ready&as=admin")
+    const n = on.container.querySelector('[data-part="SearchForm"]')!.querySelectorAll(":scope > div > div:nth-child(odd)").length
+    expect(n).toBe(12)
   })
 
   it("검색 칸은 한국어 이름으로 찾는다", () => {
@@ -126,8 +140,137 @@ describe("S10 신발문양 관리 진열 페이지", () => {
     expect(within(dialog).getByRole("alert")).toHaveTextContent("이미 등록된 번호입니다")
   })
 
+  describe("r2 시안 그대로", () => {
+    it("?plus=0 이면 [data-plus] 가 하나도 없고 지금 기능은 그대로다", () => {
+      renderAt("case=ready&as=admin&plus=0")
+      expect(plusEls()).toHaveLength(0)
+      expect(screen.getByText("00758")).toBeInTheDocument()
+      expect(button("조회")).not.toBeNull()
+      fireEvent.click(screen.getByText("00758"))
+      expect(plusEls()).toHaveLength(0)
+      expect(screen.getByRole("dialog")).toBeInTheDocument()
+    })
+
+    it("신규 켜면 작업 단계 · 미승인 막대 · 오늘 승인이 시안 문구로 보인다", () => {
+      renderAt("case=ready&as=analyst")
+      expect(screen.getByText("등록됨 · 문양 대기")).toBeInTheDocument()
+      expect(screen.getByText("AI 문양 제안 198 / 214")).toBeInTheDocument()
+      expect(screen.getByText("AI 확인 필요 9")).toBeInTheDocument()
+      expect(screen.getByText("2025-03 미승인")).toBeInTheDocument()
+      expect(screen.getByText("37 / 50매")).toBeInTheDocument()
+      expect(screen.getByText("하루 50매면 3월분 약 11일")).toBeInTheDocument()
+      expect(screen.getByText("AI 추천")).toBeInTheDocument()
+    })
+
+    it("카드에 AI 표시: 확신도 · 읽는 중 · 중복 의심", () => {
+      renderAt("case=ready&as=analyst")
+      expect(screen.getByText("AI 0.95")).toBeInTheDocument()
+      expect(screen.getByText("AI 읽는 중")).toBeInTheDocument()
+      expect(screen.getByText("중복 의심")).toBeInTheDocument()
+      expect(screen.getByText("AI 0.61")).toBeInTheDocument()
+    })
+
+    it("스캔선은 움직임 줄이기에서 멈추도록 motion-safe 로만 건다", () => {
+      renderAt("case=ready&as=analyst")
+      const scans = document.querySelectorAll('[data-part="ScanOverlay"]')
+      expect(scans.length).toBeGreaterThan(0)
+      scans.forEach((el) => {
+        expect(el.className).toContain("motion-safe:animate-fx-scan")
+        expect(el.className.split(/\s+/)).not.toContain("animate-fx-scan")
+      })
+    })
+
+    it("엑셀 · 엑셀 일괄 등록은 활성이고 누르면 「시안 — 기능 준비 중」", () => {
+      renderAt("case=ready&as=admin")
+      const excel = screen.getByRole("button", { name: "엑셀 일괄 등록" })
+      expect(excel).not.toBeDisabled()
+      expect(screen.getByRole("button", { name: "엑셀" })).not.toBeDisabled()
+      fireEvent.click(excel)
+      expect(toastMock).toHaveBeenCalledWith(PLANNED)
+    })
+
+    it("역할: 승인 · 삭제는 관리자만 눌리고 감정관은 잠김, 엑셀 일괄 등록은 감정관도 보인다", () => {
+      const a = renderAt("case=ready&as=admin")
+      expect(screen.getByRole("button", { name: "승인" })).not.toBeDisabled()
+      expect(screen.getByRole("button", { name: "삭제" })).not.toBeDisabled()
+      a.unmount()
+      renderAt("case=ready&as=analyst")
+      expect(screen.getByRole("button", { name: "승인" })).toBeDisabled()
+      expect(screen.getByRole("button", { name: "삭제" })).toBeDisabled()
+      expect(button("엑셀 일괄 등록")).not.toBeNull()
+    })
+
+    it("역할: 기술책임자에게는 쓰기 버튼(엑셀 일괄 등록 · 등록)이 없다", () => {
+      renderAt("case=ready&as=verifier")
+      expect(button("엑셀 일괄 등록")).toBeNull()
+      expect(button("등록")).toBeNull()
+    })
+
+    it("신발정보관리 창: 문양정보 탭에 AI 1차 입력 · 확신도 · 중복 의심이 시안 문구로 보인다", () => {
+      renderAt("case=ready&as=analyst")
+      fireEvent.click(screen.getByText("303349"))
+      const dialog = screen.getByRole("dialog")
+      fireEvent.click(within(dialog).getByRole("button", { name: "문양정보" }))
+      expect(within(dialog).getByText("AI 1차 입력")).toBeInTheDocument()
+      expect(within(dialog).getByText(/한 번에/)).toBeInTheDocument()
+      expect(within(dialog).getByText("확인 필요 · 가격표가 가림")).toBeInTheDocument()
+      expect(within(dialog).getByText("AI 미지원 · 사람이 입력")).toBeInTheDocument()
+      expect(within(dialog).getByText("AI 중복 의심")).toBeInTheDocument()
+      expect(within(dialog).getByText("0.96")).toBeInTheDocument()
+      expect(within(dialog).getByRole("button", { name: "상·중·하 모두에 넣기" })).toBeInTheDocument()
+      expect(within(dialog).getByRole("button", { name: "인공지능문양관리" })).toBeInTheDocument()
+      expect(within(dialog).getByText(/AI 확인 필요 2건/)).toBeInTheDocument()
+    })
+
+    it("역할: 기술책임자 · 보기 전용에는 인공지능문양관리 · 모두에 넣기가 없다", () => {
+      renderAt("case=ready&as=verifier&tab=pattern")
+      fireEvent.click(screen.getByText("303349"))
+      const dialog = screen.getByRole("dialog")
+      expect(within(dialog).queryByRole("button", { name: "인공지능문양관리" })).toBeNull()
+      expect(within(dialog).queryByRole("button", { name: "상·중·하 모두에 넣기" })).toBeNull()
+      expect(within(dialog).queryByRole("button", { name: "그룹으로 연결" })).toBeNull()
+    })
+
+    it("창의 이전 · 다음 · 그룹등록 · 승인은 시안 알림", () => {
+      renderAt("case=ready&as=admin")
+      fireEvent.click(screen.getByText("303349"))
+      const dialog = screen.getByRole("dialog")
+      for (const n of ["이전", "다음", "그룹등록", "승인"]) {
+        toastMock.mockClear()
+        fireEvent.click(within(dialog).getByRole("button", { name: n }))
+        expect(toastMock).toHaveBeenCalledTimes(1)
+        expect(toastMock).toHaveBeenCalledWith(PLANNED)
+      }
+    })
+
+    it("?plus=0: 창 두 탭 모두 [data-plus] 0, 이전 · 다음 · 그룹등록 · 승인 없음, 문양 이름은 그대로", () => {
+      renderAt("case=ready&as=admin&plus=0&tab=pattern")
+      fireEvent.click(screen.getByText("303349"))
+      const dialog = screen.getByRole("dialog")
+      const none = () => {
+        expect(plusEls()).toHaveLength(0)
+        for (const n of ["이전", "다음", "그룹등록", "승인"]) expect(within(dialog).queryByRole("button", { name: n })).toBeNull()
+      }
+      none()
+      // 문양 아이콘은 이름을 그대로 보인다(title)
+      expect(dialog.querySelector('[data-part="PatternIcon"][title="n32_04"]')).not.toBeNull()
+      expect(dialog.querySelector('[data-part="PatternIcon"][title="s10c"]')).not.toBeNull()
+      fireEvent.click(within(dialog).getByRole("button", { name: "기본정보" }))
+      none()
+    })
+
+    it("보기 전용 · 기술책임자는 문양정보 탭에 고르기 줄(분류 칩 · 팔레트)이 없다", () => {
+      renderAt("case=ready&as=readonly&tab=pattern")
+      fireEvent.click(screen.getByText("303349"))
+      const dialog = screen.getByRole("dialog")
+      expect(within(dialog).queryByRole("button", { name: /^문양 n/ })).toBeNull()
+      expect(within(dialog).queryByText("내부선")).toBeNull()
+    })
+  })
+
   it("긴 모델명 행이 있다(가로 넘침 점검용)", () => {
     renderAt("case=ready")
+    toList()
     expect(screen.getAllByRole("row").length).toBeGreaterThan(10)
     expect(screen.getByText(/한정판 컬러웨이$/)).toBeInTheDocument()
   })
