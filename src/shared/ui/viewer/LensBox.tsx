@@ -2,7 +2,7 @@ import * as React from "react"
 
 import { cn } from "@/shared/lib/utils"
 
-import { LENS_SCALE, lensOffset, type LensZoom } from "../model/view-tune"
+import { LENS_SCALE, lensOffset, type LensZoom } from "./view-tune"
 
 /** 마우스 자리(상자 기준 px)와 그때 상자 크기 */
 interface LensPoint {
@@ -27,6 +27,8 @@ export interface LensBoxProps {
   onSizeStep: (by: 1 | -1) => void
   /** 두 번 누름 — 크게 살펴보기 */
   onDoubleClick?: () => void
+  /** 확대경 `data-slot`(화면별 시험 이름) */
+  lensSlot?: string
   className?: string
   children: React.ReactNode
 }
@@ -36,12 +38,12 @@ const typing = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName))
 
 /**
- * 확대경 상자(11/17 사용자 「각각 마우스 대면 확대 기능을 달아. 그 원의 크기는 늘릴 수 있고」).
+ * 공용 확대경 상자(11/17 사용자 「각각 마우스 대면 확대 기능을 달아. 그 원의 크기는 늘릴 수 있고」).
  * 움직임은 바깥 상자의 pointer 이벤트로만 읽고(막지도 · 가로채지도 않음), 확대경은 `pointer-events-none` 장식이다 —
  * 운영에서 이 상자 안에 들어갈 `PatternCanvas` 의 좌표 판정 · 경계선 끌기를 막지 않는다(docs/api-communication.md §4, 좌표 수학 안 건드림).
  * 지름: Shift + 휠 · [ ] 키(마우스가 상자 위에 있을 때). 위치는 런타임 좌표라 인라인 style(CLAUDE.md 예외), 움직임 효과는 없다.
  */
-export function LensBox({ enabled, size, zoom, source, tune, onSizeStep, onDoubleClick, className, children }: LensBoxProps) {
+export function LensBox({ enabled, size, zoom, source, tune, onSizeStep, onDoubleClick, lensSlot = "viewer-lens", className, children }: LensBoxProps) {
   const ref = React.useRef<HTMLDivElement>(null)
   const [at, setAt] = React.useState<LensPoint | null>(null)
   const stepRef = React.useRef(onSizeStep)
@@ -100,7 +102,7 @@ export function LensBox({ enabled, size, zoom, source, tune, onSizeStep, onDoubl
       {on && at && off ? (
         <div
           aria-hidden="true"
-          data-slot="pattern-lens"
+          data-slot={lensSlot}
           className="pointer-events-none absolute z-[3] overflow-hidden rounded-full border-2 border-solid border-fg-2 bg-canvas [box-shadow:0_8px_24px_var(--t-panel-drop)]"
           style={{ left: Math.round(at.x - size / 2), top: Math.round(at.y - size / 2), width: size, height: size }}
         >

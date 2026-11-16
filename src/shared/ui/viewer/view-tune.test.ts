@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest"
 
-import { DEFAULT_VIEW_TUNE, lensOffset, LENS_MAX, LENS_MIN, stepLens, stepTune, viewTuneClass, viewTuneLabels } from "./view-tune"
+import {
+  DEFAULT_VIEW_TUNE,
+  lensOffset,
+  LENS_MAX,
+  LENS_MIN,
+  rotateTune,
+  stepLens,
+  stepTune,
+  viewTuneClass,
+  viewTuneLabels,
+} from "./view-tune"
 
 describe("viewTuneClass · viewTuneLabels", () => {
   it("기본은 빈 클래스 · 빈 꼬리표", () => {
@@ -8,10 +18,10 @@ describe("viewTuneClass · viewTuneLabels", () => {
     expect(viewTuneLabels(DEFAULT_VIEW_TUNE)).toEqual([])
   })
 
-  it("대비 · 밝기 · 반전은 안쪽 겹, 감마는 바깥 겹", () => {
-    const t = { ...DEFAULT_VIEW_TUNE, contrast: 2, brightness: -1, gamma: 1, invert: true } as const
-    expect(viewTuneClass(t)).toEqual({ outer: "brightness-[1.09] contrast-[.94]", inner: "brightness-75 contrast-150 invert" })
-    expect(viewTuneLabels(t)).toEqual(["대비 +2", "밝기 −1", "감마 1.25", "반전"])
+  it("대비 · 밝기 · 반전은 안쪽 겹, 감마 · 회전은 바깥 겹", () => {
+    const t = { ...DEFAULT_VIEW_TUNE, contrast: 2, brightness: -1, gamma: 1, invert: true, rotate: 90 } as const
+    expect(viewTuneClass(t)).toEqual({ outer: "brightness-[1.09] contrast-[.94] rotate-90", inner: "brightness-75 contrast-150 invert" })
+    expect(viewTuneLabels(t)).toEqual(["대비 +2", "밝기 −1", "감마 1.25", "반전", "회전 90°"])
   })
 
   it("이진화를 켜면 대비 걸음 대신 이진화가 대비를 맡는다", () => {
@@ -21,11 +31,16 @@ describe("viewTuneClass · viewTuneLabels", () => {
   })
 })
 
-describe("걸음 · 확대경", () => {
+describe("걸음 · 회전 · 확대경", () => {
   it("stepTune 은 −2 ~ +2 에서 멈춘다", () => {
     expect(stepTune(2, 1)).toBe(2)
     expect(stepTune(-2, -1)).toBe(-2)
     expect(stepTune(0, 1)).toBe(1)
+  })
+
+  it("rotateTune 은 90° 씩 돌고 270 다음은 0", () => {
+    expect(rotateTune(0)).toBe(90)
+    expect(rotateTune(270)).toBe(0)
   })
 
   it("stepLens 는 범위 안에서 24px 씩", () => {

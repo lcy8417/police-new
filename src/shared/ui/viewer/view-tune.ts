@@ -1,10 +1,13 @@
-// 현장 이미지 보기 조정(11/17 — 감정관이 대비 · 밝기 · 감마 · 반전 · 이진화를 바꿔 가며 문양을 찾는다).
+// 족적 그림 보기 조정(11/17 — 감정관이 대비 · 밝기 · 감마 · 반전 · 이진화 · 회전을 바꿔 가며 문양을 찾는다).
 // 보기용이라 저장하지 않는다(편집 저장은 이미지 편집 탭 몫). 진열은 CSS 필터 근사 — 운영은 지금 앱 픽셀 보정
 // (`features/crime-register/lib/pixel-filters.ts`)으로 바꿔 끼울 자리. 값은 다섯 걸음(−2 ~ +2)이라 클래스가 고정 글자다
-// (인라인 style 금지 — Tailwind 가 읽을 수 있게 모두 글자 그대로 둔다).
+// (인라인 style 금지 — Tailwind 가 읽을 수 있게 모두 글자 그대로 둔다). 문양 코드 · 검색 결과 · 정밀 대조 · 신발 DB 가 함께 쓴다.
 
 /** 한 걸음(−2 ~ +2, 0 = 그대로) */
 export type TuneStep = -2 | -1 | 0 | 1 | 2
+
+/** 회전(도, 시계 방향) */
+export type TuneRotate = 0 | 90 | 180 | 270
 
 /** 보기 조정 값 */
 export interface ViewTune {
@@ -18,9 +21,11 @@ export interface ViewTune {
   invert: boolean
   /** 이진화(흑백 두 값) */
   binary: boolean
+  /** 회전(보기용 — 좌표 캔버스 위에서는 쓰지 않는다) */
+  rotate: TuneRotate
 }
 
-export const DEFAULT_VIEW_TUNE: ViewTune = { contrast: 0, brightness: 0, gamma: 0, invert: false, binary: false }
+export const DEFAULT_VIEW_TUNE: ViewTune = { contrast: 0, brightness: 0, gamma: 0, invert: false, binary: false, rotate: 0 }
 
 export const TUNE_STEPS: readonly TuneStep[] = [-2, -1, 0, 1, 2]
 
@@ -34,16 +39,19 @@ const GAMMA: Record<TuneStep, string> = {
   1: "brightness-[1.09] contrast-[.94]",
   2: "brightness-[1.18] contrast-[.88]",
 }
+/** 회전 — 바깥 겹(가운데 기준) */
+const ROTATE: Record<TuneRotate, string> = { 0: "", 90: "rotate-90", 180: "rotate-180", 270: "rotate-270" }
 /** 이진화 근사 — 흑백 + 아주 센 대비 */
 const BINARY = "grayscale contrast-[8]"
 
 /** 감마 걸음 → 보이는 값 */
 export const GAMMA_VALUE: Record<TuneStep, string> = { [-2]: "0.6", [-1]: "0.8", 0: "1.0", 1: "1.25", 2: "1.5" }
 
-/** 그림을 감싸는 두 겹의 클래스 — outer(감마) · inner(밝기 · 대비 · 반전 · 이진화) */
+/** 그림을 감싸는 두 겹의 클래스 — outer(감마 · 회전) · inner(밝기 · 대비 · 반전 · 이진화) */
 export function viewTuneClass(t: ViewTune): { outer: string; inner: string } {
   const inner = [BRIGHTNESS[t.brightness], t.binary ? BINARY : CONTRAST[t.contrast], t.invert ? "invert" : ""].filter(Boolean).join(" ")
-  return { outer: GAMMA[t.gamma], inner }
+  const outer = [GAMMA[t.gamma], ROTATE[t.rotate ?? 0]].filter(Boolean).join(" ")
+  return { outer, inner }
 }
 
 const signed = (n: number) => (n > 0 ? `+${n}` : `−${Math.abs(n)}`)
@@ -56,12 +64,23 @@ export function viewTuneLabels(t: ViewTune): string[] {
   if (t.gamma !== 0) out.push(`감마 ${GAMMA_VALUE[t.gamma]}`)
   if (t.invert) out.push("반전")
   if (t.binary) out.push("이진화")
+  if (t.rotate) out.push(`회전 ${t.rotate}°`)
   return out
+}
+
+/** 보기 조정이 처음과 다른가 */
+export function isViewTuned(t: ViewTune): boolean {
+  return viewTuneLabels(t).length > 0
 }
 
 /** 걸음 하나 옮기기(−2 ~ +2 에서 멈춤) */
 export function stepTune(v: TuneStep, by: 1 | -1): TuneStep {
   return Math.max(-2, Math.min(2, v + by)) as TuneStep
+}
+
+/** 시계 방향 90° 돌리기 */
+export function rotateTune(r: TuneRotate): TuneRotate {
+  return ((r + 90) % 360) as TuneRotate
 }
 
 // ── 확대경 ──
@@ -75,6 +94,18 @@ export type LensZoom = 2 | 3 | 4
 export const LENS_ZOOMS: readonly LensZoom[] = [2, 3, 4]
 /** 배율 → 고정 클래스(왼쪽 위 기준으로 키움) */
 export const LENS_SCALE: Record<LensZoom, string> = { 2: "scale-200", 3: "scale-300", 4: "scale-400" }
+
+/** 확대경 설정 */
+export interface LensSettings {
+  /** 켬 */
+  on: boolean
+  /** 지름(px) */
+  size: number
+  /** 배율 */
+  zoom: LensZoom
+}
+
+export const DEFAULT_LENS: LensSettings = { on: false, size: LENS_DEFAULT, zoom: 2 }
 
 /** 지름을 한 걸음 바꾸기(범위 안) */
 export function stepLens(size: number, by: 1 | -1): number {

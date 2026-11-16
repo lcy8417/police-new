@@ -5,18 +5,26 @@ import { cn } from "@/shared/lib/utils"
 import { AiProgress, ScanOverlay } from "@/shared/ui/ai"
 import { Field, Segmented, WorkbenchButton } from "@/shared/ui/kit"
 import { PaneHead, TabMark, UnderlineTabs } from "@/shared/ui/panel"
+import {
+  DEFAULT_LENS,
+  DEFAULT_VIEW_TUNE,
+  LensBox,
+  stepLens,
+  ViewControls,
+  viewTuneClass,
+  viewTuneLabels,
+  type LensSettings,
+  type ViewTune,
+} from "@/shared/ui/viewer"
 
 import { patternName, ZONE_ROWS } from "../model/constants"
 import type { PatternCodeScreenProps, SearchImageSource } from "../model/types"
-import { DEFAULT_VIEW_TUNE, LENS_DEFAULT, stepLens, viewTuneClass, viewTuneLabels, type ViewTune } from "../model/view-tune"
 import { countOverrides, patternWeights, WEIGHT_RULES } from "../model/weight-rules"
 import { SubHead } from "./Band"
 import { InspectOverlay } from "./InspectOverlay"
-import { LensBox } from "./LensBox"
 import { MatchConditions } from "./MatchConditions"
 import { PatternLibrary } from "./PatternLibrary"
 import { SearchRunList } from "./SearchRunList"
-import { ViewControls, type LensSettings } from "./ViewControls"
 import { ZoneBoard } from "./ZoneBoard"
 
 const SOURCES = [
@@ -56,7 +64,7 @@ export function PatternWindow(props: PatternWindowProps) {
   const [sideTab, setSideTab] = React.useState<SideTab>("library")
   const sideTabsId = React.useId()
   const [tune, setTune] = React.useState<ViewTune>(DEFAULT_VIEW_TUNE)
-  const [lens, setLens] = React.useState<LensSettings>({ on: false, size: LENS_DEFAULT, zoom: 2 })
+  const [lens, setLens] = React.useState<LensSettings>(DEFAULT_LENS)
   const [inspecting, setInspecting] = React.useState(false)
 
   const weights = React.useMemo(
@@ -194,6 +202,7 @@ export function PatternWindow(props: PatternWindowProps) {
                   zoom={lens.zoom}
                   source={props.lensSource}
                   tune={cls}
+                  lensSlot="pattern-lens"
                   onSizeStep={lensStep}
                   onDoubleClick={() => setInspecting(true)}
                   className="size-full"

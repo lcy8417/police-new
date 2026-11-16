@@ -6,3 +6,29 @@ export { ZoneBands, type ZoneBand, type ZoneBandsProps } from "./ZoneBands"
 export { CompareView, type CompareMode, type CompareViewProps } from "./CompareView"
 export { PointPairs, type PointPairBox, type PointPairsProps } from "./PointPairs"
 export { HeatOverlay, type HeatOverlayProps, type HeatVariant } from "./HeatOverlay"
+// 공용 확대경 · 보기 조정 · 크게 살펴보기(11/17 — 문양 코드 · 검색 결과 · 정밀 대조 · 신발 DB 가 함께 쓴다)
+export { LensBox, type LensBoxProps } from "./LensBox"
+export { ViewControls, type ViewControlsProps } from "./ViewControls"
+export { InspectFrame, type InspectFrameProps } from "./InspectFrame"
+export {
+  DEFAULT_LENS,
+  DEFAULT_VIEW_TUNE,
+  GAMMA_VALUE,
+  isViewTuned,
+  LENS_DEFAULT,
+  LENS_MAX,
+  LENS_MIN,
+  LENS_STEP,
+  LENS_ZOOMS,
+  lensOffset,
+  rotateTune,
+  stepLens,
+  stepTune,
+  viewTuneClass,
+  viewTuneLabels,
+  type LensSettings,
+  type LensZoom,
+  type TuneRotate,
+  type TuneStep,
+  type ViewTune,
+} from "./view-tune"
