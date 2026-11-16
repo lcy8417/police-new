@@ -20,3 +20,12 @@
 | B10 | **발견 판정 = 확인대상 신발 필수 · 자기 검증 금지를 서버가 막는지** | DB §5-C(`examination_candidate`, 자기 검증 금지 트리거). 시안은 이번 회차에 화면에서 막음(신발 없는 줄 「발견」 잠금, 교차 검증자 목록에서 판정자 본인 제외) | 판정 확정 API 에서 `result_code = 발견` 이면 채택 확인대상 1개 이상을 요구(CHECK 또는 저장 함수). 자기 검증 금지 트리거는 설계대로 | 판정 확정 API, 트리거 테스트 |
 | B11 | **로그인 전 화면에 지난 로그인 IP · 실패 횟수 노출(시안 +α)** | DB §5-H(인증 규약), Gemini 지적 | 계정 정보는 로그인 뒤 첫 화면(또는 사용자 메뉴)에서만 보이게 — 서버도 로그인 전 응답에 이 값을 주지 않는다. 시안 S00 「지난 로그인」 줄을 옮길지 사용자 결정 | 로그인 응답 · `/auth/me`, 시안 S00 |
 | B12 | **사용 기록 해시 사슬 범위** — 시안 S14 가 해시 사슬 요약을 일반 조회 · 검색(`activity_log`) 에 걸린 것처럼 보인다 | DB §4.10 · §5-H(해시 사슬 = 중요 행위 `audit_event` 만) | 사용 기록 화면 API 가 `audit_event` 와 `activity_log` 를 구분해 주고, 해시 사슬 검증 결과는 `audit_event` 기준으로만. 시안 S14 문구는 그 API 모양이 정해질 때 맞춘다 | 관리자 로그 API, 시안 S14 |
+
+## 2회차 (Codex · Gemini 검수, 2026-11-17)
+
+| # | 항목 | 근거 | 제안 | 영향 |
+|---|---|---|---|---|
+| B13 | **SCAS 「개수」(문양마다 0–9 · 10이상) · 밑창 「문자열」 저장 자리가 없다** — 시안 사건 창 문양 코드 탭이 두 칸을 보여 주고 이번 회차부터 검색 이력(`SearchRun`)에도 남기지만, DB 설계서 · B1–B12 어디에도 열이 없다 | Gemini 2회차 G18, DB §4(사건 문양 `scas.tbf_ftaprthngptrninfo` · 필수 `app.aprthng_ptrn_essntl`), 가중치 §8-4(개수 쓰임 열린 질문). 시안 `widgets/pattern-code/model/types.ts` `SearchRunPattern.count` · `SearchRun.soleText` | 먼저 사용자와 칸 존폐를 정한다(review-log 2회차 「사용자 확인 필요」). 남기면 개수 = B5 보조 표에 `ptrn_cnt` 열, 문자열 = 감정물 단위 `sole_text`(또는 SCAS 원 열이 있으면 그 열)로, 검색 스냅샷(B6) JSON 에도 같은 이름으로 | 마이그레이션, `PUT /crime/{aprthng_no}` 선택 필드, 이력 저장 · 상세 응답 |
+| B14 | **판정 뒤 확인대상이 바뀌면 판정 판본을 새로** — 시안은 발견 판정 때의 확인대상 지문을 기억해, 대상이 바뀌면 「다시 판정」으로 되돌린다(판정이 새 대상에 그대로 붙던 것) | Codex 2회차 C1, DB §5-C(`examination` `CONFIRMED` 수정 거부 · `examination_candidate` PK `(exam_id, search_no, search_se_code, mtchg_id)`) | 확정(`CONFIRMED`) 판정의 후보를 더하거나 빼려면 새 `exam_round` 의 `DRAFT` 판본을 만들고 이전 판본은 `SUPERSEDED`(설계 구조 그대로) — 이 흐름을 판정 API 계약에 적는다. 후보 식별은 시안과 같이 검색번호 + 신발 ID(순위로 가르지 않음) | 판정 확정 · 후보 등록 API, 상태 전이 문서, 테스트 |
+| B15 | **판정 메모(`examination.opinion_cn`) 입력 자리** — 단독 S07 에는 있으나 사건 창 「결과 확인」 탭에는 칸이 없다 | Gemini 2회차 G19, DB §5-C | 사용자 결정 뒤: 남기면 판정 확정 API 본문에 `opinionCn`(선택)을 받고, 창 결과 확인 줄에 메모 칸을 시안부터 그린다(부품표 승인 필요) | 판정 API, 시안 S07 창 |
+| B16 | **검색 스냅샷에 확인 전 AI 제안 문맥** — 가중치 R5(세 부위 반복)가 확인 전 제안까지 세므로, 이력 「다시 불러오기」가 같은 가중치를 내려면 그때 제안 목록이 필요하다(시안 `SearchRun.pending`) | Codex 2회차 C3, 가중치 §3 예시 · §7 | B6 의 `ptrn_snapshot` JSON 에 `pending: { top: [{ name, confidence }], … }` 를 더한다(검색 본문 · 순위 계산에는 쓰지 않음) | 이력 저장 본문, 이력 상세 응답 |
