@@ -55,7 +55,7 @@ export function Segmented({
               "border-0 bg-transparent cursor-pointer px-[12px] py-[5px] rounded-[6px] text-[12.5px] whitespace-nowrap text-muted-foreground",
               pressed &&
                 (scas
-                  ? "bg-fg text-panel"
+                  ? "bg-foreground text-panel"
                   : "bg-brand-bg text-foreground [box-shadow:inset_0_0_0_1px_var(--t-brand-line)]")
             )}
           >

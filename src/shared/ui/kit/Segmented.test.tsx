@@ -30,5 +30,9 @@ describe("Segmented", () => {
   it("scas 이면 변형 scas", () => {
     const { container } = render(<Segmented items={ITEMS} value="원본" onValueChange={() => {}} scas />)
     expect(container.firstElementChild).toHaveAttribute("data-part-variant", "scas")
+    // 눌린 칸 바탕은 실제로 있는 토큰(bg-foreground = --t-fg). 없는 bg-fg 는 칠해지지 않는 버그였다.
+    const pressed = container.querySelector('button[aria-pressed="true"]')!
+    expect(pressed.className).toContain("bg-foreground")
+    expect(pressed.className).not.toMatch(/(^|\s)bg-fg(\s|$)/)
   })
 })

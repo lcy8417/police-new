@@ -28,3 +28,26 @@
 **더한 토큰 · 키프레임(`src/index.css`)** — 값 토큰: `--t-ai-scan-glow`(ScanOverlay 번짐) · `--t-ai-shine`(AiProgress 반짝임 띠) · `--t-picon-bg`(`bg-picon`, PatternIcon 바탕). 키프레임: `fx-scan` · `fx-fill` · `fx-shimmer` + 애니메이션 `animate-fx-scan` · `animate-fx-fill` · `animate-fx-run`(= fx-fill + fx-shimmer 동시). 기존 토큰 값은 바꾸지 않음. 대신 쓰던 근사(AiProgress 띠 없음, ScanOverlay `--t-ai-pulse`, PatternIcon `bg-white`)는 정확한 값으로 교체.
 
 **그 밖의 반영** — ScasShell 사용자 이니셜을 kit `Avatar`로 교체. ConfidenceBar의 sr-only 「낮음」 글자를 막대의 `aria-valuetext`로 옮김(`low`면 「0.42 낮음」, 아니면 숫자만). PatternIcon의 sr-only 글자는 이미지 `alt`로 옮김. `parts-plan.md`(진열)에 화면 진열 페이지 S00–S14용 「그대로」 행 23개 추가. 시안 표식(`data-part-id`) 추가: S01-21 · 22 · 23 · 31 · 71 · 73 · 76, S04-31 · 32 · 34(RadioRow S01-76 · LiveDot S01-21은 대조 실패로 `noMockup`). 갈래 노트의 id가 겹쳐(S04-31) ConfidenceBar를 S04-34로 바꿈.
+
+## 마감 보고 (Task 11)
+
+**연결** — 모든 고리가 `/dev/sNN` 이동으로 이어짐(보는 사람 `as` 유지): S01 행 → S02 → 「이미지 커팅 열기」 → S03 → 「저장」 → S04 → 「검색」 → S05 → 카드 → S06 → 「확인대상」 → S07, S01 메뉴 「신발 DB」 → S10, 관리 메뉴 → S13 · S14(`src/pages/dev/screens/navigation.test.tsx` + 각 진열 페이지 테스트). 반응형: `/dev/s01` · `/dev/s05` 폭 1280 · 1600에서 문서 가로 넘침 0. 공유 부품 고침: Segmented `scas` 눌림 `bg-fg`(없는 토큰) → `bg-foreground`(시안 `#e9ecf3`에 가장 가까운 `--t-fg`).
+
+**(a) 뺀 · 애매한 요소(화면별)** — 자세한 목록은 `screens-*.md`.
+- S00 · S13 · S14(`screens-admin.md`): AI 시연 · 소개 · 지난 로그인 · 남은 시도 · 역할 프리셋 · 운영 상태 · 시간대 차트 · 이상 징후 · 무결성 · 엑셀 · 「대상 번호」 필터 · 「더 보기」(쪽 이동으로 대체). 시안 역할 4종 대신 서버 역할 3종.
+- S01 · S02(`screens-case.md`): AI 타일 · 진행 열 · 행 펼침 · 단계 띠 · 채취 방법 AI 제안 · 족적/자 인식. 애매: S02 「수정」 버튼 · 사건개요/비고(준비 중 잠금) · 처리 구분/보는 사람 안내문 · 문양보기/엑셀(알림만).
+- S03 · S04(`screens-edit.md`): AI 제안 · 편집 이력 해시 · 원본→편집본 비교 · 자 인식 · 좌우반전 추천 · 발견 이미지 비교(핀 6 · 13) · 문양 개수 · 문자열 행 · 상태 열 · 하이브리드 검색 방식 · 가격표 경고 · 깔때기. 매칭 조건 · 인공지능문양관리 · 평준화/상하반전은 비활성 + 「준비 중」.
+- S05 · S06 · S07(`screens-result.md`): AI 10건 · 분포 · 촘촘 8열 · 본 위치 · 확인대상 등록 · 대응점 39개 · 히트맵 · 신뢰도 · 교차 검증 · 감정불능 · 판정 메모. 「확인대상보기」 · 이전/다음/그룹/프린트 비활성.
+- S10(`screens-shoe.md`): 분업 단계 · 미승인 막대 · AI 추천/중복 의심 · 코드 선택 팝업(텍스트 입력으로) · 월 선택기(두 날짜로). 승인 · 등록관서 · 화종 · 비고는 검색 칸만.
+
+**(b) parts-compare 남은 차이** — `parts-compare` 47건 모두 통과(Segmented 포함). 대조 못 한 부품(구현만): RadioRow · LiveDot · Combobox · StatusDot · DataGrid · Pagination · DialogShell · InlineError · EvidenceImage · ZoneBands · CompareView · PointPairs · ScanOverlay · panel 4개. 구조 차이: RadioRow(button + 글자 ◉○) · LiveDot(글자 래퍼) · PatternIcon 고름/AI(색 테 + alt) · DataGrid 행 높이 44 고정 · `fx-new` 없음 · Pagination 「더 보기」 · « » 없음 · Avatar 28 고정 · Segmented 크기 변형 없음 · DialogShell 폭 720 임시. 가짜 그림(EvidenceImage · CompareView · SoleThumb)은 시안 SVG와 다름. Segmented `scas` 눌림은 시안 짝이 없어 대조 안 됨.
+
+**(c) F 자리표** — F1–F33 모두 자리 있음(빠짐 0). spec §5-1 「옮길 화면」 칸에 화면 · 영역까지 채움(33줄). 비활성(지금 앱에 동작 없음) 칸은 「준비 중」 툴팁.
+
+**(d) 사용자 결정이 필요한 것**
+1. ConfidenceBar `low` · PatternIcon 선택/AI에 눈에 보이는 색 말고 표식(글자 · 아이콘)을 둘지 — 시안에 없음, 지금은 읽는 단서(`aria-valuetext` · `alt`)만.
+2. S03 보기 방식 · 임계값에 kit `Slider` 부품을 추가할지(지금은 숫자 칸; 현재 앱은 슬라이더, R14).
+3. S04 검색이력 열: 브리프(ID · 등록일시 · 순위 · 매칭 신발) vs 시안 SCAS 열(검색번호 · 결과건수 · 검색방법 · 검색결과 · 검색일). 지금은 브리프.
+4. S07 저장 묶음에 `aprthngNo` 추가(`onSaveJudgement({ aprthngNo, ftwrId, result })`) — 이미지 블록마다 판정이라 필요. 브리프엔 없음.
+5. 공유 부품 요청: Combobox `aria-label`(+ id/라벨 연결) · Checkbox 토큰색(shadcn hex) · Chip 22px green/red 변형 · DataGrid 행 펼침(+ `aria-label`) · Segmented `disabled` · Avatar 크기(44) · DotGrid 인라인 style · 모양 장식(CropFrame 등)과 S06 AlignmentDecor 합치기.
+6. 문서 정리: `parts-plan.md` 「그대로」 행의 자리 글(S01 · S02 → S00–S14).

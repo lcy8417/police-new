@@ -76,3 +76,22 @@ for (const width of WIDTHS) {
     expect(result.overflows).toEqual([]); // ③
   });
 }
+
+// 사건관리(S01) · 검색 결과(S05) 진열 화면: 긴 값 · 많은 행에서도 가로 넘침 0(Review Focus 3).
+for (const path of ["/dev/s01?case=ready", "/dev/s05?case=ready"]) {
+  for (const width of [1280, 1600] as const) {
+    test(`${path.split("?")[0]} ${width}px: 문서 가로 넘침 없음`, async ({ page }) => {
+      await page.route("**/auth/me", (route) => route.fulfill({ status: 401, contentType: "application/json", body: "{}" }));
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto(path);
+      await page.waitForLoadState("networkidle");
+      const over = await page.evaluate(() => ({
+        doc: document.documentElement.scrollWidth - window.innerWidth,
+        body: document.body.scrollWidth - window.innerWidth,
+      }));
+      expect(over.doc).toBeLessThanOrEqual(0);
+      expect(over.body).toBeLessThanOrEqual(0);
+    });
+  }
+}

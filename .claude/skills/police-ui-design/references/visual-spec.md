@@ -98,7 +98,7 @@
 
 | 부품 | 값 |
 |---|---|
-| Segmented(`.seg`) | 바깥 inline-flex · 안쪽 3 · 간격 2 · 테두리 1px line · 모서리 8 · 바탕 bg2. 칸: 좌우 12 · 상하 5 · 모서리 6 · 12.5px mute. 눌림: 바탕 brand-bg · 글자 fg · 안쪽 선 1px brand-line. `scas` 눌림은 토큰 없는 `#e9ecf3`/`#1f2a5a` 대신 `bg-fg`/`text-panel` |
+| Segmented(`.seg`) | 바깥 inline-flex · 안쪽 3 · 간격 2 · 테두리 1px line · 모서리 8 · 바탕 bg2. 칸: 좌우 12 · 상하 5 · 모서리 6 · 12.5px mute. 눌림: 바탕 brand-bg · 글자 fg · 안쪽 선 1px brand-line. `scas` 눌림은 토큰 없는 `#e9ecf3`/`#1f2a5a` 대신 `bg-foreground`/`text-panel` |
 | RadioRow(`.radio`) | 간격 가로 10 · 세로 2 · mute, 선택 fg. 선택 「◉ 」 brand · 미선택 「○ 」 faint |
 | StatusDot(`.dot`) | 7×7 원 · currentColor · 빛 `0 0 6px currentColor` + 뒤 글자 12px fg-2 · 간격 6 |
 | Avatar(`.avatar`) | 28×28 · 모서리 50%(`rounded-[50%]` — `rounded-full`은 계산값이 달라 대조 실패) · panel-3 · fg-2 12px 600 |

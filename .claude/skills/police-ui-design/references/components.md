@@ -152,7 +152,7 @@
 - **PatternIcon 고름 · AI**: 색 테 + 그림 대체글(`alt`)만. 시안에 보이는 표식 없음.
 - **Combobox**: 칸을 떠나면 확정 안 한 입력은 버린다.
 - **RadioRow**: `name`을 묶음의 접근성 이름(`aria-label`)으로 쓴다.
-- **DataGrid 호버** `#0e1726` → panel-2, **DialogShell** 머리 그라데이션 → 단색 · 그림자 .7 → .35, **Segmented `scas`** 눌림 → `bg-fg`/`text-panel`, **EvidenceImage `binary`** 는 CSS 필터 근사, **가짜 그림 색**은 가장 가까운 토큰.
+- **DataGrid 호버** `#0e1726` → panel-2, **DialogShell** 머리 그라데이션 → 단색 · 그림자 .7 → .35, **Segmented `scas`** 눌림 → `bg-foreground`/`text-panel`, **EvidenceImage `binary`** 는 CSS 필터 근사, **가짜 그림 색**은 가장 가까운 토큰.
 
 ### 픽셀 대조를 뺀 자리(계산값 대조는 함)
 
