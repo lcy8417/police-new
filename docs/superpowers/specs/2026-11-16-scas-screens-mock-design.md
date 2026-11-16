@@ -2,7 +2,7 @@
 
 > **한 줄 요약**: 지금 앱에서 실제로 동작하는 기능(사건 등록 · 사건 커맨드센터 · 신발 저장소 · 로그인 · 관리자 2화면)을 r3 시안의 화면 11개(S00~S07 · S10 · S13 · S14)로 옮긴다. 이번에는 **실제 서버에 연결하지 않고 가짜 데이터로 시안 화면만** 만든다. 순서는 ① 남은 공용 부품을 Tailwind로 정본 규격에 맞춰 채우고 → ② 화면을 `src/widgets/`에 **값만 받아 그리는 표시 컴포넌트**로 조립해 `/dev/sNN` 진열 주소에서 가짜 데이터로 띄운다. 지금 페이지 · API · 사이드바는 **한 줄도 바꾸지 않는다.** 작업은 romang `romang-sprint-pipeline`의 1~2단계를 이 저장소에 맞게 줄여 **병렬 트랙**으로 돌린다.
 
-- 작성일: 2026-11-16 / 상태: 초안(검토 에이전트 질문 반영 완료 — 사용자 승인 전)
+- 작성일: 2026-11-16 / 상태: **승인(2026-11-16 사용자 「시안을 일단 만들어줘. 육안으로 디자인 볼거야」)** — §8 「만들 부품」 표 승인 포함
 - 저장소: `police-new`(React 19 · TS · Vite · Tailwind 4 · shadcn · FSD)
 - 생김새 원본: r3 시안 `docs/mockups/scas-redesign/`(아티팩트 https://claude.ai/artifact/XjNmTGeHLPLjz5PrNJgra7), 기능 대조표 `docs/mockups/scas-redesign/gap-table.md`
 - 디자인 정본: `.claude/skills/police-ui-design/`(이 설계서는 값을 옮겨 적지 않고 가리키기만 한다)
