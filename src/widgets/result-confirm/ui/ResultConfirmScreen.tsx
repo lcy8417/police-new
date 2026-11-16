@@ -4,13 +4,28 @@ import type { CrimeHistoryRow } from "@/entities/crime"
 import type { FeatureCode } from "@/entities/session"
 import { cn } from "@/shared/lib/utils"
 import { AiProgress, AiTag, ScanOverlay } from "@/shared/ui/ai"
-import { Button, Chip, Combobox, DataGrid, Field, InlineError, RadioRow, type DataGridColumn } from "@/shared/ui/kit"
+import {
+  Button,
+  Chip,
+  Combobox,
+  DataGrid,
+  Field,
+  FilterBar,
+  InlineError,
+  RadioRow,
+  ViewCountSwitch,
+  type DataGridColumn,
+  type FilterGroup,
+} from "@/shared/ui/kit"
 import { Panel } from "@/shared/ui/panel"
 import { EvidenceImage } from "@/shared/ui/viewer"
 
+import { filterBlocks, hasActiveFilter, optionCount, type ConfirmFilterContext } from "../model/confirm-filter"
 import { viewerRoles } from "../model/roles"
 import type {
   BlockInsight,
+  BlockViewCount,
+  ConfirmFilterKey,
   ConfirmImageBlock,
   ConfirmInsight,
   ConfirmTarget,
@@ -26,6 +41,8 @@ import { CandidateBox } from "./CandidateBox"
 // r2: 시안 r3 +α(감정불능 · AI 추천 표 · 이미지별 근거 · 결과확인완료 n/m 막대 · 이미지 바로가기 · 확인 막대 · 판정 메모 ·
 // 이력표 SCAS 칸 · 사건 요약 SCAS 칸 · 교차 검증 요청)을 `showPlus` 하나로 감싸 얹는다(감싼 요소마다 `data-plus`).
 // 시안 data-role(결과확인완료 · 확인 막대 · 교차 검증 = 감정관 · 관리자)도 showPlus 일 때 따른다.
+// r3(편의 — +α 아님): 이미지 블록 「1 · 3 · 5개씩」(넘치면 이전 · 다음) + 빠른 찾기 · 필터(판정 미완료만 · 발견/불발견/감정불능 ·
+// AI 추천과 다름). 값은 제어형, 0건이면 「조건에 맞는 항목 없음 · 조건 지우기」.
 
 const BASE_OPTIONS: { value: Judgement; label: string }[] = [
   { value: "found", label: "발견" },
@@ -33,6 +50,9 @@ const BASE_OPTIONS: { value: Judgement; label: string }[] = [
 ]
 // 시안의 감정불능(지금 판정 값에 없음 — +α)
 const PLUS_OPTIONS = [...BASE_OPTIONS, { value: "unable" as Judgement, label: "감정불능" }]
+
+// r3 이미지 블록 보기 개수
+const BLOCK_COUNTS: readonly BlockViewCount[] = [1, 3, 5]
 
 // 판정 저장은 지금 앱에서 사건 조회 권한 묶음(CRIME_SEARCH) 안에 있다
 const WRITE_FEATURE: FeatureCode = "CRIME_SEARCH"
@@ -292,10 +312,13 @@ function ProgressStrip({
   blocks,
   insight,
   completed,
+  onJump,
 }: {
   blocks: readonly ConfirmImageBlock[]
   insight: ConfirmInsight
   completed: Readonly<Record<string, Judgement | undefined>>
+  /** 바로가기 — 그 블록이 보이게(보기 개수로 가려져 있으면 그 블록부터) 스크롤 */
+  onJump: (aprthngNo: string) => void
 }) {
   const doneBlocks = blocks.filter((b) => completed[b.aprthngNo] !== undefined)
   const agree = doneBlocks.filter((b) => completed[b.aprthngNo] === insight.blocks[b.aprthngNo]?.aiRecommend).length
@@ -309,9 +332,7 @@ function ProgressStrip({
           <button
             key={b.aprthngNo}
             type="button"
-            onClick={() =>
-              document.querySelector(`[aria-label="${b.aprthngNo} 검색결과"]`)?.scrollIntoView?.({ block: "start" })
-            }
+            onClick={() => onJump(b.aprthngNo)}
             className="cursor-pointer border-none bg-transparent p-0"
           >
             <Chip variant={done ? "green-h18" : "amber-h19"} className="h-[19px] px-[8px] text-[10.5px]">
@@ -354,11 +375,56 @@ export function ResultConfirmScreen({
   onCrossReviewerChange,
   onRequestCrossReview,
   onPlusAction,
+  blockCount = 3,
+  onBlockCountChange,
+  query = "",
+  onQueryChange,
+  filters = {},
+  onFiltersChange,
+  onClearFilters,
 }: ResultConfirmScreenProps) {
   const canWrite = isAdmin || features.includes(WRITE_FEATURE)
   const roles = viewerRoles(isAdmin, features)
   const plus = showPlus && insight ? insight : null
   const action = (label: string) => onPlusAction?.(label)
+
+  // ── r3 빠른 찾기 · 필터 · 보기 개수(넘치면 앞뒤 넘김 — 넘긴 자리는 저장하지 않는 위젯 안 상태) ──
+  const ctx: ConfirmFilterContext = { completed, judgements, insight: plus }
+  const visible = filterBlocks(blocks, query, filters, ctx)
+  const filterActive = hasActiveFilter(query, filters)
+  const [rawStart, setStart] = React.useState(0)
+  const lastStart = Math.max(0, visible.length - blockCount)
+  const start = Math.min(rawStart, lastStart)
+  const groupOf = (key: ConfirmFilterKey, label: string, options: { value: string; label: string }[]): FilterGroup => ({
+    key,
+    label,
+    value: filters[key] ?? [],
+    options: options.map((o) => ({ ...o, count: optionCount(blocks, key, o.value, ctx) })),
+  })
+  const filterGroups: FilterGroup[] = [
+    groupOf("progress", "진행", [{ value: "pending", label: "판정 미완료만" }]),
+    groupOf("judgement", "판정", showPlus ? PLUS_OPTIONS : BASE_OPTIONS),
+    ...(plus ? [groupOf("ai", "AI", [{ value: "diff", label: "AI 추천과 다름" }])] : []),
+  ]
+  const scrollToBlock = (aprthngNo: string) =>
+    document.querySelector<HTMLElement>(`[aria-label="${aprthngNo} 검색결과"]`)?.scrollIntoView?.({ block: "start" })
+  const jumpRef = React.useRef<string | null>(null)
+  React.useEffect(() => {
+    if (jumpRef.current === null) return
+    scrollToBlock(jumpRef.current)
+    jumpRef.current = null
+  })
+  const jumpTo = (aprthngNo: string) => {
+    const index = visible.findIndex((b) => b.aprthngNo === aprthngNo)
+    if (index >= 0 && (index < start || index >= start + blockCount)) {
+      // 보기 개수로 가려진 블록이면 그 블록부터 보이게 넘긴 뒤 스크롤
+      jumpRef.current = aprthngNo
+      setStart(Math.min(index, lastStart))
+    } else {
+      scrollToBlock(aprthngNo)
+    }
+  }
+
   const summary: [string, string][] = [
     ["감정번호", caseSummary.apprslReqestNo ?? ""],
     ["범죄명", caseSummary.crimeNm ?? ""],
@@ -392,24 +458,93 @@ export function ResultConfirmScreen({
       </div>
     )
   } else {
-    body = blocks.map((block) => {
-      const bi = plus?.blocks[block.aprthngNo]
-      return (
-        <ImageBlock
-          key={block.aprthngNo}
-          block={block}
-          value={judgements[block.aprthngNo] ?? null}
-          canWrite={canWrite}
-          showPlus={showPlus}
-          analyst={roles.analyst}
-          plus={bi ? { insight: bi, done: completed[block.aprthngNo], analyst: roles.analyst, onAction: action } : null}
-          onChange={(result) => onJudgementChange(block.aprthngNo, result)}
-          onSave={(target, result) =>
-            onSaveJudgement({ aprthngNo: block.aprthngNo, ftwrId: target.ftwrId, ranking: target.ranking, result })
-          }
-        />
-      )
-    })
+    const shownBlocks = visible.slice(start, start + blockCount)
+    body = (
+      <>
+        {onFiltersChange || onBlockCountChange ? (
+          // r3 편의 줄: 빠른 찾기 · 필터 · 보기 개수 · 앞뒤 넘기기
+          <div
+            data-r3-toolbar
+            className="flex flex-wrap items-center gap-x-[14px] gap-y-[6px] border-b border-solid border-line-2 px-[14px] py-[8px]"
+          >
+            {onFiltersChange ? (
+              <FilterBar
+                query={query}
+                onQueryChange={(q) => onQueryChange?.(q)}
+                filters={filterGroups}
+                onFilterChange={(key, values) => onFiltersChange(key as ConfirmFilterKey, values)}
+                onClear={() => onClearFilters?.()}
+                resultCount={visible.length}
+                total={blocks.length}
+                searchPlaceholder="이미지번호 · 신발 번호"
+                className="min-w-0 flex-1"
+              />
+            ) : null}
+            {onBlockCountChange ? (
+              <span className="inline-flex items-center gap-[8px]">
+                <ViewCountSwitch<BlockViewCount>
+                  label="한 번에"
+                  options={BLOCK_COUNTS}
+                  value={blockCount}
+                  onChange={(n) => {
+                    onBlockCountChange(n)
+                    setStart(0)
+                  }}
+                />
+                {visible.length > blockCount ? (
+                  <span data-block-nav className="inline-flex items-center gap-[4px]">
+                    <Button size="sm" disabled={start <= 0} onClick={() => setStart(Math.max(0, start - blockCount))}>
+                      이전
+                    </Button>
+                    <span className="min-w-[64px] text-center font-code text-[11.5px] tabular-nums text-muted-foreground">
+                      {`${start + 1}–${Math.min(visible.length, start + blockCount)} / ${visible.length}`}
+                    </span>
+                    <Button
+                      size="sm"
+                      disabled={start + blockCount >= visible.length}
+                      onClick={() => setStart(Math.min(lastStart, start + blockCount))}
+                    >
+                      다음
+                    </Button>
+                  </span>
+                ) : null}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+        {filterActive && visible.length === 0 ? (
+          <div
+            data-filter-empty
+            className="m-[14px] grid min-h-[160px] place-content-center justify-items-center gap-[8px] rounded-[10px] border border-dashed border-line-3 text-[12.5px] text-muted-foreground"
+          >
+            <span className="font-semibold text-fg-2">조건에 맞는 항목 없음</span>
+            <span className="text-[11.5px] text-dim">이미지 블록은 그대로 있습니다 — 조건을 지워 보세요</span>
+            <Button size="sm" onClick={() => onClearFilters?.()}>
+              조건 지우기
+            </Button>
+          </div>
+        ) : (
+          shownBlocks.map((block) => {
+            const bi = plus?.blocks[block.aprthngNo]
+            return (
+              <ImageBlock
+                key={block.aprthngNo}
+                block={block}
+                value={judgements[block.aprthngNo] ?? null}
+                canWrite={canWrite}
+                showPlus={showPlus}
+                analyst={roles.analyst}
+                plus={bi ? { insight: bi, done: completed[block.aprthngNo], analyst: roles.analyst, onAction: action } : null}
+                onChange={(result) => onJudgementChange(block.aprthngNo, result)}
+                onSave={(target, result) =>
+                  onSaveJudgement({ aprthngNo: block.aprthngNo, ftwrId: target.ftwrId, ranking: target.ranking, result })
+                }
+              />
+            )
+          })
+        )}
+      </>
+    )
   }
 
   return (
@@ -492,7 +627,9 @@ export function ResultConfirmScreen({
       </div>
       <div className="mx-[14px] mt-[8px] flex min-h-[32px] flex-wrap items-center gap-[10px] rounded-[8px] bg-brand-3 px-[12px] py-[4px] text-[12.5px] font-semibold text-foreground">
         검색이력
-        {plus && status === "ready" ? <ProgressStrip blocks={blocks} insight={plus} completed={completed} /> : null}
+        {plus && status === "ready" ? (
+          <ProgressStrip blocks={blocks} insight={plus} completed={completed} onJump={jumpTo} />
+        ) : null}
       </div>
       <div className="min-w-0">{body}</div>
       {plus && status === "ready" ? (

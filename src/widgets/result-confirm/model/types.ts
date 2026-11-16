@@ -119,6 +119,18 @@ export interface ConfirmInsight {
   reviewers: readonly { value: string; label: string }[]
 }
 
+/** r3 이미지 블록 보기 개수(한 번에 몇 장) */
+export type BlockViewCount = 1 | 3 | 5
+
+/**
+ * r3 필터 묶음 키: progress(pending = 판정 미완료만) · judgement(found · notFound · unable — 저장된 판정, 없으면 고른 라디오) ·
+ * ai(diff = AI 추천과 다름 — +α 값이 있어야 칩이 보인다)
+ */
+export type ConfirmFilterKey = "progress" | "judgement" | "ai"
+
+/** r3 필터 값(묶음 키 → 고른 값들, 빈 배열 · 없음 = 거르지 않음) */
+export type ConfirmFilterValues = Readonly<Partial<Record<ConfirmFilterKey, readonly string[]>>>
+
 export interface ResultConfirmScreenProps {
   /** 조회 상태. empty = 확인할 이미지가 없음 */
   status: ScreenStatus
@@ -154,4 +166,18 @@ export interface ResultConfirmScreenProps {
   onRequestCrossReview?: (reviewer: string) => void
   /** 동작이 아직 없는 +α 버튼(제외 · 확인 막대 예 …) — 누른 버튼 글자 */
   onPlusAction?: (label: string) => void
+
+  // ── r3 편의(+α 아님 — showPlus 와 무관하게 보인다). 값은 제어형, 바꾸는 콜백을 넘기면 그 조작이 보인다 ──
+
+  /** 이미지 블록 보기 개수(기본 3) — 넘치면 이전 · 다음으로 넘긴다 */
+  blockCount?: BlockViewCount
+  onBlockCountChange?: (count: BlockViewCount) => void
+  /** 빠른 찾기(이미지번호 · 확인대상 신발 번호) */
+  query?: string
+  onQueryChange?: (query: string) => void
+  /** 필터 칩 값 */
+  filters?: ConfirmFilterValues
+  onFiltersChange?: (key: ConfirmFilterKey, values: string[]) => void
+  /** 「조건 지우기」 — 글자 · 칩 모두 비움 */
+  onClearFilters?: () => void
 }

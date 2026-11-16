@@ -1,6 +1,9 @@
 export { ResultConfirmScreen } from "./ui/ResultConfirmScreen"
 export type {
   BlockInsight,
+  BlockViewCount,
+  ConfirmFilterKey,
+  ConfirmFilterValues,
   ConfirmCandidate,
   ConfirmCaseSummary,
   ConfirmImageBlock,
