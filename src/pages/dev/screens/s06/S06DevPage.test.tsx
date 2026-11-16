@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, within } from "@testing-library/react"
+import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
-import { describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { S06DevPage } from "./S06DevPage"
 
@@ -227,5 +227,119 @@ describe("S06 r2 — 시안 +α", () => {
     expect(animated.every((c) => c.startsWith("motion-safe:"))).toBe(true)
     expect(document.querySelector('[data-match-image="crime"] [data-part="ScanOverlay"]')).not.toBeNull()
     expect(document.querySelector('[data-precision] [data-part="LiveDot"]')).not.toBeNull()
+  })
+})
+
+// ── r3 편의: 비교 1:1 · 1:3 · 1:5 · 후보 넘기기 ──
+
+const head = () => screen.getByRole("heading", { name: "현장문양검색결과 상세조회" }).parentElement as HTMLElement
+const current = () => {
+  const text = head().textContent ?? ""
+  return text.match(/No\. (\S+?)#(\d+)/)?.slice(1, 3).join(" ") ?? text
+}
+const tick = (ms: number) => act(() => void vi.advanceTimersByTime(ms))
+const pressKey = (key: string) => fireEvent.keyDown(window, { key })
+const compareGroup = () => screen.getByRole("group", { name: "비교" })
+
+describe("S06 r3 — 비교 개수 · 후보 넘기기", () => {
+  beforeEach(() => window.localStorage.clear())
+
+  it("기본 1:1 은 2차 대응점 배치 그대로, 1:3 · 1:5 는 현장 1장 + 후보 n장(지금 후보가 맨 앞)", () => {
+    renderAt("?case=ready&ftwr=00758&rank=1")
+    expect(within(compareGroup()).getByRole("button", { name: "1:1" })).toHaveAttribute("aria-pressed", "true")
+    expect(document.querySelector("[data-pair-stage]")).not.toBeNull()
+    expect(document.querySelector("[data-multi-stage]")).toBeNull()
+
+    fireEvent.click(within(compareGroup()).getByRole("button", { name: "1:3" }))
+    const stage = document.querySelector("[data-multi-stage]") as HTMLElement
+    expect(stage).toHaveAttribute("data-multi-stage", "1:3")
+    expect(within(stage).getByRole("img", { name: "유류 이미지" })).toBeInTheDocument()
+    const tiles = stage.querySelectorAll("[data-candidate-tile]")
+    expect(Array.from(tiles).map((t) => t.getAttribute("data-candidate-tile"))).toEqual(["00758", "305659", "281904"])
+    expect(tiles[0]).toHaveAttribute("aria-current", "true")
+    // 대응 박스 · 대응 목록은 1:1 에서만
+    expect(document.querySelector("[data-pair-stage]")).toBeNull()
+    expect(screen.queryByRole("list", { name: "대응 목록" })).toBeNull()
+
+    fireEvent.click(within(compareGroup()).getByRole("button", { name: "1:5" }))
+    expect(document.querySelectorAll("[data-multi-stage] [data-candidate-tile]")).toHaveLength(5)
+  })
+
+  it("후보 칸을 누르면 그 후보가 지금 후보가 된다", () => {
+    renderAt("?case=ready&ftwr=00758&rank=1")
+    fireEvent.click(within(compareGroup()).getByRole("button", { name: "1:3" }))
+    fireEvent.click(screen.getByRole("button", { name: "후보 3위 281904 고르기" }))
+    expect(current()).toBe("281904 3")
+    expect(document.querySelector('[data-candidate-tile="281904"]')).toHaveAttribute("aria-current", "true")
+  })
+
+  it("← → · 이전/다음으로 앞 · 뒤 후보, 처음 후보에서 「이전」은 꺼짐", () => {
+    renderAt("?case=ready&ftwr=00758&rank=1")
+    expect(current()).toBe("00758 1")
+    expect(screen.getByRole("button", { name: "이전" })).toBeDisabled()
+    pressKey("ArrowRight")
+    expect(current()).toBe("305659 2")
+    fireEvent.click(screen.getByRole("button", { name: "다음" }))
+    expect(current()).toBe("281904 3")
+    pressKey("ArrowLeft")
+    expect(current()).toBe("305659 2")
+    fireEvent.click(screen.getByRole("button", { name: "이전" }))
+    expect(current()).toBe("00758 1")
+    // 신발정보 표도 지금 후보를 따른다
+    expect(screen.getAllByText("00758").length).toBeGreaterThan(0)
+  })
+
+  it("1:3 · 1:5 기억 — 다시 열어도 그대로", () => {
+    const first = renderAt("?case=ready")
+    fireEvent.click(within(compareGroup()).getByRole("button", { name: "1:5" }))
+    first.unmount()
+    renderAt("?case=ready")
+    expect(document.querySelector("[data-multi-stage]")).toHaveAttribute("data-multi-stage", "1:5")
+  })
+
+  describe("자동 넘기기", () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    const goAuto = () => fireEvent.click(within(screen.getByRole("group", { name: "이동 방식" })).getByRole("button", { name: "자동" }))
+
+    it("n 초마다 다음 후보, 간격 바꾸면 즉시, Space 일시정지, 마지막 후보에서 멈춤", () => {
+      renderAt("?case=ready&ftwr=00758&rank=1")
+      goAuto()
+      tick(2000)
+      expect(current()).toBe("305659 2")
+      fireEvent.click(within(screen.getByRole("group", { name: "넘기는 간격" })).getByRole("button", { name: "1초" }))
+      tick(1000)
+      expect(current()).toBe("281904 3")
+      pressKey(" ")
+      tick(5000)
+      expect(current()).toBe("281904 3")
+      pressKey(" ")
+      for (let i = 0; i < 17; i++) tick(1000)
+      expect(current()).toBe("300761 20")
+      tick(1000)
+      expect(screen.getByRole("button", { name: "재생" })).toBeInTheDocument()
+      tick(3000)
+      expect(current()).toBe("300761 20")
+    })
+
+    it("비교 그림에 마우스를 올리면 잠시 멈춘다 · 떠나면 타이머 0개", () => {
+      const view = renderAt("?case=ready&ftwr=00758&rank=1")
+      goAuto()
+      const area = document.querySelector("[data-compare-area]") as HTMLElement
+      fireEvent.mouseEnter(area)
+      tick(6000)
+      expect(current()).toBe("00758 1")
+      fireEvent.mouseLeave(area)
+      tick(2000)
+      expect(current()).toBe("305659 2")
+      expect(vi.getTimerCount()).toBeGreaterThan(0)
+      view.unmount()
+      expect(vi.getTimerCount()).toBe(0)
+    })
   })
 })

@@ -137,6 +137,26 @@ export interface MatchInsight {
   shoeExtra: { kind: string; note: string }
 }
 
+/** r3 비교 후보 한 켤레(검색 결과 순서) — 「현장 1장 대 후보 n장」 · 이전/다음 · 자동 넘기기가 이 목록을 걷는다 */
+export interface CompareCandidate {
+  /** 신발 ID — 문자열(앞자리 0 보존) */
+  ftwrId: string
+  /** 검색 결과 순위(1부터, 모르면 null) */
+  rank: number | null
+  /** 유사도 — imageSearch 응답 그대로 퍼센트 0~100(문자열일 수도 있음) */
+  similarity: number | string
+  /** RGB(원본) 밑창 그림 URL */
+  rgb: string
+  /** 스케치 · 이진 밑창 그림 URL */
+  sketch: string
+}
+
+/** r3 비교 개수 — 화면 글자 그대로(현장 1 : 후보 n) */
+export type CompareCount = "1:1" | "1:3" | "1:5"
+
+/** r3 이동 방식 — AutoPlayControl 값 그대로 */
+export type CompareAutoMode = "manual" | "auto"
+
 export interface MatchCompareScreenProps {
   /** 조회 상태. 결과 0건 화면이 따로 없어 empty 는 받지 않는다(정렬 미설정은 alignment 로 나타낸다) */
   status: Exclude<ScreenStatus, "empty">
@@ -180,4 +200,23 @@ export interface MatchCompareScreenProps {
   insight?: MatchInsight
   /** 동작이 아직 없는 +α 버튼(이전 · 다음 · 그룹등록 · 프린트 · 감정서 첨부 · 확대 줄 …) — 누른 버튼 글자 */
   onPlusAction?: (label: string) => void
+
+  // ── r3 편의(+α 아님 — showPlus 와 무관하게 보인다). 값은 제어형, 바꾸는 콜백을 넘기면 그 조작이 보인다 ──
+
+  /** 비교 후보 목록(검색 결과 순서). 지금 후보 = shoeInfo.ftwrId(+ ranking)와 같은 칸. 2개 이상이면 이전 · 다음이 켜진다 */
+  candidates?: readonly CompareCandidate[]
+  /** 후보 바꿈(← → · 이전/다음 · 자동 · 후보 칸 누름) */
+  onCandidateChange?: (candidate: CompareCandidate) => void
+  /** 비교 개수(기본 1:1 — 대응점 선이 있는 2차 배치) */
+  compareCount?: CompareCount
+  onCompareCountChange?: (count: CompareCount) => void
+  /** 이동 방식(수동 · 자동 후보 넘기기) */
+  autoMode?: CompareAutoMode
+  onAutoModeChange?: (mode: CompareAutoMode) => void
+  /** 자동 넘김 간격(ms) */
+  intervalMs?: number
+  onIntervalChange?: (ms: number) => void
+  /** 자동 재생 중. 마지막 후보에서 위젯이 false 로 돌려준다 */
+  playing?: boolean
+  onPlayingChange?: (playing: boolean) => void
 }
