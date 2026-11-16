@@ -28,8 +28,8 @@ export const VIEWER_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
     />
   ),
   "S01-31": () => <SoleThumb src={fakeSoleUrl({ kind: "scene" })} alt="현장 족적 작은 그림" partId="S01-31" />,
-  "S04-31": () => <PatternIcon name="n32_04" src={PATTERN_SRC} essential count={2} partId="S04-31" />,
-  "S04-32": () => <PatternIcon name="n32_04" src={PATTERN_SRC} size="sm" selected partId="S04-32" />,
+  "S04-31": () => <PatternIcon name="n21_20" src="/src/assets/Patterns/전체/n21_20.png" partId="S04-31" />,
+  "S04-32": () => <PatternIcon name="n32_04" src={PATTERN_SRC} selected partId="S04-32" />,
   "S04-33": () => (
     <ZoneBands
       partId="S04-33"

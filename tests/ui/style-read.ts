@@ -64,8 +64,15 @@ export async function readStyle(locator: Locator): Promise<StyleSnapshot> {
         const r = Math.round(Number(num) * 100) / 100;
         return `${Object.is(r, -0) ? 0 : r}px`;
       });
+    // 두께 0 인 테두리는 종류(solid · none)가 그려지지 않아 같은 모양이다 — 앱 기본값(solid 0)과 시안(none)의 차이는 소음이라 none 으로 통일.
     const pick = (style: CSSStyleDeclaration) =>
-      Object.fromEntries(props.map((p) => [p, round(style.getPropertyValue(p).trim())]));
+      Object.fromEntries(
+        props.map((p) => {
+          const m = /^border-(top|right|bottom|left)-style$/.exec(p);
+          if (m && parseFloat(style.getPropertyValue(`border-${m[1]}-width`)) === 0) return [p, "none"];
+          return [p, round(style.getPropertyValue(p).trim())];
+        })
+      );
     const pseudo = (el: Element, which: "::before" | "::after") => {
       const style = getComputedStyle(el, which);
       const content = style.getPropertyValue("content").trim();
@@ -209,4 +216,12 @@ export function normalizeShell(
       ? [{ ...first, tag: "header", children: title ? [{ ...title, tag: "title", children: [] }] : [] }]
       : [];
   return { ...snap, props, pseudo: { before, after }, children };
+}
+
+/**
+ * 태그만 통일한 복사본(전 층). 부품이 접근성 때문에 시안의 span 대신 button · div(role) 로 그릴 때 쓴다 —
+ * 계산값(크기 · 색 · 글꼴 · 가상요소) · 자식 수는 그대로 비교하므로 모양 차이는 여전히 잡힌다.
+ */
+export function ignoreTags(snap: StyleSnapshot): StyleSnapshot {
+  return { ...snap, tag: "el", children: snap.children.map(ignoreTags) };
 }

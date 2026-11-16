@@ -1,4 +1,4 @@
-# 생김새 값 — 검증된 부품 6개 · 입력 · 저장 · 오류
+# 생김새 값 — 검증된 부품 · 입력 · 저장 · 오류
 
 **결론: 아래 값은 r3 시안을 브라우저로 띄워 읽은 계산값(computed style)이다. 구현된 부품은 표에 짝 번호가 있는 변형에 대해 계산값 대조(+ 예외로 빼지 않은 짝은 스크린샷 대조)를 통과했다. 부품을 고칠 때 이 표와 다르게 만들지 않는다. 표에 없는 상태(틀림 · 초점 · 저장 중 · 저장 실패)는 시안에 먼저 그린다.**
 
@@ -91,6 +91,28 @@
 | S02-21 | `default` | 높이 17 · 좌우 6 · JetBrains Mono 9.5px 600 · 글자 사이 .38px · 바탕 ai-bg · 테두리 1px ai-line · 글자 ai · 모서리 999 · 줄 높이 normal |
 | S01-17 | `progress` | 높이 15 · 좌우 4 · mono 9px 600 · 글자 사이 .36px · 바탕 ai-bg-deep `rgb(11,42,38)` · 테두리 ai-line · 그림자 `0 2px 6px ai-tag-drop` · 간격 4 · 앞에 맥박 점 5×5(원, 바탕 ai) |
 | S01-18 | `done` | `progress`와 같고 그림자 없음, 점 없음, 글자 「AI✓」 |
+
+## 부품 잠금(Task 5)에서 더한 부품 19개 (시안 CSS에서 읽은 값 · 대조 결과는 components.md)
+
+**결론: 아래는 시안 `mockup.css` · 화면 코드에서 읽은 값이다. 짝 번호가 있는 7개(Segmented · Avatar · SoleThumb · AiProgress · PatternIcon · ConfidenceBar)는 위 표들처럼 계산값(+ 가능한 짝은 스크린샷) 대조를 통과했고, 나머지는 값만 옮겼다(대조 없음 — `components.md`의 「잠금 때 대조하지 못한 것」).**
+
+| 부품 | 값 |
+|---|---|
+| Segmented(`.seg`) | 바깥 inline-flex · 안쪽 3 · 간격 2 · 테두리 1px line · 모서리 8 · 바탕 bg2. 칸: 좌우 12 · 상하 5 · 모서리 6 · 12.5px mute. 눌림: 바탕 brand-bg · 글자 fg · 안쪽 선 1px brand-line. `scas` 눌림은 토큰 없는 `#e9ecf3`/`#1f2a5a` 대신 `bg-fg`/`text-panel` |
+| RadioRow(`.radio`) | 간격 가로 10 · 세로 2 · mute, 선택 fg. 선택 「◉ 」 brand · 미선택 「○ 」 faint |
+| StatusDot(`.dot`) | 7×7 원 · currentColor · 빛 `0 0 6px currentColor` + 뒤 글자 12px fg-2 · 간격 6 |
+| Avatar(`.avatar`) | 28×28 · 모서리 50%(`rounded-[50%]` — `rounded-full`은 계산값이 달라 대조 실패) · panel-3 · fg-2 12px 600 |
+| DataGrid(`.grid`) | 글자 12.5. th 높이 34 · 좌우 10 · 11.5 600 mute · strip · 아래 1px line. td 높이 44 · 좌우 10 · 아래 1px line-2 · fg-2. 선택 행 brand-bg + 첫 칸 왼쪽 3px brand. 올림 `#0e1726`은 panel-2로 대신 |
+| DialogShell(S02 `modal`) | 테두리 1px brand-line · 모서리 12 · panel · 그림자 `0 24px 70px rgba(0,0,0,.7)`(.35로 대신). 머리 높이 42 · 좌 14 우 10 · 간격 8 · 아래 1px brand-line · 제목 13.5 bold. 머리 그라데이션 `#132445→#0e1a30`은 단색 brand-bg로 대신 |
+| InlineError · Pagination | 12px mute, 시각 mono, 「다시」 brand · 쪽수 줄 `padding:10px 14px; 12px mute`, 숫자 mono |
+| EvidenceImage(`.imgbox`) | 모서리 10 · 테두리 1 line · 바탕 canvas · 캡션 왼쪽 8 · 아래 6, mono 600 10.5 fg-2. 2:3 틀. `binary`는 CSS 필터 근사 |
+| SoleThumb | `sm` 26×38 · `md` 30×44 · `lg` 38×56, 모서리 5, 테두리 1 line. 눌림 outline 2 brand offset 1 |
+| PatternIcon(`.picon`) | 36(`sm` 28 · `lg` 48) · 모서리 6 · 테두리 1 line-3 · 바탕 `--t-picon-bg #f3f5f8`. 고름 outline 2 brand offset 1, AI outline 2 ai offset 1. 배지(필수 · 개수)가 없을 때만 `overflow-hidden`(시안과 같음) |
+| ZoneBands · CompareView · PointPairs | 시안에 직접 대응 요소가 없는 새 모양(값은 코드 + `viewer.md`) |
+| AiProgress(`.fx-bar`) | 높이 4 · 모서리 3 · 바탕 line · 채움 `linear-gradient(90deg, brand-2, ai)`. `running`은 `brand-2, ai 40%, ai-shine 50%, ai 60%, brand-2` · `background-size 200% 100%` + `animate-fx-run`. `failed`는 채움 danger + 글자 「실패」(시안에 없음) |
+| ConfidenceBar | flex · 간격 4 · 막대 높이 3 · 숫자 mono 9.5px(줄 높이는 부모에서 상속) · 평소 mute / 임계 미만 warn 채움 + 숫자 |
+| ScanOverlay(`.fx-scan`) | 높이 2 · `top:100%` · 불투명 0 · ai · 그림자 `0 0 12px 3px ai-scan-glow` · absolute inset-x 0 · pointer-events none |
+| LiveDot(`.fx-live`) | 7px 원 ai + 맥박. 부품은 점 옆에 11px muted 글자(기본 보임, `hideLabel`로 숨김) · idle은 속 빈 고리 |
 
 ## 입력 · 저장 · 오류
 

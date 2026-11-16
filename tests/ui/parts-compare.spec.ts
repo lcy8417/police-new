@@ -3,7 +3,7 @@ import path from "node:path";
 import { test, expect, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { PART_FIXTURES } from "../../src/pages/dev/parts/fixtures-meta";
 import { assertFonts, openMockup, type MockupScreen } from "./mockup-open";
-import { diffStyle, normalizeControl, normalizeShell, omitPlacement, readStyle } from "./style-read";
+import { diffStyle, ignoreTags, normalizeControl, normalizeShell, omitPlacement, readStyle } from "./style-read";
 
 // 시안 요소 ↔ 진열 화면(/dev/parts) 요소 자동 대조(설계서 §9).
 // 픽스처 id 마다: computed style 차이 0 + 요소 스크린샷 차이 0(maxDiffPixels 0, 기본 픽셀 임계값 — R5).
@@ -159,7 +159,8 @@ test("기준 이미지 경로 = toHaveScreenshot 이 읽는 경로", async ({ pa
   }
 });
 
-for (const fixture of PART_FIXTURES) {
+// 시안에 짝(표식)이 없는 진열(noMockup)은 대조에서 빼고 이유만 남긴다 — 진열 화면에는 그대로 나온다.
+for (const fixture of PART_FIXTURES.filter((f) => !f.noMockup)) {
   test(fixture.id, async ({ page, browser }, testInfo) => {
     // 갱신 모드(-u)에서는 toHaveScreenshot 이 구현 그림으로 기준을 덮어쓰고 통과해 버린다 → 대조가 무의미.
     expect(
@@ -217,10 +218,14 @@ for (const fixture of PART_FIXTURES) {
     } else if (fixture.compare === "shell" || fixture.compare === "shell-head") {
       // 컨테이너(Panel · ButtonBar): 안쪽 내용은 부품이 아니라 빼고 루트(+ 머리) 자기 값만 비교(normalizeShell).
       const opts = { head: fixture.compare === "shell-head", ignoreSize: fixture.ignoreSize };
-      expect(diffStyle(normalizeShell(mockupStyle, opts), normalizeShell(devStyle, opts))).toEqual([]);
+      const tags = fixture.ignoreTags ? ignoreTags : (snap: typeof mockupStyle) => snap;
+      expect(diffStyle(tags(normalizeShell(mockupStyle, opts)), tags(normalizeShell(devStyle, opts)))).toEqual([]);
     } else if (fixture.ignorePlacement) {
       // 시안 인라인 위치는 화면 소유의 배치(R25): 루트의 position · 위치 값만 뺀다.
       expect(diffStyle(omitPlacement(mockupStyle), omitPlacement(devStyle))).toEqual([]);
+    } else if (fixture.ignoreTags) {
+      // 접근성 때문에 시안 span 대신 button · div(role)로 그린 부품: 태그만 통일하고 나머지는 그대로 비교.
+      expect(diffStyle(ignoreTags(mockupStyle), ignoreTags(devStyle))).toEqual([]);
     } else {
       expect(diffStyle(mockupStyle, devStyle)).toEqual([]);
     }

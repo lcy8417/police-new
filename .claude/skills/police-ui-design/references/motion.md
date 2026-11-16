@@ -8,10 +8,10 @@
 
 | 키프레임 | 길이 · 반복 | 무엇이 움직이나 | 멈춘 모양(기본 스타일) | 쓰는 클래스 → 부품 |
 |---|---|---|---|---|
-| `fx-scan` | 3.2s ease-in-out 무한 | 사진 위 가로 선(2px · ai 색 · 번짐 `0 0 12px 3px rgba(45,212,191,.6)`)이 위(`top: 0`)에서 아래(`100%`)로, 처음 8% · 마지막 8%에 나타났다 사라짐 | `top: 100%` · 불투명도 0 = **안 보임** | `.fx-scan` → ScanOverlay(후보) |
-| `fx-pulse` | 1.8s ease-in-out 무한 | 7px 점의 불투명도 1 ↔ .55, 바깥 고리 그림자 0 → 5px로 퍼지며 사라짐(`rgba(45,212,191,.55)` → 0) | 불투명도 1 · 그림자 없음 = **켜진 점** | `.fx-live` → LiveDot(후보), AiTag `progress` 점(구현) |
-| `fx-fill` | 1.4s ease-out 1회 | 막대가 폭 0에서 목표 폭까지 참 | **목표 폭** | `.fx-bar > i` → AiProgress(후보) |
-| `fx-shimmer` | 1.6s linear 무한 | 막대 안 밝은 띠(`#b9fff4`)가 왼쪽에서 오른쪽으로 지나감(배경 위치 -120% → 220%) | 그라데이션 막대 그대로 | `.fx-bar.run > i` → AiProgress 「반짝임」(후보) |
+| `fx-scan` | 3.2s ease-in-out 무한 | 사진 위 가로 선(2px · ai 색 · 번짐 `0 0 12px 3px rgba(45,212,191,.6)`)이 위(`top: 0`)에서 아래(`100%`)로, 처음 8% · 마지막 8%에 나타났다 사라짐 | `top: 100%` · 불투명도 0 = **안 보임** | `.fx-scan` → ScanOverlay(구현됨) |
+| `fx-pulse` | 1.8s ease-in-out 무한 | 7px 점의 불투명도 1 ↔ .55, 바깥 고리 그림자 0 → 5px로 퍼지며 사라짐(`rgba(45,212,191,.55)` → 0) | 불투명도 1 · 그림자 없음 = **켜진 점** | `.fx-live` → LiveDot(구현됨), AiTag `progress` 점(구현) |
+| `fx-fill` | 1.4s ease-out 1회 | 막대가 폭 0에서 목표 폭까지 참 | **목표 폭** | `.fx-bar > i` → AiProgress(구현됨) |
+| `fx-shimmer` | 1.6s linear 무한 | 막대 안 밝은 띠(`#b9fff4`)가 왼쪽에서 오른쪽으로 지나감(배경 위치 -120% → 220%) | 그라데이션 막대 그대로 | `.fx-bar.run > i` → AiProgress `running`(구현됨 · `fx-fill` + `fx-shimmer` 를 한 번에 거는 `animate-fx-run`) |
 | `fx-glow` | 2.4s ease-in-out 무한 | 표 첫 칸 왼쪽 3px ai 선 + 바깥 번짐 0 ↔ 22px `rgba(45,212,191,.12)` | 왼쪽 3px ai 선만 | `tr.fx-new td:first-child` → DataGrid 「새 행 강조」(후보) |
 
 읽는 법: 「멈춘 모양」 열이 움직임 줄이기 상태이자 스크린샷 대조 때의 모양이다. 새 효과를 만들 때도 이 열부터 정한다.
@@ -33,6 +33,6 @@
 
 - 키프레임과 움직임 토큰은 **`src/index.css` 한 곳**에만 둔다(컴포넌트 옆 CSS 금지). `@keyframes 이름 { … }` + `@theme inline { --animate-이름: 이름 길이 곡선 반복; }` → Tailwind `animate-이름`.
 - 색은 키프레임 안에서도 토큰으로(`var(--t-ai-pulse)` 등, `tokens.md`).
-- 지금 옮긴 것: `ai-pulse`(= 시안 `fx-pulse`, 1.8s ease-in-out 무한) + `--animate-ai-pulse` — AiTag `progress`의 맥박 점이 `motion-safe:animate-ai-pulse`로 쓴다. 나머지 `fx-*`는 그 부품(AiProgress · ScanOverlay · LiveDot · DataGrid)을 만들 때 같은 방식으로 옮긴다.
+- 지금 옮긴 것: `ai-pulse`(= 시안 `fx-pulse`, 1.8s ease-in-out 무한) + `--animate-ai-pulse` — AiTag `progress`의 맥박 점이 `motion-safe:animate-ai-pulse`로 쓴다. 부품 잠금(Task 5)에서 `fx-scan`(`animate-fx-scan`, ScanOverlay) · `fx-fill`(`animate-fx-fill`, AiProgress `done` · ConfidenceBar) · `fx-shimmer`와 합친 `animate-fx-run`(= `fx-fill 1.4s ease-out, fx-shimmer 1.6s linear infinite`, AiProgress `running`)을 `src/index.css`에 옮겼다. 시안은 한 요소에 두 애니메이션을 동시에 걸지만 Tailwind는 `animation`이 하나라 합친 이름 `--animate-fx-run`을 따로 정의한다. 아직 안 옮긴 것: `fx-glow`(DataGrid 새 행 강조, 부품에 아직 없음). 모두 `motion-safe:`로만 건다.
 - 길이 · 곡선 · 반복은 시안 값 그대로. 바꾸려면 시안에서 먼저 바꾸고 승인받는다.
 - 움직이는 요소가 사진 위에 겹치면 `pointer-events-none`(사진의 좌표 판정을 막지 않게 — `layout.md`).

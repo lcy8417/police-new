@@ -2,7 +2,7 @@ import * as React from "react"
 
 import { cn } from "@/shared/lib/utils"
 import { partAttrs } from "../part-attrs"
-import { FX_BAR_FILL, FX_BAR_TRACK, clampRatio } from "./fx-bar"
+import { FX_BAR_FILL, FX_BAR_FILL_MOTION, FX_BAR_RUN, FX_BAR_TRACK, clampRatio } from "./fx-bar"
 
 // 시안 `.fx-bar` 의 부품판. 상태 이름이 곧 변형 이름이다.
 // - running: 진행 중. 반짝임(`.run`)은 `motion-safe:animate-fx-shimmer` — 움직임 줄이기면 그라데이션 막대 그대로
@@ -37,7 +37,7 @@ export function AiProgress({ state, value, label, partId, className, ...props }:
       aria-hidden="true"
       className={cn(
         FX_BAR_FILL,
-        state === "running" && "motion-safe:animate-fx-shimmer",
+        state === "running" ? FX_BAR_RUN : FX_BAR_FILL_MOTION,
         state === "failed" && "bg-none bg-danger",
       )}
       style={{ width: ratio === undefined ? "100%" : `${ratio * 100}%` }}

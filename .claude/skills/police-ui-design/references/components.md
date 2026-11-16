@@ -1,6 +1,6 @@
 # 부품 목록 — 먼저 가져다 쓰는 부품
 
-**결론: 화면을 만들거나 고칠 때 이 표에서 먼저 찾는다. 있으면 그 출입구에서 가져다 쓰고, 없으면 `SKILL.md` 「작업 순서」대로 시안에 먼저 그린 뒤 이 표에 한 줄을 더한다. 지금 시안 대조까지 끝난(검증됨) 부품은 Button · Chip · Field · Panel · ButtonBar · AiTag 6개다.**
+**결론: 화면을 만들거나 고칠 때 이 표에서 먼저 찾는다. 있으면 그 출입구에서 가져다 쓰고, 없으면 `SKILL.md` 「작업 순서」대로 시안에 먼저 그린 뒤 이 표에 한 줄을 더한다. 지금 시안 대조까지 끝난(검증됨) 부품은 Button · Chip · Field · Panel · ButtonBar · AiTag · Segmented · Avatar · SoleThumb · AiProgress · PatternIcon · ConfidenceBar 12개다(뒤 6개는 잠금 때 대조, 범위는 아래 「잠금 때 대조하지 못한 것」).**
 
 이 표는 사람과 AI가 같이 읽고, 기계도 읽는다.
 - `scripts/ui/check-parts-catalog.mjs`(`npm run check:ui`): 상태가 구현됨 · 검증됨인 행의 「파일」이 실제로 있는지, 출입구 4개(`src/shared/ui/{kit,viewer,ai,panel}/index.ts`)가 내보내는 모든 이름이 「부품」 열에 있는지 본다.
@@ -22,19 +22,19 @@
 | Button | kit | `src/shared/ui/kit/Button.tsx` | `.btn` | S00–S15 | [새로] 크기 `sm` · `sm-h26` · `sm-h22`(+ `md`) × 색 `default` · `pri` · `ok` · `warn`(+ `ai` · `danger` · `ghost`) · 행 버튼 `row`(→ `sm-ok-row` · `sm-warn-row`) · 상태 `role-lock` · `locked` | 검증됨 |
 | Chip | kit | `src/shared/ui/kit/Chip.tsx` | `.chip` · `.chip-ref` | S00–S15 | [새로] `blue` · `violet-h20` · `green-h18` · `h18` · `amber` · `amber-h18` · `amber-h19` · `h19` · `blue-h20` · `h20-warn` · `blue-mono-h20` · `h22` · 상태 `on` | 검증됨 |
 | Field | kit | `src/shared/ui/kit/Field.tsx` | `.inp` | S00–S15 | [새로] `text` · `mono` · `mono-sm` · `mono-sm-flex` · `select` · `pick` · `select-mono` · `select-warn` · `search-shell` · 상태 `readonly` · `invalid`(모양 미정) | 검증됨 |
-| Segmented | kit | | `.seg` | S01–S06 · S08–S10 · S13 · S14 | [감싸기 예정 toggle-group] 2~4칸 · 아이콘 | 후보 |
-| RadioRow | kit | | `.radio` | S01 · S02 · S04 · S07 · S08 · S10 | [새로] SCAS ◉○ 한 줄 | 후보 |
-| Combobox | kit | | (S02 관서 검색 한 칸) | S01 · S02 | [새로] 검색형 · 결과 경로 표시(「대구청 › 동부서」) — 관서 목록 조회는 `features`가 조립 | 후보 |
-| StatusDot | kit | | `.dot` | S00 · S08 · S11 · S15 | [새로] ok · warn · danger · 꺼짐 | 후보 |
+| Segmented | kit | `src/shared/ui/kit/Segmented.tsx` | `.seg` | S01–S06 · S08–S10 · S13 · S14 | [새로] 기본 · `scas`(밝은 눌림). 눌린 칸 `aria-pressed`. toggle-group은 감싸지 않음(radio 역할이라 시안 선택자 `aria-pressed`와 다름) | 검증됨 |
+| RadioRow | kit | `src/shared/ui/kit/RadioRow.tsx` | `.radio` | S01 · S02 · S04 · S07 · S08 · S10 | [새로] ◉○ 한 줄 · 상태 `disabled` · 방향키 이동 · 선택 칸만 Tab(`name`은 묶음 접근성 이름 `aria-label`) | 구현됨 |
+| Combobox | kit | `src/shared/ui/kit/Combobox.tsx` | (S02 관서 검색 한 칸) | S01 · S02 | [새로] 검색형 한 칸 · 결과에 경로(「대구청 › 동부서」) · 방향키/Enter · `aria-activedescendant` · 칸을 떠나면 확정 안 한 입력은 버림. 내부는 Field `pick` 재사용 | 구현됨 |
+| StatusDot | kit | `src/shared/ui/kit/StatusDot.tsx` | `.dot` | S00 · S08 · S11 · S15 | [새로] `ok` · `warn` · `danger` · `off`(글자 필수) | 구현됨 |
 | StatusChip | kit | `src/shared/ui/status-chip.tsx` | (인라인 꼬리표) | 다수 | [기존] 기존 부품 재내보내기 — 시안 대조 안 함. 색 `blue` · `teal` · `amber` · `red` · `gray` | 구현됨 |
-| Avatar | kit | | `.avatar` | S01–S15 | [새로] 이니셜 · 역할색 | 후보 |
+| Avatar | kit | `src/shared/ui/kit/Avatar.tsx` | `.avatar` | S01–S15 | [새로] 기본 · `blue` · `teal` · `violet` · `amber`. 크기 28 고정(S13의 44는 미지원) | 검증됨 |
 | Tooltip | kit | `src/shared/ui/tooltip.tsx` | (시안 title 속성) | 다수 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
 | TooltipTrigger | kit | `src/shared/ui/tooltip.tsx` | (시안 title 속성) | 다수 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
 | TooltipContent | kit | `src/shared/ui/tooltip.tsx` | (시안 title 속성) | 다수 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
 | TooltipProvider | kit | `src/shared/ui/tooltip.tsx` | (시안 title 속성) | 다수 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
-| DataGrid | kit | | `.grid` | S01 · S02 · S04 · S07–S09 · S11–S15 | [새로] SCAS 열 순서 · 행 선택(`tr.sel`) · 새 행 강조(`tr.fx-new`) · 행 안 버튼 | 후보 |
-| Pagination | kit | | (목록 아래 쪽수) | S01 · S05 · S10 | [새로] SCAS 「전체 n 중 a-b」 · 「더 보기」(S14) | 후보 |
-| DialogShell | kit | | (레이어 팝업 머리 · 몸 · 발) | S02–S10 중 표식 때 확정 | [감싸기 예정 dialog] 1겹 · 큰 팝업(90%) | 후보 |
+| DataGrid | kit | `src/shared/ui/kit/DataGrid.tsx` | `.grid` | S01 · S02 · S04 · S07–S09 · S11–S15 | [새로] 열 정의 · 선택 행(`aria-selected`) · 빈 목록 문구. `tr.fx-new` 새 행 강조는 아직 없음 | 구현됨 |
+| Pagination | kit | `src/shared/ui/kit/Pagination.tsx` | (목록 아래 쪽수) | S01 · S05 · S10 | [새로] 「전체 n 중 a-b」 / total 없으면 「a-b」 · 이전 · 다음. 「더 보기」(S14) · « » 이동은 없음 | 구현됨 |
+| DialogShell | kit | `src/shared/ui/kit/DialogShell.tsx` | (레이어 팝업 머리 · 몸 · 발) | S02–S10 중 표식 때 확정 | [새로] 기본 · `large`(폭 90%). shadcn dialog 감쌈. 기본 폭 720은 임시값 | 구현됨 |
 | Dialog | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
 | DialogClose | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
 | DialogContent | kit | `src/shared/ui/dialog.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
@@ -52,7 +52,7 @@
 | Switch | kit | `src/shared/ui/switch.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
 | ToggleGroup | kit | `src/shared/ui/toggle-group.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함(시안 `.seg`는 Segmented 후보가 맡음) | 구현됨 |
 | ToggleGroupItem | kit | `src/shared/ui/toggle-group.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
-| InlineError | kit | | (S00 필드 아래 오류) | S00 | [새로] 필드 아래 한 줄 | 후보 |
+| InlineError | kit | `src/shared/ui/kit/InlineError.tsx` | (S00 필드 아래 오류) | S00 | [새로] 회색 「확인 못 함 · 시:분 · 다시」 | 구현됨 |
 | Banner | kit | | (S11 화면 위 고정 배너) | S11 | [새로] 화면 위 고정 | 후보 |
 | LoadingImage | kit | `src/shared/ui/image-loading-overlay.tsx` | — | 앱 기존 화면 | [기존] 기존 부품 재내보내기 — 시안 대조 안 함. 표시용 — 래퍼를 만드므로 좌표 재는 캔버스류에 쓰지 말 것 | 구현됨 |
 | ImageLoadingOverlay | kit | `src/shared/ui/image-loading-overlay.tsx` | — | 앱 기존 화면 | [기존] 기존 부품 재내보내기 — 시안 대조 안 함. 기존 `relative` 상자 안에 형제로 얹는 겹 | 구현됨 |
@@ -65,12 +65,12 @@
 
 | 부품 | 출입구 | 파일 | 원본(data-part) | 쓰는 화면 | 변형 | 상태 |
 |---|---|---|---|---|---|---|
-| EvidenceImage | viewer | | `M.photo` · `.imgbox` | S01–S11 | [새로] 보기 방식 원본 · 이진화 · 반전 · 대비 · 증거 꼬리표 · cm 자 · 2:3 틀(**캔버스 화면 제외** — `layout.md`) | 후보 |
-| SoleThumb | viewer | | `M.sole` | S00–S03 · S05–S11 | [새로] 크기 · 선택 테 | 후보 |
-| PatternIcon | viewer | | `M.picon` · `.picon` | S00 · S04 · S06 · S10 · S11 · S15 | [새로] 크기(`sm` 28 · 기본 36 · `lg` 48) · 필수 표시 · 개수 · 고름(`sel`) · AI(`ai`) | 후보 |
-| ZoneBands | viewer | | (S04 상 · 중 · 하 띠) | S04 · S05 · S06 | [새로] 띠별 확신도 | 후보 |
-| CompareView | viewer | | (S03 뷰어 B · S06 · S08 나란히 보기) | S03 · S06 · S07 · S08 | [새로] 나란히 · 겹쳐 · 밀어서 | 후보 |
-| PointPairs | viewer | | (대응점 표시 그림) | S00 · S06 · S08 | [새로] 점 · 선 · 번호(그림만 — 편집은 화면에서) | 후보 |
+| EvidenceImage | viewer | `src/shared/ui/viewer/EvidenceImage.tsx` | `M.photo` · `.imgbox` | S01–S11 | [새로] 보기 방식 `raw` · `binary`(근사) · `invert` · `contrast` · 꼬리표 `tag` · cm 자 `ruler` · 캡션 · 2:3 틀(**캔버스 화면 제외** — `layout.md`) | 구현됨 |
+| SoleThumb | viewer | `src/shared/ui/viewer/SoleThumb.tsx` | `M.sole` | S00–S03 · S05–S11 | [새로] 크기 `sm`(26×38) · `md`(30×44) · `lg`(38×56) · 선택 테 `on`(aria-pressed) | 검증됨 |
+| PatternIcon | viewer | `src/shared/ui/viewer/PatternIcon.tsx` | `M.picon` · `.picon` | S00 · S04 · S06 · S10 · S11 · S15 | [새로] 크기 `sm` 28 · `md` 36 · `lg` 48 · 필수 표시 · 개수 · 고름 `sel` · AI `ai`(색 테 + sr-only 글자) | 검증됨 |
+| ZoneBands | viewer | `src/shared/ui/viewer/ZoneBands.tsx` | (S04 상 · 중 · 하 띠) | S04 · S05 · S06 | [새로] 띠 `top` · `mid` · `bottom`(pointer-events-none) | 구현됨 |
+| CompareView | viewer | `src/shared/ui/viewer/CompareView.tsx` | (S03 뷰어 B · S06 · S08 나란히 보기) | S03 · S06 · S07 · S08 | [새로] `side` · `overlay` · `slide` | 구현됨 |
+| PointPairs | viewer | `src/shared/ui/viewer/PointPairs.tsx` | (대응점 표시 그림) | S00 · S06 · S08 | [새로] `crime` · `shoe`, 활성 박스 `data-active`. `boxes: PointPairBox[]`(MatchBox와 구조 호환, entities 의존 없음) | 구현됨 |
 | HeatOverlay | viewer | | (유사 부위 히트 그림) | S00 · S05 · S06 · S07 | [새로] 투명도 | 후보 |
 
 공용화 보류(목록에 올리지 않음): 확대경(Loupe) · 십자선(Crosshair) · 자르기 틀(CropFrame) · 회전 손잡이(RotateHandle) · 미니맵(Minimap) — S03에만 있고 좌표를 다루므로 필요한 화면에서 좌표 계약을 확인한 뒤 추출한다(`layout.md`).
@@ -80,10 +80,10 @@
 | 부품 | 출입구 | 파일 | 원본(data-part) | 쓰는 화면 | 변형 | 상태 |
 |---|---|---|---|---|---|---|
 | AiTag | ai | `src/shared/ui/ai/AiTag.tsx` | `.ai-tag` · `.ai-mark` | S00–S02 · S04–S12 · S15 | [새로] `default`(「AI」 · 「AI 추천」 …) · `progress`(맥박 점 + 「AI 7/12」) · `done`(「AI✓」) | 검증됨 |
-| AiProgress | ai | | `.fx-bar` | S01 · S02 · S04–S12 | [새로] 진행 · 끝 · 실패 · 반짝임(`.run`) | 후보 |
-| ScanOverlay | ai | | `.fx-scan` | S01–S07 · S10 · S11 | [새로] 사진 위 훑기 | 후보 |
-| LiveDot | ai | | `.fx-live` | S01–S06 · S08 · S10 · S11 · S14 · S15 | [새로] 처리 중 · 대기 | 후보 |
-| ConfidenceBar | ai | | (확신도 · 유사도 막대) | S04 · S05 · S06 · S15 | [새로] 0~1 · 0~100% · 임계선(`retrieval-results-grid`의 막대를 분리) | 후보 |
+| AiProgress | ai | `src/shared/ui/ai/AiProgress.tsx` | `.fx-bar` | S01 · S02 · S04–S12 | [새로] `running`(반짝임) · `done` · `failed`(「실패」 글자) | 검증됨 |
+| ScanOverlay | ai | `src/shared/ui/ai/ScanOverlay.tsx` | `.fx-scan` | S01–S07 · S10 · S11 | [새로] 사진 위 훑기(`active`일 때만 렌더, 부모 `relative`) | 구현됨 |
+| LiveDot | ai | `src/shared/ui/ai/LiveDot.tsx` | `.fx-live` | S01–S06 · S08 · S10 · S11 · S14 · S15 | [새로] `busy`(맥박) · `idle`(빈 고리). 점 옆 글자가 기본으로 보임(`hideLabel`로 숨김) | 구현됨 |
+| ConfidenceBar | ai | `src/shared/ui/ai/ConfidenceBar.tsx` | (확신도 · 유사도 막대) | S04 · S05 · S06 · S15 | [새로] 척도 `unit`(0~1) · `percent` · 상태 `low`(임계 미만, sr-only 「낮음」) · `ok` | 검증됨 |
 | StatTile | ai | | `.stat` | S01 · S09 · S11–S14 | [새로] 숫자 · 단위 · 빛 | 후보 |
 | CheckList | ai | | `.check` | S02 · S07 · S08 · S11 · S14 · S15 | [새로] ok · warn · bad · 줄 버튼 | 후보 |
 | AiSuggestion | ai | | (S02 채취 방법 제안 · S03 AI 제안) | S02 · S03 · S04 · S09 | [새로] 제안 + 근거 + 「적용」 | 후보 |
@@ -133,6 +133,27 @@
 | AiTag `.ai-mark` | S01 · S02에 쓰인 자리 없음. 변형으로 안 넣음 |
 | Panel 머리 라벨(`label`, 시안 `.panel-h .lbl`) | S01 · S02에 쓰인 자리 없음. 시안 글꼴 줄임말이 줄 높이를 `normal`로 되돌리므로 `leading-[normal]`이 필요할 가능성 — 미확인 |
 | Panel `default` 대표 S01-14 | 안쪽(폼 + 통계)이 너무 커서 진열하지 않음. `default`는 S02-17이 대표 |
+
+### 잠금 때 대조한 것 · 못 한 것 (Task 5, 부품 19개)
+
+대조 통과(짝 번호 → 변형, 시안 표식은 `docs/mockups/scas-redesign/screens/*.js` · `assets/core.js`): S01-71 Segmented(기본) · S01-73 Avatar · S01-22 AiProgress `running` · S01-23 AiProgress `done` · S04-31 PatternIcon(기본 `md`) · S04-34 ConfidenceBar `unit` `low` — 계산값 + 스크린샷 0픽셀. S01-31 SoleThumb `md`는 루트 계산값만(`compare: "shell"`, 안쪽 그림이 시안은 SVG라 `noShot`). 태그만 통일(`ignoreTags`)한 짝: Segmented(span → div) · AiProgress · ConfidenceBar · SoleThumb(span → button) — 접근성 때문에 일부러 다른 요소를 쓴다.
+
+대조해 실패 · 구현됨으로 남은 것(한 번 고쳐 보았고 구조 차이라 남김):
+- **RadioRow**(S01-76): 칸이 button이고 ◉○는 aria-hidden 글자 span인데 시안은 span의 `::before`. 자식 수 · 가상요소 구조가 다름(접근성 의도).
+- **LiveDot**(S01-21): 부품은 점 + 보이는 글자를 감싼 래퍼, 시안은 점 하나(`hideLabel`로 글자만 숨겨도 래퍼는 남음).
+- **PatternIcon 고름 · AI**(S04-32): 색 테 말고 sr-only 글자(「선택됨」 · 「AI 제안」) 자식이 하나 더 있음. 시안에는 색 테뿐(요구된 의도 — 시안에 보이는 표식이 생기면 다시 대조).
+- 이 셋은 진열 화면(`/dev/parts`)에는 나오고 대조(`parts-compare`)에서만 빠졌다(`noMockup` + 이유가 `fixtures-*-meta.ts`에 있음).
+
+시안에 짝이 없어 대조하지 못한 것(`noMockup`): Segmented `scas`(시안에 쓰는 자리 없음) · Combobox(시안에 열린 모양 없음) · StatusDot(시안 `.dot`은 칩 안 점) · DataGrid · Pagination(시안 S01은 「페이지 1 / 9」 입력형) · InlineError(시안에 없음, 그려야 함) · DialogShell(화면 덮개라 진열 상자에 못 넣음 — 대조 생략) · EvidenceImage · CompareView(시안은 SVG 그림, 앱은 가짜 그림) · ZoneBands · PointPairs · ScanOverlay(멈춘 모양이 안 보이는 선). 값은 시안 CSS에서 옮겼고 단위 테스트가 모양 규칙을 지킨다.
+
+### 알려진 의도적 차이(되돌리지 말 것)
+
+- **LiveDot**: 점 옆 글자가 기본으로 보인다(`hideLabel`로만 숨김). 시안은 점만.
+- **ConfidenceBar `low`**: 보이는 표식 없이 `aria-valuetext`의 「낮음」과 툴팁(`title`)만. 시안에 낮음 표식이 없고 색(주황)뿐.
+- **PatternIcon 고름 · AI**: 색 테 + sr-only 글자만. 시안에 보이는 표식 없음.
+- **Combobox**: 칸을 떠나면 확정 안 한 입력은 버린다.
+- **RadioRow**: `name`을 묶음의 접근성 이름(`aria-label`)으로 쓴다.
+- **DataGrid 호버** `#0e1726` → panel-2, **DialogShell** 머리 그라데이션 → 단색 · 그림자 .7 → .35, **Segmented `scas`** 눌림 → `bg-fg`/`text-panel`, **EvidenceImage `binary`** 는 CSS 필터 근사, **가짜 그림 색**은 가장 가까운 토큰.
 
 ### 픽셀 대조를 뺀 자리(계산값 대조는 함)
 

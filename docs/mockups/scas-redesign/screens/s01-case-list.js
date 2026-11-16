@@ -78,7 +78,7 @@
               return `<div style="display:grid;gap:7px;padding:8px 9px;border:1px solid ${found ? "#1f4a2f" : "var(--line)"};border-radius:10px;background:linear-gradient(160deg,var(--panel),var(--panel2))">
               <div style="display:flex;align-items:center;gap:6px;font-size:11.5px"><b class="mono">${n}</b><span class="chip ${found ? "green" : ""}" data-part="Chip" data-part-variant="${found ? "green-h18" : "h18"}"${k < 2 ? ` data-part-id="${found ? "S01-08" : "S01-09"}"` : ""} style="height:18px;padding:0 6px;font-size:10px">${r}</span><span class="mono" style="margin-left:auto;color:var(--dim);font-size:10px">검색 ${sn}</span></div>
               <div style="display:flex;align-items:center;gap:5px">
-                <span class="imgbox" style="width:30px;height:44px;border-radius:5px;flex:none">${sole({ kind: "scene", zones: z })}</span>
+                <span class="imgbox" data-part="SoleThumb" data-part-variant="md"${k === 0 ? ' data-part-id="S01-31"' : ""} style="width:30px;height:44px;border-radius:5px;flex:none">${sole({ kind: "scene", zones: z })}</span>
                 <span style="color:var(--dim);font:600 10px var(--font-mono)">›</span>
                 <span class="imgbox" style="width:30px;height:44px;border-radius:5px;flex:none;background:#fff">${sole({ kind: "bin", zones: z })}</span>
                 <span style="color:var(--dim);font:600 10px var(--font-mono)">›</span>
@@ -101,7 +101,7 @@
     const find = (t, id = "") => `<span style="display:flex;gap:4px"><span class="inp w100" data-part="Field" data-part-variant="text">${t}</span><button class="btn sm" data-part="Button" data-part-variant="sm-h26"${id ? ` data-part-id="${id}"` : ""} style="height:26px">검색</button></span>`;
 
     return M.shell(
-      { active: "사건관리", tabs: ["사건관리", "시험품질경영절차서", "감정서작성", "족윤적 검증", "결재 대기함", "문서접수대장"], title: "사건관리", h: 1000, partIds: { inp: "S01-19", chip: "S01-20" } },
+      { active: "사건관리", tabs: ["사건관리", "시험품질경영절차서", "감정서작성", "족윤적 검증", "결재 대기함", "문서접수대장"], title: "사건관리", h: 1000, partIds: { inp: "S01-19", chip: "S01-20", avatar: "S01-73" } },
       `<div class="panel pinbox" data-part="Panel" data-part-variant="default" data-part-id="S01-14" style="margin-bottom:12px">${apin(1, "keep", true)}
         <div class="form" style="grid-template-columns:84px minmax(0,1fr) 84px minmax(0,1fr) 84px minmax(0,1fr);border-top:0">
           ${F("감정번호", `<span class="inp w100 mono" data-part="Field" data-part-variant="mono" data-part-id="S01-12">00001-25-</span>`)}${F("문서번호", `<span class="inp w100" data-part="Field" data-part-variant="text" data-part-id="S01-11"></span>`)}${F("사건명", sel("전체", "S01-10"))}
@@ -112,12 +112,12 @@
         </div>
         <div class="pinbox" style="display:flex;gap:10px;padding:12px 14px;border-top:1px solid var(--line2)">${apin(12, "plus", true)}
           <div class="stat" data-role="analyst admin" style="flex:1.8;min-width:0;--glow:rgba(45,212,191,.2);border-color:#1d4a44">
-            <span style="display:flex;align-items:center;gap:7px"><span class="fx-live"></span><b style="font-size:12px;color:var(--teal)">AI 사전 처리</b><span class="mono" style="margin-left:auto;color:var(--dim);font-size:10.5px">09:12 공문 접수</span></span>
+            <span style="display:flex;align-items:center;gap:7px"><span class="fx-live" data-part="LiveDot" data-part-variant="busy" data-part-id="S01-21"></span><b style="font-size:12px;color:var(--teal)">AI 사전 처리</b><span class="mono" style="margin-left:auto;color:var(--dim);font-size:10.5px">09:12 공문 접수</span></span>
             <span style="display:flex;align-items:baseline;gap:8px"><span class="v">00001-25-0649</span><span class="k">12장</span></span>
-            <span class="fx-bar run"><i style="width:62%"></i></span>
+            <span class="fx-bar run" data-part="AiProgress" data-part-variant="running" data-part-id="S01-22"><i style="width:62%"></i></span>
             <span class="s">이진화 12/12 · 문양 제안 9/12 · 검색 Top-10 준비 7/12 — 감정관이 열기 전에 미리</span>
           </div>
-          <div class="stat" style="flex:1;min-width:0"><span class="k">결과 확인 전</span><span class="v">14<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="fx-bar"><i style="width:58%"></i></span><span class="s">이미지 98장 중 확인 57장</span></div>
+          <div class="stat" style="flex:1;min-width:0"><span class="k">결과 확인 전</span><span class="v">14<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="fx-bar" data-part="AiProgress" data-part-variant="done" data-part-id="S01-23"><i style="width:58%"></i></span><span class="s">이미지 98장 중 확인 57장</span></div>
           <div class="stat" data-role="analyst admin" style="flex:1;min-width:0;--glow:rgba(74,158,255,.18)"><span class="k">이미지 미검색</span><span class="v">9<small style="font:500 11px var(--font-ui);color:var(--dim)"> 장</small></span><span class="fx-bar"><i style="width:78%"></i></span><span class="s">AI Top-10 준비 7 · 대기 2</span></div>
           <div class="stat" data-role="analyst admin" style="flex:1;min-width:0;--glow:rgba(245,158,11,.2);border-color:#4d3a12"><span class="k" style="color:var(--amber)">교차 검증 요청 받음</span><span class="v">1<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="s">00001-25-0646 · 김○○ → 나</span></div>
           <div class="stat" data-role="verifier admin" style="flex:1;min-width:0"><span class="k">결재 대기</span><span class="v">3<small style="font:500 11px var(--font-ui);color:var(--dim)"> 건</small></span><span class="s">가장 오래된 것 2일</span></div>
@@ -129,11 +129,11 @@
         <div class="panel-h">
           <span class="t">사건관리 목록</span><span style="color:var(--dim);font-size:12px">전체 116건</span><span style="display:inline-flex;align-items:center;gap:5px;color:var(--dim);font-size:11px"><span class="fx-live" style="width:6px;height:6px"></span>실시간 · <span class="mono">09:12</span> 갱신</span>
           <span class="r pinbox" data-part="ButtonBar" data-part-variant="panel-head" data-part-id="S01-16" style="padding-left:14px">${apin(2, "keep", true)}
-            <span class="radio" style="font-size:12px;margin-right:6px"><span class="on">목록보기</span><span>문양보기</span></span>
+            <span class="radio" data-part="RadioRow" data-part-id="S01-76" style="font-size:12px;margin-right:6px"><span class="on">목록보기</span><span>문양보기</span></span>
             <button class="btn sm" data-part="Button" data-part-variant="sm" data-part-id="S01-01">초기화</button><button class="btn sm" data-part="Button" data-part-variant="sm">엑셀</button><button class="btn sm" data-part="Button" data-part-variant="sm">조회</button>
             <button class="btn sm pri pinbox" data-role="investigator analyst admin" data-part="Button" data-part-variant="sm-pri" data-part-id="S01-02">등록${apin(3, "voice")}</button>
             <span style="width:1px;height:20px;background:var(--line)"></span>
-            <span class="seg pinbox">${apin(5, "better")}<button aria-pressed="true">기본 보기 15열</button><button aria-pressed="false">SCAS 열 전체 보기 25열</button></span>
+            <span class="seg pinbox" data-part="Segmented" data-part-id="S01-71">${apin(5, "better")}<button aria-pressed="true">기본 보기 15열</button><button aria-pressed="false">SCAS 열 전체 보기 25열</button></span>
           </span>
         </div>
         <div>

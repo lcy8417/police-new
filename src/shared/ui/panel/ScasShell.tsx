@@ -1,7 +1,7 @@
 import * as React from "react"
 
 import { cn } from "@/shared/lib/utils"
-import { Chip, Field } from "../kit"
+import { Avatar, Chip, Field } from "../kit"
 import { partAttrs } from "../part-attrs"
 
 // 시안 `M.shell`(core.js)의 부품판: 위 메뉴(.topnav) · 탭 줄(.mdi) · 왼쪽 메뉴(.side) · 내용(.content).
@@ -148,11 +148,9 @@ export function ScasShell({ active, title, tabs, tabOn, menu, renderLink, user, 
             {user.org}
           </span>
           <Chip variant="blue">{user.roleLabel}</Chip>
-          <span
-            aria-hidden="true"
-            className="grid size-[28px] place-items-center rounded-full bg-panel-3 text-[12px] font-semibold text-fg-2"
-          >
-            {user.name.slice(0, 1)}
+          {/* 옆에 이름 글자가 이미 있어 이니셜 그림은 읽지 않는다 */}
+          <span aria-hidden="true" className="inline-flex">
+            <Avatar name={user.name} />
           </span>
         </span>
       </div>

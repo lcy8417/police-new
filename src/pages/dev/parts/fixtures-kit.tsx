@@ -6,9 +6,8 @@ import { Avatar, Combobox, DataGrid, InlineError, Pagination, RadioRow, Segmente
 // 값은 고정(진열은 움직이지 않음). DialogShell 은 화면을 덮는 겹이라 진열 상자에 넣지 않는다(노트 참고).
 
 const MODES = [
-  { value: "원본", label: "원본" },
-  { value: "이진화", label: "이진화" },
-  { value: "반전", label: "반전" },
+  { value: "기본", label: "기본 보기 15열" },
+  { value: "전체", label: "SCAS 열 전체 보기 25열" },
 ];
 
 const OFFICES = [
@@ -30,18 +29,18 @@ const ROWS: DemoRow[] = [
 const noop = () => {};
 
 export const KIT_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
-  "S01-71": () => <Segmented items={MODES} value="원본" onValueChange={noop} partId="S01-71" />,
-  "S01-72": () => <Segmented items={MODES} value="이진화" onValueChange={noop} scas partId="S01-72" />,
-  "S02-71": () => (
+  "S01-71": () => <Segmented items={MODES} value="기본" onValueChange={noop} partId="S01-71" />,
+  "S01-72": () => <Segmented items={MODES} value="전체" onValueChange={noop} scas partId="S01-72" />,
+  "S01-76": () => (
     <RadioRow
-      name="사진 종류"
+      name="보기 방식"
       options={[
-        { value: "A", label: "현장 사진" },
-        { value: "B", label: "채취 사진" },
+        { value: "list", label: "목록보기" },
+        { value: "pattern", label: "문양보기" },
       ]}
-      value="A"
+      value="list"
       onValueChange={noop}
-      partId="S02-71"
+      partId="S01-76"
     />
   ),
   "S02-72": () => (

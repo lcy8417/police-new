@@ -53,6 +53,9 @@
   --t-ai-bg-deep: #0b2a26; /* 표 안 작은 AI 표식 배경(S01 인라인 값) */
   --t-ai-tag-drop: rgba(0, 0, 0, 0.6); /* 진행 중 AI 표식 그림자 */
   --t-ai-pulse: rgba(45, 212, 191, 0.55); /* 진행 점 맥박 */
+  --t-picon-bg: #f3f5f8; /* PatternIcon 바탕(밝은 종이색, 시안 .picon) */
+  --t-ai-scan-glow: rgba(45, 212, 191, 0.6); /* ScanOverlay 스캔선 번짐(시안 .fx-scan) */
+  --t-ai-shine: #b9fff4; /* AiProgress 반짝임 띠(시안 .fx-bar.run) */
   --t-emblem-from: #1f3f73; /* ScasShell 상단 방패 바탕 그라데이션 시작(시안 .emblem) */
   --t-emblem-to: #0b1730; /* 방패 바탕 그라데이션 끝 */
   --t-emblem-stroke: #7fb6ff; /* 방패 바깥 선 */
@@ -181,6 +184,7 @@
   --color-strip: var(--t-strip);
   --color-line-2: var(--t-line-2);
   --color-line-3: var(--t-line-3);
+  --color-picon: var(--t-picon-bg);
   --color-fg-2: var(--t-fg-2);
   --color-dim: var(--t-dim);
   --color-faint: var(--t-faint);
@@ -191,6 +195,9 @@
   --color-ai-bg: var(--t-ai-bg);
   --color-ai-bg-deep: var(--t-ai-bg-deep);
   --animate-ai-pulse: ai-pulse 1.8s ease-in-out infinite;
+  --animate-fx-scan: fx-scan 3.2s ease-in-out infinite;
+  --animate-fx-fill: fx-fill 1.4s ease-out;
+  --animate-fx-run: fx-fill 1.4s ease-out, fx-shimmer 1.6s linear infinite;
   --color-danger: var(--t-danger);
   --color-danger-bg: var(--t-danger-bg);
   --color-ok: var(--t-ok);
@@ -215,6 +222,37 @@
   50% {
     opacity: 0.55;
     box-shadow: 0 0 0 5px transparent;
+  }
+}
+
+/* 시안 mockup.css 의 fx-scan · fx-fill · fx-shimmer 와 같은 움직임(부품은 motion-safe: 로만 건다) */
+@keyframes fx-scan {
+  0% {
+    top: 0;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+@keyframes fx-fill {
+  from {
+    width: 0;
+  }
+}
+@keyframes fx-shimmer {
+  0% {
+    background-position: -120% 0;
+  }
+  100% {
+    background-position: 220% 0;
   }
 }
 

@@ -32,7 +32,7 @@
         : `<span class="chip ${it.req ? "red" : ""}" style="height:19px;padding:0 7px;font-size:10.5px;${it.req ? "" : "color:var(--dim)"}">${it.req ? "● 필수" : "필수"}</span>`;
     return `<div class="pinbox" style="display:grid;justify-items:center;gap:4px;width:92px;padding:7px 4px 6px;border:${b};border-radius:9px;background:${it.st === "sug" ? "rgba(15,38,36,.35)" : "var(--panel2)"};${it.st === "sug" ? "opacity:.92" : ""}">${pinHtml}
       ${picon(it.p, it.st === "man" ? "sel" : "ai", M.PDESC[it.p] || it.p)}${lab}
-      ${it.cf ? `<span title="AI 확신도" style="display:flex;align-items:center;gap:4px;width:80px"><span class="fx-bar" style="flex:1;height:3px"><i style="width:${it.cf * 100}%;${it.cf < 0.5 ? "background:var(--amber)" : ""}"></i></span><span class="mono" style="font-size:9.5px;color:${it.cf < 0.5 ? "var(--amber)" : "var(--mute)"}">${it.cf.toFixed(2)}</span></span>` : ""}
+      ${it.cf ? `<span title="AI 확신도"${it.cf < 0.5 ? ' data-part="ConfidenceBar" data-part-variant="unit" data-part-state="low" data-part-id="S04-34"' : ""} style="display:flex;align-items:center;gap:4px;width:80px"><span class="fx-bar" style="flex:1;height:3px"><i style="width:${it.cf * 100}%;${it.cf < 0.5 ? "background:var(--amber)" : ""}"></i></span><span class="mono" style="font-size:9.5px;color:${it.cf < 0.5 ? "var(--amber)" : "var(--mute)"}">${it.cf.toFixed(2)}</span></span>` : ""}
       <span class="inp" style="height:20px;padding:0 6px;font-size:11px;gap:10px"><span class="num">${it.c}</span><span style="color:var(--dim)">▾</span></span>${foot}</div>`;
   };
 
@@ -87,7 +87,7 @@
             <span class="inp" style="flex:1;color:var(--dim);font-size:11.5px">⌕ 이름·설명 찾기</span>
           </div>
           <div style="display:flex;gap:5px;align-items:center"><span style="color:var(--dim);font-size:11px;margin-right:2px">최근 사용</span>${["n32_04", "n21_05", "s10c", "n21_02", "n73_01"].map((p) => picon(p, "sm")).join("")}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:5px;padding-top:8px;border-top:1px solid var(--line2)">${M.P.내부선.map((p) => picon(p, p === "n32_04" ? "sel" : "", M.PDESC[p] || p)).join("")}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;padding-top:8px;border-top:1px solid var(--line2)">${M.P.내부선.map((p, i) => picon(p, p === "n32_04" ? "sel" : "", M.PDESC[p] || p, p === "n32_04" ? "S04-32" : i === 0 ? "S04-31" : "")).join("")}</div>
           <span class="seg" style="justify-self:start">${["단선", "다선1", "다선2"].map((t, i) => `<button aria-pressed="${i === 0}" style="padding:3px 10px">${t}</button>`).join("")}</span>
         </div>
       </div>`;

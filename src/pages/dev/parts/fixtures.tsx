@@ -4,11 +4,15 @@ import { AiTag } from "@/shared/ui/ai";
 import { Button, Chip, Field } from "@/shared/ui/kit";
 import { ButtonBar, Panel } from "@/shared/ui/panel";
 
+import { AI_FIXTURE_RENDERS } from "./fixtures-ai";
+import { KIT_FIXTURE_RENDERS } from "./fixtures-kit";
+import { VIEWER_FIXTURE_RENDERS } from "./fixtures-viewer";
+
 // 진열 예시를 그리는 쪽(id → 그리기). 진열 화면만 읽는다 — 데이터는 fixtures-meta.ts.
 // 시안과 같은 글자로 그리고, 부품에는 props 만 넘긴다(className · 손으로 쓴 data-part-* 금지).
 // 부모에서 상속되는 줄 높이 같은 맥락은 fixtures-meta.ts 의 boxClass 로 상자에 준다.
 
-export const FIXTURE_RENDERS: Record<string, () => ReactNode> = {
+const BASE_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
   // Button
   "S01-01": () => (
     <Button size="sm" partId="S01-01">
@@ -193,4 +197,12 @@ export const FIXTURE_RENDERS: Record<string, () => ReactNode> = {
       AI 제안
     </AiTag>
   ),
+};
+
+// 갈래별 그리기를 합친다(잠금, Task 5).
+export const FIXTURE_RENDERS: Record<string, () => ReactNode> = {
+  ...BASE_FIXTURE_RENDERS,
+  ...KIT_FIXTURE_RENDERS,
+  ...VIEWER_FIXTURE_RENDERS,
+  ...AI_FIXTURE_RENDERS,
 };

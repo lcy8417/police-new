@@ -20,7 +20,7 @@ export function ScanOverlay({ active, partId, className, ...props }: ScanOverlay
       aria-hidden="true"
       className={cn(
         "pointer-events-none absolute inset-x-0 top-full h-[2px] bg-ai opacity-0",
-        "shadow-[0_0_12px_3px_var(--t-ai-pulse)] motion-safe:animate-fx-scan",
+        "shadow-[0_0_12px_3px_var(--t-ai-scan-glow)] motion-safe:animate-fx-scan",
         className,
       )}
       {...props}

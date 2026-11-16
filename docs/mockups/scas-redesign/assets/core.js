@@ -51,8 +51,8 @@
     // 헤링본(지그재그) — SCAS 화면 원문(IMG_5616 0:30–2:45)
     n32_04: "산 모양이 규칙적으로 반복 배열(주기 1번 초과, 꼭지점 각도가 내각, 직각 포함)",
   };
-  M.picon = (name, cls = "", title = "") =>
-    `<span class="picon ${cls}" title="${M.esc(title || name)}"><img src="assets/patterns/${name}.png" alt="${name}" loading="lazy"></span>`;
+  M.picon = (name, cls = "", title = "", partId = "") =>
+    `<span class="picon ${cls}"${partId ? ` data-part="PatternIcon" data-part-variant="md"${cls === "sel" ? ' data-part-state="sel"' : ""} data-part-id="${partId}"` : ""} title="${M.esc(title || name)}"><img src="assets/patterns/${name}.png" alt="${name}" loading="lazy"></span>`;
 
   /* ── 가짜 밑창·족적 그림(SVG) ──
      kind: "shoe"(등록 신발 밑창) | "scene"(현장 족적: 먼지·잡음·일부 소실) | "bin"(이진화)
@@ -198,7 +198,7 @@
     const whos = Object.entries(M.ROLES)
       .map(
         ([k, r]) =>
-          `<span class="who" data-role="${k}"><span style="text-align:right"><b style="display:block;color:var(--fg2);font-size:12px">${r.who}</b>${r.org}</span><span class="chip blue" data-part="Chip" data-part-variant="blue"${k === "analyst" && partIds.chip ? ` data-part-id="${partIds.chip}"` : ""}>${r.label}</span><span class="avatar">${r.who[0]}</span></span>`
+          `<span class="who" data-role="${k}"><span style="text-align:right"><b style="display:block;color:var(--fg2);font-size:12px">${r.who}</b>${r.org}</span><span class="chip blue" data-part="Chip" data-part-variant="blue"${k === "analyst" && partIds.chip ? ` data-part-id="${partIds.chip}"` : ""}>${r.label}</span><span class="avatar"${k === "analyst" && partIds.avatar ? ` data-part="Avatar" data-part-id="${partIds.avatar}"` : ""}>${r.who[0]}</span></span>`
       )
       .join("");
     const tabHtml = tabs.map((t) => `<span class="tab ${t === (tabOn || [].concat(active)[0]) ? "on" : ""}">${t}<span class="x">✕</span></span>`).join("");

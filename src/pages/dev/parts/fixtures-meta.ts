@@ -1,3 +1,7 @@
+import { AI_PART_FIXTURES } from "./fixtures-ai-meta";
+import { KIT_PART_FIXTURES } from "./fixtures-kit-meta";
+import { VIEWER_FIXTURES } from "./fixtures-viewer-meta";
+
 // 진열 예시의 「데이터」 부분(그리는 코드 없음). Node/Playwright 스펙(tests/ui/parts-compare.spec.ts)이 이 파일만 읽는다.
 // 그리는 쪽은 fixtures.tsx(id 로 짝). 두 파일의 id 집합이 같은지는 fixtures.test.ts 가 지킨다.
 // 시안과 같은 고정 예시(문구 · 부모 폭)로 그린다(설계서 §9).
@@ -37,6 +41,10 @@ export interface PartFixture {
    * 루트 요소의 이 다섯 값만 제외하며 가상요소 · 자식 · 나머지 값(filter · 크기 · 색)은 그대로 비교한다. 측정값을 주석으로 남길 것.
    */
   ignorePlacement?: true;
+  /** true 면 대조에서 태그 이름만 통일한다(접근성 때문에 시안 span 대신 button · div(role)로 그린 부품). 계산값 · 자식 수는 그대로 비교. */
+  ignoreTags?: true;
+  /** 시안에 같은 모양(표식)이 없어 시안 짝 대조(parts-compare)를 하지 않고 진열만 하는 이유. 있으면 대조 테스트에서 빠진다. */
+  noMockup?: string;
   /** 픽셀 비교를 건너뛰는 이유(있으면 계산값 비교만 한다). 측정으로 확인된 구체 이유가 있을 때만 쓴다. */
   noShot?: string;
   /** 픽셀 비교 허용 픽셀 수(기본 0). 쓰면 숫자와 이유를 주석으로 남긴다. */
@@ -44,7 +52,7 @@ export interface PartFixture {
 }
 
 // 부품이 구현되면 한 줄씩 늘린다. 변형마다 대표 1개(같은 변형의 다른 자리 id 는 값이 같아 생략).
-export const PART_FIXTURES: PartFixture[] = [
+const BASE_PART_FIXTURES: PartFixture[] = [
   // Button
   { id: "S01-01", part: "Button", variant: "sm", parentWidth: 605, surface: "panel" },
   { id: "S01-02", part: "Button", variant: "sm-pri", parentWidth: 605, surface: "panel" },
@@ -91,4 +99,12 @@ export const PART_FIXTURES: PartFixture[] = [
   { id: "S01-17", part: "AiTag", variant: "progress", parentWidth: 40, surface: "panel", ignorePlacement: true, noShot: "표 셀 밖으로 튀어나온 표식: 모서리 뒤로 그림이 비치고 아래쪽을 다음 행이 덮음(측정은 위 주석)" },
   { id: "S01-18", part: "AiTag", variant: "done", parentWidth: 40, surface: "panel", ignorePlacement: true, noShot: "S01-17 과 같다(측정: 모서리 21,23,26 ↔ 5,8,13 · 안쪽 아래 10,38,34 ↔ 11,42,38)" },
   { id: "S02-21", part: "AiTag", variant: "default", parentWidth: 265, surface: "ai", boxClass: "flex items-center" },
+];
+
+// 갈래별 진열 데이터를 이어 붙인다(잠금, Task 5).
+export const PART_FIXTURES: PartFixture[] = [
+  ...BASE_PART_FIXTURES,
+  ...KIT_PART_FIXTURES,
+  ...VIEWER_FIXTURES,
+  ...AI_PART_FIXTURES,
 ];

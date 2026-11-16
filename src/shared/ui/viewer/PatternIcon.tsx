@@ -44,21 +44,24 @@ export function PatternIcon({
   title,
   ...props
 }: PatternIconProps) {
+  // 배지(필수 · 개수)가 없으면 시안처럼 바탕 안에서 자른다. 배지는 모서리 밖으로 나와야 하므로 있으면 자르지 않고 그림 모서리만 둥글게 한다.
+  const hasBadge = essential || count !== undefined
   return (
     <span
       {...partAttrs("PatternIcon", { variant: size, state: selected ? "sel" : ai ? "ai" : undefined, id: partId })}
       title={title ?? name}
       className={cn(
-        // 시안 바탕(밝은 종이색)은 토큰이 없어 가장 가까운 white 를 쓴다
-        "relative inline-grid place-items-center rounded-[6px] border border-solid border-line-3 bg-white",
+        // 바탕은 시안 .picon 의 밝은 종이색(토큰 --t-picon-bg)
+        "relative inline-grid place-items-center rounded-[6px] border border-solid border-line-3 bg-picon",
         SIZE_CLASS[size],
+        !hasBadge && "overflow-hidden",
         selected && "outline-2 outline-offset-1 outline-brand",
         ai && !selected && "outline-2 outline-offset-1 outline-ai",
         className
       )}
       {...props}
     >
-      <img src={src} alt={name} loading="lazy" className="size-full overflow-hidden rounded-[5px] object-contain" />
+      <img src={src} alt={name} loading="lazy" className={cn("size-full object-contain", hasBadge && "overflow-hidden rounded-[5px]")} />
       {selected ? <span className="sr-only">선택됨</span> : ai ? <span className="sr-only">AI 제안</span> : null}
       {essential ? (
         <span className="absolute -top-[5px] -left-[5px] rounded-[3px] border border-solid border-danger-line bg-danger-bg px-[3px] text-[9px] leading-[12px] text-danger-fg">

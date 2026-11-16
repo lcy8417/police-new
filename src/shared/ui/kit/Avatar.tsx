@@ -28,7 +28,7 @@ export function Avatar({ name, tone, partId, className }: AvatarProps) {
       role="img"
       aria-label={name}
       className={cn(
-        "inline-grid place-items-center size-[28px] shrink-0 rounded-full text-[12px] font-semibold",
+        "inline-grid place-items-center size-[28px] shrink-0 rounded-[50%] text-[12px] font-semibold",
         tone ? TONE_CLASS[tone] : "bg-panel-3 text-fg-2",
         className
       )}

@@ -32,12 +32,12 @@ describe("ConfidenceBar", () => {
     expect(root).toHaveAttribute("data-part-state", "ok")
   })
 
-  it("낮음은 색 말고도 글자 「낮음」(sr-only)과 툴팁으로 알린다, ok 에는 없다", () => {
+  it("낮음은 색 말고도 읽는 값(aria-valuetext) 「낮음」과 툴팁으로 알린다, ok 에는 없다", () => {
     const { container, rerender } = render(<ConfidenceBar value={0.42} scale="unit" threshold={0.5} />)
-    expect(screen.getByText("낮음")).toBeInTheDocument()
+    expect(screen.getByRole("meter")).toHaveAttribute("aria-valuetext", "0.42 낮음")
     expect(container.querySelector("[data-part=ConfidenceBar]")).toHaveAttribute("title", "낮음")
     rerender(<ConfidenceBar value={0.9} scale="unit" threshold={0.5} />)
-    expect(screen.queryByText("낮음")).toBeNull()
+    expect(screen.getByRole("meter")).not.toHaveAttribute("aria-valuetext")
     expect(container.querySelector("[data-part=ConfidenceBar]")).not.toHaveAttribute("title")
   })
 
@@ -55,7 +55,7 @@ describe("ConfidenceBar", () => {
     expect(screen.getByText("—")).toBeInTheDocument()
     expect(screen.getByRole("meter")).not.toHaveAttribute("aria-valuenow")
     expect(container.querySelector("[data-part=ConfidenceBar]")).not.toHaveAttribute("data-part-state")
-    expect(screen.queryByText("낮음")).toBeNull()
+    expect(screen.getByRole("meter")).not.toHaveAttribute("aria-valuetext")
   })
 
   it("임계가 없으면 상태 표식 없음", () => {
