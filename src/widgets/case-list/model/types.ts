@@ -1,5 +1,6 @@
 import type { FeatureCode } from "@/entities/session"
 import type { ScreenStatus } from "@/shared/lib/screen-status"
+import type { FilterGroup } from "@/shared/ui/kit"
 
 // 출처: SCAS 사건관리 목록 열 25개(시안 s01-case-list.js 의 SCAS 표) + 지금 앱 `Crime`(aprthngNo · crimeNm · rqestGrfcNm ·
 // frstRegistDt). 지금 앱에는 목록 전용 응답 타입이 없어(`fetchCrimeList` 는 `Crime[]`) 화면이 그리는 열만 최소로 정의한다.
@@ -128,6 +129,25 @@ export interface CaseListFilters {
   otherOrg: string
 }
 
+/** (r3) 목록 위 「빠른 찾기」 — SCAS 검색 폼을 대신하지 않고 이미 찾은 결과 안에서 더 좁힌다. 값은 모두 제어형. */
+export interface CaseListQuickFilter {
+  query: string
+  onQueryChange: (query: string) => void
+  /** 칩 묶음(진행 상태 · 사건결과 · 처리 구분 · 내 담당만) */
+  groups: readonly FilterGroup[]
+  onGroupChange: (key: string, values: string[]) => void
+  onClear: () => void
+  /** 빠른 찾기로 걸러진 개수 */
+  resultCount: number
+  /** 빠른 찾기 전 개수 */
+  total: number
+  /** 검색칸 안내 글 */
+  placeholder?: string
+}
+
+/** (r3) 행 높이 */
+export type CaseListRowHeight = "보통" | "촘촘"
+
 export interface CaseListScreenProps {
   /** loading · error · empty · ready — 조회 실패를 「결과 없음」으로 덮지 않는다 */
   status: ScreenStatus
@@ -164,4 +184,14 @@ export interface CaseListScreenProps {
   liveAt?: string
   /** 아직 기능이 없는 버튼(엑셀 · 문양보기 · 검증요청 · 검증)을 눌렀을 때 — 이름을 넘긴다(시안 — 기능 준비 중) */
   onMockAction?: (label: string) => void
+  /** (r3) 빠른 찾기 — 없으면 줄이 없다 */
+  quick?: CaseListQuickFilter
+  /** (r3) 숨긴 열 key(SCAS 순서는 그대로, 감정번호는 못 숨김). 없으면 모두 보임 */
+  hiddenColumns?: readonly string[]
+  onHiddenColumnsChange?: (keys: string[]) => void
+  /** (r3) 쪽당 행 수 고르기(10 · 20 · 50) — onPageSizeChange 가 있을 때만 보인다 */
+  onPageSizeChange?: (pageSize: number) => void
+  /** (r3) 행 높이 — onRowHeightChange 가 있을 때만 고르기가 보인다 */
+  rowHeight?: CaseListRowHeight
+  onRowHeightChange?: (height: CaseListRowHeight) => void
 }

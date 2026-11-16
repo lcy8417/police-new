@@ -7,7 +7,10 @@ import {
   Button,
   Checkbox,
   Chip,
+  ColumnPicker,
   Field,
+  FilterBar,
+  ViewCountSwitch,
   InlineError,
   Pagination,
   RadioRow,
@@ -128,6 +131,12 @@ export function CaseListScreen({
   tasks,
   liveAt,
   onMockAction,
+  quick,
+  hiddenColumns = [],
+  onHiddenColumnsChange,
+  onPageSizeChange,
+  rowHeight = "보통",
+  onRowHeightChange,
 }: CaseListScreenProps) {
   // 보기 방식 · 펼친 행은 저장하지 않는 화면 안 모양이라 위젯 안 상태(spec §6-1)
   const [viewMode, setViewMode] = React.useState<ViewMode>("basic")
@@ -303,7 +312,13 @@ export function CaseListScreen({
     header: React.ReactNode,
     render: (r: CaseListRow) => React.ReactNode,
     extra: Partial<CaseTableColumn<CaseListRow>> = {}
-  ): CaseTableColumn<CaseListRow> => ({ key, header, render, ...extra })
+  ): CaseTableColumn<CaseListRow> => ({
+    key,
+    header,
+    render,
+    label: typeof header === "string" ? header : key,
+    ...extra,
+  })
 
   const actionCol = col("act", "검색 · 확인 · 검증", (r) => (
     <span className="inline-flex items-center gap-[4px]">
@@ -431,7 +446,7 @@ export function CaseListScreen({
       <span className="font-normal text-dim">검증요청→교차 검증→감정서→결재</span>
     </span>,
     (r) => <StageCell row={r} />,
-    { plus: true, cellClass: "bg-[color-mix(in_srgb,var(--t-ai-bg)_18%,transparent)]" }
+    { plus: true, label: "사건 진행", cellClass: "bg-[color-mix(in_srgb,var(--t-ai-bg)_18%,transparent)]" }
   )
 
   const baseColumns: CaseTableColumn<CaseListRow>[] =
@@ -444,17 +459,27 @@ export function CaseListScreen({
         ]
       : [
           idx, img, no, doc, name, req, proc, occ, kind, count, sus, reg, confirmedAt, result, receiver, author,
-          col("found", "발견", (r) => <Num v={r.results.found} tone="text-ok-fg" />, { align: "right" }),
-          col("missed", "불발", (r) => <Num v={r.results.missed} tone="text-fg-2" />, { align: "right" }),
-          col("unable", "불능", (r) => <Num v={r.results.unable} tone="text-warn" />, { align: "right" }),
-          col("p0", "등록", (r) => <Num v={r.progress.registered} />, { align: "right" }),
-          col("p1", "검색", (r) => <Num v={r.progress.searched} tone="text-warn" />, { align: "right" }),
-          col("p2", "확인", (r) => <Num v={r.progress.confirmed} tone="text-brand" />, { align: "right" }),
-          col("a1", "검색", (r) => searchBtn(r)),
-          col("a2", "확인", (r) => confirmBtn(r)),
-          col("a3", "검증", (r) => verifyBtn(r)),
+          col("found", "발견", (r) => <Num v={r.results.found} tone="text-ok-fg" />, { align: "right", label: "발견 장수" }),
+          col("missed", "불발", (r) => <Num v={r.results.missed} tone="text-fg-2" />, { align: "right", label: "불발 장수" }),
+          col("unable", "불능", (r) => <Num v={r.results.unable} tone="text-warn" />, { align: "right", label: "불능 장수" }),
+          col("p0", "등록", (r) => <Num v={r.progress.registered} />, { align: "right", label: "등록 장수" }),
+          col("p1", "검색", (r) => <Num v={r.progress.searched} tone="text-warn" />, { align: "right", label: "검색 장수" }),
+          col("p2", "확인", (r) => <Num v={r.progress.confirmed} tone="text-brand" />, { align: "right", label: "확인 장수" }),
+          col("a1", "검색", (r) => searchBtn(r), { label: "검색 버튼" }),
+          col("a2", "확인", (r) => confirmBtn(r), { label: "확인 버튼" }),
+          col("a3", "검증", (r) => verifyBtn(r), { label: "검증 버튼" }),
         ]
-  const columns = showPlus ? [...baseColumns, stageCol] : baseColumns
+  const allColumns = showPlus ? [...baseColumns, stageCol] : baseColumns
+  // (r3) 열 고르기: 숨긴 열을 빼되 SCAS 순서는 그대로, 감정번호는 못 숨긴다
+  const LOCKED_COLUMN = "aprthngNo"
+  const columns = allColumns.filter((c) => c.key === LOCKED_COLUMN || !hiddenColumns.includes(c.key))
+  const pickerColumns = allColumns.map((c) => ({ key: c.key, label: c.label ?? c.key, locked: c.key === LOCKED_COLUMN }))
+  const handleColumnsChange = (keys: string[]) => {
+    const rest = hiddenColumns.filter((k) => !allColumns.some((c) => c.key === k))
+    onHiddenColumnsChange?.([...rest, ...allColumns.filter((c) => !keys.includes(c.key)).map((c) => c.key)])
+  }
+  const quickActive = quick !== undefined && (quick.query.trim() !== "" || quick.groups.some((g) => g.value.length > 0))
+  const quickEmpty = status === "ready" && quickActive && quick.resultCount === 0
 
   const showTotal = (status === "ready" || status === "empty") && total !== undefined
 
@@ -527,8 +552,56 @@ export function CaseListScreen({
           </div>
         ) : (
           <>
+            {quick || onPageSizeChange || onRowHeightChange || onHiddenColumnsChange ? (
+              <div className="grid gap-[8px] border-b border-solid border-line-2 px-[14px] py-[8px]">
+                {quick ? (
+                  <FilterBar
+                    query={quick.query}
+                    onQueryChange={quick.onQueryChange}
+                    filters={quick.groups}
+                    onFilterChange={quick.onGroupChange}
+                    onClear={quick.onClear}
+                    resultCount={quick.resultCount}
+                    total={quick.total}
+                    searchPlaceholder={quick.placeholder ?? "감정번호 · 문서번호 · 사건명"}
+                    partId="S01-quick"
+                  />
+                ) : null}
+                <div className="flex flex-wrap items-center gap-x-[14px] gap-y-[6px]">
+                  {onPageSizeChange ? (
+                    <ViewCountSwitch label="쪽당 행" options={[10, 20, 50]} value={pageSize} onChange={onPageSizeChange} />
+                  ) : null}
+                  {onRowHeightChange ? (
+                    <ViewCountSwitch
+                      label="행 높이"
+                      options={["보통", "촘촘"] as const}
+                      value={rowHeight}
+                      onChange={onRowHeightChange}
+                    />
+                  ) : null}
+                  {onHiddenColumnsChange ? (
+                    <ColumnPicker
+                      columns={pickerColumns}
+                      visible={columns.map((c) => c.key)}
+                      onChange={handleColumnsChange}
+                      className="ml-auto"
+                    />
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+            {quickEmpty ? (
+              <div role="status" className="grid justify-items-center gap-[8px] px-[14px] py-[24px] text-[12.5px] text-muted-foreground">
+                <span>조건에 맞는 항목 없음</span>
+                <Button size="sm" onClick={quick.onClear}>
+                  조건 지우기
+                </Button>
+              </div>
+            ) : null}
+            {quickEmpty ? null : (
             <div className="overflow-x-auto">
               <CaseTable
+                compact={rowHeight === "촘촘"}
                 columns={columns}
                 rows={status === "empty" ? [] : [...rows]}
                 rowKey={(r) => r.aprthngNo}
@@ -551,6 +624,7 @@ export function CaseListScreen({
                 emptyText="결과 없음"
               />
             </div>
+            )}
             <Pagination
               total={status === "empty" ? 0 : total}
               page={page}

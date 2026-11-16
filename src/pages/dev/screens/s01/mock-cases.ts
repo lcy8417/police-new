@@ -10,7 +10,7 @@ import { fakeSoleUrl } from "../mock-assets/FakeSole"
 
 // S01 가짜 데이터. 숫자 · 이름은 시안(s01-case-list.js) 예시값과 맞춘다(감정번호 00001-25-0646 등, 이름은 가림).
 export const S01_TOTAL = 116
-export const S01_PAGE_SIZE = 14
+export const S01_PAGE_SIZE = 20
 
 export const EMPTY_FILTERS: CaseListFilters = {
   aprthngNo: "",

@@ -7,6 +7,8 @@ import { cn } from "@/shared/lib/utils"
 
 export interface CaseTableColumn<Row> {
   key: string
+  /** (r3) 열 고르기 목록에 보일 이름 — 머리가 글자가 아니거나 같은 이름이 겹칠 때 */
+  label?: string
   header: React.ReactNode
   align?: "left" | "right"
   /** (+α) 열 · 칸 전체가 +α 면 `data-plus` 를 단다 */
@@ -30,6 +32,8 @@ interface CaseTableProps<Row> {
   expansion?: (row: Row) => React.ReactNode
   onRowClick?: (row: Row) => void
   emptyText: string
+  /** (r3) 촘촘한 행 높이 */
+  compact?: boolean
 }
 
 export function CaseTable<Row>({
@@ -41,6 +45,7 @@ export function CaseTable<Row>({
   expansion,
   onRowClick,
   emptyText,
+  compact = false,
 }: CaseTableProps<Row>) {
   return (
     <table className="w-full border-collapse text-[12px]">
@@ -50,6 +55,7 @@ export function CaseTable<Row>({
             <th
               key={c.key}
               scope="col"
+              data-col={c.key}
               {...(c.plus ? { "data-plus": "" } : {})}
               className={cn(
                 "whitespace-nowrap border-b border-solid border-border bg-strip px-[6px] py-[4px] text-[11.5px] font-semibold leading-[1.25] text-muted-foreground",
@@ -108,7 +114,8 @@ export function CaseTable<Row>({
                       key={c.key}
                       {...(c.plus ? { "data-plus": "" } : {})}
                       className={cn(
-                        "h-[44px] whitespace-nowrap border-b border-solid border-line-2 px-[6px] text-fg-2",
+                        "whitespace-nowrap border-b border-solid border-line-2 px-[6px] text-fg-2",
+                        compact ? "h-[30px] py-0" : "h-[44px]",
                         c.align === "right" && "text-right",
                         selected ? "bg-brand-bg" : "group-hover:bg-panel-2",
                         // 방금 들어온 행: 옅은 청록 바탕(끝 60% 에서 투명) + 첫 칸 왼쪽 청록 줄
