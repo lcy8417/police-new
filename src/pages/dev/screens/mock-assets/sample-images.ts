@@ -89,9 +89,11 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 
 /**
  * 둘레 평균과 차이가 큰 점만 먹색, 나머지는 흰색 — 밝은 먼지 족적 · 어두운 고무 무늬 둘 다 윤곽이 남는다.
- * 진열용 근사(실제 앱의 이진화는 백엔드가 한다).
+ * 진열용 근사(실제 앱의 이진화는 백엔드가 한다). 현장 사진은 바닥 결이 거칠어 더 크게 다를 때만 먹색(tune).
  */
-async function binarize(url: string): Promise<string> {
+const TUNE = { photo: { inner: 2, diff: 20 }, shoe: { inner: 1, diff: 16 } } as const
+
+async function binarize(url: string, tune: { inner: number; diff: number }): Promise<string> {
   const img = await loadImage(url)
   const w = img.naturalWidth
   const h = img.naturalHeight
@@ -125,8 +127,8 @@ async function binarize(url: string): Promise<string> {
   const r = Math.max(4, Math.round(Math.min(w, h) / 18))
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      // 잡음을 줄이려고 점 하나 대신 3×3 평균을 둘레 평균과 견준다
-      const ink = Math.abs(meanAt(x, y, 1) - meanAt(x, y, r)) > 16 ? 0 : 255
+      // 잡음을 줄이려고 점 하나 대신 작은 네모 평균을 둘레 평균과 견준다
+      const ink = Math.abs(meanAt(x, y, tune.inner) - meanAt(x, y, r)) > tune.diff ? 0 : 255
       const i = (y * w + x) * 4
       px[i] = ink
       px[i + 1] = ink
@@ -139,11 +141,14 @@ async function binarize(url: string): Promise<string> {
 }
 
 if (LIVE && typeof document !== "undefined") {
-  const urls = [...SAMPLE_PHOTOS.map((p) => p.url), ...SHOE_URL.values()]
+  const jobs = [
+    ...SAMPLE_PHOTOS.map((p) => ({ url: p.url, tune: TUNE.photo })),
+    ...[...SHOE_URL.values()].map((url) => ({ url, tune: TUNE.shoe })),
+  ]
   await Promise.all(
-    urls.map(async (url) => {
+    jobs.map(async ({ url, tune }) => {
       try {
-        BINARY.set(url, await binarize(url))
+        BINARY.set(url, await binarize(url, tune))
       } catch {
         // 못 만든 장은 원본 사진을 그대로 쓴다
       }
