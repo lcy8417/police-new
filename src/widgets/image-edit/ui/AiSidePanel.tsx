@@ -136,7 +136,10 @@ export function AiSideTabs({
               <span aria-hidden="true">↶</span>되돌리기
             </Button>
           ) : (
-            <LiveDot state="busy" label="누르면 반영" />
+            // 좁은 칸(1400 아래 248px)에서는 탭 이름과 겹쳐 잘리므로 숨긴다 — 제안 줄 단추가 같은 말을 한다
+            <span className="hidden min-[1400px]:inline-flex">
+              <LiveDot state="busy" label="누르면 반영" />
+            </span>
           )
         }
       />

@@ -62,10 +62,14 @@ export function ImageEditScreen(props: ImageEditScreenProps) {
         aria-busy={false}
         data-screen="S03"
         data-slot="image-edit-window"
-        className={cn("grid h-full min-h-0 min-w-0 gap-[14px] p-[12px]", side ? "grid-cols-[minmax(0,1fr)_300px]" : "grid-cols-1")}
+        className={cn("grid h-full min-h-0 min-w-0 p-[12px]", side ? "grid-cols-[minmax(0,1fr)_248px] min-[1400px]:grid-cols-[minmax(0,1fr)_300px]" : "grid-cols-1")}
       >
-        <CuttingWindow {...props} access={access} plus={showPlus} />
+        <div className={cn("flex min-h-0 min-w-0 flex-col", side && "pr-[14px]")}>
+          <CuttingWindow {...props} access={access} plus={showPlus} />
+        </div>
         {side ? (
+          // 오른쪽 보조 칸 — 흰 바탕 그대로, 왼쪽 가는 선으로 작업 칸과 나눈다(11/17 「좌 중앙 우 … 구분선」)
+          <div className="flex min-h-0 min-w-0 flex-col border-0 border-l border-solid border-border pl-[14px]">
           <AiSideTabs
             suggestions={props.aiSuggestions}
             onApplySuggestion={props.onApplyAiSuggestion}
@@ -76,6 +80,7 @@ export function ImageEditScreen(props: ImageEditScreenProps) {
             onUndo={props.onUndo}
             canEdit={access.canEdit}
           />
+          </div>
         ) : null}
       </section>
     )
