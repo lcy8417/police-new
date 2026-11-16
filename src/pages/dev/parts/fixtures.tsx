@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
+import { Check, Save, Search, X } from "lucide-react";
 
 import { AiTag } from "@/shared/ui/ai";
-import { Button, Chip, Field, StatePill } from "@/shared/ui/kit";
+import { Button, Chip, Field, StatePill, WorkbenchButton } from "@/shared/ui/kit";
 import {
   ButtonBar,
   CaseWindowFrame,
@@ -337,6 +338,20 @@ const BASE_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
       }
       partId="S01-64"
     />
+  ),
+  "S01-65": () => (
+    <span className="inline-flex items-center gap-[6px]">
+      <WorkbenchButton variant="ghost" icon={X}>
+        취소
+      </WorkbenchButton>
+      <WorkbenchButton icon={Check}>확인</WorkbenchButton>
+      <WorkbenchButton variant="primary" icon={Save} partId="S01-65">
+        저장
+      </WorkbenchButton>
+      <WorkbenchButton variant="ghost" size="sm" icon={Search} aria-pressed>
+        확대경
+      </WorkbenchButton>
+    </span>
   ),
 };
 

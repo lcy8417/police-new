@@ -4,7 +4,7 @@ import { Bandage, Check, Contrast, Crop, Eraser, Eye, RotateCw, Ruler, Save, Sca
 import type { ThresholdMode } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
 import { AiProgress, AiTag, ScanOverlay } from "@/shared/ui/ai"
-import { Button, Field, Segmented } from "@/shared/ui/kit"
+import { Button, Field, Segmented, WorkbenchButton } from "@/shared/ui/kit"
 import { PaneHead } from "@/shared/ui/panel"
 
 import type { ImageEditAccess } from "../model/access"
@@ -429,33 +429,23 @@ function ToolRail({ p }: { p: CuttingPaneProps }) {
 /** 작업판 위 · 아래 막대(한 단 밝은 판 + 가는 선) */
 const STAGE_BAR = "flex shrink-0 flex-wrap items-center gap-x-[10px] gap-y-[4px] bg-panel px-[12px] py-[6px]"
 
-/** 작업판 동작 단추(어두운 판 위) — 높이 28 · 모서리 8 · 아이콘 + 글자. ghost / soft / primary 셋 */
-const WB_BTN =
-  "inline-flex h-[28px] shrink-0 cursor-pointer items-center gap-[6px] rounded-[8px] border border-solid px-[11px] text-[12px] font-semibold transition-colors duration-150 motion-reduce:transition-none disabled:cursor-default disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-1 focus-visible:outline-brand"
-const WB_GHOST = "border-transparent bg-transparent text-muted-foreground hover:bg-panel-3 hover:text-foreground"
-const WB_SOFT = "border-line-3 bg-panel-3 text-foreground hover:border-brand-line"
-const WB_PRI = "border-brand-3 bg-brand-3 text-paper [box-shadow:0_2px_8px_var(--t-panel-drop)] hover:bg-brand-2"
-
 /**
  * SCAS 취소 · 확인 · 저장(11/17 사용자 「취소 확인 저장 이런 버튼이 너무 아카데믹함」) — 작업판 위 막대 오른쪽 끝에
- * 편집 도구식 단추로: 취소(글자) · 확인(자르기 · 회전 확정, 옅은 판) · 저장(채움). 이름은 SCAS 말 그대로.
+ * 편집 도구식 단추(kit WorkbenchButton)로: 취소(글자) · 확인(자르기 · 회전 확정, 옅은 판) · 저장(채움). 이름은 SCAS 말 그대로.
  */
 function WorkbenchActions({ p }: { p: CuttingPaneProps }) {
   return (
     <span role="group" aria-label="편집 마무리" className="ml-auto inline-flex items-center gap-[6px]">
-      <button type="button" onClick={p.onCancel} className={cn(WB_BTN, WB_GHOST)}>
-        <X aria-hidden="true" className="size-[14px]" strokeWidth={2} />
+      <WorkbenchButton variant="ghost" icon={X} onClick={p.onCancel}>
         취소
-      </button>
-      <button type="button" disabled={!p.access.canEdit} onClick={p.onConfirm} title="자르기 · 회전을 확정합니다" className={cn(WB_BTN, WB_SOFT)}>
-        <Check aria-hidden="true" className="size-[14px]" strokeWidth={2.2} />
+      </WorkbenchButton>
+      <WorkbenchButton variant="soft" icon={Check} disabled={!p.access.canEdit} onClick={p.onConfirm} title="자르기 · 회전을 확정합니다">
         확인
-      </button>
+      </WorkbenchButton>
       <span aria-hidden="true" className="mx-[2px] h-[18px] w-px bg-line-3" />
-      <button type="button" disabled={!p.access.canSave} onClick={p.onSave} className={cn(WB_BTN, WB_PRI)}>
-        <Save aria-hidden="true" className="size-[14px]" strokeWidth={2} />
+      <WorkbenchButton variant="primary" icon={Save} disabled={!p.access.canSave} onClick={p.onSave}>
         저장
-      </button>
+      </WorkbenchButton>
     </span>
   )
 }
@@ -484,14 +474,11 @@ function PreviewOverlay({ preview, canEdit, onClose, onRevert }: { preview: Cutt
         <span className="text-[11px] text-muted-foreground">지금 사진은 바뀌지 않습니다</span>
         <span className="ml-auto inline-flex gap-[6px]">
           {!preview.isNow && onRevert ? (
-            <button type="button" disabled={!canEdit} onClick={onRevert} className={cn(WB_BTN, WB_SOFT)}>
-              <Undo2 aria-hidden="true" className="size-[14px]" strokeWidth={1.9} />
+            <WorkbenchButton variant="soft" icon={Undo2} disabled={!canEdit} onClick={onRevert}>
               여기까지 되돌리기
-            </button>
+            </WorkbenchButton>
           ) : null}
-          <button type="button" onClick={onClose} aria-label="미리보기 닫기" className={cn(WB_BTN, WB_GHOST, "px-[8px]")}>
-            <X aria-hidden="true" className="size-[15px]" strokeWidth={2} />
-          </button>
+          <WorkbenchButton variant="ghost" icon={X} iconOnly onClick={onClose} aria-label="미리보기 닫기" />
         </span>
       </div>
       <div className="relative min-h-0 flex-1 overflow-hidden">

@@ -119,6 +119,8 @@ const BASE_PART_FIXTURES: PartFixture[] = [
   { id: "S01-63", part: "UnderlineTabs", variant: "window", parentWidth: 900, surface: "panel", noMockup: NO_MOCKUP_STAGE },
   // 11/17 창 안 칸 머리(파란 띠 소제목 대신 밑줄 탭 모양) — r3 시안에 짝이 없다. 진열만
   { id: "S01-64", part: "PaneHead", parentWidth: 420, surface: "panel", noMockup: "11/17 사용자 「저 소제목 디자인 바꿔」로 사건 창 안에서 새로 그린 칸 머리 — r3 시안에 짝이 없다(생김새는 UnderlineTabs window 와 같은 높이 · 밑선). 진열만 한다" },
+  // 11/17 작업판 단추(이미지 편집 탭 WB_* 를 kit 로 뽑음) — 시안에 짝이 없다. 어두운 작업판 위 모양이라 canvas 바탕에서 진열만
+  { id: "S01-65", part: "WorkbenchButton", parentWidth: 520, surface: "canvas", noMockup: "11/17 사용자 「취소 확인 저장 이런 버튼이 너무 아카데믹함」으로 사건 창 이미지 편집 탭 작업판에서 새로 그린 편집 도구식 단추 — r3 시안에 짝이 없다. 진열만 한다" },
 ];
 
 // 갈래별 진열 데이터를 이어 붙인다(잠금, Task 5).

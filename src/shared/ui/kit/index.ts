@@ -36,6 +36,13 @@ export { FilterBar, type FilterBarProps, type FilterGroup, type FilterOption } f
 export { ViewCountSwitch, type ViewCountSwitchProps } from './ViewCountSwitch'
 export { ColumnPicker, type ColumnPickerColumn, type ColumnPickerProps } from './ColumnPicker'
 export { DialogShell,type DialogShellProps, type DialogShellSize } from './DialogShell'
+// 11/17 작업판 단추(사건 창 이미지 편집 · 문양 코드 탭 — 편집 도구식 ghost · soft · primary)
+export {
+  WorkbenchButton,
+  type WorkbenchButtonProps,
+  type WorkbenchButtonSize,
+  type WorkbenchButtonVariant,
+} from './WorkbenchButton'
 // r4 목록 판(로망 이식) — 앱 틀 · 목록 생김새는 로망 정본, 색만 경찰 토큰
 export {
   BoardFrame,

@@ -57,6 +57,7 @@
 | ToggleGroup | kit | `src/shared/ui/toggle-group.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함(시안 `.seg`는 Segmented 후보가 맡음) | 구현됨 |
 | ToggleGroupItem | kit | `src/shared/ui/toggle-group.tsx` | — | 앱 기존 화면 | [재내보내기] shadcn 파일 그대로 — 시안 대조 안 함 | 구현됨 |
 | InlineError | kit | `src/shared/ui/kit/InlineError.tsx` | (S00 필드 아래 오류) | S00 | [새로] 회색 「확인 못 함 · 시:분 · 다시」 | 구현됨 |
+| WorkbenchButton | kit | `src/shared/ui/kit/WorkbenchButton.tsx` | (사건 창 이미지 편집 탭 `WB_BTN` · `WB_GHOST` · `WB_SOFT` · `WB_PRI` — 커밋 7aa75d2) | S01 사건 창 이미지 편집 · 문양 코드 탭 | [새로] 11/17 사용자 「취소 확인 저장 이런 버튼이 너무 아카데믹함」 → 편집 도구식 단추: `ghost`(글자만 · 흐림 → hover `bg-panel-3`) · `soft`(`bg-panel-3` + 1px `border-line-3` → hover `border-brand-line`) · `primary`(`bg-brand-3` 채움 · `text-paper` · 그림자 `--t-panel-drop` → hover `bg-brand-2`). 크기 `md` 높이 28 · 모서리 8 · 좌우 11 · 12 굵게(변형 이름 그대로) / `sm` 높이 24 · 모서리 7 · 좌우 8 · 11.5(변형 이름 끝 `-sm`). `icon`(lucide 14 · 13, 읽지 않음) · `iconOnly`(정사각) · `aria-pressed` 켜짐 = 옅은 `bg-brand-bg` + 1px `border-brand-line` + 아이콘 brand(상태 `on`). 어두운 작업판(`data-theme="dark"`) 안팎 모두 토큰만. 시안(r3)에 짝이 없어 진열만(`noMockup`) — 진열 S01-65 | 구현됨 |
 | Banner | kit | | (S11 화면 위 고정 배너) | S11 | [새로] 화면 위 고정 | 후보 |
 | LoadingImage | kit | `src/shared/ui/image-loading-overlay.tsx` | — | 앱 기존 화면 | [기존] 기존 부품 재내보내기 — 시안 대조 안 함. 표시용 — 래퍼를 만드므로 좌표 재는 캔버스류에 쓰지 말 것 | 구현됨 |
 | ImageLoadingOverlay | kit | `src/shared/ui/image-loading-overlay.tsx` | — | 앱 기존 화면 | [기존] 기존 부품 재내보내기 — 시안 대조 안 함. 기존 `relative` 상자 안에 형제로 얹는 겹 | 구현됨 |

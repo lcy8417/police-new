@@ -100,6 +100,8 @@
 | S01 사건 창 탭 이름 뒤 ✓ · 노란 수 · ! | TabMark | 새로 | 로망 `TabMark` 이식 — 진열 S01-63 안 |
 | S01 사건 창 탭 본문 칸 머리(사건 정보 · 이미지 편집 · 문양 코드 · 검색 결과 · 정밀 대조 — 파란 띠 소제목 대신) | PaneHead | 새로 | 밑줄 탭 모양 제목 + 오른쪽 끝 도구 자리 · 흐린 설명 · ⓘ 말풍선(kit Tooltip) — 진열 S01-64 |
 | S03–S06 창 모드 도구 · 단추 · 탭 · AI 제안 | Button | 그대로 | 창 안(`inWindow`)일 때 배치만 바꿈 — 단추 sm 통일, 주요 동작 하나만 pri |
+| S01 사건 창 이미지 편집 · 문양 코드 탭 작업판 단추(취소 · 확인 · 저장 · 검색 · 보기 도구 켜고 끄기) | WorkbenchButton | 새로 | 이미지 편집 탭 `WB_*` 단추를 kit 공용 부품으로 뽑음(ghost · soft · primary × md · sm, 아이콘, aria-pressed 켜짐) — 진열 S01-65 |
+| S01 사건 창 문양 코드 탭 4부위 · 문양 목록 · 검색 이력(창 모드 다시 짜기) | PatternIcon | 그대로 | 문양 그림은 viewer PatternIcon 그대로(sm · md) |
 
 ## 승인 (spec §8 「만들 부품」 표 = 사용자 승인)
 
@@ -167,3 +169,4 @@
 승인: 11/16 사용자 — UnderlineTabs
 승인: 11/16 사용자 — TabMark
 승인: 11/17 사용자 — PaneHead
+승인: 11/17 사용자 — WorkbenchButton
