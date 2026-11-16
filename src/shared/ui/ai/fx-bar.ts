@@ -1,6 +1,6 @@
 // 시안 `.fx-bar` · `.fx-bar > i` 의 공통 클래스(AiProgress · ConfidenceBar 가 함께 쓴다).
 // 움직임(fx-fill · fx-shimmer)은 `motion-safe:` 로만 건다 — 움직임 줄이기면 목표 폭 그라데이션이 최종 모양이다(motion.md).
-// 키프레임이 src/index.css 에 들어오기 전에는 `animate-fx-*` 가 만들어지지 않아 멈춘 모양으로 보인다.
+// 키프레임(fx-scan · fx-fill · fx-shimmer)과 `animate-fx-*` 는 src/index.css 에 있다.
 export const FX_BAR_TRACK = "relative h-[4px] overflow-hidden rounded-[3px] bg-border"
 
 export const FX_BAR_FILL = "absolute inset-y-0 left-0 rounded-[3px] bg-[linear-gradient(90deg,var(--t-brand-2),var(--t-ai))]"

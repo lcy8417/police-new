@@ -37,7 +37,7 @@ describe("ConfidenceBar", () => {
     expect(screen.getByRole("meter")).toHaveAttribute("aria-valuetext", "0.42 낮음")
     expect(container.querySelector("[data-part=ConfidenceBar]")).toHaveAttribute("title", "낮음")
     rerender(<ConfidenceBar value={0.9} scale="unit" threshold={0.5} />)
-    expect(screen.getByRole("meter")).not.toHaveAttribute("aria-valuetext")
+    expect(screen.getByRole("meter")).toHaveAttribute("aria-valuetext", "0.90")
     expect(container.querySelector("[data-part=ConfidenceBar]")).not.toHaveAttribute("title")
   })
 
@@ -55,7 +55,7 @@ describe("ConfidenceBar", () => {
     expect(screen.getByText("—")).toBeInTheDocument()
     expect(screen.getByRole("meter")).not.toHaveAttribute("aria-valuenow")
     expect(container.querySelector("[data-part=ConfidenceBar]")).not.toHaveAttribute("data-part-state")
-    expect(screen.getByRole("meter")).not.toHaveAttribute("aria-valuetext")
+    expect(screen.getByRole("meter")).toHaveAttribute("aria-valuetext", "—")
   })
 
   it("임계가 없으면 상태 표식 없음", () => {

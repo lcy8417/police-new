@@ -67,7 +67,7 @@
 |---|---|---|---|---|---|---|
 | EvidenceImage | viewer | `src/shared/ui/viewer/EvidenceImage.tsx` | `M.photo` · `.imgbox` | S01–S11 | [새로] 보기 방식 `raw` · `binary`(근사) · `invert` · `contrast` · 꼬리표 `tag` · cm 자 `ruler` · 캡션 · 2:3 틀(**캔버스 화면 제외** — `layout.md`) | 구현됨 |
 | SoleThumb | viewer | `src/shared/ui/viewer/SoleThumb.tsx` | `M.sole` | S00–S03 · S05–S11 | [새로] 크기 `sm`(26×38) · `md`(30×44) · `lg`(38×56) · 선택 테 `on`(aria-pressed) | 검증됨 |
-| PatternIcon | viewer | `src/shared/ui/viewer/PatternIcon.tsx` | `M.picon` · `.picon` | S00 · S04 · S06 · S10 · S11 · S15 | [새로] 크기 `sm` 28 · `md` 36 · `lg` 48 · 필수 표시 · 개수 · 고름 `sel` · AI `ai`(색 테 + sr-only 글자) | 검증됨 |
+| PatternIcon | viewer | `src/shared/ui/viewer/PatternIcon.tsx` | `M.picon` · `.picon` | S00 · S04 · S06 · S10 · S11 · S15 | [새로] 크기 `sm` 28 · `md` 36 · `lg` 48 · 필수 표시 · 개수 · 고름 `sel` · AI `ai`(색 테 + 그림 대체글 「이름 선택됨」 · 「이름 AI 제안」) | 검증됨 |
 | ZoneBands | viewer | `src/shared/ui/viewer/ZoneBands.tsx` | (S04 상 · 중 · 하 띠) | S04 · S05 · S06 | [새로] 띠 `top` · `mid` · `bottom`(pointer-events-none) | 구현됨 |
 | CompareView | viewer | `src/shared/ui/viewer/CompareView.tsx` | (S03 뷰어 B · S06 · S08 나란히 보기) | S03 · S06 · S07 · S08 | [새로] `side` · `overlay` · `slide` | 구현됨 |
 | PointPairs | viewer | `src/shared/ui/viewer/PointPairs.tsx` | (대응점 표시 그림) | S00 · S06 · S08 | [새로] `crime` · `shoe`, 활성 박스 `data-active`. `boxes: PointPairBox[]`(MatchBox와 구조 호환, entities 의존 없음) | 구현됨 |
@@ -83,7 +83,7 @@
 | AiProgress | ai | `src/shared/ui/ai/AiProgress.tsx` | `.fx-bar` | S01 · S02 · S04–S12 | [새로] `running`(반짝임) · `done` · `failed`(「실패」 글자) | 검증됨 |
 | ScanOverlay | ai | `src/shared/ui/ai/ScanOverlay.tsx` | `.fx-scan` | S01–S07 · S10 · S11 | [새로] 사진 위 훑기(`active`일 때만 렌더, 부모 `relative`) | 구현됨 |
 | LiveDot | ai | `src/shared/ui/ai/LiveDot.tsx` | `.fx-live` | S01–S06 · S08 · S10 · S11 · S14 · S15 | [새로] `busy`(맥박) · `idle`(빈 고리). 점 옆 글자가 기본으로 보임(`hideLabel`로 숨김) | 구현됨 |
-| ConfidenceBar | ai | `src/shared/ui/ai/ConfidenceBar.tsx` | (확신도 · 유사도 막대) | S04 · S05 · S06 · S15 | [새로] 척도 `unit`(0~1) · `percent` · 상태 `low`(임계 미만, sr-only 「낮음」) · `ok` | 검증됨 |
+| ConfidenceBar | ai | `src/shared/ui/ai/ConfidenceBar.tsx` | (확신도 · 유사도 막대) | S04 · S05 · S06 · S15 | [새로] 척도 `unit`(0~1) · `percent` · 상태 `low`(임계 미만, `aria-valuetext` 「낮음」) · `ok`(`aria-valuetext`는 숫자만) | 검증됨 |
 | StatTile | ai | | `.stat` | S01 · S09 · S11–S14 | [새로] 숫자 · 단위 · 빛 | 후보 |
 | CheckList | ai | | `.check` | S02 · S07 · S08 · S11 · S14 · S15 | [새로] ok · warn · bad · 줄 버튼 | 후보 |
 | AiSuggestion | ai | | (S02 채취 방법 제안 · S03 AI 제안) | S02 · S03 · S04 · S09 | [새로] 제안 + 근거 + 「적용」 | 후보 |
@@ -136,13 +136,12 @@
 
 ### 잠금 때 대조한 것 · 못 한 것 (Task 5, 부품 19개)
 
-대조 통과(짝 번호 → 변형, 시안 표식은 `docs/mockups/scas-redesign/screens/*.js` · `assets/core.js`): S01-71 Segmented(기본) · S01-73 Avatar · S01-22 AiProgress `running` · S01-23 AiProgress `done` · S04-31 PatternIcon(기본 `md`) · S04-34 ConfidenceBar `unit` `low` — 계산값 + 스크린샷 0픽셀. S01-31 SoleThumb `md`는 루트 계산값만(`compare: "shell"`, 안쪽 그림이 시안은 SVG라 `noShot`). 태그만 통일(`ignoreTags`)한 짝: Segmented(span → div) · AiProgress · ConfidenceBar · SoleThumb(span → button) — 접근성 때문에 일부러 다른 요소를 쓴다.
+대조 통과(PatternIcon은 S04-31 기본 + S04-32 고름 둘 다, 짝 번호 → 변형, 시안 표식은 `docs/mockups/scas-redesign/screens/*.js` · `assets/core.js`): S01-71 Segmented(기본) · S01-73 Avatar · S01-22 AiProgress `running` · S01-23 AiProgress `done` · S04-31 · S04-32 PatternIcon(기본 · 고름) · S04-34 ConfidenceBar `unit` `low` — 계산값 + 스크린샷 0픽셀. S01-31 SoleThumb `md`는 루트 계산값만(`compare: "shell"`, 안쪽 그림이 시안은 SVG라 `noShot`). 태그만 통일(`ignoreTags`)한 짝: Segmented(span → div) · AiProgress · ConfidenceBar · SoleThumb(span → button) — 접근성 때문에 일부러 다른 요소를 쓴다.
 
 대조해 실패 · 구현됨으로 남은 것(한 번 고쳐 보았고 구조 차이라 남김):
 - **RadioRow**(S01-76): 칸이 button이고 ◉○는 aria-hidden 글자 span인데 시안은 span의 `::before`. 자식 수 · 가상요소 구조가 다름(접근성 의도).
 - **LiveDot**(S01-21): 부품은 점 + 보이는 글자를 감싼 래퍼, 시안은 점 하나(`hideLabel`로 글자만 숨겨도 래퍼는 남음).
-- **PatternIcon 고름 · AI**(S04-32): 색 테 말고 sr-only 글자(「선택됨」 · 「AI 제안」) 자식이 하나 더 있음. 시안에는 색 테뿐(요구된 의도 — 시안에 보이는 표식이 생기면 다시 대조).
-- 이 셋은 진열 화면(`/dev/parts`)에는 나오고 대조(`parts-compare`)에서만 빠졌다(`noMockup` + 이유가 `fixtures-*-meta.ts`에 있음).
+- 이 둘은 진열 화면(`/dev/parts`)에는 나오고 대조(`parts-compare`)에서만 빠졌다(`noMockup` + 이유가 `fixtures-*-meta.ts`에 있음).
 
 시안에 짝이 없어 대조하지 못한 것(`noMockup`): Segmented `scas`(시안에 쓰는 자리 없음) · Combobox(시안에 열린 모양 없음) · StatusDot(시안 `.dot`은 칩 안 점) · DataGrid · Pagination(시안 S01은 「페이지 1 / 9」 입력형) · InlineError(시안에 없음, 그려야 함) · DialogShell(화면 덮개라 진열 상자에 못 넣음 — 대조 생략) · EvidenceImage · CompareView(시안은 SVG 그림, 앱은 가짜 그림) · ZoneBands · PointPairs · ScanOverlay(멈춘 모양이 안 보이는 선). 값은 시안 CSS에서 옮겼고 단위 테스트가 모양 규칙을 지킨다.
 
@@ -150,7 +149,7 @@
 
 - **LiveDot**: 점 옆 글자가 기본으로 보인다(`hideLabel`로만 숨김). 시안은 점만.
 - **ConfidenceBar `low`**: 보이는 표식 없이 `aria-valuetext`의 「낮음」과 툴팁(`title`)만. 시안에 낮음 표식이 없고 색(주황)뿐.
-- **PatternIcon 고름 · AI**: 색 테 + sr-only 글자만. 시안에 보이는 표식 없음.
+- **PatternIcon 고름 · AI**: 색 테 + 그림 대체글(`alt`)만. 시안에 보이는 표식 없음.
 - **Combobox**: 칸을 떠나면 확정 안 한 입력은 버린다.
 - **RadioRow**: `name`을 묶음의 접근성 이름(`aria-label`)으로 쓴다.
 - **DataGrid 호버** `#0e1726` → panel-2, **DialogShell** 머리 그라데이션 → 단색 · 그림자 .7 → .35, **Segmented `scas`** 눌림 → `bg-fg`/`text-panel`, **EvidenceImage `binary`** 는 CSS 필터 근사, **가짜 그림 색**은 가장 가까운 토큰.
@@ -166,6 +165,7 @@
 | S01-15 | Panel `tc` | 안쪽 표(14행 · 그림)를 재현하지 않음 |
 | S01-16 | ButtonBar `panel-head` | 안쪽 라디오 · 분할 조각을 재현하지 않음 |
 | S02-23 | ButtonBar `modal-head` | 시안 바탕이 모달 머리 전체의 가로 그라데이션 |
+| S01-31 | SoleThumb `md` | 안쪽 그림이 시안은 SVG, 앱은 가짜 그림(루트 계산값은 대조함) |
 | S01-17 · S01-18 | AiTag `progress` · `done` | 표 칸 밖으로 튀어나온 표식이라 모서리 뒤 그림 · 다음 행 덮임이 비침 |
 
 ### 모든 부품 공통 — 배치 속성은 대조하지 않음
@@ -177,7 +177,10 @@
 
 - Field 9개 전부 `compare: "control"` — 시안은 `<span>`에 글자를 직접 쓰고 부품은 `<input>`이라, 루트 태그만 같게 보고 앱 쪽 `<input>` · 돋보기 `<svg>`를 빼고 나머지(캐럿 · 칩 · 가상요소)를 비교.
 - Panel S01-15는 `shell-head`(루트 + 머리 + 머리 첫 자식 제목만, 안쪽 제외, 높이 제외), ButtonBar S01-16 · S02-23은 `shell`(루트 + 가상요소만, S01-16은 폭 · 높이 제외).
-- AiTag S01-17 · S01-18은 `ignorePlacement` — 루트의 `position` · `top` · `right` · `bottom` · `left`만 제외(시안 인라인 절대 위치 = 화면 배치).
+- AiTag S01-17 · S01-18은 `ignorePlacement` — 루트의 `position` · `top` · `right` · `bottom` · `left`만 제외(시안 인라인 절대 위치 = 화면 배치). 이 둘이 `ignorePlacement`를 쓰는 전부다.
+- `ignoreTags`(태그 이름만 통일, 계산값 · 자식 수는 그대로): S01-71 Segmented(span → div) · S01-22 · S01-23 AiProgress(span → div) · S04-34 ConfidenceBar(span → div) · S01-31 SoleThumb(span → button, `shell`과 함께).
+- S01-31 SoleThumb는 `compare: "shell"`(루트 + 가상요소만) + `noShot`(안쪽 그림이 시안 SVG ↔ 가짜 그림).
+- **도구 전체 규칙**: 계산값 읽기(`readStyle`)는 두께 0인 테두리의 종류(solid · none)를 `none`으로 통일한다 — 앱 기본값(solid, 0)과 시안(none)은 그려지지 않아 같은 모양이다. 모든 짝에 적용.
 
 ### 아직 시안에 없는 상태(쓰기 전에 시안에 먼저 그림)
 

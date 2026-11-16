@@ -5,7 +5,7 @@ import { partAttrs } from "../part-attrs"
 import { FX_BAR_FILL, FX_BAR_FILL_MOTION, FX_BAR_RUN, FX_BAR_TRACK, clampRatio } from "./fx-bar"
 
 // 시안 `.fx-bar` 의 부품판. 상태 이름이 곧 변형 이름이다.
-// - running: 진행 중. 반짝임(`.run`)은 `motion-safe:animate-fx-shimmer` — 움직임 줄이기면 그라데이션 막대 그대로
+// - running: 진행 중. 반짝임(`.run`)은 `motion-safe:animate-fx-run`(채움 + 반짝임 동시) — 움직임 줄이기면 그라데이션 막대 그대로
 // - done: 끝(value 없으면 100%)
 // - failed: 실패. 막대는 위험색, 막대 옆에 글자 「실패」(색만으로 구분 금지)
 export type AiProgressState = "running" | "done" | "failed"

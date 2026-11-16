@@ -3,8 +3,8 @@
 **결론: 아래 값은 r3 시안을 브라우저로 띄워 읽은 계산값(computed style)이다. 구현된 부품은 표에 짝 번호가 있는 변형에 대해 계산값 대조(+ 예외로 빼지 않은 짝은 스크린샷 대조)를 통과했다. 부품을 고칠 때 이 표와 다르게 만들지 않는다. 표에 없는 상태(틀림 · 초점 · 저장 중 · 저장 실패)는 시안에 먼저 그린다.**
 
 대조의 한계(자세한 이유는 `components.md` 「픽셀 대조를 뺀 자리」 · 「대조 방식이 기본과 다른 짝」 · 「픽스처가 없어 대조하지 못한 것」):
-- **스크린샷을 뺀 짝 9개**(`noShot`): S01-19 · S02-15(Field), S02-17 · S02-18 · S01-15(Panel), S01-16 · S02-23(ButtonBar), S01-17 · S01-18(AiTag). **1픽셀 허용** 1개: S02-20(Field).
-- **대조 범위를 줄인 짝**: Field 9개 전부 `compare: "control"`, Panel S01-15 `shell-head`(+ 높이 제외), ButtonBar S01-16 · S02-23 `shell`(S01-16은 폭 · 높이 제외), AiTag S01-17 · S01-18 위치 제외(`ignorePlacement`).
+- **스크린샷을 뺀 짝 10개**(`noShot`): S01-19 · S02-15(Field), S02-17 · S02-18 · S01-15(Panel), S01-16 · S02-23(ButtonBar), S01-17 · S01-18(AiTag), S01-31(SoleThumb). **1픽셀 허용** 1개: S02-20(Field).
+- **대조 범위를 줄인 짝**: Field 9개 전부 `compare: "control"`, Panel S01-15 `shell-head`(+ 높이 제외), ButtonBar S01-16 · S02-23 `shell`(S01-16은 폭 · 높이 제외), AiTag S01-17 · S01-18 위치 제외(`ignorePlacement` — 이 둘이 전부), SoleThumb S01-31 `shell` + `noShot`. **태그만 통일(`ignoreTags`)**: S01-71 · S01-22 · S01-23 · S04-34 · S01-31(접근성 때문에 span 대신 div · button). 도구 전체: 두께 0 테두리의 종류는 `none`으로 통일.
 - **배치 속성은 어느 부품도 대조하지 않는다.** 계산값 대조가 읽는 속성(`tests/ui/style-read.ts` `STYLE_PROPS`)은 색 · 테두리 · 모서리 · 글꼴 · 안쪽 여백 · 폭 · 높이 · 그림자 · 불투명도 · 간격(`gap`) · `content` · `filter` · `position`과 위 · 오른쪽 · 아래 · 왼쪽 위치뿐이고, `display` · `align-items` · `justify-content` · `margin` · `flex`(늘고 줄기)는 없다. 그래서 아래 표의 배치 값(예: ButtonBar 「`display: flex` · 세로 가운데 · 왼쪽 바깥 `auto`(오른쪽 붙임)」, Field `mono-sm-flex`의 `flex: 1`)은 **시안에서 읽어 옮긴 값이고 대조로 확인되지 않았다.** 특히 **ButtonBar의 오른쪽 붙임 · 세로 가운데는 미검증**이다(이 클래스를 지워도 지금 대조는 통과한다). 배치를 정규화해 비교하는 도구는 다음 계획(판정 R34).
 - **대조하지 못한 변형 · 상태**(`components.md` 「픽스처가 없어 대조하지 못한 것」과 같은 목록): Button `md` · `ai` · `danger` · `ghost` · `locked`(진짜 잠김) · `role-lock`의 잠긴 모양 · `sm-indigo-row`, Chip `on` · `h22` · `ref` · `ref-voice`, Field `readonly` · `invalid`, Panel 머리 라벨(`label`) · `default` 대표 S01-14, AiTag `.ai-mark`. 이 값들은 시안 CSS에서 옮겼거나(아래 표 밑 문단) 아직 모양이 없다. 마우스 올림 · 누름 · 키보드 초점 상태도 대조하지 않는다.
 - 예외를 새로 쓰려면 측정한 이유를 픽스처 주석과 `components.md`에 적어야 한다(`SKILL.md` 작업 순서 6).
@@ -94,7 +94,7 @@
 
 ## 부품 잠금(Task 5)에서 더한 부품 19개 (시안 CSS에서 읽은 값 · 대조 결과는 components.md)
 
-**결론: 아래는 시안 `mockup.css` · 화면 코드에서 읽은 값이다. 짝 번호가 있는 7개(Segmented · Avatar · SoleThumb · AiProgress · PatternIcon · ConfidenceBar)는 위 표들처럼 계산값(+ 가능한 짝은 스크린샷) 대조를 통과했고, 나머지는 값만 옮겼다(대조 없음 — `components.md`의 「잠금 때 대조하지 못한 것」).**
+**결론: 아래는 시안 `mockup.css` · 화면 코드에서 읽은 값이다. 짝 번호가 있는 6개(Segmented · Avatar · SoleThumb · AiProgress · PatternIcon · ConfidenceBar)는 위 표들처럼 계산값(+ 가능한 짝은 스크린샷) 대조를 통과했고, 나머지는 값만 옮겼다(대조 없음 — `components.md`의 「잠금 때 대조하지 못한 것」).**
 
 | 부품 | 값 |
 |---|---|
@@ -107,7 +107,7 @@
 | InlineError · Pagination | 12px mute, 시각 mono, 「다시」 brand · 쪽수 줄 `padding:10px 14px; 12px mute`, 숫자 mono |
 | EvidenceImage(`.imgbox`) | 모서리 10 · 테두리 1 line · 바탕 canvas · 캡션 왼쪽 8 · 아래 6, mono 600 10.5 fg-2. 2:3 틀. `binary`는 CSS 필터 근사 |
 | SoleThumb | `sm` 26×38 · `md` 30×44 · `lg` 38×56, 모서리 5, 테두리 1 line. 눌림 outline 2 brand offset 1 |
-| PatternIcon(`.picon`) | 36(`sm` 28 · `lg` 48) · 모서리 6 · 테두리 1 line-3 · 바탕 `--t-picon-bg #f3f5f8`. 고름 outline 2 brand offset 1, AI outline 2 ai offset 1. 배지(필수 · 개수)가 없을 때만 `overflow-hidden`(시안과 같음) |
+| PatternIcon(`.picon`) | 36(`sm` 28 · `lg` 48) · 모서리 6 · 테두리 1 line-3 · 바탕 `--t-picon-bg #f3f5f8`. 고름 outline 2 brand offset 1, AI outline 2 ai offset 1. 배지(필수 · 개수)가 없으면 static + `overflow-hidden`(시안과 같음), 있으면 `relative`(배지 기준) · 자르지 않음 |
 | ZoneBands · CompareView · PointPairs | 시안에 직접 대응 요소가 없는 새 모양(값은 코드 + `viewer.md`) |
 | AiProgress(`.fx-bar`) | 높이 4 · 모서리 3 · 바탕 line · 채움 `linear-gradient(90deg, brand-2, ai)`. `running`은 `brand-2, ai 40%, ai-shine 50%, ai 60%, brand-2` · `background-size 200% 100%` + `animate-fx-run`. `failed`는 채움 danger + 글자 「실패」(시안에 없음) |
 | ConfidenceBar | flex · 간격 4 · 막대 높이 3 · 숫자 mono 9.5px(줄 높이는 부모에서 상속) · 평소 mute / 임계 미만 warn 채움 + 숫자 |

@@ -10,8 +10,8 @@ export const VIEWER_FIXTURES: PartFixture[] = [
   // 시안 S01 신발 칸의 작은 그림(30×44). 안쪽 그림이 다르므로 루트(+가상요소)만 계산값 대조, 픽셀은 뺀다.
   { id: "S01-31", part: "SoleThumb", variant: "md", parentWidth: 200, surface: "panel", compare: "shell", ignoreTags: true, boxClass: "text-[12px] leading-[normal] text-fg-2", noShot: FAKE_ART },
   // 시안 S04 문양 목록(내부선)의 첫 아이콘 · 고른 아이콘
-  { id: "S04-31", part: "PatternIcon", variant: "md", parentWidth: 400, surface: "panel", ignorePlacement: true /* 루트 position relative 는 필수 · 개수 배지의 기준 — 배치 */ },
-  { id: "S04-32", part: "PatternIcon", variant: "md", state: "sel", parentWidth: 400, surface: "panel", noMockup: "대조 실패(남은 차이): 고름 글자 「선택됨」 sr-only 자식이 하나 더 있음(색 테만으로 구분하지 않으려는 의도) + 루트 position relative(필수 · 개수 배지의 기준)" },
+  { id: "S04-31", part: "PatternIcon", variant: "md", parentWidth: 400, surface: "panel" },
+  { id: "S04-32", part: "PatternIcon", variant: "md", state: "sel", parentWidth: 400, surface: "panel" },
   { id: "S04-33", part: "ZoneBands", parentWidth: 200, surface: "panel", boxClass: "relative h-[300px]", noMockup: "시안 띠는 사진 위 인라인 그림 — 따로 짝 표식 자리가 없음" },
   { id: "S06-31", part: "CompareView", variant: "side", parentWidth: 420, surface: "panel", noMockup: FAKE_ART },
   { id: "S06-32", part: "CompareView", variant: "slide", parentWidth: 420, surface: "panel", noMockup: FAKE_ART },

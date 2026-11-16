@@ -49,7 +49,7 @@ export function ConfidenceBar({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={valid ? Math.round(ratio * 100) : undefined}
-        aria-valuetext={low ? `${text} 낮음` : undefined}
+        aria-valuetext={low ? `${text} 낮음` : text}
         className={cn(FX_BAR_TRACK, "h-[3px] flex-1")}
       >
         <i
