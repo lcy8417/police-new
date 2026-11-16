@@ -23,17 +23,19 @@ describe("신발 DB 패널(S10Content inPanel)", () => {
     expect(screen.getByRole("button", { name: "303351 열기" })).toBeInTheDocument()
   })
 
-  it("카드를 누르면 편집 판(문양정보)이 열리고, 문양 목록에서 누르면 고른 부위에 넣고 다시 누르면 뺀다", () => {
+  it("카드를 누르면 편집 판이 한 화면(기본정보 · 4부위 · 문양 목록 — 탭 없음)으로 열리고, 목록에서 누르면 고른 부위에 넣고 다시 누르면 뺀다", () => {
     renderPanel()
     fireEvent.click(screen.getByRole("button", { name: "303351 열기" }))
-    expect(screen.getByRole("tab", { name: "문양정보", selected: true })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole("button", { name: "중 부위 고르기" }))
-    const grid = screen.getByRole("group", { name: "문양 격자" })
-    const first = within(grid).getAllByRole("button")[0]
-    const name = first.getAttribute("aria-label")!.replace(/ 넣기$/, "")
+    expect(screen.queryByRole("tab", { name: "문양정보" })).toBeNull()
+    expect(screen.getByRole("region", { name: "기본정보" })).toBeInTheDocument()
+    const board = screen.getByRole("group", { name: "부위별 문양" })
+    fireEvent.click(within(board).getByRole("button", { name: /^중 부위/ }))
+    const lib = screen.getByRole("region", { name: "문양 목록" })
+    const first = within(lib).getAllByRole("button", { name: /^중에 .+ 넣기$/ })[0]
+    const name = first.getAttribute("aria-label")!.replace(/^중에 /, "").replace(/ 넣기$/, "")
     fireEvent.click(first)
-    expect(screen.getByRole("button", { name: `중 ${name} 빼기` })).toBeInTheDocument()
-    fireEvent.click(within(grid).getByRole("button", { name: `${name} 빼기` }))
-    expect(screen.queryByRole("button", { name: `중 ${name} 빼기` })).toBeNull()
+    expect(within(board).getByRole("button", { name: `빼기 · 중 ${name}` })).toBeInTheDocument()
+    fireEvent.click(within(lib).getByRole("button", { name: `중에서 ${name} 빼기` }))
+    expect(within(board).queryByRole("button", { name: `빼기 · 중 ${name}` })).toBeNull()
   })
 })
