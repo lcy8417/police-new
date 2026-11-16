@@ -1,6 +1,7 @@
 import * as React from "react"
 
 import type { Shoe } from "@/entities/shoe"
+import { shouldHandleShortcut } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
 import { FEATURES } from "@/entities/session"
 import {
@@ -58,8 +59,6 @@ const CARD_SIZE_STYLE: Record<ShoeCardSize, { grid: string; image: string }> = {
   크게: { grid: "grid-cols-[repeat(6,minmax(0,1fr))]", image: "h-[150px]" },
 }
 const LOCKED_COLUMN = "ftwrId"
-const TEXT_TARGET =
-  "textarea, select, [contenteditable='true'], input:not([type='checkbox']):not([type='radio']):not([type='button']):not([type='submit'])"
 
 const hasPattern = (s: Shoe) => s.top.length + s.mid.length + s.bottom.length + s.outline.length > 0
 
@@ -79,17 +78,16 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
     onOpenRef.current = onOpenShoe
   })
 
-  // (r3) 자동 모드 키: Space 재생/일시정지 · ← → 한 칸 · Enter 강조된 카드 열기. 글자 칸 · 버튼 위에서는 건드리지 않는다.
+  // (r3) 자동 모드 키: Space 재생/일시정지 · ← → 한 칸 · Enter 강조된 카드 열기.
+  // 공용 검사(shouldHandleShortcut — S05 · S06 과 같은 규칙): 글자 입력 중 · 보조키(Alt+← = 뒤로) · 이미 처리된 키는 듣지 않고,
+  // 버튼 · 체크박스 · 칩 위 Space · Enter 는 그 컨트롤 몫(초점이 「재생」 버튼이면 그 버튼이 눌려 재생/일시정지가 된다).
   React.useEffect(() => {
     if (!autoOn) return
     const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null
-      // 글자 입력칸 · 선택 상자에서는 건드리지 않는다(버튼에 초점이 있어도 Space · ← → 는 동작)
-      if (target?.closest?.(TEXT_TARGET)) return
+      if (!shouldHandleShortcut(e)) return
       const a = autoRef.current
       if (!a) return
       if (e.key === " ") {
-        // 초점이 버튼이면 브라우저가 Space 로 그 버튼도 누르므로(이중 전환) 기본 동작을 막는다
         e.preventDefault()
         a.onPlayPause()
       } else if (e.key === "ArrowRight") {
@@ -99,22 +97,12 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
         e.preventDefault()
         a.onStep(-1)
       } else if (e.key === "Enter" && a.highlightId) {
-        // 버튼 · 링크에 초점이 있으면 Enter 는 그 컨트롤의 몫(강조 카드를 따로 열지 않는다)
-        if (target?.closest?.("button, a")) return
         e.preventDefault()
         onOpenRef.current(a.highlightId)
       }
     }
-    // 버튼은 Space 를 뗄 때 눌림으로 처리되는 브라우저가 있어 keyup 기본 동작도 막는다
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.key === " " && !(e.target as HTMLElement | null)?.closest?.(TEXT_TARGET)) e.preventDefault()
-    }
     window.addEventListener("keydown", onKey)
-    window.addEventListener("keyup", onKeyUp)
-    return () => {
-      window.removeEventListener("keydown", onKey)
-      window.removeEventListener("keyup", onKeyUp)
-    }
+    return () => window.removeEventListener("keydown", onKey)
   }, [autoOn])
 
   // 강조된 카드가 보이게 스크롤(jsdom 에는 scrollIntoView 가 없다)
@@ -134,7 +122,7 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
   const canAiReview = isAdmin || features.includes(FEATURES.SHOE_COLLECT_REVIEW)
   // 「AI 추천」 칸은 눌림만 화면에 둔다(거르기 자체는 준비 중 알림)
   const [aiRecommend, setAiRecommend] = React.useState("all")
-  const plan = (what: string) => () => onPlusAction(what)
+  const plan = (what: string) => () => onPlusAction?.(what)
   const set = (patch: Partial<ShoeDbFilters>) => onFiltersChange({ ...filters, ...patch })
   const text = (key: keyof ShoeDbFilters, label: string) => (
     <Field aria-label={label} value={(filters[key] as string | null) ?? ""} onChange={(e) => set({ [key]: e.target.value })} />
@@ -177,7 +165,7 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
                   value={aiRecommend}
                   onValueChange={(v) => {
                     setAiRecommend(v)
-                    onPlusAction("AI 추천 거르기")
+                    onPlusAction?.("AI 추천 거르기")
                   }}
                 />
               </span>

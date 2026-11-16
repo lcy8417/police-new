@@ -171,6 +171,65 @@ describe("useAutoPlay", () => {
     expect(result.current.index).toBe(1)
   })
 
+  it("goTo 는 정한 칸으로 바로 옮기고 onStep 을 한 번만 부른다", () => {
+    const { result, onStep } = setup({ count: 10 })
+    act(() => result.current.goTo(7))
+    expect(result.current.index).toBe(7)
+    expect(onStep).toHaveBeenCalledTimes(1)
+    expect(onStep).toHaveBeenCalledWith(7)
+    // 같은 칸이면 부르지 않는다 · 범위 밖은 끝으로 맞춘다
+    act(() => result.current.goTo(7))
+    expect(onStep).toHaveBeenCalledTimes(1)
+    act(() => result.current.goTo(99))
+    expect(result.current.index).toBe(9)
+    act(() => result.current.goTo(-3))
+    expect(result.current.index).toBe(0)
+    act(() => result.current.goTo(Number.NaN))
+    expect(result.current.index).toBe(0)
+    expect(onStep).toHaveBeenCalledTimes(3)
+  })
+
+  it("goTo 는 주기를 처음부터 다시 센다(같은 칸이어도)", () => {
+    const { result } = setup({ count: 10 })
+    act(() => void vi.advanceTimersByTime(700))
+    act(() => result.current.goTo(4))
+    expect(result.current.remainingMs).toBe(1000)
+    act(() => void vi.advanceTimersByTime(999))
+    expect(result.current.index).toBe(4)
+    act(() => void vi.advanceTimersByTime(1))
+    expect(result.current.index).toBe(5)
+    act(() => void vi.advanceTimersByTime(600))
+    act(() => result.current.goTo(5))
+    act(() => void vi.advanceTimersByTime(999))
+    expect(result.current.index).toBe(5)
+    act(() => void vi.advanceTimersByTime(1))
+    expect(result.current.index).toBe(6)
+  })
+
+  it("goTo 는 일시정지를 지킨다 — 칸만 옮기고, 다시 재생하면 그 칸에서 한 주기 뒤에 넘어간다", () => {
+    const { result } = setup({ count: 5 })
+    act(() => result.current.pause())
+    act(() => result.current.goTo(4))
+    expect(result.current.index).toBe(4)
+    expect(result.current.playing).toBe(false)
+    expect(vi.getTimerCount()).toBe(0)
+    // 멈춘 채 마지막 칸으로 옮긴 뒤 재생해도 처음으로 되돌아가지 않는다
+    act(() => result.current.play())
+    expect(result.current.index).toBe(4)
+    expect(result.current.remainingMs).toBe(1000)
+    act(() => void vi.advanceTimersByTime(1000))
+    expect(result.current.index).toBe(4)
+    expect(result.current.playing).toBe(false)
+  })
+
+  it("goTo 는 수동 모드(꺼짐)에서도 칸을 옮긴다", () => {
+    const { result, onStep } = setup({ count: 5, enabled: false })
+    act(() => result.current.goTo(2))
+    expect(result.current.index).toBe(2)
+    expect(onStep).toHaveBeenCalledWith(2)
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
   it("멈춘 동안 주기를 줄이면 남은 시간도 새 주기까지로 줄어든다", () => {
     const { result, rerender } = setup({ intervalMs: 3000 })
     act(() => void vi.advanceTimersByTime(300))

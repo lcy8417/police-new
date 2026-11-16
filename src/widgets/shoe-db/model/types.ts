@@ -151,7 +151,7 @@ export interface ShoeDbScreenProps {
   /** 신규 · 파일럿 요소 보이기(기본 true). 끄면 지금 기능만 남는다 */
   showPlus?: boolean
   /** 동작 없는 시안 버튼을 눌렀을 때(진열 페이지가 「시안 — 기능 준비 중」을 알린다) */
-  onPlusAction: (action: string) => void
+  onPlusAction?: (action: string) => void
   /** 신규: 분업 단계 줄 + 미승인 막대 */
   stageSummary?: ShoeStageSummary
   /** 신규: 신발별 카드 표시(키 = 화류번호) */

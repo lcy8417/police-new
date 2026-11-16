@@ -22,7 +22,7 @@ interface ShoeInfoDialogProps {
   /** 인공지능문양관리 — 문양 수집 검수 권한(SHOE_COLLECT_REVIEW) */
   canAiReview: boolean
   showPlus: boolean
-  onPlusAction: (action: string) => void
+  onPlusAction?: (action: string) => void
   detail?: ShoeAiDetail
   workStatus?: ShoeWorkStatus
   onFormChange: (form: Shoe) => void
@@ -109,7 +109,7 @@ export function ShoeInfoDialog({
   const isNew = mode === "new"
   const idInvalid = saveError != null
   const plus = showPlus && detail != null
-  const plan = (what: string) => () => onPlusAction(what)
+  const plan = (what: string) => () => onPlusAction?.(what)
   const conf: Partial<Record<ZoneKey, number>> = detail ? { top: detail.conf.top, mid: detail.conf.mid, bottom: detail.conf.bottom } : {}
   const desc = SHOE_PATTERN_DESC[picked]
 

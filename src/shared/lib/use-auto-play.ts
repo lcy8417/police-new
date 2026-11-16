@@ -25,6 +25,11 @@ export interface UseAutoPlayResult {
   pause: () => void
   next: () => void
   prev: () => void
+  /**
+   * 정한 칸으로 바로 옮긴다(0 ~ count-1 로 맞춤). 칸이 바뀌면 onStep 을 한 번 부르고, 같은 칸이면 부르지 않는다.
+   * 어느 쪽이든 주기는 처음부터 다시 센다(next · prev 와 같음). 일시정지 중이면 멈춘 채로 칸만 옮긴다.
+   */
+  goTo: (index: number) => void
   /** 지금 칸이 넘어가기까지 남은 시간(ms) */
   remainingMs: number
 }
@@ -61,7 +66,7 @@ export function useAutoPlay({ count, intervalMs, enabled, onStep, loop = false }
     loopRef.current = loop
   })
 
-  const goTo = useCallback((to: number) => {
+  const moveTo = useCallback((to: number) => {
     indexRef.current = to
     setRawIndex(to)
     onStepRef.current?.(to)
@@ -69,8 +74,8 @@ export function useAutoPlay({ count, intervalMs, enabled, onStep, loop = false }
 
   // count 가 줄어 index 가 넘치면 저장값도 맞추고 onStep 을 한 번 부른다
   useEffect(() => {
-    if (rawIndex > last) goTo(last)
-  }, [rawIndex, last, goTo])
+    if (rawIndex > last) moveTo(last)
+  }, [rawIndex, last, moveTo])
 
   useEffect(() => {
     if (!enabled || paused) return
@@ -88,9 +93,9 @@ export function useAutoPlay({ count, intervalMs, enabled, onStep, loop = false }
       const cur = indexRef.current
       const lastNow = lastRef.current
       if (cur < lastNow) {
-        goTo(cur + 1)
+        moveTo(cur + 1)
       } else if (loopRef.current && lastNow > 0) {
-        goTo(0)
+        moveTo(0)
       } else {
         setRemaining(0)
         setPaused(true)
@@ -105,13 +110,16 @@ export function useAutoPlay({ count, intervalMs, enabled, onStep, loop = false }
     // 시작(주기 변경 · 재개) 때 남은 시간 표시를 맞춘다
     setRemaining(first)
     return () => clearInterval(id)
-  }, [enabled, paused, intervalMs, goTo])
+  }, [enabled, paused, intervalMs, moveTo])
 
+  // 손으로 칸을 옮긴 뒤 주기를 처음부터. 재생 중이면 기한만 새로, 멈춘(일시정지 · 수동) 상태면 「한 주기 남음」으로 둔다 —
+  // 그래야 멈춘 채 마지막 칸으로 옮긴 뒤 play() 가 「끝까지 가서 멈춘 것」으로 읽어 처음 칸으로 되돌리지 않는다.
+  const running = enabled && !paused
   const restart = useCallback(() => {
-    resumeRef.current = null
+    resumeRef.current = running ? null : intervalMs
     deadlineRef.current = Date.now() + intervalMs
     setRemaining(intervalMs)
-  }, [intervalMs])
+  }, [intervalMs, running])
 
   const pause = useCallback(() => {
     if (!enabled || paused) return
@@ -122,23 +130,33 @@ export function useAutoPlay({ count, intervalMs, enabled, onStep, loop = false }
   const play = useCallback(() => {
     if (!enabled) return
     // 마지막에서 멈춘 뒤(남은 시간 없음) 다시 누르면 처음부터
-    if (indexRef.current >= last && last > 0 && resumeRef.current === null) goTo(0)
+    if (indexRef.current >= last && last > 0 && resumeRef.current === null) moveTo(0)
     setPaused(false)
-  }, [enabled, last, goTo])
+  }, [enabled, last, moveTo])
 
   const next = useCallback(() => {
     const cur = indexRef.current
     const to = cur < last ? cur + 1 : loop && last > 0 ? 0 : cur
-    if (to !== cur) goTo(to)
+    if (to !== cur) moveTo(to)
     restart()
-  }, [last, loop, goTo, restart])
+  }, [last, loop, moveTo, restart])
 
   const prev = useCallback(() => {
     const cur = indexRef.current
     const to = cur > 0 ? cur - 1 : loop && last > 0 ? last : cur
-    if (to !== cur) goTo(to)
+    if (to !== cur) moveTo(to)
     restart()
-  }, [last, loop, goTo, restart])
+  }, [last, loop, moveTo, restart])
 
-  return { index, playing, play, pause, next, prev, remainingMs: enabled ? remaining : intervalMs }
+  const goTo = useCallback(
+    (target: number) => {
+      if (!Number.isFinite(target)) return
+      const to = Math.min(Math.max(0, Math.trunc(target)), last)
+      if (to !== indexRef.current) moveTo(to)
+      restart()
+    },
+    [last, moveTo, restart],
+  )
+
+  return { index, playing, play, pause, next, prev, goTo, remainingMs: enabled ? remaining : intervalMs }
 }

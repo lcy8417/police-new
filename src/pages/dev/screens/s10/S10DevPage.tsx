@@ -135,20 +135,15 @@ function S10Body({ caseName }: { caseName: S10Case }) {
   });
   const hoverPaused = React.useRef(false);
 
-  // 강조 위치를 target 번째 카드로 옮긴다(훅에 위치 지정이 없어 한 칸씩 — 각 걸음이 쪽도 맞춘다)
-  const jumpTo = (target: number) => {
-    for (let i = player.index; i > target; i--) player.prev();
-    for (let i = player.index; i < target; i++) player.next();
-  };
-  // 조건을 바꾸면 쪽 · 강조 위치 모두 처음으로
+  // 조건을 바꾸면 쪽 · 강조 위치 모두 처음으로(goTo = 바로 옮기기 + 주기 다시)
   const afterFilterChange = () => {
     setPage(1);
-    jumpTo(0);
+    player.goTo(0);
   };
   // 자동 모드에서 쪽을 직접 넘기면 그 쪽 첫 카드부터 이어 간다
   const handlePageChange = (next: number) => {
     setPage(next);
-    if (autoMode === "auto") jumpTo((next - 1) * S10_PAGE_SIZE);
+    if (autoMode === "auto") player.goTo((next - 1) * S10_PAGE_SIZE);
   };
 
   const groups: FilterGroup[] = showPlus

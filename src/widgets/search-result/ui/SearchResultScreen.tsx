@@ -1,5 +1,6 @@
 import * as React from "react"
 
+import { shouldHandleShortcut, useAutoPlay } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
 import { AiProgress } from "@/shared/ui/ai"
 import {
@@ -27,7 +28,6 @@ import type {
   SearchTarget,
   ThumbSize,
 } from "../model/types"
-import { useStepClock, type StepDir } from "../model/use-step-clock"
 import { AiTopRail } from "./AiTopRail"
 import { LeftPlus } from "./LeftPlus"
 import { AI_MARK, CHIP_TEAL } from "./plus-style"
@@ -75,15 +75,12 @@ const NOT_READY = "준비 중"
 const DEFAULT_INTERVAL_MS = 2000
 const FULLSCREEN_UNAVAILABLE = "이 브라우저에서는 전체 화면을 쓸 수 없습니다 — 브라우저의 전체 화면(F11)을 써 주세요"
 
-/** 단축키를 듣지 않을 자리(글자 입력 중) */
-function isTyping(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement && target.closest("input, textarea, select, [contenteditable='true']") !== null
-}
+// 자동 넘김 시계: 공용 useAutoPlay 를 「주기마다 앞으로 한 걸음」 시계로만 쓴다. 초점(rank)은 화면이 제어형으로 들고
+// 쪽을 넘나들므로 시계의 칸 번호는 쓰지 않는다. 칸 수를 아주 크게 + 돌아가기라 시계는 끝나지 않는다 —
+// 「마지막에서 멈춤」은 advance 가 판단해 재생을 끈다. 손 걸음(← →)은 advance 를 바로 부르고 goTo(지금 칸)으로 주기만 다시 센다.
+const CLOCK_COUNT = 1_000_000
 
-/** Space · Enter 가 이미 제 일을 하는 자리(버튼 · 링크 — 눌림과 겹치지 않게) */
-function isControl(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement && target.closest("button, a, [role='button']") !== null
-}
+type StepDir = 1 | -1
 
 export function SearchResultScreen({
   status,
@@ -216,7 +213,30 @@ export function SearchResultScreen({
     }
   }
 
-  const clock = useStepClock({ auto, playing, hold, intervalMs, onStep: advance })
+  // 시계 칸 번호(onStep 이 곧바로 알려 준다 — 렌더를 기다리지 않아 손 걸음이 늦은 값으로 되감지 않는다)
+  const clockAtRef = React.useRef(0)
+  const clock = useAutoPlay({
+    count: CLOCK_COUNT,
+    loop: true,
+    intervalMs,
+    enabled: auto,
+    onStep: (i) => {
+      clockAtRef.current = i
+      advance(1)
+    },
+  })
+  const { play: clockPlay, pause: clockPause, goTo: clockGoTo } = clock
+  const wantPlay = auto && playing && !hold
+  React.useEffect(() => {
+    if (wantPlay) clockPlay()
+    else clockPause()
+  }, [wantPlay, clockPlay, clockPause])
+  /** 손으로 한 걸음(← → · 이전/다음). 자동 모드면 주기도 처음부터 다시 센다(같은 칸 goTo = 주기만 다시) */
+  const step = (dir: StepDir) => {
+    advance(dir)
+    clockGoTo(clockAtRef.current)
+  }
+  const remainingRatio = auto && intervalMs > 0 ? clock.remainingMs / intervalMs : 0
 
   // 쪽을 넘긴 뒤(자동 · ← →) 그 쪽의 첫 · 끝 카드로 초점(걸러져 보이는 카드가 없으면 다음 걸음에 또 넘긴다)
   React.useEffect(() => {
@@ -260,12 +280,13 @@ export function SearchResultScreen({
     el.requestFullscreen().catch(() => onNotice?.(FULLSCREEN_UNAVAILABLE))
   }
 
-  // ── 단축키(← → Space Enter S PgDn PgUp ? Esc) — 글자 입력 중에는 듣지 않는다 ──
+  // ── 단축키(← → Space Enter S PgDn PgUp ? Esc) — 공용 검사(shouldHandleShortcut): 글자 입력 중 · 보조키 ·
+  // 이미 처리된 키는 듣지 않고, 버튼 · 체크박스 위 Space · Enter 와 라디오 · 탭 위 화살표는 그 컨트롤 몫 ──
   const focusedRow = focusOnPage ? visible.find((v) => v.rank === focus) : undefined
   const keyRef = React.useRef<(e: KeyboardEvent) => void>(() => undefined)
   React.useEffect(() => {
     keyRef.current = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || isTyping(e.target)) return
+      if (!shouldHandleShortcut(e)) return
       if (e.key === "?") {
         e.preventDefault()
         setHelpOpen((v) => !v)
@@ -279,11 +300,11 @@ export function SearchResultScreen({
       switch (e.key) {
         case "ArrowRight":
           e.preventDefault()
-          clock.step(1)
+          step(1)
           return
         case "ArrowLeft":
           e.preventDefault()
-          clock.step(-1)
+          step(-1)
           return
         case "PageDown":
           if (hasNext) {
@@ -301,12 +322,12 @@ export function SearchResultScreen({
           }
           return
         case " ":
-          if (isControl(e.target) || autoMode !== "auto") return
+          if (autoMode !== "auto") return
           e.preventDefault()
           onPlayingChange?.(!playing)
           return
         case "Enter":
-          if (isControl(e.target) || !focusedRow) return
+          if (!focusedRow) return
           e.preventDefault()
           onOpenResult(focusedRow.item, focusedRow.rank)
           return
@@ -586,7 +607,7 @@ export function SearchResultScreen({
               playing={playing}
               onPlayPause={() => onPlayingChange?.(!playing)}
               position={{ index: position, total: totalCount }}
-              remainingRatio={clock.remainingRatio}
+              remainingRatio={remainingRatio}
             />
           ) : null}
           <span className="ml-auto inline-flex flex-wrap items-center gap-[8px]">

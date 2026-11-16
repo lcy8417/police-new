@@ -384,22 +384,61 @@ describe("S10 r3 — 빠른 찾기 · 카드 크기 · 열 · 자동 넘기기",
     expect(screen.queryByRole("dialog")).toBeNull()
   })
 
-  it("초점이 「자동」 버튼에 있어도 ← → Space 가 동작하고 Space 로 그 버튼이 다시 눌리지 않는다", () => {
+  it("초점이 「자동」 버튼에 있어도 ← → 는 동작하고, Space 는 그 버튼 몫이라 화면이 가로채지 않는다(S05 · S06 과 같은 규칙)", () => {
     vi.useFakeTimers()
     renderAt("case=ready&as=admin")
     const autoBtn = screen.getByRole("button", { name: "자동" })
     fireEvent.click(autoBtn)
     autoBtn.focus()
-    const fire = (k: string, type: "keyDown" | "keyUp" = "keyDown") => fireEvent[type](autoBtn, { key: k })
-    fire("ArrowRight")
+    fireEvent.keyDown(autoBtn, { key: "ArrowRight" })
     expect(current()).toBe("303352")
-    fire("ArrowLeft")
+    fireEvent.keyDown(autoBtn, { key: "ArrowLeft" })
     expect(current()).toBe("00758")
-    fire(" ")
-    expect(screen.getByRole("button", { name: "재생" })).toBeInTheDocument()
+    // Space: 기본 동작(버튼 눌림)을 막지 않고 재생 상태도 바꾸지 않는다
+    expect(fireEvent.keyDown(autoBtn, { key: " " })).toBe(true)
+    expect(screen.getByRole("button", { name: "일시정지" })).toBeInTheDocument()
     expect(autoBtn).toHaveAttribute("aria-pressed", "true")
-    expect(fireEvent.keyDown(autoBtn, { key: " " })).toBe(false)
-    expect(fireEvent.keyUp(autoBtn, { key: " " })).toBe(false)
+  })
+
+  it("초점이 「일시정지/재생」 버튼이면 Space 는 그 버튼이 눌려(브라우저 기본 동작) 재생/일시정지가 한 번만 바뀐다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    const pauseBtn = screen.getByRole("button", { name: "일시정지" })
+    pauseBtn.focus()
+    // 화면은 Space 를 가로채지 않는다 → 브라우저가 버튼을 누른다(jsdom 은 눌림을 흉내 내지 않으므로 click 으로 대신)
+    expect(fireEvent.keyDown(pauseBtn, { key: " " })).toBe(true)
+    expect(screen.getByRole("button", { name: "일시정지" })).toBeInTheDocument()
+    fireEvent.click(pauseBtn)
+    expect(screen.getByRole("button", { name: "재생" })).toBeInTheDocument()
+    tick(5000)
+    expect(current()).toBe("00758")
+    fireEvent.click(screen.getByRole("button", { name: "재생" }))
+    tick(2000)
+    expect(current()).toBe("303352")
+  })
+
+  it("보조키(Alt+← = 뒤로 · Ctrl · Meta)와 이미 처리된 키는 가로채지 않는다", () => {
+    vi.useFakeTimers()
+    renderAt("case=ready&as=admin")
+    press("자동")
+    tick(2000)
+    expect(current()).toBe("303352")
+    expect(fireEvent.keyDown(document.body, { key: "ArrowLeft", altKey: true })).toBe(true)
+    fireEvent.keyDown(document.body, { key: "ArrowRight", ctrlKey: true })
+    fireEvent.keyDown(document.body, { key: "ArrowRight", metaKey: true })
+    fireEvent.keyDown(document.body, { key: " ", altKey: true })
+    expect(current()).toBe("303352")
+    expect(screen.getByRole("button", { name: "일시정지" })).toBeInTheDocument()
+    // 앞선 듣개가 이미 처리(preventDefault)한 키
+    const stop = (e: Event) => e.preventDefault()
+    document.body.addEventListener("keydown", stop)
+    try {
+      fireEvent.keyDown(document.body, { key: "ArrowRight" })
+      expect(current()).toBe("303352")
+    } finally {
+      document.body.removeEventListener("keydown", stop)
+    }
   })
 
   it("초점이 「재생/일시정지」 버튼에 있을 때도 ← → 가 동작한다", () => {

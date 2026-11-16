@@ -1,6 +1,7 @@
 import * as React from "react"
 
 import type { FeatureCode } from "@/entities/session"
+import { shouldHandleShortcut, useAutoPlay } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
 import { AiTag, ConfidenceBar } from "@/shared/ui/ai"
 import { AutoPlayControl, Button, Chip, DialogShell, InlineError, Segmented, ViewCountSwitch } from "@/shared/ui/kit"
@@ -9,7 +10,6 @@ import { PatternIcon } from "@/shared/ui/viewer"
 
 import { viewerRoles } from "../model/roles"
 import type { CompareCount, MatchCompareScreenProps, ZonePatterns } from "../model/types"
-import { useStepClock, type StepDir } from "../model/use-step-clock"
 import { MultiStage } from "./MultiStage"
 import { PairStage } from "./PairStage"
 import { PrecisionPanel } from "./PrecisionPanel"
@@ -24,6 +24,13 @@ import { PrecisionPanel } from "./PrecisionPanel"
 // 후보 넘기기(이전 · 다음 · ← → · 수동/자동 — 마지막 후보에서 멈춤, 비교 그림 위 마우스 = 잠시 멈춤). 값은 제어형.
 
 type Look = "rgb" | "sketch"
+
+// 후보 자동 넘김 시계: 공용 useAutoPlay 를 「주기마다 앞으로 한 걸음」 시계로만 쓴다. 지금 후보는 주소(?ftwr)에서 오므로
+// 화면이 제어형으로 들고, 시계의 칸 번호는 쓰지 않는다. 칸 수를 아주 크게 + 돌아가기라 시계는 끝나지 않는다 —
+// 「마지막 후보에서 멈춤」은 advance 가 판단해 재생을 끈다. 손 걸음은 advance 를 바로 부르고 goTo(지금 칸)으로 주기만 다시 센다.
+const CLOCK_COUNT = 1_000_000
+
+type StepDir = 1 | -1
 
 const LOOK_ITEMS = [
   { value: "rgb", label: "RGB" },
@@ -217,19 +224,41 @@ export function MatchCompareScreen({
     // 마지막 후보: 자동 넘김은 멈춘다
     if (dir === 1 && auto && playing) onPlayingChange?.(false)
   }
-  const clock = useStepClock({ auto, playing, hold, intervalMs, onStep: advance })
+  // 시계 칸 번호(onStep 이 곧바로 알려 준다 — 렌더를 기다리지 않아 손 걸음이 늦은 값으로 되감지 않는다)
+  const clockAtRef = React.useRef(0)
+  const clock = useAutoPlay({
+    count: CLOCK_COUNT,
+    loop: true,
+    intervalMs,
+    enabled: auto,
+    onStep: (i) => {
+      clockAtRef.current = i
+      advance(1)
+    },
+  })
+  const { play: clockPlay, pause: clockPause, goTo: clockGoTo } = clock
+  const wantPlay = auto && playing && !hold
+  React.useEffect(() => {
+    if (wantPlay) clockPlay()
+    else clockPause()
+  }, [wantPlay, clockPlay, clockPause])
+  /** 손으로 한 걸음(← → · 이전/다음). 자동 모드면 주기도 처음부터 다시 센다(같은 칸 goTo = 주기만 다시) */
+  const step = (dir: StepDir) => {
+    advance(dir)
+    clockGoTo(clockAtRef.current)
+  }
+  const remainingRatio = auto && intervalMs > 0 ? clock.remainingMs / intervalMs : 0
 
-  // ← → 후보 · Space 재생/일시정지 — 글자 입력 중 · 정렬 설정 창이 열렸을 때는 듣지 않는다
+  // ← → 후보 · Space 재생/일시정지 — 정렬 설정 창이 열렸을 때는 듣지 않는다. 글자 입력 중 · 보조키 · 이미 처리된 키,
+  // 버튼 위 Space 와 라디오 · 탭 위 화살표는 공용 검사(shouldHandleShortcut)가 거른다
   const keyRef = React.useRef<(e: KeyboardEvent) => void>(() => undefined)
   React.useEffect(() => {
     keyRef.current = (e: KeyboardEvent) => {
-      if (!canStep || alignOpen || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return
-      const el = e.target instanceof HTMLElement ? e.target : null
-      if (el?.closest("input, textarea, select, [contenteditable='true']")) return
+      if (!canStep || alignOpen || !shouldHandleShortcut(e)) return
       if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
         e.preventDefault()
-        clock.step(e.key === "ArrowRight" ? 1 : -1)
-      } else if (e.key === " " && autoMode === "auto" && !el?.closest("button, a, [role='button']")) {
+        step(e.key === "ArrowRight" ? 1 : -1)
+      } else if (e.key === " " && autoMode === "auto") {
         e.preventDefault()
         onPlayingChange?.(!playing)
       }
@@ -248,10 +277,10 @@ export function MatchCompareScreen({
       {/* 이전 · 다음: r3 후보 목록이 있으면 앞 · 뒤 후보로(없으면 SCAS 자리만 지키고 비활성). 그룹등록 · 프린트는 지금 앱에 없는 동작 */}
       {canStep ? (
         <>
-          <Button size="sm" disabled={currentIndex <= 0} onClick={() => clock.step(-1)}>
+          <Button size="sm" disabled={currentIndex <= 0} onClick={() => step(-1)}>
             이전
           </Button>
-          <Button size="sm" disabled={currentIndex >= candidates.length - 1} onClick={() => clock.step(1)}>
+          <Button size="sm" disabled={currentIndex >= candidates.length - 1} onClick={() => step(1)}>
             다음
           </Button>
         </>
@@ -541,7 +570,7 @@ export function MatchCompareScreen({
                         playing={playing}
                         onPlayPause={() => onPlayingChange?.(!playing)}
                         position={{ index: Math.max(0, currentIndex), total: candidates.length }}
-                        remainingRatio={clock.remainingRatio}
+                        remainingRatio={remainingRatio}
                       />
                       <span className="text-[11px] text-dim">← → 후보 · Space 재생/일시정지</span>
                     </span>
