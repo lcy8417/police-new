@@ -182,6 +182,12 @@ export interface PatternCodeScreenProps {
 
   /** 이 이미지의 검색 이력 */
   history: readonly SearchHistoryRow[]
+  /** r3: 검색 이력 검색어(제어형 — 없으면 검색 칸을 그리지 않는다). 신규(+α) 아님 */
+  historyQuery?: string
+  onHistoryQueryChange?: (query: string) => void
+  /** r3: 검색 이력 표에 보일 열 key(제어형, 없으면 전부) */
+  historyColumns?: string[]
+  onHistoryColumnsChange?: (keys: string[]) => void
   /** 고른 이력 줄(시안 첫 줄 강조) */
   selectedSearchNo?: number
   /** 이력 한 줄 열기 */

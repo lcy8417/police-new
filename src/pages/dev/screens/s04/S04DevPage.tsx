@@ -5,6 +5,7 @@ import { insertPatternPath, type PatternZone } from "@/entities/pattern"
 import { ZoneBands, type ZoneBand } from "@/shared/ui/viewer"
 import {
   BoundaryLines,
+  HISTORY_COLUMNS,
   PatternCodeScreen,
   patternName,
   PriceTagBox,
@@ -113,6 +114,8 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
   const go = useDevNavigate()
   const [meta, setMeta] = React.useState<PatternMetaMap>(mock.meta)
   const [imageStatuses, setImageStatuses] = React.useState<Record<string, ImageCodingStatus>>(S04_IMAGE_STATUSES)
+  const [historyQuery, setHistoryQuery] = React.useState("")
+  const [historyColumns, setHistoryColumns] = React.useState<string[]>(HISTORY_COLUMNS.map((c) => c.key))
   const [soleText, setSoleText] = React.useState("")
   const [searchMethod, setSearchMethod] = React.useState<SearchMethod>("image")
   const [selectedSearchNo, setSelectedSearchNo] = React.useState<number | undefined>(mock.history[0]?.searchNo)
@@ -226,6 +229,10 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
       palette={palette}
       codeNote={noteCode ? { code: noteCode, text: S04_CODE_NOTES[noteCode] ?? DEFAULT_CODE_NOTE } : null}
       history={mock.history}
+      historyQuery={historyQuery}
+      onHistoryQueryChange={setHistoryQuery}
+      historyColumns={historyColumns}
+      onHistoryColumnsChange={setHistoryColumns}
       selectedSearchNo={selectedSearchNo}
       onOpenHistory={(no) => {
         setSelectedSearchNo(no)

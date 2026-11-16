@@ -448,4 +448,35 @@ describe("S04DevPage — 시안 r2 신규 기능 · 연출", () => {
       ).toEqual([])
     }
   })
+
+  describe("r3 검색 이력 검색 · 열 고르기", () => {
+    const region = () => screen.getByRole("region", { name: "검색이력" })
+
+    it("검색으로 걸러지고 0건이면 「조건에 맞는 항목 없음」+「조건 지우기」, ?plus=0 에서도 보인다", () => {
+      renderAt("/dev/s04?case=ready&plus=0")
+      fireEvent.change(within(region()).getByLabelText("검색어"), { target: { value: "현장문양" } })
+      expect(within(region()).getByText("572420")).toBeInTheDocument()
+      expect(within(region()).queryByText("572433")).toBeNull()
+      fireEvent.change(within(region()).getByLabelText("검색어"), { target: { value: "없는것" } })
+      expect(within(region()).getByText("조건에 맞는 항목 없음")).toBeInTheDocument()
+      expect(within(region()).queryByText("결과 없음")).toBeNull()
+      fireEvent.click(within(region()).getAllByRole("button", { name: "조건 지우기" }).at(-1)!)
+      expect(within(region()).getByText("572433")).toBeInTheDocument()
+    })
+
+    it("열 선택: 검색번호는 고정, 끄면 열이 빠지고 순서는 그대로", () => {
+      renderAt("/dev/s04?case=ready")
+      fireEvent.click(within(region()).getByRole("button", { name: /열 선택/ }))
+      expect(within(region()).getByRole("checkbox", { name: /검색번호/ })).toBeDisabled()
+      fireEvent.click(within(region()).getByRole("checkbox", { name: /^순위/ }))
+      expect(within(region()).getAllByRole("columnheader").map((h) => h.textContent)).toEqual([
+        "검색번호",
+        "결과건수",
+        "검색방법",
+        "검색결과",
+        "검색일",
+        "매칭된 신발 정보",
+      ])
+    })
+  })
 })

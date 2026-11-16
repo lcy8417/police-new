@@ -1,9 +1,10 @@
 import * as React from "react"
 
 import { AiProgress, ScanOverlay } from "@/shared/ui/ai"
-import { Button, Chip, DataGrid, Field, InlineError, Segmented, type DataGridColumn } from "@/shared/ui/kit"
+import { Button, Chip, ColumnPicker, DataGrid, Field, FilterBar, InlineError, Segmented, type DataGridColumn } from "@/shared/ui/kit"
 import { ButtonBar, Panel } from "@/shared/ui/panel"
 
+import { filterHistory, HISTORY_COLUMNS } from "../model/history-view"
 import { patternCodeAccess } from "../model/access"
 import { IMAGE_STATUS_LABEL, patternName, ZONE_ROWS } from "../model/constants"
 import type {
@@ -103,6 +104,8 @@ function ResearchLine({ state, essentialCount }: { state: ResearchState; essenti
 export function PatternCodeScreen(props: PatternCodeScreenProps) {
   const { status, errorAt, onRetry, isAdmin, features, aprthngNo, zones, selectedZone, showPlus = true, patternMeta } = props
   const plus = showPlus
+  const historyQuery = props.historyQuery ?? ""
+  const shownHistory = filterHistory(props.history, historyQuery)
   const { canEdit, showVerifierChip, showInvestigatorChip } = patternCodeAccess(isAdmin, features, showPlus)
   const inserted = React.useMemo(
     () => new Set(zones[selectedZone].map(([path]) => patternName(path))),
@@ -343,17 +346,51 @@ export function PatternCodeScreen(props: PatternCodeScreenProps) {
           ) : null}
           {plus && props.funnel ? <SearchFunnel steps={props.funnel.steps} note={props.funnel.note} /> : null}
           <section aria-label="검색이력" className="flex flex-col gap-[6px]">
-            <Band title="검색이력" />
+            <Band title="검색이력">
+              {props.onHistoryColumnsChange ? (
+                <ColumnPicker
+                  columns={HISTORY_COLUMNS}
+                  visible={props.historyColumns ?? HISTORY_COLUMNS.map((c) => c.key)}
+                  onChange={props.onHistoryColumnsChange}
+                />
+              ) : null}
+            </Band>
+            {props.onHistoryQueryChange ? (
+              <FilterBar
+                query={historyQuery}
+                onQueryChange={props.onHistoryQueryChange}
+                filters={[]}
+                onFilterChange={() => undefined}
+                onClear={() => props.onHistoryQueryChange?.("")}
+                resultCount={shownHistory.length}
+                total={props.history.length}
+                searchPlaceholder="검색번호 · 방법 · 신발"
+                partId="s04-history-search"
+              />
+            ) : null}
+            {historyQuery.trim() !== "" && shownHistory.length === 0 ? (
+              <div className="px-[10px] py-[16px] text-center">
+                <p role="status" className="m-0 mb-[8px] text-[12px] text-dim">
+                  조건에 맞는 항목 없음
+                </p>
+                <Button size="sm" onClick={() => props.onHistoryQueryChange?.("")}>
+                  조건 지우기
+                </Button>
+              </div>
+            ) : (
             <div className="min-w-0 overflow-x-auto">
               <DataGrid
-                columns={historyColumns(props.onOpenHistory)}
-                rows={[...props.history]}
+                columns={historyColumns(props.onOpenHistory).filter(
+                  (c) => c.key === "searchNo" || !props.historyColumns || props.historyColumns.includes(c.key),
+                )}
+                rows={shownHistory}
                 rowKey={(r) => String(r.searchNo)}
                 selectedKey={props.selectedSearchNo == null ? undefined : String(props.selectedSearchNo)}
                 onRowClick={(r) => props.onOpenHistory(r.searchNo)}
                 className="text-[11px] [&_td]:h-[30px] [&_td]:px-[4px] [&_th]:h-[26px] [&_th]:px-[4px] [&_th]:text-[10.5px]"
               />
             </div>
+            )}
           </section>
         </div>
       </div>
