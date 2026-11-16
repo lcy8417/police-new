@@ -23,7 +23,7 @@
 | Chip | kit | `src/shared/ui/kit/Chip.tsx` | `.chip` · `.chip-ref` | S00–S15 | [새로] `blue` · `violet-h20` · `green-h18` · `h18` · `amber` · `amber-h18` · `amber-h19` · `h19` · `blue-h20` · `h20-warn` · `blue-mono-h20` · `h22` · 상태 `on` | 검증됨 |
 | Field | kit | `src/shared/ui/kit/Field.tsx` | `.inp` | S00–S15 | [새로] `text` · `mono` · `mono-sm` · `mono-sm-flex` · `select` · `pick` · `select-mono` · `select-warn` · `search-shell` · 상태 `readonly` · `invalid`(모양 미정) | 검증됨 |
 | Segmented | kit | `src/shared/ui/kit/Segmented.tsx` | `.seg` | S01–S06 · S08–S10 · S13 · S14 | [새로] 기본 · `scas`(밝은 눌림). 눌린 칸 `aria-pressed`. toggle-group은 감싸지 않음(radio 역할이라 시안 선택자 `aria-pressed`와 다름) | 검증됨 |
-| RadioRow | kit | `src/shared/ui/kit/RadioRow.tsx` | `.radio` | S01 · S02 · S04 · S07 · S08 · S10 | [새로] ◉○ 한 줄 · 상태 `disabled` · 방향키 이동 · 선택 칸만 Tab(`name`은 묶음 접근성 이름 `aria-label`) | 구현됨 |
+| RadioRow | kit | `src/shared/ui/kit/RadioRow.tsx` | `.radio` | S01 · S02 · S04 · S07 · S08 · S10 | [새로] ◉○ 한 줄 · 상태 `disabled` · 칸별 잠금(옵션 `disabled` + `title` — 감싼 span 에 「준비 중」, 방향키도 건너뜀) · 방향키 이동 · 선택 칸만 Tab(`name`은 묶음 접근성 이름 `aria-label`) | 구현됨 |
 | Combobox | kit | `src/shared/ui/kit/Combobox.tsx` | (S02 관서 검색 한 칸) | S01 · S02 | [새로] 검색형 한 칸 · 결과에 경로(「대구청 › 동부서」) · 방향키/Enter · `aria-activedescendant` · 칸을 떠나면 확정 안 한 입력은 버림. 내부는 Field `pick` 재사용 | 구현됨 |
 | StatusDot | kit | `src/shared/ui/kit/StatusDot.tsx` | `.dot` | S00 · S08 · S11 · S15 | [새로] `ok` · `warn` · `danger` · `off`(글자 필수) | 구현됨 |
 | StatusChip | kit | `src/shared/ui/status-chip.tsx` | (인라인 꼬리표) | 다수 | [기존] 기존 부품 재내보내기 — 시안 대조 안 함. 색 `blue` · `teal` · `amber` · `red` · `gray` | 구현됨 |

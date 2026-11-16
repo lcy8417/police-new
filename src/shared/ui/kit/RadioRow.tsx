@@ -10,6 +10,10 @@ import { partAttrs } from "../part-attrs"
 export interface RadioRowOption {
   value: string
   label: string
+  /** 이 칸만 잠근다(동작 없는 SCAS 칸 — spec §5-2 규칙 3). 방향키 이동도 건너뛴다 */
+  disabled?: boolean
+  /** 칸 안내(잠긴 칸은 「준비 중」). 잠긴 버튼은 마우스 사건이 없어 감싼 span 에 단다 */
+  title?: string
 }
 
 export interface RadioRowProps {
@@ -35,7 +39,13 @@ export function RadioRow({ name, options, value, onValueChange, disabled = false
     else if (e.key === "ArrowLeft" || e.key === "ArrowUp") step = -1
     else return
     e.preventDefault()
-    const next = (index + step + options.length) % options.length
+    // 잠긴 칸은 건너뛴다(모두 잠겼으면 제자리)
+    let next = index
+    for (let n = 0; n < options.length; n++) {
+      next = (next + step + options.length) % options.length
+      if (!options[next].disabled) break
+    }
+    if (next === index || options[next].disabled) return
     onValueChange(options[next].value)
     refs.current[next]?.focus()
   }
@@ -50,7 +60,8 @@ export function RadioRow({ name, options, value, onValueChange, disabled = false
     >
       {options.map((opt, i) => {
         const checked = i === checkedIdx
-        return (
+        const off = disabled || opt.disabled === true
+        const button = (
           <button
             key={opt.value}
             ref={(el) => {
@@ -60,9 +71,9 @@ export function RadioRow({ name, options, value, onValueChange, disabled = false
             role="radio"
             aria-checked={checked}
             tabIndex={i === tabbableIdx ? 0 : -1}
-            disabled={disabled}
+            disabled={off}
             onClick={() => {
-              if (!disabled) onValueChange(opt.value)
+              if (!off) onValueChange(opt.value)
             }}
             onKeyDown={(e) => onKeyDown(e, i)}
             className={cn(
@@ -75,6 +86,13 @@ export function RadioRow({ name, options, value, onValueChange, disabled = false
             </span>
             {opt.label}
           </button>
+        )
+        return opt.title ? (
+          <span key={opt.value} title={opt.title} className="inline-flex">
+            {button}
+          </span>
+        ) : (
+          button
         )
       })}
     </div>

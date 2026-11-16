@@ -38,6 +38,24 @@ describe("RadioRow", () => {
     expect(screen.getByRole("radiogroup")).toHaveAttribute("data-part-state", "disabled")
   })
 
+  it("칸 하나만 잠글 수 있다 — 누름 · 방향키 모두 건너뛰고 title 은 감싼 span 에 단다", () => {
+    const onValueChange = vi.fn()
+    const opts = [
+      { value: "list", label: "목록보기" },
+      { value: "pattern", label: "문양보기", disabled: true, title: "준비 중" },
+    ]
+    render(<RadioRow name="보기" options={opts} value="list" onValueChange={onValueChange} />)
+    const [list, pattern] = screen.getAllByRole("radio")
+    expect(list).toBeEnabled()
+    expect(pattern).toBeDisabled()
+    expect(pattern.parentElement).toHaveAttribute("title", "준비 중")
+    fireEvent.click(pattern)
+    fireEvent.keyDown(list, { key: "ArrowRight" })
+    fireEvent.keyDown(list, { key: "ArrowLeft" })
+    expect(onValueChange).not.toHaveBeenCalled()
+    expect(screen.getByRole("radiogroup")).not.toHaveAttribute("data-part-state")
+  })
+
   it("선택된 칸만 Tab 으로 들어간다(없으면 첫 칸)", () => {
     const { rerender } = render(<RadioRow name="kind" options={OPTIONS} value="B" onValueChange={() => {}} />)
     const [a, b] = screen.getAllByRole("radio")

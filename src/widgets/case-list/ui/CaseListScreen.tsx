@@ -30,6 +30,8 @@ import { RowSummary } from "./RowSummary"
 
 type ViewMode = "basic" | "full"
 
+const NOT_READY = "준비 중"
+
 const STAGE_STEPS = ["검증요청", "교차 검증", "감정서", "결재"]
 const STAGE_LABELS = ["검증요청", "교차 검증", "감정서", "결재", "결재완료"]
 
@@ -146,6 +148,9 @@ export function CaseListScreen({
 
   const canRegister = isAdmin || features.includes(FEATURES.CRIME_REGISTER)
   const canSearch = isAdmin || features.includes(FEATURES.CRIME_SEARCH)
+  // 지금 동작이 없는 SCAS 버튼(엑셀 · 문양보기): 신규 기능을 켜고 알림 콜백이 있을 때만 활성(시안 — 알림, spec §13-4),
+  // 아니면 §5-2 규칙 3 그대로 자리만 두고 잠근다(「준비 중」)
+  const mockActive = showPlus && onMockAction !== undefined
   // 시안 data-role「analyst admin」: 기술책임자(결재만 하는 사람)에게는 행 끝 버튼을 숨긴다
   const verifierOnly = !isAdmin && features.includes(FEATURES.REPORT_APPROVE) && !features.includes(FEATURES.EXAM_DECIDE)
   const canAct = canSearch && !(showPlus && verifierOnly)
@@ -505,11 +510,13 @@ export function CaseListScreen({
                   name="보기"
                   value="list"
                   onValueChange={(v) => {
-                    if (v === "pattern") onMockAction?.("문양보기")
+                    if (v === "pattern" && mockActive) onMockAction?.("문양보기")
                   }}
                   options={[
                     { value: "list", label: "목록보기" },
-                    { value: "pattern", label: "문양보기" },
+                    mockActive
+                      ? { value: "pattern", label: "문양보기" }
+                      : { value: "pattern", label: "문양보기", disabled: true, title: NOT_READY },
                   ]}
                   className="text-[12px]"
                 />
@@ -517,9 +524,17 @@ export function CaseListScreen({
               <Button size="sm" onClick={onReset}>
                 초기화
               </Button>
-              <Button size="sm" onClick={() => onMockAction?.("엑셀")}>
-                엑셀
-              </Button>
+              {mockActive ? (
+                <Button size="sm" onClick={() => onMockAction?.("엑셀")}>
+                  엑셀
+                </Button>
+              ) : (
+                <span title={NOT_READY} className="inline-flex">
+                  <Button size="sm" disabled>
+                    엑셀
+                  </Button>
+                </span>
+              )}
               <Button size="sm" onClick={onSearch}>
                 조회
               </Button>

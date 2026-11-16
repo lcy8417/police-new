@@ -113,6 +113,25 @@ describe("S01DevPage 사건관리 목록", () => {
     expect(toastMock).toHaveBeenCalledWith("시안 — 기능 준비 중")
   })
 
+  it("?plus=0 이면 「엑셀」 · 「문양보기」 는 자리만 두고 잠긴다(「준비 중」, spec §5-2 규칙 3)", () => {
+    toastMock.mockClear()
+    renderAt("/dev/s01?case=ready&plus=0")
+    const excel = screen.getByRole("button", { name: "엑셀" })
+    expect(excel).toBeDisabled()
+    expect(excel.parentElement).toHaveAttribute("title", "준비 중")
+    const pattern = screen.getByRole("radio", { name: /문양보기/ })
+    expect(pattern).toBeDisabled()
+    expect(pattern.parentElement).toHaveAttribute("title", "준비 중")
+    expect(screen.getByRole("radio", { name: /목록보기/ })).toBeEnabled()
+    fireEvent.click(excel)
+    fireEvent.click(pattern)
+    expect(toastMock).not.toHaveBeenCalled()
+    // SCAS 툴바 순서는 그대로
+    const bar = screen.getByRole("group", { name: "사건관리 목록 도구" })
+    const names = Array.from(bar.querySelectorAll("button")).map((el) => el.textContent?.replace(/[◉○]\s?/, "").trim())
+    expect(names.slice(0, 5)).toEqual(["목록보기", "문양보기", "초기화", "엑셀", "조회"])
+  })
+
   describe("r2 시안 +α", () => {
     it("AI 사전 처리 · 역할별 할 일 타일 · 실시간 · 사건 진행 열 · 행 펼침이 시안 문구 그대로 보인다", () => {
       renderAt("/dev/s01?case=ready&as=analyst")
