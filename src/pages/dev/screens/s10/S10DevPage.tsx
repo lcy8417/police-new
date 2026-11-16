@@ -64,12 +64,17 @@ export function S10DevPage() {
   // 케이스를 바꾸면 안쪽 상태를 새로 시작한다(전환 막대는 다시 불러오지 않고 주소만 바꾸므로)
   return (
     <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
-      <S10Body key={caseName} caseName={caseName} />
+      <S10Content key={caseName} caseName={caseName} />
     </DevScreenFrame>
   );
 }
 
-function S10Body({ caseName }: { caseName: S10Case }) {
+export interface S10ContentProps {
+  caseName: S10Case;
+}
+
+/** 틀 없는 신발 DB 내용 — 진열 페이지(S10)와 사건관리 위 「신발 DB」 슬라이드 패널(S01 `?shoe=1`)이 함께 쓴다 */
+export function S10Content({ caseName }: S10ContentProps) {
   const viewer = useDevViewer();
   const showPlus = useDevPlus();
   const [params] = useSearchParams();

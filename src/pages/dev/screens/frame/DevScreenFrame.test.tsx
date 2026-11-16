@@ -1,4 +1,4 @@
-import { render, renderHook, screen, within } from "@testing-library/react"
+import { fireEvent, render, renderHook, screen, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { describe, expect, it } from "vitest"
 
@@ -112,79 +112,36 @@ describe("DevScreenFrame", () => {
       </MemoryRouter>,
     )
 
-  it("메뉴 링크가 보는 사람(as)을 유지한다", () => {
+  // 11/17 사용자 「응」: 사이드바 없이 남색 위 막대 한 줄 — 신발 DB(슬라이드 패널 `?shoe=1`) · 관리 ▾(관리자만)
+  it("사이드바가 없고, 신발 DB 는 사건관리 위 패널을 여는 링크(as · plus 유지)", () => {
+    renderAt("/dev/s01?as=analyst&plus=0")
+    expect(document.querySelector("aside")).toBeNull()
+    const href = new URLSearchParams(screen.getByRole("link", { name: "신발 DB" }).getAttribute("href")!.split("?")[1])
+    expect(href.get("shoe")).toBe("1")
+    expect(href.get("as")).toBe("analyst")
+    expect(href.get("plus")).toBe("0")
+  })
+
+  it("관리 ▾ 는 관리자에게만 — 펼치면 사용자 관리 · 사용 기록 링크(as 유지)", () => {
+    const { unmount } = renderAt("/dev/s01?as=investigator")
+    expect(screen.queryByRole("button", { name: "관리" })).toBeNull()
+    unmount()
     renderAt("/dev/s01?as=admin")
-    expect(screen.getByRole("link", { name: "사용자 관리" })).toHaveAttribute("href", "/dev/s13?as=admin")
+    fireEvent.keyDown(screen.getByRole("button", { name: "관리" }), { key: "Enter" })
+    expect(screen.getByRole("menuitem", { name: "사용자 관리" })).toHaveAttribute("href", "/dev/s13?as=admin")
+    expect(screen.getByRole("menuitem", { name: "사용 기록" })).toHaveAttribute("href", "/dev/s14?as=admin")
   })
 
-  it("as 가 없으면 메뉴 링크에 쿼리를 붙이지 않는다", () => {
-    renderAt("/dev/s01")
-    expect(screen.getByRole("link", { name: "신발 DB" })).toHaveAttribute("href", "/dev/s10")
-  })
-
-  // r4 사이드바(2026-11-16 사용자): 진열 화면 나열 대신 업무 메뉴만
-  const menuLinks = () => within(screen.getByRole("navigation", { name: "메뉴" })).getAllByRole("link").map((a) => a.textContent)
-
-  it("관리자 사이드바는 4항목: 사건관리 · 신발 DB · 사용자 관리 · 사용 기록", () => {
-    renderAt("/dev/s01?as=admin")
-    expect(menuLinks()).toEqual(["사건관리", "신발 DB", "사용자 관리", "사용 기록"])
-  })
-
-  it("감정관 사이드바는 2항목: 사건관리 · 신발 DB(사건 상세 ~ 결과 확인은 사건 창 안)", () => {
-    renderAt("/dev/s01?as=analyst")
-    expect(menuLinks()).toEqual(["사건관리", "신발 DB"])
-    expect(screen.queryByRole("link", { name: "정밀 대조" })).toBeNull()
-  })
-
-  it("S02–S07 진열 화면에서는 사이드바 「사건관리」가 켜지고, 위 막대 제목은 그 화면 이름", () => {
+  it("사건관리 밖 화면(S13 등)은 막대 왼쪽 「← 사건관리」, 막대 제목은 그 화면 이름", () => {
     render(
-      <MemoryRouter initialEntries={["/dev/s05"]}>
-        <DevScreenFrame screen="S05" title="검색 결과" cases={["ready"]}>
+      <MemoryRouter initialEntries={["/dev/s13?as=admin"]}>
+        <DevScreenFrame screen="S13" title="사용자 관리" cases={["ready"]}>
           <p>본문</p>
         </DevScreenFrame>
       </MemoryRouter>,
     )
-    expect(screen.getByRole("link", { name: "사건관리" })).toHaveAttribute("aria-current", "page")
-    expect(within(screen.getByRole("banner")).getByText("검색 결과")).toBeInTheDocument()
-  })
-
-  it("관리 묶음은 관리자에게만 보인다", () => {
-    const { unmount } = renderAt("/dev/s01?as=admin")
-    expect(screen.getByText("관리")).toBeInTheDocument()
-    unmount()
-    const second = renderAt("/dev/s01?as=investigator")
-    expect(screen.queryByText("관리")).toBeNull()
-    second.unmount()
-    renderAt("/dev/s01?as=readonly")
-    expect(screen.queryByText("관리")).toBeNull()
-  })
-
-  it("기능 권한이 없는 메뉴는 숨긴다(보기 전용은 신발 DB 만)", () => {
-    renderAt("/dev/s01?as=readonly")
-    expect(screen.queryByRole("link", { name: "사건관리" })).toBeNull()
-    expect(screen.getByRole("link", { name: "신발 DB" })).toHaveAttribute("href", "/dev/s10?as=readonly")
-  })
-
-  it("감정관은 사건관리와 신발 DB 를 본다", () => {
-    renderAt("/dev/s01?as=analyst")
-    expect(screen.getByRole("link", { name: "사건관리" })).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: "신발 DB" })).toBeInTheDocument()
-  })
-
-  it("수사관은 CRIME_SEARCH 가 없어 사건관리 · 신발 DB 가 숨는다", () => {
-    renderAt("/dev/s01?as=investigator")
-    expect(screen.queryByRole("link", { name: "사건관리" })).toBeNull()
-    expect(screen.queryByRole("link", { name: "신발 DB" })).toBeNull()
-  })
-
-  it("기본 역할(as 없음)이면 감정관 메뉴", () => {
-    renderAt("/dev/s01")
-    expect(menuLinks()).toEqual(["사건관리", "신발 DB"])
-  })
-
-  it("메뉴 링크가 plus=0 도 유지한다", () => {
-    renderAt("/dev/s01?as=admin&plus=0")
-    expect(screen.getByRole("link", { name: "사용자 관리" })).toHaveAttribute("href", "/dev/s13?as=admin&plus=0")
+    expect(screen.getByRole("link", { name: /사건관리/ })).toHaveAttribute("href", "/dev/s01?as=admin")
+    expect(within(screen.getByRole("banner")).getByRole("heading", { name: "사용자 관리" })).toBeInTheDocument()
   })
 
   it("막대: 신규 기능 보기 끄기는 as · case 를 유지하고 plus=0 을 붙인다", () => {

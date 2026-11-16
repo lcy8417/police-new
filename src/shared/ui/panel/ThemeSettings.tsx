@@ -70,9 +70,11 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 export interface ThemeSettingsProps {
   className?: string
+  /** (11/17 확장) 어두운 위 막대용 — ⚙ 아이콘만(글자는 화면 읽기 이름), 종이색 글자 */
+  compact?: boolean
 }
 
-export function ThemeSettings({ className }: ThemeSettingsProps) {
+export function ThemeSettings({ className, compact = false }: ThemeSettingsProps) {
   const prefs = useDisplayPrefs()
   const [open, setOpen] = React.useState(false)
   const rootRef = React.useRef<HTMLDivElement>(null)
@@ -103,15 +105,29 @@ export function ThemeSettings({ className }: ThemeSettingsProps) {
       <Button
         ref={triggerRef}
         size="sm"
+        variant={compact ? "ghost" : undefined}
+        aria-label={compact ? "화면 설정" : undefined}
+        title={compact ? "화면 설정" : undefined}
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         onClick={() => setOpen((v) => !v)}
+        className={
+          compact
+            ? "h-[30px] w-[30px] justify-center rounded-[9px] px-0 text-paper/75 hover:bg-paper/14 hover:text-paper focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-paper"
+            : undefined
+        }
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" strokeWidth="1.8" className="size-[14px] stroke-current">
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          strokeWidth="1.8"
+          className={compact ? "size-[16px] stroke-current" : "size-[14px] stroke-current"}
+        >
           <circle cx="12" cy="12" r="3" />
           <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" />
         </svg>
-        화면 설정
+        {compact ? null : "화면 설정"}
       </Button>
       {/* 펼침 칸(disclosure): 초점을 가두지 않는 보통 구역이다(대화상자 아님) — Tab 으로 버튼 다음에 바로 들어간다 */}
       {open && (

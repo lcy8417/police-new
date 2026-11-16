@@ -102,6 +102,14 @@
 | S03–S06 창 모드 도구 · 단추 · 탭 · AI 제안 | Button | 그대로 | 창 안(`inWindow`)일 때 배치만 바꿈 — 단추 sm 통일, 주요 동작 하나만 pri |
 | S01 사건 창 이미지 편집 · 문양 코드 탭 작업판 단추(취소 · 확인 · 저장 · 검색 · 보기 도구 켜고 끄기) | WorkbenchButton | 새로 | 이미지 편집 탭 `WB_*` 단추를 kit 공용 부품으로 뽑음(ghost · soft · primary × md · sm, 아이콘, aria-pressed 켜짐) — 진열 S01-65 |
 | S01 사건 창 문양 코드 탭 4부위 · 문양 목록 · 검색 이력(창 모드 다시 짜기) | PatternIcon | 그대로 | 문양 그림은 viewer PatternIcon 그대로(sm · md) |
+| 진열 틀 S01–S14 남색 위 막대 한 줄(사이드바 없앰 — 로고 · 화면 제목 · 건수 · 바로 찾기 · 신발 DB · 관리 ▾ · 화면 설정 · 사용자) | ScasShell | 확장 | `layout="topbar"`(11/17 사용자 「응」) — 막대 48 · `bg-[var(--t-emblem-to)]`, 관리 ▾ = radix DropdownMenu, S13 · S14 는 막대 왼쪽 「← 사건관리」(`back`) |
+| S01 막대 「신발 DB」 슬라이드 패널(주소 `?shoe=1`, Esc · ✕ 닫기) | CaseWindowFrame | 그대로 | 사건 창 틀 그대로, 본문 = S10 내용 컴포넌트(S10Content) |
+| 진열 틀 위 막대 오른쪽 ⚙ 화면 설정(작게) | ThemeSettings | 확장 | `compact` — ⚙ 아이콘만 · 종이색 글자(기능 그대로) |
+| S01 신발 DB 패널 머리(이름 · ✕만) | WindowHead | 확장 | `onPrev` · `onNext` 를 안 주면 ‹ › 를 그리지 않음(변형 `noNav`) |
+| S01 사건관리 목록 표 칸 머리(격자 열 폭을 줄과 같이 씀) | ListHeadRow | 그대로 | 11/17 사용자 「테이블 컴포넌트 로망꺼 가져오면 안되나」 — `<table>` 대신 |
+| S01 사건관리 목록 표 줄(행 높이 64 · 촘촘 36) | ListRow | 그대로 | 같은 격자 클래스로 칸 정렬(숫자 오른쪽 · 글자 왼쪽) |
+| S01 사건 진행 단계 알약(이미지 확인 중 · 검증요청 · 교차 검증 · 감정서 · 완료) | StatePill | 그대로 | 「결재」 글자 안 씀(11/17 사용자 「결재는 없어」) |
+| S01 거르기 줄 끝 「+ 등록」 · 행 끝 단계 단추 하나(검색 · 확인 · 검증요청 · 검증) | WorkbenchButton | 그대로 | 등록 primary md, 행 단추 sm |
 
 ## 승인 (spec §8 「만들 부품」 표 = 사용자 승인)
 
@@ -170,3 +178,4 @@
 승인: 11/16 사용자 — TabMark
 승인: 11/17 사용자 — PaneHead
 승인: 11/17 사용자 — WorkbenchButton
+승인: 11/17 사용자 — ScasShell(topbar), WindowHead(noNav), ThemeSettings(compact)

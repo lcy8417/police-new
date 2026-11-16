@@ -1,12 +1,12 @@
 import * as React from "react"
-import { FolderOpen, Footprints, History, Users } from "lucide-react"
+import { Footprints, Settings2 } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
-import { ScasShell, ThemeScope, ThemeSettings, type ScasMenuGroup, type ScasMenuIcon } from "@/shared/ui/panel"
+import { ScasShell, ThemeScope, ThemeSettings, type ScasBarItem, type ScasShellSearch } from "@/shared/ui/panel"
 import { useDisplayPrefs } from "@/shared/lib/display-prefs"
 import { cn } from "@/shared/lib/utils"
 
-import { DEV_SCREENS, devScreen, type DevScreenId } from "./dev-screens"
+import { DEV_SCREENS, devScreen } from "./dev-screens"
 import { DEV_VIEWER_KEYS, DEV_VIEWERS, useDevPlus, useDevViewerKey, type DevViewerInfo } from "./dev-viewers"
 import { useDevCase } from "./use-dev-case"
 
@@ -18,46 +18,45 @@ export interface DevScreenFrameProps {
   cases: readonly string[]
   bare?: boolean
   children: React.ReactNode
+  /** 위 막대 제목 뒤 작은 글자(사건관리 = 「116건 · ● 09:12 갱신」) */
+  meta?: React.ReactNode
+  /** 위 막대 바로 찾기 칸을 동작하게(사건관리 = 사건 목록 거르기). 없으면 칸이 없다 */
+  search?: ScasShellSearch
 }
 
+// 11/17 사용자 「응」: 왼쪽 사이드바를 없애고 남색 위 막대 한 줄 —
+//  [방패 족적 감정 │ 사건관리 116건 ● 갱신   바로 찾기 · 신발 DB · 관리 ▾ · ⚙ · 사용자]
+// 신발 DB 는 사건관리 위 슬라이드 패널(`/dev/s01?shoe=1`), 관리 ▾(관리자만) = 사용자 관리 · 사용 기록 전체 화면 페이지.
+// 사건관리 밖 화면(S13 · S14, 개별 진열 S02–S07 · S10)은 막대 왼쪽에 「← 사건관리」.
 // 보는 사람(`as`)과 신규 기능 끄기(`plus=0`)는 화면을 옮겨도 유지한다. 케이스(`case`)는 화면마다 다르므로 넘기지 않는다.
-// 메뉴는 보는 사람의 기능 권한으로 거른다(`widgets/app-shell/model/nav-items.ts` 와 같은 규칙: 권한 없으면 숨김).
-// r4 앱 틀 메뉴 아이콘(로망 사이드바처럼 줄마다 선 아이콘 17px) — 화면별로 뜻이 가까운 lucide 아이콘
-const MENU_ICONS: Partial<Record<(typeof DEV_SCREENS)[number]["id"], ScasMenuIcon>> = {
-  s01: FolderOpen,
-  s10: Footprints,
-  s13: Users,
-  s14: History,
+// 막대 단추는 보는 사람의 기능 권한으로 거른다(`widgets/app-shell/model/nav-items.ts` 와 같은 규칙: 권한 없으면 숨김).
+
+function keepQuery(as: string | null, plusOff: boolean, extra: string[] = []): string {
+  const parts = [...extra, as ? `as=${encodeURIComponent(as)}` : "", plusOff ? "plus=0" : ""].filter(Boolean)
+  return parts.length > 0 ? `?${parts.join("&")}` : ""
 }
 
-// r4 사이드바(2026-11-16 사용자 「사이드바 저렇게 구성할거야?? 사건관리에서 클릭하면 저쪽으로 넘어가게?」):
-// 진열 화면 11개를 다 늘어놓지 않고 업무 메뉴만 — 사건관리 · 신발 DB(관리자는 사용자 관리 · 사용 기록).
-// 사건 상세 ~ 결과 확인(S02–S07)은 사건관리 목록의 사건 창 안 탭으로 들어간다. 개별 화면 확인은 `/dev` 목차 · 진열 막대로.
-const WORK_MENU: readonly DevScreenId[] = ["s01", "s10"]
-/** S02–S07 은 사건관리 안 화면 — 사이드바에서는 「사건관리」가 켜진다 */
-const UNDER_CASES: readonly DevScreenId[] = ["s02", "s03", "s04", "s05", "s06", "s07"]
-
-function menuFor(viewer: DevViewerInfo, as: string | null, plusOff: boolean): ScasMenuGroup[] {
-  const parts = [as ? `as=${encodeURIComponent(as)}` : "", plusOff ? "plus=0" : ""].filter(Boolean)
-  const query = parts.length > 0 ? `?${parts.join("&")}` : ""
-  const toItem = (s: (typeof DEV_SCREENS)[number]) => ({
-    label: s.title,
-    href: `/dev/${s.id}${query}`,
-    icon: MENU_ICONS[s.id],
-  })
-  const visible = DEV_SCREENS.filter(
-    (s) => WORK_MENU.includes(s.id) && (!s.feature || viewer.isAdmin || viewer.features.includes(s.feature)),
-  )
-  const groups: ScasMenuGroup[] = []
-  if (visible.length > 0) groups.push({ group: "업무", items: visible.map(toItem) })
-  if (viewer.isAdmin) groups.push({ group: "관리", items: DEV_SCREENS.filter((s) => s.admin).map(toItem) })
-  return groups
-}
-
-/** 사이드바에서 켤 메뉴 이름 — 사건관리 안 화면(S02–S07)이면 「사건관리」, 그 밖은 화면 이름 그대로 */
-function activeMenuFor(pathname: string, title: string): string {
-  const id = pathname.split("/")[2]
-  return UNDER_CASES.some((s) => s === id) ? devScreen("s01").title : title
+function barItemsFor(
+  viewer: DevViewerInfo,
+  id: string,
+  shoeHref: string,
+  shoeOpen: boolean,
+  query: string,
+): ScasBarItem[] {
+  const shoe = devScreen("s10")
+  const items: ScasBarItem[] = []
+  if (!shoe.feature || viewer.isAdmin || viewer.features.includes(shoe.feature)) {
+    items.push({ label: shoe.title, icon: Footprints, href: shoeHref, active: shoeOpen })
+  }
+  if (viewer.isAdmin) {
+    items.push({
+      label: "관리",
+      icon: Settings2,
+      active: id === "s13" || id === "s14",
+      items: DEV_SCREENS.filter((s) => s.admin).map((s) => ({ label: s.title, href: `/dev/${s.id}${query}` })),
+    })
+  }
+  return items
 }
 
 // 틀 = 화면 높이 상자 + 세로 스크롤. html · body · #root 가 overflow:hidden 이라 틀이 스스로 스크롤해야
@@ -66,7 +65,7 @@ const FRAME_SCROLL = "h-full overflow-auto bg-canvas"
 
 const PILL = "rounded-[999px] border border-solid px-[8px] py-[1px] font-code text-[11px] no-underline"
 
-export function DevScreenFrame({ screen, title, cases, bare = false, children }: DevScreenFrameProps) {
+export function DevScreenFrame({ screen, title, cases, bare = false, children, meta, search: barSearch }: DevScreenFrameProps) {
   const { pathname, search } = useLocation()
   const as = new URLSearchParams(search).get("as")
   const plus = useDevPlus()
@@ -137,13 +136,24 @@ export function DevScreenFrame({ screen, title, cases, bare = false, children }:
     )
   }
 
+  const id = pathname.split("/")[2] ?? ""
+  const onCases = id === "s01"
+  const query = keepQuery(as, !plus)
+  // 사건관리에서는 지금 주소에 shoe=1 만 더하고(열린 사건 탭 유지), 다른 화면에서는 사건관리로 가며 연다
+  const shoeOpen = onCases && new URLSearchParams(search).get("shoe") === "1"
+  const shoeHref = onCases ? hrefWith("shoe", "1") : `/dev/s01${keepQuery(as, !plus, ["shoe=1"])}`
+
   return (
     <ThemeScope prefs={display} className={FRAME_SCROLL}>
       {bar}
       <ScasShell
-        active={activeMenuFor(pathname, title)}
+        layout="topbar"
+        active={title}
         title={title}
-        menu={menuFor(viewer, as, !plus)}
+        meta={meta}
+        search={barSearch}
+        back={onCases ? undefined : { label: devScreen("s01").title, href: `/dev/s01${query}` }}
+        barItems={barItemsFor(viewer, id, shoeHref, shoeOpen, query)}
         renderLink={({ href, children, ...rest }) => (
           <Link to={href} {...rest}>
             {children}
@@ -151,7 +161,7 @@ export function DevScreenFrame({ screen, title, cases, bare = false, children }:
         )}
         user={{ name: viewer.who.split(" ")[0], org: viewer.org, roleLabel: viewer.label }}
         display={display}
-        headerEnd={<ThemeSettings />}
+        headerEnd={<ThemeSettings compact />}
       >
         {children}
       </ScasShell>

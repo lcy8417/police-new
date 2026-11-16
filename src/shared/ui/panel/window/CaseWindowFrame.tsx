@@ -6,8 +6,8 @@ import { partAttrs } from "../../part-attrs"
 // r4 로망 이식(`shared/ui/panel/window/ClientWindowFrame` + `use-client-window-escape`): 목록 위 오른쪽에서 열리는 큰 창 틀.
 // 로망은 판 위 한 겹에 가림막(판 자리만) + 오른쪽 창(흰 · 모서리 14 · 서랍 그림자)을 그리고, 사이드바는 그대로 둔다.
 // 경찰 진열 틀에서는 ScasShell 둥근 내용 판(relative · overflow-clip)이 그 「판 자리」다 — 틀은 그 판을 꽉 채우는 한 겹.
-// 높이: 로망 `sticky top-0 h-[calc(100dvh-76px)]`(위 막대 56 + 띄움 20) → 경찰 진열 틀은 진열 막대 30 + 판 위 띄움 10 +
-// 위 막대 56 + 판 아래 띄움 10 = 106 을 뺀다. 판이 화면보다 짧으면 판 높이(max-h-full)까지만.
+// 높이: 로망 `sticky top-0 h-[calc(100dvh-76px)]`(위 막대 56 + 띄움 20) → 경찰 진열 틀(11/17 남색 위 막대 한 줄)은
+// 진열 막대 30 + 위 막대 48 + 판 아래 띄움 10 = 88 을 뺀다. 판이 화면보다 짧으면 판 높이(max-h-full)까지만.
 // 색만 대응: 가림막 먹 28% → emblem-to 28%, 서랍 그림자 → panel-drop. 업무 말 · 판정은 없다(머리 · 목록 · 본문은 쓰는 쪽이 넣는다).
 
 /** 다른 층(대화상자 · 확인 창 · 떠 있는 고르기)이 열려 있으면 Esc 는 그 층 몫이다 — 맨 위 것부터 하나씩(로망 스킬 6-2) */
@@ -112,7 +112,7 @@ export function CaseWindowFrame({
         <div
           data-wide={wide || undefined}
           className={cn(
-            "sticky top-0 flex h-[calc(100dvh-106px)] max-h-full justify-end py-3 pr-[22px]",
+            "sticky top-0 flex h-[calc(100dvh-88px)] max-h-full justify-end py-3 pr-[22px]",
             wide ? "pl-[22px]" : "pl-[60px]"
           )}
         >

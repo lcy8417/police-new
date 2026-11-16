@@ -8,6 +8,8 @@ export {
   type ScasMenuItem,
   type ScasMenuIcon,
   type ScasLinkProps,
+  type ScasBarItem,
+  type ScasShellSearch,
 } from "./ScasShell"
 export { SearchForm, type SearchFormProps, type SearchFormRow } from "./SearchForm"
 export { Crumb, type CrumbProps } from "./Crumb"

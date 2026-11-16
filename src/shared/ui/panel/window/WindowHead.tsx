@@ -46,8 +46,9 @@ export interface WindowHeadProps {
   menu?: readonly WindowHeadMenuItem[]
   /** ‹ › 앞 오른쪽 자리 */
   end?: ReactNode
-  onPrev: () => void
-  onNext: () => void
+  /** ‹ › — 둘 다 안 주면 ‹ › 를 그리지 않는다(변형 `noNav` — 앞뒤가 없는 패널, 예 신발 DB) */
+  onPrev?: () => void
+  onNext?: () => void
   /** 앞이 없음 — 잠김 */
   prevOff?: boolean
   nextOff?: boolean
@@ -92,9 +93,10 @@ export function WindowHead({
 }: WindowHeadProps) {
   // 시안 화면 범위 안이면 범위의 포털 자리로(팔레트 · 글꼴을 받는다). 범위 밖은 null = body
   const portal = useThemePortalContainer()
+  const nav = onPrev !== undefined || onNext !== undefined
   return (
     <div
-      {...partAttrs("WindowHead", { id: partId })}
+      {...partAttrs("WindowHead", { variant: nav ? undefined : "noNav", id: partId })}
       data-slot="window-head"
       className="flex shrink-0 flex-wrap items-center gap-x-2.5 gap-y-2 bg-[var(--t-emblem-to)] px-3.5 pt-2.5 pb-3 text-[13px] text-paper"
     >
@@ -145,12 +147,16 @@ export function WindowHead({
           </DropdownMenu.Root>
         ) : null}
         <span className="ml-0.5 flex gap-1">
-          <button type="button" aria-label={prevLabel} disabled={prevOff} onClick={onPrev} className={PILL}>
-            ‹
-          </button>
-          <button type="button" aria-label={nextLabel} disabled={nextOff} onClick={onNext} className={PILL}>
-            ›
-          </button>
+          {nav ? (
+            <>
+              <button type="button" aria-label={prevLabel} disabled={prevOff} onClick={onPrev} className={PILL}>
+                ‹
+              </button>
+              <button type="button" aria-label={nextLabel} disabled={nextOff} onClick={onNext} className={PILL}>
+                ›
+              </button>
+            </>
+          ) : null}
           <button type="button" aria-label="창 닫기" title="닫기 · Esc" onClick={onClose} className={PILL}>
             ×
           </button>
