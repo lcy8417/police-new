@@ -2,18 +2,22 @@ import * as React from "react"
 
 import type { FeatureCode } from "@/entities/session"
 import { cn } from "@/shared/lib/utils"
-import { ConfidenceBar } from "@/shared/ui/ai"
-import { Button, DialogShell, InlineError, Segmented } from "@/shared/ui/kit"
+import { AiTag, ConfidenceBar } from "@/shared/ui/ai"
+import { Button, Chip, DialogShell, InlineError, Segmented } from "@/shared/ui/kit"
 import { ButtonBar, Panel } from "@/shared/ui/panel"
-import { PatternIcon, PointPairs, type PointPairBox } from "@/shared/ui/viewer"
+import { PatternIcon } from "@/shared/ui/viewer"
 
-import type { MatchCompareScreenProps, MatchImage, ZonePatterns } from "../model/types"
+import { viewerRoles } from "../model/roles"
+import type { MatchCompareScreenProps, ZonePatterns } from "../model/types"
+import { PairStage } from "./PairStage"
+import { PrecisionPanel } from "./PrecisionPanel"
 
 // S06 상세 조회 · 정밀 대조(F25 정렬 설정 · F26 Top-10 대응 매칭 · F27 RGB ↔ 스케치·이진).
-// SCAS 「현장문양검색결과 상세조회」 배치: 머리 버튼 줄(이전 · 다음 · 그룹등록 · 확인대상 · 프린트 · 닫기 — 새 「정렬 설정」은 맨 끝),
+// SCAS 「현장문양검색결과 상세조회」 배치: 버튼 줄(이전 · 다음 · 그룹등록 · 확인대상 · 프린트 · 닫기 — 새 「정렬 설정」은 맨 끝),
 // 유류 | 발견 이미지, 사건정보 | 신발정보 표, 아래 문양 비교. 대응 박스는 match_top10 의 MatchBox 만큼만 그린다(spec §6-1).
 // 정렬 캔버스는 슬롯(alignmentSlot)이다 — 좌표 수학은 운영 캔버스가 소유. 호버 · 보기 방식 · 대화상자 열림은 저장하지 않는 위젯 안 상태.
-// 시안 +α(대응점 39 · 구역 선 · 겹쳐 보기 · 히트맵 · 지표 4개 · 종합 신뢰도 · 부위별 근거 · AI 미리 대조)는 담지 않는다.
+// r2: 시안 r3 +α(AI 대응점 39 · 구역 선 · AI 정합 보정 · 확대 줄 · 측면 이미지 · 확인 막대 · 감정서 첨부 · 오른쪽 정밀 대조 칸)를
+// `showPlus` 하나로 감싸 얹는다(감싼 요소마다 `data-plus`). 시안 `data-role`(그룹등록 · 확인대상 = 감정관 · 관리자)도 showPlus 일 때 따른다.
 
 type Look = "rgb" | "sketch"
 
@@ -27,12 +31,18 @@ const NOT_READY = "준비 중"
 // 판정 · 정렬 저장은 지금 앱에서 사건 조회 권한 묶음(CRIME_SEARCH) 안에 있다
 const WRITE_FEATURE: FeatureCode = "CRIME_SEARCH"
 
+// 시안 S06 확대 줄(핀 5): 두 이미지에 함께 적용하는 SCAS 뷰어 버튼
+const VIEWER_TOOLS = ["처음상태", "평준화", "색상반전", "좌우반전", "밝게", "어둡게", "상하반전"]
+
 const ZONE_ROWS: { key: keyof ZonePatterns; label: string }[] = [
   { key: "top", label: "상" },
   { key: "mid", label: "중" },
   { key: "bottom", label: "하" },
   { key: "outline", label: "윤곽" },
 ]
+
+/** 표 한 칸(라벨 · 값). plus = 지금 데이터에 없는 SCAS 칸(+α 로만 보임) */
+type InfoCell = { label: string; value: string; plus?: boolean }
 
 /** REQ-ALIGN-007c 「정렬 설정됨」: polygon · arrow 둘 다 있음 */
 function isAlignmentSet(alignment: MatchCompareScreenProps["alignment"]): boolean {
@@ -42,48 +52,6 @@ function isAlignmentSet(alignment: MatchCompareScreenProps["alignment"]): boolea
 /** 채취 일시 `YYYY-MM-DDTHH:MM:SS` → `YYYY-MM-DD HH:MM` */
 function formatPickDt(value: string | null | undefined): string {
   return value ? value.replace("T", " ").slice(0, 16) : ""
-}
-
-function MatchPane({
-  label,
-  image,
-  look,
-  boxes,
-  side,
-  activeIndex,
-  onActive,
-}: {
-  label: string
-  image: MatchImage
-  look: Look
-  boxes: PointPairBox[]
-  side: "crime" | "shoe"
-  activeIndex: number | null
-  onActive: (index: number | null) => void
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-[4px]">
-      <span className="rounded-[4px] bg-strip px-[6px] py-[3px] text-[11.5px] text-muted-foreground">{label}</span>
-      <div
-        data-match-image={side}
-        data-look={look}
-        className="relative h-[340px] overflow-hidden rounded-[10px] border border-solid border-border bg-canvas"
-      >
-        {/* object-contain 과 PointPairs(viewBox meet)가 같은 비율로 맞춰진다 */}
-        <img src={look === "rgb" ? image.rgb : image.sketch} alt={label} className="block size-full object-contain" />
-        <PointPairs
-          boxes={boxes}
-          side={side}
-          activeIndex={activeIndex}
-          onHover={onActive}
-          onSelect={onActive}
-          width={image.width}
-          height={image.height}
-          aria-label={`${label} 대응 박스`}
-        />
-      </div>
-    </div>
-  )
 }
 
 function PatternColumn({ title, patterns }: { title: string; patterns: ZonePatterns }) {
@@ -109,6 +77,46 @@ function PatternColumn({ title, patterns }: { title: string; patterns: ZonePatte
   )
 }
 
+const TH = "border border-solid border-line-2 bg-strip px-[6px] py-[3px] text-left font-normal whitespace-nowrap text-muted-foreground"
+const TD = "border border-solid border-line-2 px-[6px] py-[3px] break-keep [overflow-wrap:anywhere] text-fg-2"
+
+function InfoTable({ caseRows, shoeRows }: { caseRows: InfoCell[]; shoeRows: InfoCell[] }) {
+  const length = Math.max(caseRows.length, shoeRows.length)
+  return (
+    <table className="h-fit w-full border-collapse text-[11.5px]">
+      <thead>
+        <tr>
+          <th colSpan={2} className="border border-solid border-line-2 bg-strip px-[6px] py-[3px] text-center text-fg-2">
+            사건정보
+          </th>
+          <th colSpan={2} className="border border-solid border-line-2 bg-strip px-[6px] py-[3px] text-center text-fg-2">
+            신발정보
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {Array.from({ length }, (_, i) => (
+          <tr key={i}>
+            {[caseRows[i], shoeRows[i]].map((cell, j) => {
+              const plusAttr = cell?.plus ? { "data-plus": "" } : {}
+              return (
+                <React.Fragment key={j}>
+                  <th scope="row" {...plusAttr} className={TH}>
+                    {cell?.label ?? ""}
+                  </th>
+                  <td {...plusAttr} className={TD}>
+                    {cell ? <span className={cn(/\d{4}/.test(cell.value) && "font-code")}>{cell.value}</span> : null}
+                  </td>
+                </React.Fragment>
+              )
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
 export function MatchCompareScreen({
   status,
   errorAt,
@@ -128,33 +136,51 @@ export function MatchCompareScreen({
   onSaveAlignment,
   onConfirmTarget,
   onClose,
+  showPlus = true,
+  insight,
+  onPlusAction,
 }: MatchCompareScreenProps) {
   const canWrite = isAdmin || features.includes(WRITE_FEATURE)
+  const roles = viewerRoles(isAdmin, features)
+  const plus = showPlus && insight ? insight : null
+  // 시안 data-role="analyst admin": 그룹등록 · 확인대상은 감정관 · 관리자에게만(신규 기능을 끄면 1차 그대로)
+  const showDecide = !showPlus || roles.analyst
   const [look, setLook] = React.useState<Look>("rgb")
   const [activeIndex, setActiveIndex] = React.useState<number | null>(null)
   const [alignOpen, setAlignOpen] = React.useState(false)
+  const [asking, setAsking] = React.useState(true)
   const aligned = isAlignmentSet(alignment)
+  const action = (label: string) => onPlusAction?.(label)
 
   const crimeBoxes = React.useMemo(() => matches.map((m) => m.box), [matches])
   // 신발 쪽은 대응점(sx, sy)에 같은 크기의 박스(지금 응답에는 신발 쪽 박스가 따로 없다)
   const shoeBoxes = React.useMemo(() => matches.map((m) => ({ cx: m.sx, cy: m.sy, size: m.box.size })), [matches])
 
-  const caseRows: [string, string][] = [
-    ["이미지번호", caseInfo.aprthngNo ?? ""],
-    ["의뢰관서", caseInfo.rqestGrfcNm ?? ""],
-    ["사건명", caseInfo.crimeNm ?? ""],
-    ["채취일시", formatPickDt(caseInfo.pickDt)],
-    ["채취장소", caseInfo.pickPlace ?? ""],
+  // SCAS 라벨 순서. 지금 데이터에 없는 칸(SCAS번호 · 문서번호 · 채취방법 · 화종 · 비고)은 +α 값이 있을 때만 그 자리에 넣는다
+  const caseRows: InfoCell[] = [
+    { label: "이미지번호", value: caseInfo.aprthngNo ?? "" },
+    ...(plus
+      ? [
+          { label: "SCAS번호", value: plus.caseExtra.scasNo, plus: true },
+          { label: "문서번호", value: plus.caseExtra.docNo, plus: true },
+        ]
+      : []),
+    { label: "의뢰관서", value: caseInfo.rqestGrfcNm ?? "" },
+    { label: "사건명", value: caseInfo.crimeNm ?? "" },
+    { label: "채취일시", value: formatPickDt(caseInfo.pickDt) },
+    { label: "채취장소", value: caseInfo.pickPlace ?? "" },
+    ...(plus ? [{ label: "채취방법", value: plus.caseExtra.pickMethod, plus: true }] : []),
   ]
-  const shoeRows: [string, string][] = [
-    ["화류번호", shoeInfo.ftwrId],
-    ["제조사", shoeInfo.makrCode ?? ""],
-    ["상표명", shoeInfo.brandCode ?? ""],
-    ["모델번호", shoeInfo.modlNm ?? ""],
-    ["수집년도", shoeInfo.colctYear ?? ""],
-    ["그룹명", shoeInfo.ftwrGroupNm ?? ""],
+  const shoeRows: InfoCell[] = [
+    { label: "화류번호", value: shoeInfo.ftwrId },
+    { label: "제조사", value: shoeInfo.makrCode ?? "" },
+    { label: "상표명", value: shoeInfo.brandCode ?? "" },
+    { label: "모델번호", value: shoeInfo.modlNm ?? "" },
+    ...(plus ? [{ label: "화종", value: plus.shoeExtra.kind, plus: true }] : []),
+    { label: "수집년도", value: shoeInfo.colctYear ?? "" },
+    { label: "그룹명", value: shoeInfo.ftwrGroupNm ?? "" },
+    ...(plus ? [{ label: "비고", value: plus.shoeExtra.note, plus: true }] : []),
   ]
-  const infoLength = Math.max(caseRows.length, shoeRows.length)
 
   const buttons = (
     <ButtonBar variant="modal-head">
@@ -169,14 +195,18 @@ export function MatchCompareScreen({
           다음
         </Button>
       </span>
-      <span title={NOT_READY} className="inline-flex">
-        <Button size="sm" disabled>
-          그룹등록
+      {showDecide ? (
+        <span title={NOT_READY} className="inline-flex">
+          <Button size="sm" disabled>
+            그룹등록
+          </Button>
+        </span>
+      ) : null}
+      {showDecide ? (
+        <Button size="sm" variant="warn" disabled={!canWrite} onClick={onConfirmTarget}>
+          확인대상
         </Button>
-      </span>
-      <Button size="sm" variant="warn" disabled={!canWrite} onClick={onConfirmTarget}>
-        확인대상
-      </Button>
+      ) : null}
       <span title={NOT_READY} className="inline-flex">
         <Button size="sm" disabled>
           프린트
@@ -185,12 +215,23 @@ export function MatchCompareScreen({
       <Button size="sm" onClick={onClose}>
         닫기
       </Button>
+      {showPlus && roles.analyst ? (
+        <>
+          <span data-plus aria-hidden="true" className="mx-[3px] h-[18px] w-px bg-line-3" />
+          <Button data-plus size="sm" variant="ai" onClick={() => action("근거 이미지 감정서에 첨부")}>
+            근거 이미지 감정서에 첨부
+          </Button>
+        </>
+      ) : null}
       <span aria-hidden="true" className="mx-[3px] h-[18px] w-px bg-line-3" />
       <Button size="sm" onClick={() => setAlignOpen(true)}>
         정렬 설정
       </Button>
     </ButtonBar>
   )
+
+  const okCount = plus ? plus.pairs.filter((p) => p.ok).length : 0
+  const badCount = plus ? plus.pairs.length - okCount : 0
 
   let compare: React.ReactNode
   if (!aligned) {
@@ -204,7 +245,7 @@ export function MatchCompareScreen({
     )
   } else {
     compare = (
-      <div className="grid min-w-0 gap-[8px]">
+      <div className="grid min-w-0 gap-[6px]">
         <div className="flex items-center gap-[8px]">
           <span className="text-[11.5px] text-dim">대응 박스 {matches.length}개 · 번호가 같은 박스끼리 짝</span>
           <Segmented
@@ -215,58 +256,96 @@ export function MatchCompareScreen({
             className="ml-auto"
           />
         </div>
-        <div className="grid min-w-0 grid-cols-2 gap-[10px]">
-          <MatchPane
-            label="유류 이미지"
-            image={crimeImage}
-            look={look}
-            boxes={crimeBoxes}
-            side="crime"
-            activeIndex={activeIndex}
-            onActive={setActiveIndex}
-          />
-          <MatchPane
-            label="발견 이미지"
-            image={shoeImage}
-            look={look}
-            boxes={shoeBoxes}
-            side="shoe"
-            activeIndex={activeIndex}
-            onActive={setActiveIndex}
-          />
-        </div>
-        <ol aria-label="대응 목록" className="grid grid-cols-2 gap-x-[12px] text-[11.5px]">
-          {matches.map((m, i) => (
-            <li
-              key={i}
-              data-pair-row={i}
-              data-active={activeIndex === i ? "true" : undefined}
-              tabIndex={0}
-              onMouseEnter={() => setActiveIndex(i)}
-              onMouseLeave={() => setActiveIndex(null)}
-              onFocus={() => setActiveIndex(i)}
-              onBlur={() => setActiveIndex(null)}
-              className={cn(
-                "grid grid-cols-[22px_minmax(0,1fr)_110px] items-center gap-[8px] border-b border-solid border-line-2 px-[4px] py-[4px] outline-none",
-                activeIndex === i && "bg-brand-bg",
-              )}
-            >
-              <b className="font-code tabular-nums text-foreground">{i + 1}</b>
-              <span className="truncate font-code tabular-nums text-muted-foreground">
-                {`현장 (${Math.round(m.fx)}, ${Math.round(m.fy)}) ↔ 신발 (${Math.round(m.sx)}, ${Math.round(m.sy)})`}
+        <PairStage
+          crimeImage={crimeImage}
+          shoeImage={shoeImage}
+          look={look}
+          crimeBoxes={crimeBoxes}
+          shoeBoxes={shoeBoxes}
+          activeIndex={activeIndex}
+          onActive={setActiveIndex}
+          crimeCaption={caseInfo.aprthngNo ?? ""}
+          shoeCaption={shoeInfo.ftwrId}
+          insight={plus}
+        />
+        {plus ? (
+          <>
+            <div data-plus data-pair-legend className="flex flex-wrap items-center gap-x-[12px] gap-y-[4px] text-[11px] text-muted-foreground">
+              <AiTag>{`AI 대응점 ${plus.pairs.length}`}</AiTag>
+              <span className="inline-flex items-center gap-[5px]">
+                <i className="inline-block h-[2px] w-[16px] bg-ai shadow-[0_0_4px_0_var(--t-ai)]" />
+                일치 <b className="font-code text-ai">{okCount}</b>
               </span>
-              <ConfidenceBar value={m.score} scale="unit" label={`대응 ${i + 1} 점수`} />
-            </li>
-          ))}
-        </ol>
+              <span className="inline-flex items-center gap-[5px]">
+                <i className="inline-block w-[16px] border-t-2 border-dashed border-danger-fg" />
+                불일치 <b className="font-code text-danger-fg">{badCount}</b>
+              </span>
+              <span className="inline-flex items-center gap-[5px]">
+                <i className="inline-block w-[16px] border-t border-dashed border-[var(--t-heat-yellow)]" />
+                상·중·하 구역 선
+              </span>
+              <span className="ml-auto text-dim">{`번호 1–${plus.representative} = 대표 대응점(감정관이 옮기거나 지울 수 있음)`}</span>
+            </div>
+            <div data-plus data-zoom-row className="flex flex-wrap items-center gap-[4px]">
+              <span className="text-[11px] text-dim">두 이미지 함께</span>
+              <Button size="sm" onClick={() => action("−")}>
+                −
+              </Button>
+              <span className="font-code text-[11.5px]">160</span>
+              <Button size="sm" onClick={() => action("＋")}>
+                ＋
+              </Button>
+              <Button size="sm" onClick={() => action("좌")}>
+                좌
+              </Button>
+              <span className="font-code text-[11.5px]">0</span>
+              <Button size="sm" onClick={() => action("우")}>
+                우
+              </Button>
+              {VIEWER_TOOLS.map((t) => (
+                <Button key={t} size="sm" variant="ghost" onClick={() => action(t)}>
+                  {t}
+                </Button>
+              ))}
+            </div>
+          </>
+        ) : null}
       </div>
     )
   }
 
+  const pairList =
+    aligned && status === "ready" ? (
+      <ol aria-label="대응 목록" className="grid grid-cols-2 gap-x-[12px] text-[11.5px]">
+        {matches.map((m, i) => (
+          <li
+            key={i}
+            data-pair-row={i}
+            data-active={activeIndex === i ? "true" : undefined}
+            tabIndex={0}
+            onMouseEnter={() => setActiveIndex(i)}
+            onMouseLeave={() => setActiveIndex(null)}
+            onFocus={() => setActiveIndex(i)}
+            onBlur={() => setActiveIndex(null)}
+            className={cn(
+              "grid grid-cols-[22px_minmax(0,1fr)_110px] items-center gap-[8px] border-b border-solid border-line-2 px-[4px] py-[4px] outline-none",
+              activeIndex === i && "bg-brand-bg",
+            )}
+          >
+            <b className="font-code tabular-nums text-foreground">{i + 1}</b>
+            <span className="truncate font-code tabular-nums text-muted-foreground">
+              {`현장 (${Math.round(m.fx)}, ${Math.round(m.fy)}) ↔ 신발 (${Math.round(m.sx)}, ${Math.round(m.sy)})`}
+            </span>
+            <ConfidenceBar value={m.score} scale="unit" label={`대응 ${i + 1} 점수`} />
+          </li>
+        ))}
+      </ol>
+    ) : null
+
   let body: React.ReactNode
   if (status === "loading") {
     body = (
-      // 움직임은 F14 · F17 · F23 에만 쓴다(spec §7) — 대응 계산 대기는 움직이지 않는 글자만 둔다
+      // 움직임은 시안이 움직이는 자리에만 — 대응 계산 대기는 움직이지 않는 글자만 둔다
       <div
         aria-busy="true"
         role="status"
@@ -284,40 +363,21 @@ export function MatchCompareScreen({
   } else {
     body = (
       <div className="grid min-w-0 gap-[10px]">
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_340px] gap-[12px]">
+        <div className="grid min-w-0 grid-cols-[460px_minmax(0,1fr)] gap-[10px]">
           {compare}
-          <table className="h-fit w-full border-collapse text-[11.5px]">
-            <thead>
-              <tr>
-                <th colSpan={2} className="border border-solid border-line-2 bg-strip px-[6px] py-[3px] text-center text-fg-2">
-                  사건정보
-                </th>
-                <th colSpan={2} className="border border-solid border-line-2 bg-strip px-[6px] py-[3px] text-center text-fg-2">
-                  신발정보
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({ length: infoLength }, (_, i) => (
-                <tr key={i}>
-                  {[caseRows[i], shoeRows[i]].map((cell, j) => (
-                    <React.Fragment key={j}>
-                      <th
-                        scope="row"
-                        className="border border-solid border-line-2 bg-strip px-[6px] py-[3px] text-left font-normal whitespace-nowrap text-muted-foreground"
-                      >
-                        {cell?.[0] ?? ""}
-                      </th>
-                      <td className="border border-solid border-line-2 px-[6px] py-[3px] break-keep [overflow-wrap:anywhere] text-fg-2">
-                        {cell ? <span className={cn(/\d{4}/.test(cell[1]) && "font-code")}>{cell[1]}</span> : null}
-                      </td>
-                    </React.Fragment>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="grid min-w-0 content-start gap-[6px]">
+            {plus ? (
+              <div data-plus className="grid gap-[6px]">
+                <span className="rounded-[4px] bg-strip px-[6px] py-[3px] text-[11.5px] text-muted-foreground">측면 이미지</span>
+                <span className="relative block h-[104px] overflow-hidden rounded-[10px] border border-solid border-border bg-canvas">
+                  <img src={plus.sideImage} alt="측면 이미지" className="block size-full object-contain" />
+                </span>
+              </div>
+            ) : null}
+            <InfoTable caseRows={caseRows} shoeRows={shoeRows} />
+          </div>
         </div>
+        {pairList}
         <div className="grid grid-cols-2 gap-[10px]">
           <PatternColumn title="유류 이미지 문양" patterns={crimePatterns} />
           <PatternColumn title="발견 이미지 문양" patterns={shoePatterns} />
@@ -332,16 +392,44 @@ export function MatchCompareScreen({
         className="min-w-0"
         title="현장문양검색결과 상세조회"
         actions={
-          <>
+          <span className="inline-flex flex-wrap items-center gap-[8px]">
+            {plus ? (
+              <span data-plus className="inline-flex items-center gap-[6px]">
+                <Chip>{`처리 구분 ${plus.processType}`}</Chip>
+                <span className="text-[12px] text-muted-foreground">{`목적: ${plus.purpose}`}</span>
+              </span>
+            ) : null}
             <span className="inline-flex gap-[6px] font-code text-[12px] text-muted-foreground">
               <span className="text-fg-2">{`No. ${shoeInfo.ftwrId}`}</span>
               {ranking != null ? <span className="tabular-nums">{`#${ranking}`}</span> : null}
             </span>
-            {buttons}
-          </>
+          </span>
         }
       >
-        <div className="p-[12px_14px_14px]">{body}</div>
+        <div className="@container p-[12px_14px_14px]">
+          <div className={cn("grid min-w-0 gap-[14px]", plus && status === "ready" && "@min-[1120px]:grid-cols-[820px_minmax(0,1fr)]")}>
+            <div className="grid min-w-0 content-start gap-[8px]">
+              <div className="flex justify-end">{buttons}</div>
+              {showPlus && roles.analyst && asking ? (
+                <div
+                  data-plus
+                  data-confirm-bar
+                  className="flex items-center gap-[8px] justify-self-end rounded-[8px] border border-solid border-warn-line bg-warn-bg py-[4px] pr-[6px] pl-[10px] text-[12px] text-fg-2"
+                >
+                  확인대상에 등록하시겠습니까?
+                  <Button size="sm" variant="ok" disabled={!canWrite} onClick={onConfirmTarget}>
+                    예
+                  </Button>
+                  <Button size="sm" onClick={() => setAsking(false)}>
+                    아니오
+                  </Button>
+                </div>
+              ) : null}
+              {body}
+            </div>
+            {plus && status === "ready" ? <PrecisionPanel insight={plus} roles={roles} /> : null}
+          </div>
+        </div>
       </Panel>
 
       <DialogShell

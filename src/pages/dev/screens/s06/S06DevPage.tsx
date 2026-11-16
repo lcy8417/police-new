@@ -5,16 +5,19 @@ import { toast } from "sonner"
 import type { Alignment } from "@/entities/alignment"
 import { MatchCompareScreen } from "@/widgets/match-compare"
 
-import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevViewer } from "../frame"
+import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevPlus, useDevViewer } from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
-import { fakeSoleUrl } from "../mock-assets/FakeSole"
-import type { ZoneTriple } from "../mock-assets/fake-art"
+import { FakeSole, fakeSoleUrl, SOLE_PALETTE } from "../mock-assets/FakeSole"
+import { resolvePalette, type ZoneTriple } from "../mock-assets/fake-art"
+import { svgToUrl } from "../mock-assets/svg-url"
 import { AlignmentDecor } from "./AlignmentDecor"
+import { fakeSideShoeUrl } from "./fake-side-shoe"
 import {
   CASE_INFO,
   CRIME_PATTERNS,
   CRIME_SIZE,
   FAKE_ALIGNMENT,
+  makeMatchInsight,
   MATCHES,
   S06_DEFAULT_FTWR,
   S06_ERROR_AT,
@@ -37,6 +40,7 @@ export function S06DevPage() {
   const ranking = Number.isInteger(rankParam) && rankParam > 0 ? rankParam : null
   const activeCase = useDevCase(SCREEN_CASES.s06, "ready")
   const viewer = useDevViewer()
+  const showPlus = useDevPlus()
   const [savedAlignment, setSavedAlignment] = useState<Alignment | null>(null)
   const alignment = activeCase === "no-alignment" ? savedAlignment : FAKE_ALIGNMENT
 
@@ -54,6 +58,19 @@ export function S06DevPage() {
       sketch: fakeSoleUrl({ kind: "bin", zones: ZONES }),
       ...SHOE_SIZE,
     }),
+    [],
+  )
+  const insight = useMemo(
+    () =>
+      makeMatchInsight({
+        overlayCrime: fakePhotoUrl({ zones: ZONES, rotate: 0, tag: "", ruler: false }),
+        overlayShoe: svgToUrl(
+          <FakeSole kind="shoe" zones={ZONES} palette={{ ...resolvePalette(SOLE_PALETTE.shoe), ground: "transparent" }} />,
+        ),
+        cropCrime: fakePhotoUrl({ zones: ZONES, rotate: 0, tag: "", ruler: false, look: "contrast" }),
+        cropShoe: fakeSoleUrl({ kind: "shoe", zones: ZONES }),
+        side: fakeSideShoeUrl(),
+      }),
     [],
   )
 
@@ -85,6 +102,9 @@ export function S06DevPage() {
         }}
         onConfirmTarget={() => to("/dev/s07", { ftwr: ftwrId })}
         onClose={() => to("/dev/s05")}
+        showPlus={showPlus}
+        insight={insight}
+        onPlusAction={(label) => toast("시안 — 기능 준비 중", { description: label })}
       />
     </DevScreenFrame>
   )

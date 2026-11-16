@@ -34,8 +34,8 @@ describe("S06 상세 조회 · 정밀 대조 진열 페이지", () => {
     expect(pairs("shoe")!.querySelectorAll("[data-pair]")).toHaveLength(10)
   })
 
-  it("버튼 줄은 SCAS 순서 그대로, 새 「정렬 설정」은 맨 끝", () => {
-    renderAt("?case=ready&as=admin")
+  it("버튼 줄은 SCAS 순서 그대로, 새 「정렬 설정」은 맨 끝(신규 기능 끔 — 1차 그대로)", () => {
+    renderAt("?case=ready&as=admin&plus=0")
     const bar = document.querySelector('[data-part="ButtonBar"]') as HTMLElement
     expect(within(bar).getAllByRole("button").map((b) => b.textContent)).toEqual([
       "이전",
@@ -117,18 +117,115 @@ describe("S06 상세 조회 · 정밀 대조 진열 페이지", () => {
     expect(pairs("crime")).toBeNull()
   })
 
-  it("readonly 보기에서 「확인대상」 · 「정렬 저장」이 disabled", () => {
-    renderAt("?case=no-alignment&as=readonly")
+  it("readonly 보기에서 「확인대상」 · 「정렬 저장」이 disabled(신규 기능 끔 — 1차 그대로)", () => {
+    renderAt("?case=no-alignment&as=readonly&plus=0")
     expect(screen.getByRole("button", { name: "확인대상" })).toBeDisabled()
     fireEvent.click(screen.getByRole("button", { name: "정렬 설정하러 가기" }))
     expect(within(screen.getByRole("dialog")).getByRole("button", { name: "정렬 저장" })).toBeDisabled()
   })
 
-  it("시안의 +α(대응점 39 · 지표 4개 · 종합 신뢰도 · AI 미리 대조)는 담지 않는다", () => {
-    renderAt("?case=ready")
-    expect(screen.queryByText(/대응점 39/)).toBeNull()
+  it("?plus=0 이면 [data-plus] 가 하나도 없고 1차 내용(대응 박스 · 목록 · 표 · 문양)은 그대로", () => {
+    renderAt("?case=ready&plus=0")
+    expect(document.querySelectorAll("[data-plus]")).toHaveLength(0)
+    expect(screen.queryByText(/AI 대응점/)).toBeNull()
     expect(screen.queryByText(/Inlier/)).toBeNull()
-    expect(screen.queryByText(/종합 신뢰도/)).toBeNull()
     expect(screen.queryByText(/AI가 미리 대조/)).toBeNull()
+    expect(screen.queryByText("SCAS번호")).toBeNull()
+    expect(pairs("crime")!.querySelectorAll("[data-pair]")).toHaveLength(10)
+    expect(screen.getByRole("list", { name: "대응 목록" })).toBeInTheDocument()
+    expect(screen.getByText("유류 이미지 문양")).toBeInTheDocument()
+    expect(screen.getByText("이미지번호")).toBeInTheDocument()
+  })
+})
+
+describe("S06 r2 — 시안 +α", () => {
+  it("대표 +α 가 시안 문구로 보인다(대응점 39 · 일치 28 / 불일치 11 · AI 미리 대조 · 부위별 근거 · AI 의견)", () => {
+    renderAt("?case=ready")
+    expect(screen.getByText("AI 대응점 39")).toBeInTheDocument()
+    const legend = document.querySelector("[data-pair-legend]") as HTMLElement
+    expect(within(legend).getByText("28")).toBeInTheDocument()
+    expect(within(legend).getByText("11")).toBeInTheDocument()
+    expect(document.querySelectorAll("[data-pair-line]")).toHaveLength(39)
+    expect(document.querySelectorAll('[data-pair-line][data-ok="false"]')).toHaveLength(11)
+    expect(screen.getByText("AI가 미리 대조해 둠")).toBeInTheDocument()
+    expect(screen.getByText("412↔398")).toBeInTheDocument()
+    expect(screen.getByText("AI 의견 · 참고")).toBeInTheDocument()
+    expect(screen.getByText("AI 정합 −4.0° 보정")).toBeInTheDocument()
+    expect(document.querySelectorAll("[data-basis-zone]")).toHaveLength(3)
+    expect(screen.getByText("헤링본 줄 9 ↔ 9줄 · 기울기 32° ↔ 31°")).toBeInTheDocument()
+    expect(screen.getByText("대응 6/14")).toBeInTheDocument()
+    expect(screen.getByRole("img", { name: "종합 신뢰도 87%" })).toBeInTheDocument()
+    // 사건 · 신발 정보 표의 SCAS 칸이 시안 순서로 채워진다
+    expect(screen.getByText("전사판채취법")).toBeInTheDocument()
+    expect(screen.getByText("용의자신발")).toBeInTheDocument()
+  })
+
+  it("버튼 줄: 감정관은 「닫기」 뒤 「근거 이미지 감정서에 첨부」, 맨 끝 「정렬 설정」", () => {
+    renderAt("?case=ready&as=analyst")
+    const bar = document.querySelector('[data-part="ButtonBar"]') as HTMLElement
+    expect(within(bar).getAllByRole("button").map((b) => b.textContent)).toEqual([
+      "이전",
+      "다음",
+      "그룹등록",
+      "확인대상",
+      "프린트",
+      "닫기",
+      "근거 이미지 감정서에 첨부",
+      "정렬 설정",
+    ])
+  })
+
+  it("확인 막대 「예」 → S07(판정)으로, 「아니오」 → 막대가 닫힌다", () => {
+    const first = renderAt("?case=ready&ftwr=00758&as=analyst")
+    const bar = document.querySelector("[data-confirm-bar]") as HTMLElement
+    expect(within(bar).getByText("확인대상에 등록하시겠습니까?")).toBeInTheDocument()
+    fireEvent.click(within(bar).getByRole("button", { name: "아니오" }))
+    expect(document.querySelector("[data-confirm-bar]")).toBeNull()
+    first.unmount()
+    renderAt("?case=ready&ftwr=00758&as=analyst")
+    fireEvent.click(within(document.querySelector("[data-confirm-bar]") as HTMLElement).getByRole("button", { name: "예" }))
+    expect(screen.getByTestId("where")).toHaveTextContent("/dev/s07?ftwr=00758&as=analyst")
+  })
+
+  it("보는 사람 — 기술책임자는 그룹등록 · 확인대상 · 감정서 첨부 · 확인 막대가 없고 「읽기 전용」 안내", () => {
+    renderAt("?case=ready&as=verifier")
+    expect(screen.queryByRole("button", { name: "확인대상" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "그룹등록" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "근거 이미지 감정서에 첨부" })).toBeNull()
+    expect(document.querySelector("[data-confirm-bar]")).toBeNull()
+    expect(screen.getByText("기술책임자: 읽기 전용(결재 참고)")).toBeInTheDocument()
+    expect(screen.queryByText("감정관: 확인대상·그룹등록·감정서 첨부")).toBeNull()
+  })
+
+  it("보는 사람 — 감정관은 감정관 안내, 수사관은 「이 팝업 없음」 안내", () => {
+    const a = renderAt("?case=ready&as=analyst")
+    expect(screen.getByText("감정관: 확인대상·그룹등록·감정서 첨부")).toBeInTheDocument()
+    expect(screen.queryByText("기술책임자: 읽기 전용(결재 참고)")).toBeNull()
+    a.unmount()
+    renderAt("?case=ready&as=investigator")
+    expect(screen.getByText("수사관: 이 팝업 없음 — 결재완료 감정서로만")).toBeInTheDocument()
+  })
+
+  it("정밀 대조 보기 「대응점 · 겹쳐 보기 · 히트맵」(기본 겹쳐 보기)과 접기", () => {
+    renderAt("?case=ready")
+    const seg = screen.getByRole("group", { name: "정밀 대조 보기" })
+    expect(within(seg).getByRole("button", { name: "겹쳐 보기" })).toHaveAttribute("aria-pressed", "true")
+    fireEvent.click(within(seg).getByRole("button", { name: "히트맵" }))
+    expect(document.querySelector("[data-overlay-preview]")).toHaveAttribute("data-overlay-preview", "heat")
+    fireEvent.click(screen.getByRole("button", { name: "덧붙임 · 접기 ▴" }))
+    expect(screen.queryByText("AI가 미리 대조해 둠")).toBeNull()
+  })
+
+  it("움직임 줄이기: 움직임은 모두 motion-safe: 로만(훑기 선 · 실시간 점)", () => {
+    renderAt("?case=ready")
+    const animated = Array.from(document.querySelectorAll('[class*="animate-"]')).flatMap((el) =>
+      String(el.getAttribute("class"))
+        .split(/\s+/)
+        .filter((c) => c.includes("animate-")),
+    )
+    expect(animated.length).toBeGreaterThan(0)
+    expect(animated.every((c) => c.startsWith("motion-safe:"))).toBe(true)
+    expect(document.querySelector('[data-match-image="crime"] [data-part="ScanOverlay"]')).not.toBeNull()
+    expect(document.querySelector('[data-precision] [data-part="LiveDot"]')).not.toBeNull()
   })
 })
