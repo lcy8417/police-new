@@ -6,16 +6,16 @@ import { passwordRuleError } from "@/entities/session"
 import { USER_FORM_MESSAGES, USER_ID_PATTERN } from "@/features/admin-users"
 import { AdminUsersScreen, type UserDialogState, type UserDraft } from "@/widgets/admin-users-screen"
 
-import { DEV_CASES, DEV_SCREENS, DevScreenFrame, useDevCase, useDevViewer } from "../frame"
+import { devScreen, DevScreenFrame, SCREEN_CASES, useDevCase, useDevViewer } from "../frame"
 import { MOCK_CURRENT_USER_ID, MOCK_FEATURES, MOCK_ORGS, MOCK_ROLES, MOCK_USERS } from "./mock-cases"
 
-const info = DEV_SCREENS.find((s) => s.id === "s13")!
+const info = devScreen("s13")
 
 const draftOf = (u: AdminUser): UserDraft => ({ userNm: u.userNm, userSe: u.userSe, orgId: u.orgId, features: u.features, roles: u.roles })
 
 // S13 사용자 관리 진열 페이지: 사용자 목록 · 선택 · 편집 값 · 열린 창을 여기서 들고(제어형) 눌러 보면 바뀐다.
 export function S13DevPage() {
-  const activeCase = useDevCase(DEV_CASES, "ready")
+  const activeCase = useDevCase(SCREEN_CASES.s13,"ready")
   const viewer = useDevViewer()
   const [users, setUsers] = useState<AdminUser[]>(MOCK_USERS)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(MOCK_USERS[0].userId)
@@ -60,7 +60,7 @@ export function S13DevPage() {
   const rows = status === "empty" ? [] : users
 
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={DEV_CASES}>
+    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
       <AdminUsersScreen
         status={status}
         errorAt="14:05"

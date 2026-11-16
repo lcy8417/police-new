@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import {
@@ -10,22 +10,19 @@ import {
   type CaseImage,
 } from "@/widgets/case-detail"
 
-import { DEV_SCREENS, DevScreenFrame, useDevCase, useDevViewer } from "../frame"
+import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevViewer } from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { DETAIL_FORM, EMPTY_FORM, OFFICE_ITEMS, PENDING_VALUES, makeImages } from "./mock-cases"
 
-const info = DEV_SCREENS.find((s) => s.id === "s02")!
-// 사건 상세에는 「결과 없음」이 없다
-const S02_CASES = ["ready", "loading", "error"] as const
+const info = devScreen("s02")
 
 // S02 사건 상세·등록 진열 페이지. `?id=` 가 있으면 열어 본 사건, 없으면 새 등록.
 export function S02DevPage() {
-  const devCase = useDevCase(S02_CASES, "ready")
+  const devCase = useDevCase(SCREEN_CASES.s02,"ready")
   const viewer = useDevViewer()
-  const navigate = useNavigate()
+  const to = useDevNavigate()
   const [params] = useSearchParams()
   const id = params.get("id")
-  const as = params.get("as")
 
   const [mode, setMode] = React.useState<"detail" | "register">(id ? "detail" : "register")
   const [form, setForm] = React.useState<CaseDetailForm>(id ? { ...DETAIL_FORM, apprslReqestNo: id } : EMPTY_FORM)
@@ -35,12 +32,6 @@ export function S02DevPage() {
   const [continuous, setContinuous] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
 
-  const to = (path: string, extra?: Record<string, string>) => {
-    const q = new URLSearchParams(extra)
-    if (as) q.set("as", as)
-    const s = q.toString()
-    navigate(s ? `${path}?${s}` : path)
-  }
   const caseId = mode === "detail" ? form.apprslReqestNo : undefined
 
   const onFieldChange = (name: CaseDetailFieldName, value: string) => {
@@ -112,7 +103,7 @@ export function S02DevPage() {
   }
 
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={S02_CASES}>
+    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
       <CaseDetailScreen
         status={devCase}
         errorAt="09:12"
@@ -142,8 +133,6 @@ export function S02DevPage() {
         onSave={onSave}
         onReset={resetForm}
         onClose={() => to("/dev/s01")}
-        onPrev={() => toast("이전 사건은 목록의 정렬 순서를 따릅니다(가짜 데이터)")}
-        onNext={() => toast("다음 사건은 목록의 정렬 순서를 따릅니다(가짜 데이터)")}
         onCopy={() => {
           // 사건복사: 값은 그대로 두고 번호만 비워 새 등록으로 바꾼다
           setForm((f) => ({ ...f, apprslReqestNo: "" }))

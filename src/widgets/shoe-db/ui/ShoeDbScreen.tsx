@@ -97,17 +97,23 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
       <Button size="sm" variant="pri" onClick={onSearch}>
         조회
       </Button>
-      <Button size="sm" disabled title={PENDING}>
-        엑셀
-      </Button>
+      <span title={PENDING} className="inline-flex">
+        <Button size="sm" disabled>
+          엑셀
+        </Button>
+      </span>
       {canEdit && (
         <>
-          <Button size="sm" variant="danger" disabled title={PENDING}>
-            삭제
-          </Button>
-          <Button size="sm" variant="ok" disabled title={PENDING}>
-            승인
-          </Button>
+          <span title={PENDING} className="inline-flex">
+            <Button size="sm" variant="danger" disabled>
+              삭제
+            </Button>
+          </span>
+          <span title={PENDING} className="inline-flex">
+            <Button size="sm" variant="ok" disabled>
+              승인
+            </Button>
+          </span>
           <Button size="sm" onClick={onRegister}>
             등록
           </Button>
@@ -119,9 +125,11 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
       {canEdit && (
         <>
           <span aria-hidden="true" className="h-[20px] w-px bg-line-3" />
-          <Button size="sm" disabled title={PENDING}>
-            엑셀 일괄 등록
-          </Button>
+          <span title={PENDING} className="inline-flex">
+            <Button size="sm" disabled>
+              엑셀 일괄 등록
+            </Button>
+          </span>
         </>
       )}
     </ButtonBar>

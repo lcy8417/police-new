@@ -100,6 +100,15 @@ describe("S01DevPage 사건관리 목록", () => {
     expect(names.slice(0, 6)).toEqual(["목록보기", "문양보기", "초기화", "엑셀", "조회", "등록"])
   })
 
+  it("앱에 없는 「엑셀」 · 「문양보기」 는 잠기고 「준비 중」 안내가 붙는다", () => {
+    renderAt("/dev/s01?case=ready")
+    expect(screen.getByRole("button", { name: "엑셀" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "엑셀" }).parentElement).toHaveAttribute("title", "준비 중")
+    const pattern = screen.getByText("문양보기")
+    expect(pattern.closest("button")).toBeDisabled()
+    expect(pattern.closest("[title]")).toHaveAttribute("title", "준비 중")
+  })
+
   it("readonly 보기에서 「등록」 버튼이 없다", () => {
     renderAt("/dev/s01?case=ready&as=readonly")
     expect(screen.queryByRole("button", { name: "등록" })).toBeNull()

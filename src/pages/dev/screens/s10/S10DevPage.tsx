@@ -10,14 +10,14 @@ import {
 } from "@/widgets/shoe-db";
 
 import {
-  DEV_SCREENS,
   DevScreenFrame,
+  SCREEN_CASES,
+  devScreen,
   useDevCase,
   useDevViewer,
 } from "../frame";
 import {
   makeS10Shoes,
-  S10_CASES,
   S10_DUPLICATE_MESSAGE,
   S10_EMPTY_FILTERS,
   S10_OFFICES,
@@ -26,7 +26,7 @@ import {
   type S10Case,
 } from "./mock-cases";
 
-const info = DEV_SCREENS.find((s) => s.id === "s10")!;
+const info = devScreen("s10");
 
 const BLANK: Shoe = {
   ftwrId: "",
@@ -44,10 +44,10 @@ const BLANK: Shoe = {
 
 // S10 신발문양 관리 진열 페이지. 값은 가짜, 저장은 토스트로만 확인한다.
 export function S10DevPage() {
-  const caseName = useDevCase(S10_CASES, "ready");
+  const caseName = useDevCase(SCREEN_CASES.s10, "ready");
   // 케이스를 바꾸면 안쪽 상태를 새로 시작한다(전환 막대는 다시 불러오지 않고 주소만 바꾸므로)
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={S10_CASES}>
+    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
       <S10Body key={caseName} caseName={caseName} />
     </DevScreenFrame>
   );

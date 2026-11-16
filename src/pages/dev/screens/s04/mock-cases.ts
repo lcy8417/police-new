@@ -2,10 +2,12 @@ import type { CrimeHistoryRow } from "@/entities/crime"
 import type { EssentialFlag, PatternZone } from "@/entities/pattern"
 import type { ExtractState, MatchConditionValues, PaletteKind } from "@/widgets/pattern-code"
 
+import type { SCREEN_CASES } from "../frame/dev-screens"
+
 // S04 문양 코딩 · 검색 조건 진열 케이스. 숫자는 시안 예시값(감정물 00001-25-0649_2, 상 · 중 n32_04 필수, 점수 0.93 · 0.61 · 0.42 · 0.71).
 // 서버처럼 문양은 「이름」으로 들고 있고, 진열 페이지가 insertPatternPath 로 경로를 붙여 위젯에 넘긴다(docs/pattern-data-model.md §3).
-export const S04_CASES = ["ready", "running", "loading", "error", "empty"] as const
-export type S04Case = (typeof S04_CASES)[number]
+// 케이스 이름의 단일 출처는 frame/dev-screens.ts 의 SCREEN_CASES.
+export type S04Case = (typeof SCREEN_CASES.s04)[number]
 
 /** 서버 모양 그대로의 사건 문양 — `[이름, 필수 0/1]` */
 export type NamedZones = Record<PatternZone, (readonly [string, EssentialFlag])[]>

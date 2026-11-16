@@ -103,7 +103,7 @@ export function LoginScreen(props: LoginScreenProps) {
   const titleId = `${baseId}-title`
 
   return (
-    <main className="relative flex min-h-[calc(100vh-30px)] w-full items-center justify-center overflow-hidden bg-canvas px-[16px] py-[40px] text-foreground">
+    <main className="relative flex flex-1 w-full items-center justify-center overflow-hidden bg-canvas px-[16px] py-[40px] text-foreground">
       <GlowOrb className="-top-40 left-[8%] h-[28rem] w-[28rem] bg-brand-3/15" />
       <GlowOrb className="-right-24 -bottom-32 h-96 w-96 bg-ai/10" />
 

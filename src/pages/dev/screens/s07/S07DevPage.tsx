@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
+import { useLocation } from "react-router-dom"
 import { toast } from "sonner"
 
 import type { CrimeHistoryRow } from "@/entities/crime"
 import { toKstIso } from "@/shared/lib/kst"
 import { ResultConfirmScreen, type ConfirmImageBlock, type Judgement } from "@/widgets/result-confirm"
 
-import { DEV_SCREENS, DevScreenFrame, useDevCase, useDevViewer } from "../frame"
+import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevViewer } from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
 import type { ZoneTriple } from "../mock-assets/fake-art"
@@ -14,12 +14,11 @@ import {
   CASE_SUMMARY,
   makeBlocks,
   NEXT_SEARCH_NO,
-  S07_CASES,
   S07_DEFAULT_FTWR,
   S07_ERROR_AT,
 } from "./mock-cases"
 
-const info = DEV_SCREENS.find((s) => s.id === "s07")!
+const info = devScreen("s07")
 
 // 이미지마다 다른 가짜 사진 무늬 · 기울기(시안 S07 BLOCKS)
 const SCENE: readonly { zones: ZoneTriple; rotate: number }[] = [
@@ -33,12 +32,11 @@ const LABEL: Record<Judgement, string> = { found: "발견", notFound: "불발견
 // S07 검색결과 확인 진열 페이지. 판정 값과 이력은 여기서 들고(제어형), 「결과확인완료」를 누르면
 // 지금 앱처럼 이력 한 줄(발견 = 매칭 신발 ID, 불발견 = 매칭 없음)을 쌓고 알림을 띄운다. `?ftwr=`는 S06 「확인대상」에서 넘어온다.
 export function S07DevPage() {
-  const navigate = useNavigate()
+  const to = useDevNavigate()
   const { search } = useLocation()
   const params = new URLSearchParams(search)
-  const as = params.get("as")
   const ftwr = params.get("ftwr") || S07_DEFAULT_FTWR
-  const activeCase = useDevCase(S07_CASES, "ready")
+  const activeCase = useDevCase(SCREEN_CASES.s07, "ready")
   const viewer = useDevViewer()
 
   const [judgements, setJudgements] = useState<Record<string, Judgement>>({})
@@ -63,20 +61,14 @@ export function S07DevPage() {
     [ftwr, images, added],
   )
 
-  const withAs = (path: string, query: Record<string, string>) => {
-    const q = new URLSearchParams(query)
-    if (as) q.set("as", as)
-    return `${path}?${q.toString()}`
-  }
-
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={S07_CASES}>
+    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
       <ResultConfirmScreen
         status={activeCase}
         errorAt={S07_ERROR_AT}
         onRetry={() => {
           toast("검색 결과를 다시 불러옵니다(진열용)")
-          navigate(withAs("/dev/s07", { case: "ready", ftwr }))
+          to("/dev/s07", { case: "ready", ftwr })
         }}
         isAdmin={viewer.isAdmin}
         features={viewer.features}
@@ -84,13 +76,12 @@ export function S07DevPage() {
         blocks={activeCase === "ready" ? blocks : []}
         judgements={judgements}
         onJudgementChange={(aprthngNo, result) => setJudgements((prev) => ({ ...prev, [aprthngNo]: result }))}
-        onSaveJudgement={({ aprthngNo, ftwrId, result }) => {
-          const target = blocks.find((b) => b.aprthngNo === aprthngNo)?.target
+        onSaveJudgement={({ aprthngNo, ftwrId, ranking, result }) => {
           const count = Object.values(added).reduce((n, rows) => n + rows.length, 0)
           const row: CrimeHistoryRow = {
             searchNo: NEXT_SEARCH_NO + count,
             frstRegistDt: toKstIso().slice(0, 19).replace("T", " "),
-            ranking: target?.ranking ?? 0,
+            ranking,
             mtchgId: result === "found" ? ftwrId : null,
           }
           setAdded((prev) => ({ ...prev, [aprthngNo]: [...(prev[aprthngNo] ?? []), row] }))

@@ -1,34 +1,23 @@
 import * as React from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
-import { CaseListScreen, type CaseListFilters, type CaseListMode } from "@/widgets/case-list"
+import { CaseListScreen, type CaseListFilters } from "@/widgets/case-list"
 
-import { DEV_CASES, DEV_SCREENS, DevScreenFrame, useDevCase, useDevViewer } from "../frame"
+import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevViewer } from "../frame"
 import { EMPTY_FILTERS, S01_PAGE_SIZE, makeCaseRows } from "./mock-cases"
 
-const info = DEV_SCREENS.find((s) => s.id === "s01")!
+const info = devScreen("s01")
 
 // S01 사건관리 진열 페이지: 가짜 값 · 이동 콜백만 위젯에 넘긴다. 입력 칸 · 쪽 · 조회 조건은 여기서 들고 있어 눌러 보면 바뀐다.
 export function S01DevPage() {
-  const devCase = useDevCase(DEV_CASES, "ready")
+  const devCase = useDevCase(SCREEN_CASES.s01,"ready")
   const viewer = useDevViewer()
-  const navigate = useNavigate()
-  const [params] = useSearchParams()
-  const as = params.get("as")
+  const to = useDevNavigate()
 
   const allRows = React.useMemo(() => makeCaseRows(), [])
   const [filters, setFilters] = React.useState<CaseListFilters>(EMPTY_FILTERS)
   const [applied, setApplied] = React.useState<CaseListFilters>(EMPTY_FILTERS)
   const [page, setPage] = React.useState(1)
-  const [mode, setMode] = React.useState<CaseListMode>("list")
-
-  const to = (path: string, extra?: Record<string, string>) => {
-    const q = new URLSearchParams(extra)
-    if (as) q.set("as", as)
-    const s = q.toString()
-    navigate(s ? `${path}?${s}` : path)
-  }
 
   // 목록 열에 값이 있는 조건은 모두 건다(피해자 · 사건장소 · 검거여부 · 타기관여부는 위젯에서 「준비 중」으로 잠김)
   const has = (value: string, needle: string) => value.includes(needle.trim())
@@ -52,7 +41,7 @@ export function S01DevPage() {
   const status = devCase === "ready" && matched.length === 0 ? "empty" : devCase
 
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={DEV_CASES}>
+    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
       <CaseListScreen
         status={status}
         errorAt="09:12"
@@ -74,12 +63,6 @@ export function S01DevPage() {
           setFilters(EMPTY_FILTERS)
           setApplied(EMPTY_FILTERS)
           setPage(1)
-        }}
-        onExport={() => toast("엑셀 내려받기는 준비 중입니다")}
-        listMode={mode}
-        onListModeChange={(m) => {
-          if (m === "pattern") toast("문양보기는 준비 중입니다")
-          else setMode(m)
         }}
         onOpenCase={(no) => to("/dev/s02", { id: no })}
         onRegister={() => to("/dev/s02")}

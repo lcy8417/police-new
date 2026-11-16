@@ -3,9 +3,6 @@ import type { ImageSearchResultItem } from "@/widgets/search-result"
 // S05 검색 결과 진열용 가짜 값. 숫자는 시안 예시(857건 · 이미지번호 00001-25-0646_1)에 맞춘다.
 // 유사도는 imageSearch 응답처럼 퍼센트(0~100), 한 건은 문자열로 온다(서버가 문자열로 줄 수도 있음).
 
-export const S05_CASES = ["ready", "loading", "error", "empty"] as const
-export type S05Case = (typeof S05_CASES)[number]
-
 export const S05_IMAGE_NO = "00001-25-0646_1"
 export const S05_TOTAL = 857
 export const S05_PAGE_SIZE = 20

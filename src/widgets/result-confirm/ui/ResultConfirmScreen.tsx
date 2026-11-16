@@ -160,7 +160,7 @@ export function ResultConfirmScreen({
         value={judgements[block.aprthngNo] ?? null}
         canWrite={canWrite}
         onChange={(result) => onJudgementChange(block.aprthngNo, result)}
-        onSave={(target, result) => onSaveJudgement({ aprthngNo: block.aprthngNo, ftwrId: target.ftwrId, result })}
+        onSave={(target, result) => onSaveJudgement({ aprthngNo: block.aprthngNo, ftwrId: target.ftwrId, ranking: target.ranking, result })}
       />
     ))
   }
@@ -188,7 +188,7 @@ export function ResultConfirmScreen({
           </tbody>
         </table>
       </div>
-      <div className="mx-[14px] mt-[8px] flex h-[32px] items-center rounded-[8px] bg-brand-3 px-[12px] text-[12.5px] font-semibold text-white">
+      <div className="mx-[14px] mt-[8px] flex h-[32px] items-center rounded-[8px] bg-brand-3 px-[12px] text-[12.5px] font-semibold text-foreground">
         검색이력
       </div>
       <div className="min-w-0">{body}</div>

@@ -5,8 +5,7 @@ import { MOCK_USERS } from "../s13/mock-cases"
 
 // S14 사용·감사 기록 진열용 가짜 값. 이름은 가렸고 IP 는 끝자리를 가렸다. 시각은 ISO + `+09:00`(KST).
 
-/** 진열 케이스. frame 의 기본 4개에 「한 쪽이 꽉 찬 경우」(full-page 62개, exact-page 딱 50개 — 다음 쪽이 비어 있음)를 더한다. */
-export const S14_CASES = ["ready", "loading", "error", "empty", "full-page", "exact-page"] as const
+// 진열 케이스(frame/dev-screens.ts): 기본 4개에 「한 쪽이 꽉 찬 경우」(full-page 62개, exact-page 딱 50개 — 다음 쪽이 비어 있음)를 더한다.
 
 export const MOCK_LOG_USERS = MOCK_USERS
 

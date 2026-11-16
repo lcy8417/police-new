@@ -38,6 +38,8 @@ export interface SaveJudgementInput {
   aprthngNo: string
   /** 확인대상 신발 ID(발견이면 mtchgId 로 실려 간다) */
   ftwrId: string
+  /** 확인대상의 검색 순위(이력 `ranking` 으로 저장 — 판정 R17) */
+  ranking: number
   /** 판정 */
   result: Judgement
 }

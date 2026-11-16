@@ -23,8 +23,7 @@ function props(over: Partial<CaseListScreenProps> = {}): CaseListScreenProps {
   return {
     status: "ready", onRetry: vi.fn(), isAdmin: false, features: [FEATURES.CRIME_REGISTER, FEATURES.CRIME_SEARCH],
     rows: [ROW], total: 1, page: 1, pageSize: 14, onPageChange: vi.fn(), filters: FILTERS, onFiltersChange: vi.fn(),
-    onSearch: vi.fn(), onReset: vi.fn(), onExport: vi.fn(), listMode: "list", onListModeChange: vi.fn(),
-    onOpenCase: vi.fn(), onRegister: vi.fn(), onSearchCase: vi.fn(), onConfirmCase: vi.fn(), ...over,
+    onSearch: vi.fn(), onReset: vi.fn(),    onOpenCase: vi.fn(), onRegister: vi.fn(), onSearchCase: vi.fn(), onConfirmCase: vi.fn(), ...over,
   }
 }
 

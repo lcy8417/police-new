@@ -1,8 +1,6 @@
 // S00 로그인 진열용 가짜 값. 문구는 서버가 주는 한국어 detail 모양을 흉내 낸 것이다(진열 전용).
 
-/** 진열 케이스. frame 의 기본 4개에 로그인 전용 3개를 더한다. */
-export const S00_CASES = ["ready", "loading", "failed", "locked", "error", "password-change"] as const
-export type S00Case = (typeof S00_CASES)[number]
+// 진열 케이스(frame/dev-screens.ts): 기본 상태에 로그인 전용(failed · locked · password-change)을 더한다.
 
 /** 아이디 · 비밀번호 불일치(401) — 서버 문구 모양 */
 export const LOGIN_FAILED_MESSAGE = "아이디 또는 비밀번호가 올바르지 않습니다"

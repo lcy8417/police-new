@@ -60,8 +60,6 @@ export function CaseDetailScreen({
   onSave,
   onReset,
   onClose,
-  onPrev,
-  onNext,
   onCopy,
   onOpenImageEdit,
   onOpenSearch,
@@ -208,12 +206,17 @@ export function CaseDetailScreen({
         <ButtonBar variant="modal-head" aria-label="사건 상세 도구">
           {mode === "detail" ? (
             <>
-              <Button size="sm" disabled={!onPrev} onClick={onPrev}>
-                이전
-              </Button>
-              <Button size="sm" disabled={!onNext} onClick={onNext}>
-                다음
-              </Button>
+              {/* 이전 · 다음 사건 이동은 지금 앱에 없어 잠근다(spec §5-2 규칙 3) */}
+              <span title="준비 중" className="inline-flex">
+                <Button size="sm" disabled>
+                  이전
+                </Button>
+              </span>
+              <span title="준비 중" className="inline-flex">
+                <Button size="sm" disabled>
+                  다음
+                </Button>
+              </span>
               {canEdit ? (
                 <Button size="sm" onClick={onCopy}>
                   사건복사

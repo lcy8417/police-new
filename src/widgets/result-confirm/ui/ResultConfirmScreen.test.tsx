@@ -24,11 +24,11 @@ const base: ResultConfirmScreenProps = {
 }
 
 describe("ResultConfirmScreen", () => {
-  it("저장 시 onSaveJudgement({ aprthngNo, ftwrId, result }) — 신발 ID 문자열 그대로", () => {
+  it("저장 시 onSaveJudgement({ aprthngNo, ftwrId, ranking, result }) — 신발 ID 문자열 그대로", () => {
     const onSaveJudgement = vi.fn()
     render(<ResultConfirmScreen {...base} onSaveJudgement={onSaveJudgement} />)
     fireEvent.click(screen.getByRole("button", { name: "결과확인완료" }))
-    expect(onSaveJudgement).toHaveBeenCalledWith({ aprthngNo: "00001-25-0646_1", ftwrId: "00758", result: "found" })
+    expect(onSaveJudgement).toHaveBeenCalledWith({ aprthngNo: "00001-25-0646_1", ftwrId: "00758", ranking: 1, result: "found" })
   })
 
   it("라디오를 누르면 onJudgementChange(이미지 번호, 값)", () => {

@@ -48,6 +48,7 @@
 1. ConfidenceBar `low` · PatternIcon 선택/AI에 눈에 보이는 색 말고 표식(글자 · 아이콘)을 둘지 — 시안에 없음, 지금은 읽는 단서(`aria-valuetext` · `alt`)만.
 2. S03 보기 방식 · 임계값에 kit `Slider` 부품을 추가할지(지금은 숫자 칸; 현재 앱은 슬라이더, R14).
 3. S04 검색이력 열: 브리프(ID · 등록일시 · 순위 · 매칭 신발) vs 시안 SCAS 열(검색번호 · 결과건수 · 검색방법 · 검색결과 · 검색일). 지금은 브리프.
-4. S07 저장 묶음에 `aprthngNo` 추가(`onSaveJudgement({ aprthngNo, ftwrId, result })`) — 이미지 블록마다 판정이라 필요. 브리프엔 없음.
+4. S07 저장 묶음에 `aprthngNo` · `ranking` 추가(`onSaveJudgement({ aprthngNo, ftwrId, ranking, result })`, 판정 R17) — 이미지 블록마다 판정이고 이력에 순위가 실려야 해서 필요. 브리프엔 없음.
 5. 공유 부품 요청: Combobox `aria-label`(+ id/라벨 연결) · Checkbox 토큰색(shadcn hex) · Chip 22px green/red 변형 · DataGrid 행 펼침(+ `aria-label`) · Segmented `disabled` · Avatar 크기(44) · DotGrid 인라인 style · 모양 장식(CropFrame 등)과 S06 AlignmentDecor 합치기.
 6. 문서 정리: `parts-plan.md` 「그대로」 행의 자리 글(S01 · S02 → S00–S14).
+7. 기존 앱 파일 접촉 공개: `src/features/admin-users/index.ts` 에 export 만 추가했다(판정 R11) — 기존 앱 파일 중 손댄 유일한 곳이며 동작 변경 없음.

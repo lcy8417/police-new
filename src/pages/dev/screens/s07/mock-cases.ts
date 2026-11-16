@@ -3,9 +3,6 @@ import type { ConfirmCaseSummary, ConfirmTarget } from "@/widgets/result-confirm
 
 // S07 검색결과 확인 진열용 가짜 값. 시안 S07 예시(감정번호 00001-25-0646 · 이미지 _1 · _2 · _3 · 검색번호 5723xx)에 맞춘다.
 
-export const S07_CASES = ["ready", "loading", "error", "empty"] as const
-export type S07Case = (typeof S07_CASES)[number]
-
 export const S07_ERROR_AT = "17:35"
 export const S07_DEFAULT_FTWR = "00758"
 

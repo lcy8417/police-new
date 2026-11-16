@@ -1,12 +1,13 @@
 import type { Shoe } from "@/entities/shoe"
 import type { ShoeDbFilters, ShoeOfficeItem } from "@/widgets/shoe-db"
 
+import type { SCREEN_CASES } from "../frame/dev-screens"
 import type { ZoneTriple } from "../mock-assets/fake-art"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
 
 // S10 가짜 값. 신발 ID 는 문자열(앞자리 0 보존), 긴 값 1건 포함(가로 넘침 점검).
-export const S10_CASES = ["ready", "loading", "error", "empty", "duplicate"] as const
-export type S10Case = (typeof S10_CASES)[number]
+// 케이스 이름의 단일 출처는 frame/dev-screens.ts 의 SCREEN_CASES.
+export type S10Case = (typeof SCREEN_CASES.s10)[number]
 
 export const S10_PAGE_SIZE = 16
 export const S10_TOTAL = 536

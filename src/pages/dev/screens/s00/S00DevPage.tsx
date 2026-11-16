@@ -1,20 +1,24 @@
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
 import { PASSWORD_MESSAGES, passwordRuleError } from "@/entities/session"
 import { LoginScreen } from "@/widgets/login-screen"
 
-import { DEV_SCREENS, DevScreenFrame, useDevCase } from "../frame"
-import { LOCKED_MESSAGE, LOGIN_FAILED_MESSAGE, MOCK_ACCOUNT, S00_CASES } from "./mock-cases"
+import { DevScreenFrame, devScreen, useDevCase, useDevNavigate } from "../frame"
+import { LOCKED_MESSAGE, LOGIN_FAILED_MESSAGE, MOCK_ACCOUNT } from "./mock-cases"
 
-const info = DEV_SCREENS.find((s) => s.id === "s00")!
+const info = devScreen("s00")
+
+// 로그인 화면은 위쪽 진열 막대(30px)를 뺀 나머지 높이를 채운다
+function Stage({ children }: { children: ReactNode }) {
+  return <div className="flex min-h-[calc(100vh-30px)] flex-col">{children}</div>
+}
 
 // S00 로그인 진열 페이지: 케이스(ready · loading · failed · locked · error · password-change)로 상태를 바꿔 본다.
 // 입력 값은 여기서 들고(제어형), 제출은 검사 문구를 보이거나 다음 진열 화면으로 이동한다.
 export function S00DevPage() {
-  const navigate = useNavigate()
-  const activeCase = useDevCase(S00_CASES, "ready")
+  const to = useDevNavigate()
+  const activeCase = useDevCase(info.cases, "ready")
   const [userId, setUserId] = useState("")
   const [password, setPassword] = useState("")
   const [remember, setRemember] = useState(true)
@@ -37,7 +41,7 @@ export function S00DevPage() {
     onRetry: () => {
       setLocalError(null)
       toast("다시 시도합니다(진열용)")
-      navigate("/dev/s00?case=ready")
+      to("/dev/s00", { case: "ready" })
     },
   } as const
 
@@ -50,10 +54,11 @@ export function S00DevPage() {
       if (next === current) return setLocalError(PASSWORD_MESSAGES.sameAsCurrent)
       setLocalError(null)
       toast.success("비밀번호가 변경되었습니다")
-      navigate("/dev/s01")
+      to("/dev/s01")
     }
     return (
-      <DevScreenFrame screen={info.screen} title={info.title} cases={S00_CASES} bare>
+      <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases} bare>
+        <Stage>
         <LoginScreen
           {...common}
           mode="password-change"
@@ -65,9 +70,10 @@ export function S00DevPage() {
           onConfirmPasswordChange={setConfirm}
           forced
           account={MOCK_ACCOUNT}
-          onSecondary={() => navigate("/dev/s00?case=ready")}
+          onSecondary={() => to("/dev/s00", { case: "ready" })}
           onSubmit={handleSubmit}
         />
+        </Stage>
       </DevScreenFrame>
     )
   }
@@ -76,11 +82,12 @@ export function S00DevPage() {
     if (!userId.trim() || !password) return setLocalError("아이디와 비밀번호를 입력하세요")
     setLocalError(null)
     toast.success("로그인 시안 — 사건관리로 이동합니다")
-    navigate("/dev/s01")
+    to("/dev/s01")
   }
 
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={S00_CASES} bare>
+    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases} bare>
+      <Stage>
       <LoginScreen
         {...common}
         mode="login"
@@ -92,6 +99,7 @@ export function S00DevPage() {
         onRememberChange={setRemember}
         onSubmit={handleSubmit}
       />
+      </Stage>
     </DevScreenFrame>
   )
 }

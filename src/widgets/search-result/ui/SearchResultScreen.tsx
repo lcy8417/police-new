@@ -160,9 +160,11 @@ export function SearchResultScreen({
           <span className="text-[12px] text-muted-foreground">결과형태</span>
           <Segmented items={COLUMN_ITEMS} value={columns} onValueChange={setColumns} aria-label="결과형태" />
           {/* SCAS 버튼 — 확인대상 기능이 지금 앱에 없어 비활성(준비 중) */}
-          <Button size="sm" disabled title={NOT_READY}>
-            확인대상보기
-          </Button>
+          <span title={NOT_READY} className="inline-flex">
+            <Button size="sm" disabled>
+              확인대상보기
+            </Button>
+          </span>
         </span>
       </div>
 

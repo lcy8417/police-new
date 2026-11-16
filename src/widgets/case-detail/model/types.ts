@@ -73,9 +73,6 @@ export interface CaseDetailScreenProps {
   onSave: () => void
   onReset: () => void
   onClose: () => void
-  /** 없으면 「이전」 · 「다음」 이 잠긴다 */
-  onPrev?: () => void
-  onNext?: () => void
   onCopy: () => void
   /** 족윤적 이미지 → 이미지 커팅(S03) */
   onOpenImageEdit: (imageId: string) => void

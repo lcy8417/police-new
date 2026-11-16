@@ -64,8 +64,6 @@ export interface CaseListFilters {
   otherOrg: string
 }
 
-export type CaseListMode = "list" | "pattern"
-
 export interface CaseListScreenProps {
   /** loading · error · empty · ready — 조회 실패를 「결과 없음」으로 덮지 않는다 */
   status: ScreenStatus
@@ -84,9 +82,6 @@ export interface CaseListScreenProps {
   onFiltersChange: (next: CaseListFilters) => void
   onSearch: () => void
   onReset: () => void
-  onExport: () => void
-  listMode: CaseListMode
-  onListModeChange: (mode: CaseListMode) => void
   /** 행(또는 이미지)을 눌러 사건 상세로 */
   onOpenCase: (aprthngNo: string) => void
   /** 사건 등록(권한 있을 때만 버튼이 보인다) */

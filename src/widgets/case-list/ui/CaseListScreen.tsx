@@ -98,9 +98,6 @@ export function CaseListScreen({
   onFiltersChange,
   onSearch,
   onReset,
-  onExport,
-  listMode,
-  onListModeChange,
   onOpenCase,
   onRegister,
   onSearchCase,
@@ -139,9 +136,11 @@ export function CaseListScreen({
   const office = (key: StringFilterKey, label: string) => (
     <span className="flex gap-[4px]">
       {text(key, label)}
-      <Button size="sm-h26" disabled title="준비 중" aria-label={`${label} 찾기`}>
-        검색
-      </Button>
+      <span title="준비 중" className="inline-flex">
+        <Button size="sm-h26" disabled aria-label={`${label} 찾기`}>
+          검색
+        </Button>
+      </span>
     </span>
   )
 
@@ -227,9 +226,11 @@ export function CaseListScreen({
           </Button>
         ) : null}
         {r.progress.registered === 0 && r.progress.searched === 0 ? (
-          <Button size="sm" row disabled title="준비 중">
-            검증요청
-          </Button>
+          <span title="준비 중" className="inline-flex">
+            <Button size="sm" row disabled>
+              검증요청
+            </Button>
+          </span>
         ) : null}
       </span>
     ),
@@ -316,9 +317,11 @@ export function CaseListScreen({
           ),
           col("a3", "검증", (r) =>
             r.progress.registered === 0 && r.progress.searched === 0 ? (
-              <Button size="sm" row disabled title="준비 중">
-                검증요청
-              </Button>
+              <span title="준비 중" className="inline-flex">
+                <Button size="sm" row disabled>
+                  검증요청
+                </Button>
+              </span>
             ) : null
           ),
         ]
@@ -338,22 +341,28 @@ export function CaseListScreen({
           <>
             {showTotal ? <span className="text-[12px] text-dim">전체 {total}건</span> : null}
             <ButtonBar aria-label="사건관리 목록 도구">
-              <RadioRow
-                name="보기"
-                value={listMode}
-                onValueChange={(v) => onListModeChange(v as "list" | "pattern")}
-                options={[
-                  { value: "list", label: "목록보기" },
-                  { value: "pattern", label: "문양보기" },
-                ]}
-                className="mr-[6px] text-[12px]"
-              />
+              {/* 문양보기 · 엑셀은 지금 앱에 없는 기능이라 잠근다(spec §5-2 규칙 3) */}
+              <span title="준비 중" className="mr-[6px] inline-flex">
+                <RadioRow
+                  name="보기"
+                  value="list"
+                  onValueChange={() => undefined}
+                  options={[
+                    { value: "list", label: "목록보기" },
+                    { value: "pattern", label: "문양보기" },
+                  ]}
+                  disabled
+                  className="text-[12px]"
+                />
+              </span>
               <Button size="sm" onClick={onReset}>
                 초기화
               </Button>
-              <Button size="sm" onClick={onExport}>
-                엑셀
-              </Button>
+              <span title="준비 중" className="inline-flex">
+                <Button size="sm" disabled>
+                  엑셀
+                </Button>
+              </span>
               <Button size="sm" onClick={onSearch}>
                 조회
               </Button>

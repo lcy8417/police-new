@@ -253,7 +253,7 @@ src/
 1. `/dev`와 화면 11개가 개발 실행에서 로그인 · 백엔드 없이 열리고, 시안 흐름대로 이동된다.
 2. 화면마다 케이스(정상 · 불러오는 중 · 조회 실패 · 결과 없음 해당 시)와 권한 전환이 된다. 각 케이스를 그리는 테스트가 있다.
 3. §5-1 점검표 33줄 모두 「옮길 화면 · 자리」가 채워져 있다(빠짐 0).
-4. **무변경 확인**: `git diff feat/pilot-db-a --stat`에서 바뀐 파일이 아래 범위 안에만 있다 — `src/widgets/<새 화면 폴더>/**`, `src/pages/dev/**`, `src/shared/ui/{kit,viewer,ai,panel}/**`, `src/shared/lib/screen-status.ts`(새 파일 — 화면 상태 타입), `src/App.jsx`(진열 라우트 추가만), `src/index.css`(토큰 추가만), `.claude/skills/police-ui-design/**`, `docs/**`, `scripts/ui/**`, `tests/ui/**`, 필요 시 `src/assets/**`(가짜 이미지 추가만).
+4. **무변경 확인**: `git diff feat/pilot-db-a --stat`에서 바뀐 파일이 아래 범위 안에만 있다 — `src/widgets/<새 화면 폴더>/**`, `src/pages/dev/**`, `src/shared/ui/{kit,viewer,ai,panel}/**`, `src/shared/lib/screen-status.ts`(새 파일 — 화면 상태 타입), `src/App.jsx`(진열 라우트 추가만), `src/features/admin-users/index.ts`(export-only, R11), `src/index.css`(토큰 추가만), `.claude/skills/police-ui-design/**`, `docs/**`, `scripts/ui/**`, `tests/ui/**`, 필요 시 `src/assets/**`(가짜 이미지 추가만).
 5. `npm run check:ui`(macOS) · `npx tsc --noEmit` · `npx vitest run` · `npm run build` · 변경 파일 `npx eslint` 모두 통과.
 6. 새 코드에 hex 0, 실제 사건 사진 · 실명 0, 서버 호출(`backendFetch` · `services/*` · `entities/*/api` 가져오기)이 위젯 · 진열 페이지에 0.
 7. 일괄 교차 검수 1회 결과와 수정 대조가 노트에 남아 있다.

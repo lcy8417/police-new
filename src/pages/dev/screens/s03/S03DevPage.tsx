@@ -1,5 +1,4 @@
 import * as React from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import type { ThresholdMode } from "@/shared/lib"
@@ -20,11 +19,10 @@ import {
   type ViewAdjustments,
 } from "@/widgets/image-edit"
 
-import { DEV_SCREENS, DevScreenFrame, useDevCase, useDevViewer } from "../frame"
+import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevViewer } from "../frame"
 import { FakePhoto, fakePhotoUrl } from "../mock-assets/FakePhoto"
 import {
   S03_APRTHNG_NO,
-  S03_CASES,
   S03_CROP_LABEL,
   S03_MEASURE_CM,
   S03_MOCK,
@@ -33,7 +31,7 @@ import {
   type S03Case,
 } from "./mock-cases"
 
-const info = DEV_SCREENS.find((s) => s.id === "s03")!
+const info = devScreen("s03")
 
 const CALIBRATE_POINTS: [PctPoint, PctPoint, PctPoint, PctPoint] = [
   { x: 18, y: 6 },
@@ -105,15 +103,7 @@ function FakeCanvas({ tool, rotate, photoSrc }: { tool: ImageEditTool | null; ro
 function S03Stage({ caseName }: { caseName: S03Case }) {
   const mock = S03_MOCK[caseName]
   const viewer = useDevViewer()
-  const navigate = useNavigate()
-  const [params] = useSearchParams()
-  const as = params.get("as")
-  const go = (path: string, extra: Record<string, string> = {}) => {
-    const q = new URLSearchParams(extra)
-    if (as) q.set("as", as)
-    const s = q.toString()
-    navigate(s ? `${path}?${s}` : path)
-  }
+  const go = useDevNavigate()
 
   const [zoom, setZoom] = React.useState(100)
   const [rotation, setRotation] = React.useState(S03_TILT)
@@ -201,9 +191,9 @@ function S03Stage({ caseName }: { caseName: S03Case }) {
 
 // S03 이미지 편집 진열 페이지 — 정본 위젯에 가짜 값 · 이동 콜백만 넘긴다.
 export function S03DevPage() {
-  const caseName = useDevCase(S03_CASES, "ready")
+  const caseName = useDevCase(SCREEN_CASES.s03, "ready")
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={S03_CASES}>
+    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
       <S03Stage key={caseName} caseName={caseName} />
     </DevScreenFrame>
   )

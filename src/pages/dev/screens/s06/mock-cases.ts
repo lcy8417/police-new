@@ -4,9 +4,6 @@ import type { MatchCaseInfo, MatchShoeInfo, ZonePatterns } from "@/widgets/match
 
 // S06 상세 조회 · 정밀 대조 진열용 가짜 값. 사진은 가짜 그림(mock-assets), 값은 시안 예시(00001-25-0646_1 · 대구청)에 맞춘다.
 
-export const S06_CASES = ["ready", "loading", "error", "no-alignment"] as const
-export type S06Case = (typeof S06_CASES)[number]
-
 export const S06_ERROR_AT = "17:31"
 export const S06_DEFAULT_FTWR = "00758"
 

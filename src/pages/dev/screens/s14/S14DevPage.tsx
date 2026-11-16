@@ -3,17 +3,17 @@ import { toast } from "sonner"
 
 import { LOG_PAGE_SIZE, AdminLogsScreen, type LogFilters, type LogTab, type SessionTimeline } from "@/widgets/admin-logs-screen"
 
-import { DEV_SCREENS, DevScreenFrame, useDevCase, useDevViewer } from "../frame"
-import { MANY_SESSIONS, MOCK_ACTIONS, MOCK_EVENTS, MOCK_LOG_USERS, MOCK_SESSIONS, MOCK_TIMELINES, S14_CASES } from "./mock-cases"
+import { devScreen, DevScreenFrame, useDevCase, useDevViewer } from "../frame"
+import { MANY_SESSIONS, MOCK_ACTIONS, MOCK_EVENTS, MOCK_LOG_USERS, MOCK_SESSIONS, MOCK_TIMELINES } from "./mock-cases"
 
-const info = DEV_SCREENS.find((s) => s.id === "s14")!
+const info = devScreen("s14")
 
 const DEFAULT_FILTERS: LogFilters = { userId: "", from: "2026-11-10", to: "2026-11-16", result: "", actionCode: "" }
 const dateOf = (iso: string) => iso.slice(0, 10)
 
 // S14 사용·감사 기록 진열 페이지: 탭 · 필터 · 쪽 번호를 여기서 들고(제어형) 가짜 목록을 걸러 넘긴다.
 export function S14DevPage() {
-  const activeCase = useDevCase(S14_CASES, "ready")
+  const activeCase = useDevCase(info.cases, "ready")
   const viewer = useDevViewer()
   const [tab, setTab] = useState<LogTab>("sessions")
   const [filters, setFilters] = useState<LogFilters>(DEFAULT_FILTERS)
@@ -64,7 +64,7 @@ export function S14DevPage() {
         : "ready"
 
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={S14_CASES}>
+    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
       <AdminLogsScreen
         status={status}
         errorAt="14:05"

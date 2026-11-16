@@ -1,9 +1,11 @@
 import type { DenoiseState, ImageEditTool } from "@/widgets/image-edit"
 
+import type { SCREEN_CASES } from "../frame/dev-screens"
+
 // S03 이미지 편집 진열 케이스. 숫자는 시안 예시값(감정물 00001-25-0649_2, 원본 3,024 × 4,032, 자르기 1,088 × 2,964).
 // 이미지 1장 편집이라 「결과 없음」 케이스가 없고, 대신 AI 노이즈제거가 도는 running · 실패한 denoise-failed 케이스를 둔다.
-export const S03_CASES = ["ready", "running", "denoise-failed", "loading", "error"] as const
-export type S03Case = (typeof S03_CASES)[number]
+// 케이스 이름의 단일 출처는 frame/dev-screens.ts 의 SCREEN_CASES.
+export type S03Case = (typeof SCREEN_CASES.s03)[number]
 
 export interface S03Mock {
   status: "ready" | "loading" | "error"

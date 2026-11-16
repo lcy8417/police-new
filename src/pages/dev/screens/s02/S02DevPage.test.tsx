@@ -23,6 +23,15 @@ function renderAt(url: string) {
 const DETAIL = "/dev/s02?id=00001-25-0649&case=ready"
 
 describe("S02DevPage 사건 상세·등록", () => {
+  it("앱에 없는 「이전」 · 「다음」 은 잠기고 「준비 중」 안내가 붙는다", () => {
+    renderAt(DETAIL)
+    for (const name of ["이전", "다음"]) {
+      const btn = screen.getByRole("button", { name })
+      expect(btn).toBeDisabled()
+      expect(btn.parentElement).toHaveAttribute("title", "준비 중")
+    }
+  })
+
   it("ready 케이스에 사건정보 7칸을 그리고 사건등록번호는 필수로 표시한다", () => {
     const { container } = renderAt(DETAIL)
     const labels = Array.from(container.querySelectorAll('[data-part="SearchForm"] > div > div:nth-child(odd)')).map(

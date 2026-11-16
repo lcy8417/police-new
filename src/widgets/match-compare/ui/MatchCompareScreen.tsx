@@ -2,7 +2,7 @@ import * as React from "react"
 
 import type { FeatureCode } from "@/entities/session"
 import { cn } from "@/shared/lib/utils"
-import { AiProgress, ConfidenceBar } from "@/shared/ui/ai"
+import { ConfidenceBar } from "@/shared/ui/ai"
 import { Button, DialogShell, InlineError, Segmented } from "@/shared/ui/kit"
 import { ButtonBar, Panel } from "@/shared/ui/panel"
 import { PatternIcon, PointPairs, type PointPairBox } from "@/shared/ui/viewer"
@@ -159,21 +159,29 @@ export function MatchCompareScreen({
   const buttons = (
     <ButtonBar variant="modal-head">
       {/* 이전 · 다음 · 그룹등록 · 프린트는 지금 앱에 없는 동작 — SCAS 자리만 지키고 비활성 */}
-      <Button size="sm" disabled title={NOT_READY}>
-        이전
-      </Button>
-      <Button size="sm" disabled title={NOT_READY}>
-        다음
-      </Button>
-      <Button size="sm" disabled title={NOT_READY}>
-        그룹등록
-      </Button>
+      <span title={NOT_READY} className="inline-flex">
+        <Button size="sm" disabled>
+          이전
+        </Button>
+      </span>
+      <span title={NOT_READY} className="inline-flex">
+        <Button size="sm" disabled>
+          다음
+        </Button>
+      </span>
+      <span title={NOT_READY} className="inline-flex">
+        <Button size="sm" disabled>
+          그룹등록
+        </Button>
+      </span>
       <Button size="sm" variant="warn" disabled={!canWrite} onClick={onConfirmTarget}>
         확인대상
       </Button>
-      <Button size="sm" disabled title={NOT_READY}>
-        프린트
-      </Button>
+      <span title={NOT_READY} className="inline-flex">
+        <Button size="sm" disabled>
+          프린트
+        </Button>
+      </span>
       <Button size="sm" onClick={onClose}>
         닫기
       </Button>
@@ -258,8 +266,12 @@ export function MatchCompareScreen({
   let body: React.ReactNode
   if (status === "loading") {
     body = (
-      <div aria-busy="true" className="grid min-h-[360px] place-content-center justify-items-center gap-[10px] text-[12px] text-muted-foreground">
-        <AiProgress state="running" label="대응점 계산 중" className="w-[220px]" />
+      // 움직임은 F14 · F17 · F23 에만 쓴다(spec §7) — 대응 계산 대기는 움직이지 않는 글자만 둔다
+      <div
+        aria-busy="true"
+        role="status"
+        className="grid min-h-[360px] place-content-center justify-items-center gap-[10px] text-[12px] text-muted-foreground"
+      >
         <span>대응점 계산 중</span>
       </div>
     )

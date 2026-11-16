@@ -1,5 +1,4 @@
 import * as React from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { insertPatternPath, type PatternZone } from "@/entities/pattern"
@@ -18,12 +17,11 @@ import {
   type SearchImageSource,
 } from "@/widgets/pattern-code"
 
-import { DEV_SCREENS, DevScreenFrame, useDevCase, useDevViewer } from "../frame"
+import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevViewer } from "../frame"
 import { FakePhoto } from "../mock-assets/FakePhoto"
 import {
   DEFAULT_CODE_NOTE,
   S04_APRTHNG_NO,
-  S04_CASES,
   S04_CODE_NOTES,
   S04_IMAGES,
   S04_MATCH_CONDITIONS,
@@ -34,7 +32,7 @@ import {
   type S04Case,
 } from "./mock-cases"
 
-const info = DEV_SCREENS.find((s) => s.id === "s04")!
+const info = devScreen("s04")
 
 const ZONE_KEYS: PatternZone[] = ["top", "mid", "bottom", "outline"]
 const BANDS: ZoneBand[] = [
@@ -72,15 +70,7 @@ function FakePatternCanvas({ source }: { source: SearchImageSource }) {
 function S04Stage({ caseName }: { caseName: S04Case }) {
   const mock = S04_MOCK[caseName]
   const viewer = useDevViewer()
-  const navigate = useNavigate()
-  const [params] = useSearchParams()
-  const as = params.get("as")
-  const go = (path: string, extra: Record<string, string> = {}) => {
-    const q = new URLSearchParams(extra)
-    if (as) q.set("as", as)
-    const s = q.toString()
-    navigate(s ? `${path}?${s}` : path)
-  }
+  const go = useDevNavigate()
 
   const [aprthngNo, setAprthngNo] = React.useState(S04_APRTHNG_NO)
   const [zones, setZones] = React.useState<NamedZones>(mock.zones)
@@ -187,9 +177,9 @@ function S04Stage({ caseName }: { caseName: S04Case }) {
 
 // S04 문양 코딩 · 검색 조건 진열 페이지 — 정본 위젯에 가짜 값 · 이동 콜백만 넘긴다.
 export function S04DevPage() {
-  const caseName = useDevCase(S04_CASES, "ready")
+  const caseName = useDevCase(SCREEN_CASES.s04, "ready")
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={S04_CASES}>
+    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
       <S04Stage key={caseName} caseName={caseName} />
     </DevScreenFrame>
   )

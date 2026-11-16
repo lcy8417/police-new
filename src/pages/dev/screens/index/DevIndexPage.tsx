@@ -1,8 +1,8 @@
 import { Link, useSearchParams } from "react-router-dom"
 
-import { DEV_CASES, DEV_SCREENS } from "../frame"
+import { DEV_SCREENS } from "../frame"
 
-// `/dev` 목차: 11개 화면 · 케이스 바로가기.
+// `/dev` 목차: 11개 화면 · 화면마다 실제로 있는 케이스 바로가기.
 export function DevIndexPage() {
   // 보는 사람(`as`)은 목차에서 화면으로 넘어갈 때 유지한다
   const as = useSearchParams()[0].get("as")
@@ -24,7 +24,7 @@ export function DevIndexPage() {
               <span className="mr-[8px] font-code text-brand">{s.screen}</span>
               {s.title}
             </Link>
-            {DEV_CASES.map((c) => (
+            {s.cases.map((c) => (
               <Link
                 key={c}
                 to={`/dev/${s.id}?case=${c}${asQuery}`}

@@ -105,4 +105,17 @@ describe("DevScreenFrame", () => {
     renderAt("/dev/s01?as=readonly")
     expect(screen.queryByText("관리")).toBeNull()
   })
+
+  it("기능 권한이 없는 메뉴는 숨긴다(보기 전용은 신발 DB 만)", () => {
+    renderAt("/dev/s01?as=readonly")
+    expect(screen.queryByRole("link", { name: "사건관리" })).toBeNull()
+    expect(screen.queryByRole("link", { name: "정밀 대조" })).toBeNull()
+    expect(screen.getByRole("link", { name: "신발 DB" })).toHaveAttribute("href", "/dev/s10?as=readonly")
+  })
+
+  it("수사관은 사건 화면과 신발 DB 를 본다", () => {
+    renderAt("/dev/s01?as=investigator")
+    expect(screen.getByRole("link", { name: "정밀 대조" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "신발 DB" })).toBeInTheDocument()
+  })
 })
