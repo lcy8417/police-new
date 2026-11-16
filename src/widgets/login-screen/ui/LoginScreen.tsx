@@ -3,7 +3,7 @@ import { Eye, EyeOff, Info, KeyRound, Lock, Monitor, ShieldCheck, UserRound, typ
 
 import { PASSWORD_MAX_BYTES, PASSWORD_MIN_LENGTH } from "@/entities/session"
 import { cn } from "@/shared/lib/utils"
-import { Button, Chip, Field, InlineError } from "@/shared/ui/kit"
+import { Field, InlineError, WorkbenchButton } from "@/shared/ui/kit"
 import { Panel } from "@/shared/ui/panel"
 
 import type { LoginScreenProps } from "../model/types"
@@ -59,7 +59,7 @@ function AuthField({
           autoCapitalize="none"
           invalid={invalid}
           aria-describedby={hint ? `${id}-hint` : undefined}
-          className={`h-[42px] pl-[36px] text-[14px] ${secret ? "pr-[40px]" : ""}`}
+          className={`h-[40px] pl-[36px] text-[13px] ${secret ? "pr-[40px]" : ""}`}
         />
         {secret && (
           <button
@@ -82,35 +82,21 @@ function AuthField({
   )
 }
 
-/** 위 띠: 기관 표시 + 내부망 연결 · 판(시안 r3 위 띠) */
+/**
+ * 위 막대: 기관 표시 + 내부망 연결 · 판. R6 — 앱 틀(ScasShell topbar)과 같은 남색 한 줄(높이 48 · `--t-emblem-to` 바탕 · 종이색 글자)로,
+ * 글로우 동그라미 · 영문 부제 · 흰 칩은 뺐다.
+ */
 function AgencyBand() {
   return (
-    <header
-      data-plus
-      className="relative z-[2] flex h-[64px] items-center gap-[12px] border-b border-solid border-line-2 bg-canvas/80 px-[44px] backdrop-blur-md"
-    >
-      <span
-        aria-hidden="true"
-        className={
-          "grid size-[36px] place-items-center rounded-full text-brand " +
-          "bg-[radial-gradient(circle_at_35%_30%,var(--t-emblem-from),var(--t-emblem-to))] " +
-          "[box-shadow:0_0_18px_0_var(--t-brand-glow),inset_0_0_0_1px_var(--t-brand-line)]"
-        }
-      >
-        <ShieldCheck className="size-[22px]" strokeWidth={1.7} />
-      </span>
-      <span className="grid leading-[1.25]">
-        <b className="text-[14px]">경찰청 과학수사 · 족윤적 감정 플랫폼</b>
-        <span className="font-code text-[10px] font-semibold tracking-[0.22em] text-brand">FORENSIC FOOTWEAR AI PLATFORM</span>
-      </span>
-      <span className="ml-auto flex items-center gap-[8px] text-[11.5px] text-muted-foreground">
-        <Chip>
-          <span aria-hidden="true" className="text-ok">
-            ●
-          </span>
+    <header data-plus className="relative z-[2] flex h-[48px] shrink-0 items-center gap-[10px] bg-[var(--t-emblem-to)] px-[20px] text-paper">
+      <ShieldCheck aria-hidden="true" className="size-[18px] shrink-0" strokeWidth={1.8} />
+      <b className="text-[13px] font-bold whitespace-nowrap">경찰청 과학수사 · 족윤적 감정 플랫폼</b>
+      <span className="ml-auto flex items-center gap-[12px] text-[11px] whitespace-nowrap">
+        <span className="inline-flex items-center gap-[5px]">
+          <i aria-hidden="true" className="size-[6px] rounded-full bg-ok" />
           내부망 연결됨
-        </Chip>
-        <span className="font-code text-dim">v3.0 · 모델 FP-2025.07</span>
+        </span>
+        <span className="font-code text-paper/60">v3.0 · 모델 FP-2025.07</span>
       </span>
     </header>
   )
@@ -171,38 +157,29 @@ export function LoginScreen(props: LoginScreenProps) {
 
   const card = (
     <Panel
-      corners
       aria-labelledby={titleId}
       role="region"
       className={cn(
-        "px-[28px] pt-[26px] pb-[20px]",
-        // 뒤에 깔린 AI 감정 흐름이 은은하게 비치는 유리 카드
-        showPlus &&
-          "border-brand-line/60 bg-panel/80 backdrop-blur-xl backdrop-saturate-150 " +
-            "[box-shadow:inset_0_1px_0_0_var(--t-panel-edge),0_30px_90px_-10px_var(--t-ai-tag-drop),0_0_0_1px_var(--t-brand-line)]",
+        "px-[28px] pt-[24px] pb-[20px]",
+        // R6: 뒤에 깔린 AI 감정 흐름이 은은하게 비치는 카드 — 브랜드 글로우 · 위 색 선은 빼고 옅은 그림자 하나
+        showPlus && "bg-panel/90 backdrop-blur-xl [box-shadow:0_18px_48px_-12px_var(--t-panel-drop)]",
       )}
     >
-      {showPlus && (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute top-0 right-[40px] left-[40px] h-px bg-[linear-gradient(90deg,transparent,var(--t-brand),transparent)] opacity-70"
-        />
-      )}
-      <header className="mb-[18px] flex items-center gap-[12px]">
-        <div className="grid size-[40px] shrink-0 place-items-center rounded-[10px] border border-solid border-brand-line bg-brand-bg text-brand [box-shadow:0_0_24px_0_var(--t-brand-glow)]">
+      <header className="mb-[18px] flex items-center gap-[10px]">
+        <div className="grid size-[32px] shrink-0 place-items-center rounded-[8px] bg-brand-bg text-brand-3">
           <Lock aria-hidden="true" className="size-[15px]" />
         </div>
         <div className="min-w-0">
-          <Heading id={titleId} className="m-0 text-[20px] font-semibold">
+          <Heading id={titleId} className="m-0 text-[16px] font-bold">
             {title}
           </Heading>
-          <div className="text-[12.5px] text-muted-foreground">
+          <div className="text-[11px] text-muted-foreground">
             {isLogin ? (
               "등록된 계정으로 로그인하세요."
             ) : props.account ? (
               <>
                 <span className="text-fg-2">{props.account.userNm}</span>
-                <span className="ml-[6px] font-code text-[12px] text-dim">{props.account.userId}</span>
+                <span className="ml-[6px] font-code text-[11px] text-dim">{props.account.userId}</span>
               </>
             ) : null}
           </div>
@@ -239,7 +216,7 @@ export function LoginScreen(props: LoginScreenProps) {
               autoComplete="current-password"
               invalid={invalid}
             />
-            <div className="flex items-center justify-between gap-[8px] text-[12px] text-muted-foreground">
+            <div className="flex items-center justify-between gap-[8px] text-[12.5px] text-muted-foreground">
               <label className="flex w-fit cursor-pointer items-center gap-[6px] select-none">
                 <input
                   type="checkbox"
@@ -250,7 +227,7 @@ export function LoginScreen(props: LoginScreenProps) {
                 아이디 저장
               </label>
               {showPlus && (
-                <span data-plus className="text-[11.5px] text-dim">
+                <span data-plus className="text-[11px] text-dim">
                   분실 시 관리자에게 초기화 요청
                 </span>
               )}
@@ -294,33 +271,29 @@ export function LoginScreen(props: LoginScreenProps) {
 
         {alert}
 
-        <Button type="submit" variant="pri" disabled={busy} aria-busy={busy} className="h-[42px] w-full justify-center text-[14px] font-semibold">
+        <WorkbenchButton type="submit" variant="primary" disabled={busy} aria-busy={busy} className="h-[40px] w-full justify-center text-[13px]">
           {isLogin ? (busy ? "로그인 중…" : "로그인") : busy ? "변경 중…" : "비밀번호 변경"}
-        </Button>
+        </WorkbenchButton>
         {!isLogin && (
-          <button
-            type="button"
-            onClick={props.onSecondary}
-            className="cursor-pointer border-0 bg-transparent py-[6px] text-center text-[12px] text-muted-foreground hover:text-foreground"
-          >
+          <WorkbenchButton variant="ghost" onClick={props.onSecondary} className="w-full justify-center">
             {props.forced ? "로그아웃" : "취소"}
-          </button>
+          </WorkbenchButton>
         )}
       </form>
 
       {showPlus && props.mode === "login" && (
-        <div data-plus className="mt-[16px] grid gap-[6px] border-t border-solid border-line-2 pt-[12px] pr-[18px] text-[11.5px] leading-[1.5] text-dim">
+        <div data-plus className="mt-[16px] grid gap-[4px] border-t border-solid border-line-2 pt-[10px] text-[11px] leading-[1.5] text-dim">
           {props.lastLogin && (
             <span data-plus>
               지난 로그인 <span className="font-code text-fg-2">{props.lastLogin.at}</span> · PC{" "}
               <span className="font-code text-fg-2">{props.lastLogin.ip}</span> · 그 뒤 실패{" "}
-              <b className="tabular-nums text-warn">{props.lastLogin.failCount}</b>회
+              <b className="tabular-nums text-fg-2">{props.lastLogin.failCount}</b>회
             </span>
           )}
-          <span data-plus className="flex items-start gap-[7px] pr-[10px]">
-            <Monitor aria-hidden="true" className="mt-[2px] size-[14px] shrink-0 text-brand" />
+          <span data-plus className="flex items-center gap-[6px]">
+            <Monitor aria-hidden="true" className="size-[13px] shrink-0 text-muted-foreground" />
             <span>
-              <b className="text-fg-2">경찰 내부망 전용</b> · 조회·다운로드·출력까지 모든 사용 기록이 저장됩니다.
+              <b className="text-fg-2">경찰 내부망 전용</b> · 모든 사용 기록 저장
             </span>
           </span>
         </div>
@@ -362,8 +335,8 @@ export function LoginScreen(props: LoginScreenProps) {
               />
               <div className="relative z-[1] flex w-full max-w-[640px] flex-col items-center">
                 <div className="w-full max-w-[420px]">{card}</div>
-                <p className="mt-[14px] mb-0 rounded-[8px] bg-panel/70 px-[10px] py-[4px] text-center text-[11px] leading-[1.6] text-dim backdrop-blur-sm">
-                  뒤 화면은 AI 감정 흐름 예시입니다 · AI 결과는 「추천」으로만 표시되며 감정관이 확인해야 사건 결과에 들어갑니다.
+                <p className="mt-[12px] mb-0 rounded-[6px] bg-panel/70 px-[10px] py-[3px] text-center text-[11px] text-dim backdrop-blur-sm">
+                  뒤 화면은 AI 감정 흐름 예시 · AI 결과는 「추천」, 확정은 감정관
                 </p>
               </div>
             </div>

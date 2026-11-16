@@ -276,7 +276,7 @@ export function CaseDetailScreen({
               data-plus
               variant="labeled"
               partId="S02-42"
-              steps={["접수", "1차 작업", "검색·판정", "교차 검증", "감정서", "결재"]}
+              steps={["접수", "1차 작업", "검색·판정", "교차 검증", "감정서"]}
               current={extra.stage}
               className="ml-[14px]"
             />

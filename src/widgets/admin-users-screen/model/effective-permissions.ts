@@ -60,7 +60,7 @@ export const ROLE_COLUMNS: readonly RoleColumn[] = [
     memo: "수사관은 발급본 열람",
     isNew: true,
   },
-  { kind: "role", key: "sign", name: "감정서 결재", short: ["감정서", "결재"], on: FEATURES.REPORT_APPROVE, memo: "서명란 감정관·감정관·기술책임자", isNew: true },
+  { kind: "role", key: "sign", name: "감정서 검토", short: ["감정서", "검토"], on: FEATURES.REPORT_APPROVE, memo: "서명란 감정관·감정관·기술책임자", isNew: true },
   { kind: "role", key: "shoe-view", name: "신발 조회", short: ["신발", "조회"], on: FEATURES.SHOE_VIEW, memo: "" },
 ]
 

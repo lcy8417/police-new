@@ -1,22 +1,23 @@
 import type { AdminUser } from "@/entities/admin"
-import { Chip } from "@/shared/ui/kit"
+import { StatePill, type StatePillTone } from "@/shared/ui/kit"
 
 import { USER_STATUS_LABELS, userStatus, type UserStatus } from "@/features/admin-users"
 
-// Chip 에 「초록」 변형이 22 높이로는 없어 색만 토큰 클래스로 덮는다(사용 = 초록 — 시안은 청록을 AI 전용으로 둔다).
-const TONE: Record<UserStatus, { variant: "default" | "amber"; className?: string }> = {
-  ACTIVE: { variant: "default", className: "border-ok-line bg-ok-bg text-ok-fg" },
-  LOCKED: { variant: "amber" },
-  DISABLED: { variant: "default" },
+// R6: 로망 목록 표 결의 작은 상태 알약(StatePill). 사용 = 회색 사실 알약, 잠금만 주황 글자(실제 문제), 중지 = 점선(해당 없음 모양).
+// 색만으로 구분하지 않고 글자를 함께 둔다.
+const TONE: Record<UserStatus, { tone: StatePillTone; className?: string }> = {
+  ACTIVE: { tone: "fact" },
+  LOCKED: { tone: "fact", className: "bg-warn-bg text-warn" },
+  DISABLED: { tone: "notApplicable", className: "text-[10px] font-bold" },
 }
 
-/** 상태 칩 — 사용 · 잠금 · 중지. 색만으로 구분하지 않고 글자를 함께 둔다. */
+/** 상태 알약 — 사용 · 잠금 · 중지 */
 export function UserStatusChip({ user }: { user: Pick<AdminUser, "useAt" | "lockAt"> }) {
   const status = userStatus(user)
-  const tone = TONE[status]
+  const t = TONE[status]
   return (
-    <Chip variant={tone.variant} className={tone.className}>
+    <StatePill tone={t.tone} className={t.className}>
       {USER_STATUS_LABELS[status]}
-    </Chip>
+    </StatePill>
   )
 }

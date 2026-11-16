@@ -132,7 +132,7 @@ export const MOCK_DUTIES: Record<string, ShoeDuty[]> = {
 export const MOCK_DUTY_ROLE_CODES = ["EXAMINER"]
 
 /** 역할 프리셋 설명(시안) */
-export const MOCK_PRESET_HINT = "감정관 = 검색·판단·교차 검증·감정서 작성 / 기술책임자 = 감정서 결재"
+export const MOCK_PRESET_HINT = "감정관 = 검색·판단·교차 검증·감정서 작성 / 기술책임자 = 감정서 검토"
 
 /** 상세 머리 「PC · 그 뒤 실패 n회」(시안 park0412 = 10.14.43.*** · 0회, 나머지는 S14 로그인 기록과 같은 값) */
 export const MOCK_LOGIN_META: Record<string, { ip: string; failCount: number }> = {

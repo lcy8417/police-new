@@ -4,7 +4,7 @@ import { ChevronRight } from "lucide-react"
 import type { AdminSession, LogoutReason } from "@/entities/admin"
 import { formatKstDateTime } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
-import { Chip } from "@/shared/ui/kit"
+import { StatePill } from "@/shared/ui/kit"
 
 import type { SessionTimeline as Timeline } from "../model/types"
 import { SessionTimeline } from "./SessionTimeline"
@@ -28,8 +28,9 @@ const ALL_COLUMNS = [
   { key: "fails", label: "실패 수", right: true },
 ]
 
-const TH = "h-[34px] border-b border-solid border-border bg-strip px-[10px] text-[11.5px] font-semibold whitespace-nowrap text-muted-foreground"
-const TD = "border-b border-solid border-line-2 px-[10px] text-fg-2"
+// R6: 로망 목록 표 결(ListHeadRow · ListRow 와 같은 값) — 머리 32 · 흰 바탕 · 10.5 보통 회색, 줄 12 · 아래 1px 선
+const TH = "h-8 border-b border-solid border-border bg-panel px-[10px] text-[10.5px] font-normal whitespace-nowrap text-muted-foreground"
+const TD = "border-b border-solid border-border px-[10px] text-fg-2"
 
 interface SessionTableProps {
   sessions: AdminSession[]
@@ -54,7 +55,7 @@ export function SessionTable({ sessions, timelines, onRetryTimeline, expandedSes
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-[12.5px]">
+      <table className="w-full border-collapse text-[12px]">
         <thead>
           <tr>
             {COLUMNS.map((c) => (
@@ -76,8 +77,8 @@ export function SessionTable({ sessions, timelines, onRetryTimeline, expandedSes
               const open = expanded.has(s.sessionId)
               return (
                 <Fragment key={s.sessionId}>
-                  <tr aria-selected={open || undefined} className={cn(open ? "bg-brand-bg" : "hover:bg-panel-2")}>
-                    <td className={cn(TD, "h-[44px] w-[40px] pl-[10px]")}>
+                  <tr aria-selected={open || undefined} className={cn(open ? "bg-brand-bg" : "hover:bg-brand-bg/60")}>
+                    <td className={cn(TD, "h-[40px] w-[40px] pl-[10px]")}>
                       <button
                         type="button"
                         aria-label="기능 기록 펼치기"
@@ -89,21 +90,23 @@ export function SessionTable({ sessions, timelines, onRetryTimeline, expandedSes
                       </button>
                     </td>
                     <td className={cn(TD, "h-auto py-[6px] whitespace-normal")}>
-                      <span className="break-all text-foreground">{s.userNm}</span>{" "}
-                      <span className="font-code text-[11.5px] break-all text-dim">{s.userId}</span>
+                      <span className="break-all font-bold text-foreground">{s.userNm}</span>{" "}
+                      <span className="font-code text-[11px] break-all text-dim">{s.userId}</span>
                     </td>
-                    {show("login") && <td className={cn(TD, "font-code text-[12px] whitespace-nowrap tabular-nums")}>{formatKstDateTime(s.loginDt)}</td>}
+                    {show("login") && <td className={cn(TD, "font-code text-[11px] whitespace-nowrap tabular-nums")}>{formatKstDateTime(s.loginDt)}</td>}
                     {show("logout") && (
                       <td className={cn(TD, "whitespace-nowrap")}>
                         {s.logoutDt ? (
-                          <span className="font-code text-[12px] tabular-nums">{formatKstDateTime(s.logoutDt)}</span>
+                          <span className="font-code text-[11px] tabular-nums">{formatKstDateTime(s.logoutDt)}</span>
                         ) : (
-                          <Chip className="border-ok-line bg-ok-bg text-ok-fg">사용 중</Chip>
+                          <StatePill tone="fact" className="bg-ok-bg text-ok-fg">
+                            사용 중
+                          </StatePill>
                         )}
                       </td>
                     )}
                     {show("reason") && <td className={cn(TD, "whitespace-nowrap text-muted-foreground")}>{s.logoutReason ? LOGOUT_REASON_LABELS[s.logoutReason] : "—"}</td>}
-                    {show("ip") && <td className={cn(TD, "h-auto py-[6px] font-code text-[12px] whitespace-normal break-all text-muted-foreground")}>{s.ipAddr ?? "—"}</td>}
+                    {show("ip") && <td className={cn(TD, "h-auto py-[6px] font-code text-[11px] whitespace-normal break-all text-muted-foreground")}>{s.ipAddr ?? "—"}</td>}
                     {show("events") && <td className={cn(TD, "text-right font-code tabular-nums")}>{s.eventCnt}</td>}
                     {show("fails") && <td className={cn(TD, "text-right font-code tabular-nums", s.failCnt > 0 ? "font-semibold text-danger" : "text-faint")}>{s.failCnt}</td>}
                   </tr>

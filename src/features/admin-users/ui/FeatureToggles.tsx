@@ -24,8 +24,8 @@ const FEATURE_HINTS: Record<FeatureCode, string> = {
   EXAM_DECIDE: "감정 판정을 확정합니다(결과확인완료)",
   CROSS_REVIEW: "다른 감정관의 판정을 교차 검증합니다",
   REPORT_WRITE: "감정서를 작성해 제출합니다",
-  REPORT_APPROVE: "제출된 감정서를 결재하거나 반려합니다",
-  REPORT_SEND: "결재된 감정서를 발송합니다",
+  REPORT_APPROVE: "제출된 감정서를 검토해 확정하거나 반려합니다",
+  REPORT_SEND: "확정된 감정서를 발송합니다",
   SHOE_COLLECT_REVIEW: "수집된 신발 자료를 검수합니다",
 }
 

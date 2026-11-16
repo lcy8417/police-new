@@ -16,7 +16,8 @@ const renderAt = (query: string) =>
   )
 
 const admin = (c: string) => renderAt(`?case=${c}&as=admin`)
-const rowOf = (userId: string) => screen.getByText(userId, { selector: "td *, td" }).closest("tr") as HTMLElement
+// R6: 표가 로망 목록 표(role=row · cell)로 바뀜
+const rowOf = (userId: string) => screen.getByText(userId, { selector: '[role="cell"] *, [role="cell"]' }).closest('[role="row"]') as HTMLElement
 
 describe("S13 사용자 관리 진열 페이지", () => {
   it("ready 케이스에 사용자 표와 오른쪽 상세를 그린다", () => {
@@ -100,7 +101,9 @@ describe("S13 사용자 관리 진열 페이지", () => {
     admin("ready")
     const long = MOCK_USERS.find((u) => u.orgNm.length > 30)!
     const cell = within(screen.getByRole("region", { name: "사용자 목록" })).getByText(long.orgNm)
-    expect(cell.closest("td")?.className).toMatch(/whitespace-normal/)
+    // R6: 목록 표 줄 안에서 두 줄까지 줄바꿈, 전체 이름은 마우스 설명
+    expect(cell.className).toMatch(/whitespace-normal/)
+    expect(cell).toHaveAttribute("title", long.orgNm)
   })
 
   it("「사용자 추가」를 누르면 만들기 창이 열린다", () => {
@@ -355,7 +358,7 @@ describe("S13 사용자 관리 — r2 시안 구성", () => {
     const detail = screen.getByRole("region", { name: "사용자 상세" })
     const preset = within(detail).getByRole("group", { name: "역할 프리셋" })
     expect(within(preset).getByRole("button", { name: "감정관" })).toHaveAttribute("aria-pressed", "true")
-    expect(within(detail).getByText("감정관 = 검색·판단·교차 검증·감정서 작성 / 기술책임자 = 감정서 결재")).toBeInTheDocument()
+    expect(within(detail).getByText("감정관 = 검색·판단·교차 검증·감정서 작성 / 기술책임자 = 감정서 검토")).toBeInTheDocument()
     fireEvent.click(within(preset).getByRole("button", { name: "기술책임자" }))
     expect(within(preset).getByRole("button", { name: "기술책임자" })).toHaveAttribute("aria-pressed", "true")
     expect(within(detail).getByRole("button", { name: "역할 저장" })).toBeEnabled()

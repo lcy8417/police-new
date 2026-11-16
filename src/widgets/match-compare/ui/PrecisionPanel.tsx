@@ -248,8 +248,8 @@ export function PrecisionPanel({
 
       <div data-role-notes className="grid gap-[4px] text-[11px] text-muted-foreground">
         {roles.analyst ? <span>감정관: 확인대상·그룹등록·감정서 첨부</span> : null}
-        {roles.verifier ? <span>기술책임자: 읽기 전용(결재 참고)</span> : null}
-        {roles.investigator ? <span>수사관: 이 팝업 없음 — 결재완료 감정서로만</span> : null}
+        {roles.verifier ? <span>기술책임자: 읽기 전용(감정서 검토 참고)</span> : null}
+        {roles.investigator ? <span>수사관: 이 팝업 없음 — 완료된 감정서로만</span> : null}
       </div>
     </aside>
   )

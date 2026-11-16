@@ -669,7 +669,7 @@ export function ResultConfirmScreen({
             </>
           ) : null}
           {roles.verifier ? <Chip>기술책임자: 읽기 전용</Chip> : null}
-          {roles.investigator ? <Chip>수사관: 판정은 결재완료 뒤 공개</Chip> : null}
+          {roles.investigator ? <Chip>수사관: 판정은 감정서 완료 뒤 공개</Chip> : null}
         </div>
       ) : null}
     </Panel>

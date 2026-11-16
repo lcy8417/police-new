@@ -383,7 +383,7 @@ export function ReportCard({ art }: { art: LoginDemoArt }) {
         <span className="text-[10.5px] leading-[1.45] text-muted-foreground">
           감정관이 고치고
           <br />
-          교차 검증 → 결재
+          교차 검증 → 감정서
         </span>
       </div>
     </DemoCard>

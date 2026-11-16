@@ -39,7 +39,7 @@ describe("S02DevPage 사건 상세·등록", () => {
     it("단계 띠 · AI 1차 작업 점검 · 필수 칸 원형 진행 · 접수 경로 · 채취 방법 AI 제안이 시안 문구 그대로 보인다", () => {
       const { container } = renderAt(`${DETAIL}&as=analyst`)
       const stepper = container.querySelector('[data-part="Stepper"][data-part-variant="labeled"]')!
-      expect(stepper.textContent).toBe("접수1차 작업검색·판정교차 검증감정서결재")
+      expect(stepper.textContent).toBe("접수1차 작업검색·판정교차 검증감정서")
       expect(stepper.querySelector('[aria-current="step"]')!.textContent).toBe("1차 작업")
       expect(screen.getByText("AI 1차 작업 점검")).toBeInTheDocument()
       expect(screen.getByText("_4 ↔ _5")).toBeInTheDocument()

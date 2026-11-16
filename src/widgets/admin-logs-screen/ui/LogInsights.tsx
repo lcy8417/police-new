@@ -1,28 +1,42 @@
+import type { ReactNode } from "react"
+
 import { cn } from "@/shared/lib/utils"
-import { CheckList, LiveDot, StatTile } from "@/shared/ui/ai"
-import { Chip } from "@/shared/ui/kit"
-import { Panel } from "@/shared/ui/panel"
+import { CheckList, LiveDot } from "@/shared/ui/ai"
+import { BoardFrame, StatePill } from "@/shared/ui/kit"
+import { PaneHead } from "@/shared/ui/panel"
 
 import type { AdminLogsInsights, AuditKindTone, LogAlert } from "../model/types"
 
 // S14 시안 r3 요약 칸(시간대별 사용량 · 이상 징후 · 기록 무결성)과 오른쪽 칸(감사 항목 · 내려받기 제한 · 관리자 행위).
 // 값은 props 그대로 그리고, 좌표는 시안 차트 그대로(viewBox 400×142).
+// R6: 영문 꼬리표 · 큰 숫자 타일 · 긴 설명을 빼고 칸 머리(PaneHead) + 흰 판(BoardFrame), 알약은 회색 · 실제 문제만 색(StatePill).
 
-const TONE_CHIP: Record<AuditKindTone, string> = {
-  default: "",
-  blue: "border-brand-line bg-brand-bg text-brand",
-  green: "border-ok-line bg-ok-bg text-ok-fg",
-  amber: "border-warn-line bg-warn-bg text-warn",
-  red: "border-danger-line bg-danger-bg text-danger-fg",
-  violet: "border-violet-line bg-violet-bg text-violet",
+/** 알약 색 — 실제 문제(빨강 · 주황)만 색, 나머지는 회색 사실 알약 */
+const TONE_PILL: Record<AuditKindTone, string | undefined> = {
+  default: undefined,
+  blue: undefined,
+  green: "bg-ok-bg text-ok-fg",
+  amber: "bg-warn-bg text-warn",
+  red: "bg-danger-bg text-danger-fg",
+  violet: undefined,
 }
 
 export function KindChip({ label, tone }: { label: string; tone: AuditKindTone }) {
-  return <Chip className={cn("h-[20px] text-[11px]", TONE_CHIP[tone])}>{label}</Chip>
+  return (
+    <StatePill tone="fact" className={TONE_PILL[tone]}>
+      {label}
+    </StatePill>
+  )
 }
 
-function PanelTitle({ children }: { children: string }) {
-  return <h2 className="border-none text-[13px] font-semibold">{children}</h2>
+/** 칸 머리 + 흰 판 */
+function InsightBox({ label, title, end, children }: { label: string; title: string; end?: ReactNode; children: ReactNode }) {
+  return (
+    <section data-plus role="region" aria-label={label} className="grid min-w-0 content-start gap-[8px]">
+      <PaneHead as="h2" title={title} end={end} />
+      <BoardFrame className="mt-0">{children}</BoardFrame>
+    </section>
+  )
 }
 
 /* 시간대별 사용량(시안 핀 10) */
@@ -96,22 +110,17 @@ function ActivityChart({ hourly, weekAvg, nowHour }: AdminLogsInsights["activity
 function ActivityPanel({ activity }: { activity: AdminLogsInsights["activity"] }) {
   const peak = activity.hourly.reduce((best, v, h) => (v > activity.hourly[best] ? h : best), 0)
   return (
-    <Panel
-      data-plus
-      role="region"
-      aria-label="시간대별 사용량"
-      label="ACTIVITY"
-      actions={
-        <>
-          <PanelTitle>시간대별 사용량 · 오늘</PanelTitle>
-          <span className="ml-auto inline-flex items-center gap-[5px] text-[11px] text-dim">
-            <LiveDot state="busy" label="기능 기록 실시간" hideLabel />
-            기능 기록 <b className="tabular-nums text-foreground">{activity.total}</b>건
-          </span>
-        </>
+    <InsightBox
+      label="시간대별 사용량"
+      title="시간대별 사용량 · 오늘"
+      end={
+        <span className="inline-flex items-center gap-[5px] text-[11px] text-dim">
+          <LiveDot state="busy" label="기능 기록 실시간" hideLabel />
+          기능 기록 <b className="tabular-nums text-foreground">{activity.total}</b>건
+        </span>
       }
     >
-      <div className="grid gap-[8px] px-[14px] pt-[6px] pb-[12px]">
+      <div className="grid gap-[8px] px-[14px] pt-[6px] pb-[10px]">
         <ActivityChart {...activity} />
         <div className="flex flex-wrap gap-x-[14px] gap-y-[4px] text-[11px] text-dim">
           <span>
@@ -129,13 +138,21 @@ function ActivityPanel({ activity }: { activity: AdminLogsInsights["activity"] }
             </b>
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-[6px]">
-          <StatTile size="xs" label="로그인" value={activity.logins} />
-          <StatTile size="xs" label="업무 시간 밖" value={activity.offHours} />
-          <StatTile size="xs" glow="danger" valueTone="danger" label="실패·권한 없음" value={activity.failures} />
+        {/* R6: 숫자 타일 3장 대신 한 줄 */}
+        <div className="flex flex-wrap gap-x-[14px] gap-y-[4px] border-0 border-t border-solid border-border pt-[8px] text-[11px] text-muted-foreground">
+          <span>
+            <span>로그인</span> <b className="font-code text-[12.5px] tabular-nums text-foreground">{activity.logins}</b>
+          </span>
+          <span>
+            <span>업무 시간 밖</span> <b className="font-code text-[12.5px] tabular-nums text-foreground">{activity.offHours}</b>
+          </span>
+          <span>
+            <span>실패·권한 없음</span>{" "}
+            <b className={cn("font-code text-[12.5px] tabular-nums", activity.failures > 0 ? "text-danger" : "text-foreground")}>{activity.failures}</b>
+          </span>
         </div>
       </div>
-    </Panel>
+    </InsightBox>
   )
 }
 
@@ -151,31 +168,18 @@ function AlertBadge({ alert }: { alert: LogAlert }) {
 function AlertPanel({ alerts }: { alerts: LogAlert[] }) {
   const open = alerts.filter((a) => a.badgeTone === "red").length
   return (
-    <Panel
-      data-plus
-      role="region"
-      aria-label="이상 징후"
-      label="ALERT"
-      actions={
-        <>
-          <PanelTitle>이상 징후 · 최근 7일</PanelTitle>
-          <span className="ml-auto">
-            <KindChip label={`확인 전 ${open}`} tone="red" />
-          </span>
-        </>
-      }
-    >
+    <InsightBox label="이상 징후" title="이상 징후 · 최근 7일" end={<KindChip label={`확인 전 ${open}`} tone={open > 0 ? "red" : "default"} />}>
       <CheckList
         className="px-[14px] pt-[4px] pb-[6px]"
         items={alerts.map((a) => ({
           tone: a.tone,
           icon: ALERT_ICON[a.tone],
           text: <span className="text-fg-2">{a.title}</span>,
-          detail: <span className="font-code text-[10.5px]">{a.detail}</span>,
+          detail: <span className="font-code text-[10px]">{a.detail}</span>,
           action: <AlertBadge alert={a} />,
         }))}
       />
-    </Panel>
+    </InsightBox>
   )
 }
 
@@ -184,22 +188,10 @@ function AlertPanel({ alerts }: { alerts: LogAlert[] }) {
 function IntegrityPanel({ integrity }: { integrity: AdminLogsInsights["integrity"] }) {
   const last = integrity.chain.length - 1
   return (
-    <Panel
-      data-plus
-      role="region"
-      aria-label="기록 무결성"
-      label="INTEGRITY"
-      actions={
-        <>
-          <PanelTitle>기록 무결성</PanelTitle>
-          <span className="ml-auto">
-            <KindChip label="✓ 변조 없음" tone="green" />
-          </span>
-        </>
-      }
-    >
-      <div className="grid gap-[6px] px-[14px] pt-[6px] pb-[12px]">
+    <InsightBox label="기록 무결성" title="기록 무결성" end={<KindChip label="✓ 변조 없음" tone="default" />}>
+      <div className="grid gap-[6px] px-[14px] pt-[6px] pb-[10px]">
         <svg viewBox="0 0 270 40" role="img" aria-label="해시 사슬" className="block h-[40px] w-full">
+          <title>기록마다 바로 앞 기록의 지문(해시)을 품고 저장 — 한 줄이라도 고치면 뒤 사슬이 모두 어긋남</title>
           {integrity.chain.map((c, i) => (
             <g key={c.no}>
               {i > 0 && <line x1={4 + i * 54 - 10} x2={4 + i * 54} y1={20} y2={20} className="stroke-ok-fg/40" strokeWidth={2} />}
@@ -213,25 +205,22 @@ function IntegrityPanel({ integrity }: { integrity: AdminLogsInsights["integrity
             </g>
           ))}
         </svg>
-        <p className="m-0 text-[10.5px] leading-[1.4] text-dim">
-          기록마다 바로 앞 기록의 지문(해시)을 품고 저장됩니다. 한 줄이라도 고치면 뒤 사슬이 모두 어긋나 바로 드러납니다.
-        </p>
         <CheckList
           items={integrity.checks.map((c) => ({
             tone: "ok" as const,
             text: c.text,
-            action: <span className="font-code text-[10.5px] text-dim">{c.note}</span>,
+            action: <span className="font-code text-[10px] text-dim">{c.note}</span>,
           }))}
         />
       </div>
-    </Panel>
+    </InsightBox>
   )
 }
 
 /** 표 위 요약 한 줄(사용량 · 이상 징후 · 무결성) */
 export function LogPulseRow({ insights }: { insights: AdminLogsInsights }) {
   return (
-    <div data-plus className="mb-[10px] grid items-stretch gap-[12px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_340px]">
+    <div data-plus className="grid items-start gap-[14px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_320px]">
       <ActivityPanel activity={insights.activity} />
       <AlertPanel alerts={insights.alerts} />
       <IntegrityPanel integrity={insights.integrity} />
@@ -242,39 +231,39 @@ export function LogPulseRow({ insights }: { insights: AdminLogsInsights }) {
 /** 표 오른쪽 칸(감사 항목 · 내려받기 제한 · 관리자 행위) */
 export function LogSidePanels({ insights }: { insights: AdminLogsInsights }) {
   return (
-    <div data-plus className="grid min-w-0 content-start gap-[12px]">
-      <Panel role="region" aria-label="감사 항목" label="AUDIT" actions={<PanelTitle>감사 항목 · 오늘</PanelTitle>}>
-        <div className="grid gap-[7px] p-[14px]">
+    <div data-plus className="grid min-w-0 content-start gap-[14px]">
+      <InsightBox label="감사 항목" title="감사 항목 · 오늘">
+        <div className="grid gap-[6px] px-[14px] py-[10px]">
           {insights.auditKinds.map((k) => (
-            <div key={k.label} className="grid grid-cols-[86px_36px_minmax(0,1fr)] items-center gap-[8px] text-[12px]">
+            <div key={k.label} className="grid grid-cols-[84px_36px_minmax(0,1fr)] items-center gap-[8px] text-[12.5px]">
               <span>
                 <KindChip label={k.label} tone={k.tone} />
               </span>
-              <span className="text-right tabular-nums text-foreground">{k.count}</span>
-              <span className="text-[11.5px] text-dim">{k.desc}</span>
+              <span className="text-right font-code tabular-nums text-foreground">{k.count}</span>
+              <span className="text-[11px] text-dim">{k.desc}</span>
             </div>
           ))}
         </div>
-      </Panel>
-      <Panel role="region" aria-label="다운로드·출력 제한" label="EXPORT" actions={<PanelTitle>다운로드·출력 제한</PanelTitle>}>
-        <ul className="m-0 grid list-none gap-[6px] p-[14px] text-[12px] leading-[1.5] text-fg-2">
+      </InsightBox>
+      <InsightBox label="다운로드·출력 제한" title="다운로드·출력 제한">
+        <ul className="m-0 grid list-none gap-[4px] px-[14px] py-[10px] text-[11px] leading-[1.5] text-fg-2">
           {insights.exportRules.map((r) => (
             <li key={r}>· {r}</li>
           ))}
         </ul>
-      </Panel>
-      <Panel role="region" aria-label="관리자 행위" label="ADMIN" actions={<PanelTitle>관리자 행위 · 최근</PanelTitle>}>
-        <div className="grid gap-[7px] p-[14px]">
+      </InsightBox>
+      <InsightBox label="관리자 행위" title="관리자 행위 · 최근">
+        <div className="grid gap-[6px] px-[14px] py-[10px]">
           {insights.adminActs.map((a) => (
-            <div key={`${a.at}-${a.text}`} className="grid grid-cols-[76px_minmax(0,1fr)] gap-[8px] text-[12px] leading-[1.4]">
-              <span className="font-code text-[11px] text-dim">{a.at}</span>
+            <div key={`${a.at}-${a.text}`} className="grid grid-cols-[76px_minmax(0,1fr)] gap-[8px] text-[11px] leading-[1.4]">
+              <span className="font-code text-dim">{a.at}</span>
               <span className="text-fg-2">
-                <span className="font-code text-[11.5px] text-brand">{a.who}</span> {a.text}
+                <span className="font-code text-brand-3">{a.who}</span> {a.text}
               </span>
             </div>
           ))}
         </div>
-      </Panel>
+      </InsightBox>
     </div>
   )
 }

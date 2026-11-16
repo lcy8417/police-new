@@ -1,7 +1,8 @@
 import { useId, type ReactNode } from "react"
+import { RotateCcw } from "lucide-react"
 
 import type { ActionInfo, AdminUser } from "@/entities/admin"
-import { Button, Combobox, Field, Segmented } from "@/shared/ui/kit"
+import { Combobox, Field, Segmented, WorkbenchButton } from "@/shared/ui/kit"
 
 import type { LogFilters, ResultFilter } from "../model/types"
 
@@ -15,12 +16,20 @@ interface LogFilterBarProps {
   showPlus?: boolean
 }
 
-function Labeled({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
+// R6: 이름을 칸 왼쪽에 한 줄로(보조 11) — 영문 느낌 자간 · 위아래 두 줄 배치를 뺐다. `eventsOnly` = 기능 기록 탭에만 걸리는 칸(마우스 설명)
+function Labeled({ label, htmlFor, eventsOnly, children }: { label: string; htmlFor?: string; eventsOnly?: boolean; children: ReactNode }) {
   return (
-    <div className="grid min-w-0 gap-[4px]">
-      <label htmlFor={htmlFor} className="font-code text-[10px] font-semibold tracking-[0.16em] text-dim">
-        {label}
-      </label>
+    <div className="flex min-w-0 items-center gap-[6px]">
+      <span title={eventsOnly ? "기능 기록 탭에만 적용" : undefined} className="inline-flex whitespace-nowrap">
+        <label htmlFor={htmlFor} className="text-[11px] text-muted-foreground">
+          {label}
+        </label>
+        {eventsOnly ? (
+          <sup aria-hidden="true" className="ml-[1px] text-[10px] text-faint">
+            *
+          </sup>
+        ) : null}
+      </span>
       {children}
     </div>
   )
@@ -40,7 +49,7 @@ export function LogFilterBar({ filters, onChange, onReset, users, actions, showP
   const actionItems = [{ value: "", label: "전체 기능" }, ...actions.map((a) => ({ value: a.actionCode, label: a.actionNm }))]
 
   return (
-    <div role="search" aria-label="사용 기록 필터" className="flex flex-wrap items-end gap-x-[14px] gap-y-[10px] px-[14px] py-[12px]">
+    <div role="search" aria-label="사용 기록 필터" className="flex flex-wrap items-center gap-x-[16px] gap-y-[8px] px-[14px] py-[10px]">
       <Labeled label="사용자">
         <Combobox className="w-[210px]" items={userItems} value={filters.userId} onValueChange={(v) => set("userId", v)} />
       </Labeled>
@@ -51,20 +60,21 @@ export function LogFilterBar({ filters, onChange, onReset, users, actions, showP
           <Field type="date" variant="mono" aria-label="끝 날짜" className="w-[140px] [color-scheme:dark]" value={filters.to} min={filters.from || undefined} onChange={(e) => set("to", e.target.value)} />
         </div>
       </Labeled>
-      <Labeled label="결과">
+      <Labeled label="결과" eventsOnly>
         <Segmented
           aria-label="결과"
           items={RESULT_ITEMS}
           value={filters.result === "" ? "all" : filters.result}
           onValueChange={(v) => set("result", v === "all" ? "" : (v as ResultFilter))}
+          className="p-[2px] [&_button]:px-[9px] [&_button]:py-[3px] [&_button]:text-[12px]"
         />
       </Labeled>
-      <Labeled label="기능">
+      <Labeled label="기능" eventsOnly>
         <Combobox className="w-[200px]" items={actionItems} value={filters.actionCode} onValueChange={(v) => set("actionCode", v)} />
       </Labeled>
       {showPlus && (
         <div data-plus className="min-w-0">
-          <Labeled label="대상 번호" htmlFor={`${baseId}-target`}>
+          <Labeled label="대상 번호" htmlFor={`${baseId}-target`} eventsOnly>
             <Field
               id={`${baseId}-target`}
               className="w-[180px]"
@@ -75,9 +85,9 @@ export function LogFilterBar({ filters, onChange, onReset, users, actions, showP
           </Labeled>
         </div>
       )}
-      <Button variant="ghost" className="ml-auto" onClick={onReset}>
+      <WorkbenchButton size="sm" variant="ghost" icon={RotateCcw} className="ml-auto" onClick={onReset}>
         필터 초기화
-      </Button>
+      </WorkbenchButton>
     </div>
   )
 }

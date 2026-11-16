@@ -168,7 +168,7 @@ export const MOCK_INSIGHTS: AdminLogsInsights = {
     { label: "다운로드", count: 11, desc: "파일·이미지 내려받기", tone: "blue" },
     { label: "출력", count: 7, desc: "인쇄(프린터 이름)", tone: "violet" },
     { label: "교차 검증", count: 6, desc: "요청·접수·의견 일치/불일치", tone: "violet" },
-    { label: "결재", count: 4, desc: "결재 요청·완료(기술책임자)", tone: "violet" },
+    { label: "감정서 검토", count: 4, desc: "감정서 검토 요청·완료(기술책임자)", tone: "violet" },
     { label: "신발 승인", count: 37, desc: "신발 DB 확정(승인 담당)", tone: "green" },
   ],
   exportRules: [
