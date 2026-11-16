@@ -31,8 +31,11 @@ import { fakeSideShoeUrl } from "../s06/fake-side-shoe"
 import {
   INITIAL_TARGETS,
   makeInsight,
+  makeRange,
   makeResults,
   S05_ERROR_AT,
+  S05_WINDOW_FIRST,
+  S05_WINDOW_STEP,
   S05_IMAGE_NO,
   S05_FOCUS_RANK,
   S05_PAGE_SIZE,
@@ -65,7 +68,7 @@ export interface S05ContentProps {
   imageNo?: string
   /** 화면 옮기기(없으면 진열 주소 이동) — 사건 창은 탭 바꾸기로 받는다 */
   go?: DevGo
-  /** 사건 창 안(11/17) — 겹치는 제목 줄 · 이미지번호 없이 두 칸 · 높이 꽉(위젯 `inWindow`) */
+  /** 사건 창 안(11/17) — 먹색 작업판 · 1위부터 이어진 순위 목록 · 자동 스크롤 · 빠른 비교(위젯 `inWindow`) */
   inWindow?: boolean
 }
 
@@ -107,10 +110,15 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
     () => ZONES.map((zones, i) => fakeSoleUrl({ kind: imageMode === "이진화보기" ? "bin" : "shoe", zones, seed: i + 1 })),
     [imageMode],
   )
-  const results = useMemo(
-    () => (activeCase === "ready" ? makeResults(page, (rank) => soleUrls[(rank - 1) % soleUrls.length]) : []),
-    [activeCase, page, soleUrls],
-  )
+  // 사건 창(11/17 「순위가 쭉」)은 1위부터 이어진 한 목록 — 끝에 닿으면 더 붙인다. 단독 진열은 쪽 넘김 그대로
+  const [windowCount, setWindowCount] = useState(S05_WINDOW_FIRST)
+  const results = useMemo(() => {
+    if (activeCase !== "ready") return []
+    const imageFor = (rank: number) => soleUrls[(rank - 1) % soleUrls.length]
+    return inWindow
+      ? makeRange(windowCount, imageFor, (rank) => ZONES[(rank - 1) % ZONES.length])
+      : makeResults(page, imageFor)
+  }, [activeCase, page, soleUrls, inWindow, windowCount])
   const baseInsight = useMemo(
     () =>
       makeInsight({
@@ -157,9 +165,11 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
         toast(has ? `${t.rank}위 ${t.ftwrId} 확인대상 제외(진열용)` : `${t.rank}위 ${t.ftwrId} 확인대상 등록(진열용)`)
       }}
       onResume={(rank) => {
-        setPage(Math.ceil(rank / S05_PAGE_SIZE))
+        if (inWindow) setWindowCount((n) => Math.max(n, rank + S05_WINDOW_STEP))
+        else setPage(Math.ceil(rank / S05_PAGE_SIZE))
         setFocusRank(rank)
       }}
+      onLoadMore={inWindow ? () => setWindowCount((n) => Math.min(S05_TOTAL, n + S05_WINDOW_STEP)) : undefined}
       onPlusAction={(label) => toast(PLUS_NOT_READY, { description: label })}
       columns={columns ?? undefined}
       onColumnsChange={setColumns}

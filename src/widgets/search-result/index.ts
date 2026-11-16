@@ -1,6 +1,8 @@
 export { SearchResultScreen } from "./ui/SearchResultScreen"
 export type {
   AutoMode,
+  AutoScrollMode,
+  ZonePatternSet,
   ResultColumns,
   ResultFilterKey,
   ResultFilterValues,

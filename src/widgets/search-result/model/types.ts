@@ -17,7 +17,24 @@ export interface ImageSearchResultItem {
    * r3 빠른 찾기용 상표명. imageSearch 응답에는 없다 — 운영 연결 때 신발 목록(brandCode)에서 채우고, 없으면 화류번호로만 찾는다.
    */
   brandNm?: string | null
+  /**
+   * 사건 창(11/17) 부위별 일치 — 상 · 중 · 하 점수와 한 줄 근거. imageSearch 응답에는 없다(+α) — 없으면 카드 위 표식 · 빠른 비교 막대를 그리지 않는다.
+   */
+  zoneScores?: readonly PeekZone[]
+  /** 사건 창(11/17) 후보 신발의 부위별 문양(그림 경로 — 소비 측이 hydrate 해서 넘긴다). 없으면 빠른 비교 문양 줄을 그리지 않는다 */
+  zonePatterns?: readonly ZonePatternSet[]
 }
+
+/** 부위 하나의 문양 그림들(빠른 비교 「고른 문양 ↔ 후보 문양」 줄) */
+export interface ZonePatternSet {
+  /** 부위 이름(상 · 중 · 하 · 윤곽) */
+  zone: string
+  /** 문양 — 이름(대체글)과 그림 경로(그대로 쓴다) */
+  patterns: readonly { name: string; src: string; essential?: boolean }[]
+}
+
+/** 사건 창 자동 스크롤 방식 — 속도(px/초로 흘림) · 쪽 넘김(n초마다 한 화면) */
+export type AutoScrollMode = "speed" | "page"
 
 /** r3 결과형태(한 줄 카드 수). 1–6 = 보기 개수 칸, 8 = +α 「촘촘 8열」 */
 export type ResultColumns = 1 | 2 | 3 | 4 | 5 | 6 | 8
@@ -131,6 +148,8 @@ export interface SearchInsight {
   peek: QuickPeek | null
   /** 상세조회 칸 */
   detail: ResultDetailInsight | null
+  /** 사건 창(11/17) 문양 코드 탭에서 고른 부위별 문양 — 빠른 비교의 왼쪽 줄. 없으면 문양 줄을 그리지 않는다 */
+  queryPatterns?: readonly ZonePatternSet[]
 }
 
 /** 확인대상 한 건(+α 카드 ★ · 왼쪽 확인대상 칸) */
@@ -223,4 +242,9 @@ export interface SearchResultScreenProps {
   onSeenUpToChange?: (rank: number) => void
   /** 짧은 안내(전체 화면을 못 쓸 때 등) — 진열은 알림으로 띄운다 */
   onNotice?: (message: string) => void
+
+  // ── 사건 창(inWindow, 11/17 「순위가 쭉」) — results 는 1위부터 이어진 한 목록(page 1), 끝에 닿으면 onLoadMore ──
+
+  /** 목록 끝에 닿음(자동 스크롤 · 손 스크롤) — 다음 순위들을 붙여 달라. 없거나 다 붙었으면(results.length >= totalCount) 부르지 않는다 */
+  onLoadMore?: () => void
 }

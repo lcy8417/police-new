@@ -1,6 +1,7 @@
+import { insertPatternPath } from "@/entities/pattern"
 import type { ImageSearchResultItem, SearchInsight, SearchTarget } from "@/widgets/search-result"
 
-import type { ZoneTriple } from "../mock-assets/fake-art"
+import type { Zone, ZoneTriple } from "../mock-assets/fake-art"
 
 // S05 검색 결과 진열용 가짜 값. 숫자는 시안 예시(857건 · 이미지번호 00001-25-0646_1)에 맞춘다.
 // 유사도는 imageSearch 응답처럼 퍼센트(0~100), 한 건은 문자열로 온다(서버가 문자열로 줄 수도 있음).
@@ -46,17 +47,76 @@ const FIXED_RANKS: Readonly<Record<number, { ftwrId: string; similarity: number 
 /** r3 빠른 찾기용 가짜 상표명(순위마다 돌려 씀 — 3 · 8 · 13 · 18위 = 크록스) */
 export const MOCK_BRANDS = ["나이키", "아디다스", "크록스", "뉴발란스", "○○스포츠"] as const
 
+/** 한 순위의 결과 */
+function resultAt(rank: number, imageFor: (rank: number) => string): ImageSearchResultItem {
+  const fixed = FIRST_PAGE[rank - 1] ?? FIXED_RANKS[rank]
+  const ftwrId = fixed ? fixed.ftwrId : String((rank * 37) % 100000).padStart(5, "0")
+  const similarity = fixed ? fixed.similarity : Math.round((56.5 - (rank - 20) * 0.018) * 100) / 100
+  return { ftwrId, similarity, image: imageFor(rank), brandNm: MOCK_BRANDS[(rank - 1) % MOCK_BRANDS.length] }
+}
+
 /** 쪽(1부터)의 결과. 이미지 URL 은 rank 로 고른 그림을 받는 함수가 정한다 */
 export function makeResults(page: number, imageFor: (rank: number) => string): ImageSearchResultItem[] {
   const first = (page - 1) * S05_PAGE_SIZE + 1
   const last = Math.min(S05_TOTAL, first + S05_PAGE_SIZE - 1)
   const out: ImageSearchResultItem[] = []
-  for (let rank = first; rank <= last; rank++) {
-    const fixed = FIRST_PAGE[rank - 1] ?? FIXED_RANKS[rank]
-    const ftwrId = fixed ? fixed.ftwrId : String((rank * 37) % 100000).padStart(5, "0")
-    const similarity = fixed ? fixed.similarity : Math.round((56.5 - (rank - 20) * 0.018) * 100) / 100
-    out.push({ ftwrId, similarity, image: imageFor(rank), brandNm: MOCK_BRANDS[(rank - 1) % MOCK_BRANDS.length] })
+  for (let rank = first; rank <= last; rank++) out.push(resultAt(rank, imageFor))
+  return out
+}
+
+// ── 사건 창(11/17) — 1위부터 이어진 한 목록 · 부위 일치 · 고른 문양 ─────────────
+
+/** 사건 창 목록 처음 길이 · 한 번에 더 붙이는 길이(이어 보기 137위 · 확인대상 140위가 처음부터 들게) */
+export const S05_WINDOW_FIRST = 160
+export const S05_WINDOW_STEP = 80
+
+/** 진열 그림 무늬 → 문양 이름(가짜 대응 — 빠른 비교 문양 줄용) */
+const ART_PATTERN: Record<Zone, string> = {
+  herring: "n32_04",
+  grid: "n51_03",
+  blocks: "n52_01",
+  lines: "n31_02",
+  dots: "n71_01",
+  wave: "n21_05",
+  tri: "n41_01",
+}
+
+/** 문양 코드 탭에서 고른 문양(S04 ready 와 같은 값 — 상 · 중 n32_04 필수) — 이름 · 필수 */
+export const S05_QUERY_PATTERNS: readonly { zone: string; patterns: readonly (readonly [string, boolean])[] }[] = [
+  { zone: "상", patterns: [["n32_04", true], ["n21_05", false]] },
+  { zone: "중", patterns: [["n32_04", true], ["s81b", false]] },
+  { zone: "하", patterns: [["n32_04", false]] },
+]
+
+const WHY_HIT = ["주기 · 각도 비슷", "간격 일치 · 가장자리 마모", "배열 · 굵기 비슷"]
+const WHY_MISS = ["문양 종류 다름", "간격 차이 큼", "마모로 판단 어려움"]
+
+/** 순위 · 그림 무늬로 부위 점수와 후보 문양(가짜 — 고른 문양과 겹치면 일치 점수가 높다) */
+export function zoneInfo(rank: number, zones: ZoneTriple): Pick<ImageSearchResultItem, "zoneScores" | "zonePatterns"> {
+  const names = ["상", "중", "하"] as const
+  return {
+    zoneScores: names.map((zone, i) => {
+      const cand = ART_PATTERN[zones[i]]
+      const hit = S05_QUERY_PATTERNS[i].patterns.some(([n]) => n === cand)
+      const wobble = ((rank * 7 + i * 13) % 17) - 8
+      const score = Math.max(12, Math.min(96, (hit ? 74 : 38) + wobble - Math.floor(rank / 60)))
+      return { zone, score, why: `${hit ? WHY_HIT[(rank + i) % 3] : WHY_MISS[(rank + i) % 3]}` }
+    }),
+    zonePatterns: names.map((zone, i) => ({ zone, name: ART_PATTERN[zones[i]] })).map(({ zone, name }) => ({
+      zone,
+      patterns: [{ name, src: insertPatternPath(name) as string }],
+    })),
   }
+}
+
+/** 사건 창 목록: 1위부터 count 위까지(그림 · 부위 무늬는 순위로 고른다) */
+export function makeRange(
+  count: number,
+  imageFor: (rank: number) => string,
+  zonesFor: (rank: number) => ZoneTriple,
+): ImageSearchResultItem[] {
+  const out: ImageSearchResultItem[] = []
+  for (let rank = 1; rank <= Math.min(count, S05_TOTAL); rank++) out.push({ ...resultAt(rank, imageFor), ...zoneInfo(rank, zonesFor(rank)) })
   return out
 }
 
@@ -145,5 +205,9 @@ export function makeInsight(img: {
       sideImage: img.side,
       info: DETAIL_INFO,
     },
+    queryPatterns: S05_QUERY_PATTERNS.map(({ zone, patterns }) => ({
+      zone,
+      patterns: patterns.map(([name, essential]) => ({ name, src: insertPatternPath(name) as string, essential })),
+    })),
   }
 }

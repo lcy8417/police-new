@@ -320,25 +320,33 @@ describe("S01 사건 창", () => {
       })
     })
 
-    it("검색 결과 탭: 「문양검색결과」 제목 줄 · 이미지번호 없음, 왼쪽 현장 족적 | 오른쪽 검색 결과(칸 머리 ⓘ 에 안내 문장), 상세조회는 결과 칸 안", () => {
+    it("검색 결과 탭(11/17 「순위가 쭉」): 왼쪽 현장 족적(보기 조정 · 이어 보기) | 순위 목록(1 · 3 · 5개 · 본 것 · 수동/자동 ⚙), 화류번호 찾기 · 유사도 필터 · AI 10건 없음, 카드 누름 = 고름 · Enter = 정밀 대조", () => {
       renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=1&tab=search")
       const d = dialog()
       expect(within(d).queryByText("문양검색결과")).toBeNull()
       expect(within(d).queryByText("이미지번호")).toBeNull()
       const left = within(d).getByRole("region", { name: "현장 족적" })
-      expect(within(left).getByRole("heading", { name: "현장 족적" })).toBeInTheDocument()
+      expect(within(left).getByRole("group", { name: "보기 조정" })).toBeInTheDocument()
       expect(within(left).getByRole("button", { name: "137위부터 이어 보기" })).toBeInTheDocument()
-      const result = within(d).getByRole("region", { name: "검색 결과" })
-      expect(within(result).getByRole("heading", { name: "검색 결과" })).toBeInTheDocument()
-      expect(within(result).getByRole("button", { name: /^도움말 — 끝까지 보기는 그대로/ })).toBeInTheDocument()
-      // 설명 문장은 칸 안에 늘어놓지 않는다
-      expect(within(result).queryByText("끝까지 보기는 그대로 — 거르는 건 보기만 바꿉니다")).toBeNull()
-      expect(within(left).queryByText(/키보드 ← →/)).toBeNull()
-      // 도구는 그대로 · 상세조회는 결과 칸 안 아래
-      expect(within(result).getByRole("group", { name: "결과형태" })).toBeInTheDocument()
-      expect(within(result).getByRole("group", { name: "결과 이미지 보기" })).toBeInTheDocument()
-      expect(within(result).getByRole("region", { name: "현장문양검색결과 상세조회" })).toBeInTheDocument()
-      expect(within(result).getByLabelText("결과 이미지 보기")).toBeInTheDocument()
+      const list = within(d).getByRole("region", { name: "순위 목록" })
+      for (const name of ["한 줄 개수", "본 것 거르기", "결과 이미지 보기", "넘김"]) expect(within(list).getByRole("group", { name })).toBeInTheDocument()
+      expect(within(d).queryByPlaceholderText(/화류번호/)).toBeNull()
+      expect(within(d).queryByText("80↑")).toBeNull()
+      expect(within(d).queryByText(/AI가 먼저 보라는/)).toBeNull()
+      // 1위부터 이어진 한 목록 · 점수 · 부위 일치 표식
+      const cards = list.querySelectorAll("[data-result-card]")
+      expect(cards[0]).toHaveAttribute("data-rank", "1")
+      expect(cards.length).toBeGreaterThan(100)
+      expect(cards[0]).toHaveTextContent("84.1")
+      expect(cards[0].querySelectorAll("[data-zone-mark]")).toHaveLength(3)
+      // ⚙ 설정 팝 — 속도 · 쪽 넘김
+      fireEvent.click(within(list).getByRole("button", { name: "자동 설정" }))
+      expect(within(list).getByRole("dialog", { name: "자동 설정" })).toHaveTextContent("쪽 넘김")
+      // 누르면 고름(바닥 줄) · Enter 는 정밀 대조 탭
+      fireEvent.click(cards[2])
+      expect(within(d).getByText("281904", { selector: "[data-selected-summary] span" })).toBeInTheDocument()
+      fireEvent.keyDown(cards[2], { key: "Enter" })
+      expect(workTab("정밀 대조")).toHaveAttribute("aria-selected", "true")
     })
 
     it("정밀 대조 탭: 제목 줄 · 닫기 없음, 왼쪽 유류 · 발견 대조(무대 + 바닥 단추) | 오른쪽 「AI 대조 · 대응 목록 · 정보」 탭", () => {

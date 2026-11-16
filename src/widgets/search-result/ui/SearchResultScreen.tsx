@@ -14,7 +14,7 @@ import {
   ViewCountSwitch,
   type FilterGroup,
 } from "@/shared/ui/kit"
-import { PaneHead, Panel } from "@/shared/ui/panel"
+import { Panel } from "@/shared/ui/panel"
 import { EvidenceImage } from "@/shared/ui/viewer"
 
 import { filterResults, hasActiveFilter, optionCount, type FilterContext, type RankedResult } from "../model/result-filter"
@@ -30,10 +30,11 @@ import type {
 } from "../model/types"
 import { AiTopRail } from "./AiTopRail"
 import { LeftPlus } from "./LeftPlus"
-import { AI_MARK, CHIP_TEAL, FILTER_NOTE, KEYBOARD_NOTE, STAR_NOTE } from "./plus-style"
+import { AI_MARK, CHIP_TEAL, FILTER_NOTE, STAR_NOTE } from "./plus-style"
 import { QuickPeekWindow } from "./QuickPeekWindow"
 import { ResultCard } from "./ResultCard"
 import { ResultDetail } from "./ResultDetail"
+import { SearchWindow } from "./SearchWindow"
 import { ShortcutHelp } from "./ShortcutHelp"
 
 // S05 검색 결과(F23 · F24) — SCAS 「문양검색결과」 배치: 위 이미지번호 · 결과형태, 왼쪽 현장 족적(고정), 오른쪽 결과 그리드.
@@ -73,9 +74,6 @@ type Filter = (typeof FILTERS)[number]
 
 const NOT_READY = "준비 중"
 
-/** 사건 창 도구 막대: 안의 분할 단추(Segmented)를 단추 sm 높이(24)로 — 결과형태 · 썸네일 · 보기 · 수동/자동 */
-const COMPACT_SEGMENTS =
-  "[&_[data-part=Segmented]]:p-[2px] [&_[data-part=Segmented]_button]:px-[8px] [&_[data-part=Segmented]_button]:py-[2px] [&_[data-part=Segmented]_button]:text-[11.5px] [&_[data-part=ViewCountSwitch]>span]:text-[11.5px]"
 const DEFAULT_INTERVAL_MS = 2000
 const FULLSCREEN_UNAVAILABLE = "이 브라우저에서는 전체 화면을 쓸 수 없습니다 — 브라우저의 전체 화면(F11)을 써 주세요"
 
@@ -86,7 +84,12 @@ const CLOCK_COUNT = 1_000_000
 
 type StepDir = 1 | -1
 
-export function SearchResultScreen({
+/** S05 검색 결과 — 사건 창 안(`inWindow`)이면 먹색 작업판 순위 목록(SearchWindow), 아니면 단독 진열(SCAS 배치 그대로) */
+export function SearchResultScreen(props: SearchResultScreenProps) {
+  return props.inWindow ? <SearchWindow {...props} /> : <SearchResultPage {...props} />
+}
+
+function SearchResultPage({
   status,
   errorAt,
   onRetry,
@@ -103,7 +106,6 @@ export function SearchResultScreen({
   onImageModeChange,
   onOpenResult,
   showPlus = true,
-  inWindow = false,
   insight,
   targets = [],
   onToggleTarget,
@@ -478,7 +480,7 @@ export function SearchResultScreen({
                   </button>
                 )
               })}
-              {inWindow ? null : <span className="ml-auto text-dim">{FILTER_NOTE}</span>}
+              <span className="ml-auto text-dim">{FILTER_NOTE}</span>
             </div>
           </>
         ) : null}
@@ -525,7 +527,7 @@ export function SearchResultScreen({
             onPageChange={onPageChange}
             className="px-0"
           />
-          {plus && !inWindow ? (
+          {plus ? (
             <span data-plus className="ml-auto text-[11px] text-dim">
               {STAR_NOTE}
             </span>
@@ -655,64 +657,6 @@ export function SearchResultScreen({
         compact={compact}
       />
     ) : null
-
-  // 사건 창 안(11/17 사용자 「컴팩트하면서 고급지게」): 왼쪽 현장 족적(높이 꽉) + 검색 요약(칸 안 스크롤) |
-  // 오른쪽 결과 — 칸 머리(결과 수 · AI 순위 · ⓘ 안내) · 두 줄 도구 막대 · 칸 안 스크롤(AI 10건 · 거르기 · 그리드 · 쪽수 · 상세조회).
-  // 「문양검색결과」 제목 줄 · 이미지번호(창 머리 · 탭 앞 「_n」 과 같은 말)는 그리지 않는다.
-  if (inWindow) {
-    const tip = plus ? `${FILTER_NOTE}. ${STAR_NOTE}. ${KEYBOARD_NOTE}` : KEYBOARD_NOTE
-    return (
-      <div
-        ref={rootRef}
-        data-fullscreen-root
-        data-slot="search-result-window"
-        className={cn("grid h-full min-h-0 min-w-0 grid-cols-[232px_minmax(0,1fr)] gap-[14px] p-[12px]", full && "overflow-auto bg-background")}
-      >
-        <section aria-label="현장 족적" className="flex min-h-0 min-w-0 flex-col gap-[8px]">
-          <PaneHead title="현장 족적" sub={plus ? "고정 · 두 번 누르면 뷰어" : undefined} />
-          <div className="min-h-[140px] flex-[1.25]">
-            <EvidenceImage src={sceneImage} alt="현장 족적" className="aspect-auto h-full" />
-          </div>
-          <div className="flex min-h-0 flex-1 flex-col gap-[10px] overflow-y-auto pr-[2px]">{leftPlus(true)}</div>
-        </section>
-
-        <section aria-label="검색 결과" className="flex min-h-0 min-w-0 flex-col gap-[6px]">
-          <PaneHead
-            title="검색 결과"
-            sub={countText}
-            tip={tip}
-            end={
-              <>
-                {roleChips}
-                {plus ? rerankChip() : null}
-              </>
-            }
-          />
-          <div className={cn("flex shrink-0 flex-wrap items-center gap-x-[12px] gap-y-[6px]", COMPACT_SEGMENTS)}>
-            {columnSwitch}
-            {plus ? denseButton : null}
-            <span className="ml-auto inline-flex flex-wrap items-center gap-[8px]">
-              {thumbSwitch}
-              {modeSegmented("")}
-            </span>
-          </div>
-          <div data-r3-toolbar className={cn("relative flex shrink-0 flex-wrap items-center gap-x-[12px] gap-y-[6px]", COMPACT_SEGMENTS)}>
-            {autoPlay}
-            <span className="ml-auto inline-flex flex-wrap items-center gap-[6px]">
-              {confirmViewButton}
-              {fullButton}
-              {helpButton}
-            </span>
-            {helpOpen ? <ShortcutHelp /> : null}
-          </div>
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-[14px] overflow-y-auto border-0 border-t border-solid border-line-2 pt-[10px] pr-[2px]">
-            {body}
-            {resultDetail(true)}
-          </div>
-        </section>
-      </div>
-    )
-  }
 
   return (
     <div ref={rootRef} data-fullscreen-root className={cn("min-w-0", full && "overflow-auto bg-background p-[12px]")}>
