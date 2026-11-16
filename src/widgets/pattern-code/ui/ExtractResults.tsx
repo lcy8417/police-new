@@ -11,6 +11,8 @@ export interface ExtractResultsProps {
   inserted: ReadonlySet<string>
   onInsert: (src: string) => void
   canEdit: boolean
+  /** 사건 창 안 — 띠 머리 없이(탭 이름이 맡음), 안내 글은 추출 단추 자리에 맞춤 */
+  bare?: boolean
 }
 
 /** 점수가 이보다 낮으면 ConfidenceBar 를 낮음(주황)으로 */
@@ -20,13 +22,15 @@ const LOW = 0.5
  * AI 통합 추출 결과(F17 — 시안 핀 9 「AI 창 → 왼쪽 그림 안」). 점수 내림차순, 점수는 ConfidenceBar.
  * 누르면 고른 부위에 넣고, 끌어서 부위 행에 놓을 수도 있다(지금 앱 「통합 추출란」의 끌어 넣기).
  */
-export function ExtractResults({ state, items, inserted, onInsert, canEdit }: ExtractResultsProps) {
+export function ExtractResults({ state, items, inserted, onInsert, canEdit, bare = false }: ExtractResultsProps) {
   const sorted = [...items].sort((a, b) => b.score - a.score)
   return (
     <section aria-label="AI 추출 결과" className="flex flex-col gap-[6px]">
-      <Band title="AI 추출 결과">
-        <AiTag />
-      </Band>
+      {bare ? null : (
+        <Band title="AI 추출 결과">
+          <AiTag />
+        </Band>
+      )}
       {state === "running" || state === "failed" ? (
         <AiProgress state={state} label="문양 추출" />
       ) : null}
@@ -57,7 +61,9 @@ export function ExtractResults({ state, items, inserted, onInsert, canEdit }: Ex
         </div>
       ) : state === "running" ? null : (
         <p className="text-[11.5px] text-muted-foreground">
-          {state === "idle" ? "아직 추출하지 않았습니다 — 버튼 줄 끝 「… 추출」로 AI 문양을 찾습니다." : "AI가 찾은 문양이 없습니다."}
+          {state === "idle"
+            ? `아직 추출하지 않았습니다 — ${bare ? "현장 이미지 아래" : "버튼 줄 끝"} 「… 추출」로 AI 문양을 찾습니다.`
+            : "AI가 찾은 문양이 없습니다."}
         </p>
       )}
     </section>

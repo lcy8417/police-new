@@ -161,6 +161,31 @@ describe("S01 사건 창", () => {
       expect(within(within(d).getByRole("region", { name: "편집 이력" })).getAllByRole("listitem")).toHaveLength(3)
     })
 
+    it("문양 코드 탭: 제목 줄 · 닫기 · 이미지 목록 표 없음, 세 칸(현장 이미지 | 문양 | 추출 · 검색 탭) + 바닥 단추 줄(검색만 채움)", () => {
+      renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=1&tab=pattern")
+      const d = dialog()
+      expect(within(d).queryByText("문양 상세보기")).toBeNull()
+      expect(within(d).queryByRole("button", { name: /^닫기$/ })).toBeNull()
+      expect(within(d).queryByRole("columnheader", { name: "이미지 번호" })).toBeNull()
+      for (const name of ["현장 이미지", "현장 이미지 문양", "추출 · 검색"]) expect(within(d).getByRole("region", { name })).toBeInTheDocument()
+      // 칸 머리 = 밑줄 탭 모양(파란 띠 아님)
+      expect(within(within(d).getByRole("region", { name: "현장 이미지" })).getByRole("heading", { name: "현장 이미지" })).toBeInTheDocument()
+      expect(within(d).getByRole("group", { name: "검색 이미지" })).toBeInTheDocument()
+      // 바닥 단추: 검색만 채움, 다음 이미지 →
+      const search = within(d).getByRole("button", { name: "검색" })
+      expect(search).toHaveAttribute("data-part-variant", "sm-pri")
+      expect(within(d).getByRole("button", { name: /다음 이미지 _3/ })).not.toHaveAttribute("data-part-variant", "sm-pri")
+      // 오른쪽 탭: AI 추출(기본) → 검색 조건 → 검색이력
+      const side = within(d).getByRole("tablist", { name: "추출 · 검색" })
+      expect(within(d).getByRole("region", { name: "AI 추출 결과" })).toBeInTheDocument()
+      expect(within(d).queryByRole("region", { name: "매칭 조건" })).toBeNull()
+      fireEvent.click(within(side).getByRole("tab", { name: "검색 조건" }))
+      expect(within(d).getByRole("region", { name: "매칭 조건" })).toBeInTheDocument()
+      expect(within(d).getByRole("radiogroup", { name: "검색 방식" })).toBeInTheDocument()
+      fireEvent.click(within(side).getByRole("tab", { name: /검색이력/ }))
+      expect(within(within(d).getByRole("region", { name: "검색이력" })).getAllByRole("button", { name: "보기" }).length).toBeGreaterThan(0)
+    })
+
     it("?plus=0: 흐름 줄 · 탭은 그대로 보인다", () => {
       renderAt("/dev/s01?case=ready&plus=0&open=00001-25-0649&img=1&tab=info")
       expect(within(screen.getByRole("list", { name: "사건 진행 흐름" })).getAllByRole("listitem")).toHaveLength(5)
@@ -175,7 +200,7 @@ describe("S01 사건 창", () => {
     expect(query().get("tab")).toBe("edit")
     expect(within(dialog()).getAllByLabelText("이미지 편집").length).toBeGreaterThan(0)
     fireEvent.click(tabs.getByRole("tab", { name: "문양 코드" }))
-    expect(within(dialog()).getByLabelText("검색이력")).toBeInTheDocument()
+    expect(within(dialog()).getByRole("region", { name: "현장 이미지 문양" })).toBeInTheDocument()
     fireEvent.click(tabs.getByRole("tab", { name: "검색 결과" }))
     expect(within(dialog()).getByLabelText("결과 이미지 보기")).toBeInTheDocument()
     fireEvent.click(tabs.getByRole("tab", { name: "정밀 대조" }))
@@ -268,8 +293,12 @@ describe("S01 사건 창", () => {
 
   it("창 안 S02 「이미지 커팅 열기」 같은 화면 이동은 창 탭 바꾸기로 받는다", () => {
     renderAt("/dev/s01?case=ready&open=00001-25-0649&tab=pattern")
-    // S04 「닫기」는 S02 로 간다 → 창의 사건 정보 탭
-    fireEvent.click(within(dialog()).getAllByRole("button", { name: /^닫기$/ })[0])
+    // S04 「검색결과」는 S05 로 간다 → 창의 검색 결과 탭
+    fireEvent.click(within(dialog()).getByRole("button", { name: "검색결과" }))
+    expect(query().get("tab")).toBe("search")
+    // S03 「취소」는 S02 로 간다 → 창의 사건 정보 탭
+    fireEvent.click(within(screen.getByRole("tablist", { name: "작업" })).getByRole("tab", { name: "이미지 편집" }))
+    fireEvent.click(within(dialog()).getByRole("button", { name: "취소" }))
     expect(query().get("tab")).toBe("info")
   })
 

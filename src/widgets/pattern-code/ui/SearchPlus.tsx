@@ -4,7 +4,7 @@ import { Chip } from "@/shared/ui/kit"
 
 import { SEARCH_METHODS } from "../model/constants"
 import type { FunnelStep, SearchMethod } from "../model/types"
-import { Band } from "./Band"
+import { Band, SubHead } from "./Band"
 
 // S04 오른쪽 칸 시안 r2 덧붙임 — 검색 방식(핀 7) · 검색 전 미리보기 깔때기(핀 12). 둘 다 +α 라 `data-plus`.
 
@@ -13,20 +13,22 @@ export function SearchMethodPicker({
   value,
   onChange,
   disabled,
+  bare = false,
 }: {
   value: SearchMethod
   onChange: (next: SearchMethod) => void
   disabled: boolean
+  /** 사건 창 안 — 파란 띠 대신 작은 소제목 */
+  bare?: boolean
 }) {
+  const title = (
+    <>
+      검색 방식 <span className="text-[11px] font-normal text-ai">덧붙임</span>
+    </>
+  )
   return (
     <section data-plus="" aria-label="검색 방식 덧붙임" className="flex flex-col gap-[6px]">
-      <Band
-        title={
-          <>
-            검색 방식 <span className="text-[11px] font-normal text-ai">덧붙임</span>
-          </>
-        }
-      />
+      {bare ? <SubHead title={title} /> : <Band title={title} />}
       <div role="radiogroup" aria-label="검색 방식" className="grid gap-[6px] text-[12px]">
         {SEARCH_METHODS.map((m) => {
           const on = m.value === value

@@ -120,7 +120,7 @@ function nextUncoded(statuses: Record<string, ImageCodingStatus>, current: strin
   return S04_IMAGES.find((no) => no !== current && statuses[no] === "uncoded") ?? null
 }
 
-function S04Stage({ caseName, imageNo, go: goProp }: { caseName: S04Case; imageNo: string; go?: DevGo }) {
+function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Case; imageNo: string; go?: DevGo; inWindow?: boolean }) {
   const mock = S04_MOCK[caseName]
   const viewer = useDevViewer()
   const plus = useDevPlus()
@@ -202,6 +202,7 @@ function S04Stage({ caseName, imageNo, go: goProp }: { caseName: S04Case; imageN
       isAdmin={viewer.isAdmin}
       features={viewer.features}
       showPlus={plus}
+      inWindow={inWindow}
       onPlusAction={notReady}
       aprthngNo={aprthngNo}
       images={S04_IMAGES}
@@ -307,11 +308,13 @@ export interface S04ContentProps {
   imageNo?: string
   /** 화면 옮기기(없으면 진열 주소 이동) — 사건 창은 탭 바꾸기로 받는다 */
   go?: DevGo
+  /** 사건 창 안(11/17) — 겹치는 제목 줄 · 닫기 · 이미지 목록 없이 세 칸 · 높이 꽉(위젯 `inWindow`) */
+  inWindow?: boolean
 }
 
 /** S04 틀 없는 내용 — 진열 페이지와 사건 창(「문양 코드」 탭)이 같이 쓴다 */
-export function S04Content({ devCase, imageNo = S04_APRTHNG_NO, go }: S04ContentProps) {
-  return <S04Stage key={devCase} caseName={devCase} imageNo={imageNo} go={go} />
+export function S04Content({ devCase, imageNo = S04_APRTHNG_NO, go, inWindow }: S04ContentProps) {
+  return <S04Stage key={devCase} caseName={devCase} imageNo={imageNo} go={go} inWindow={inWindow} />
 }
 
 // S04 문양 코딩 · 검색 조건 진열 페이지 — 정본 위젯에 가짜 값 · 이동 콜백만 넘긴다.

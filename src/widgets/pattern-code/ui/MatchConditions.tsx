@@ -4,7 +4,7 @@ import { Button, Field, RadioRow } from "@/shared/ui/kit"
 
 import { MATCH_OPTIONS } from "../model/constants"
 import type { MatchConditionValues } from "../model/types"
-import { Band } from "./Band"
+import { Band, SubHead } from "./Band"
 
 // SCAS 「매칭 조건」(시안 핀 1 · 10, SCAS 유지). 지금 검색은 필수 문양만 쓰고 이 조건을 보내지 않으므로
 // 라벨 · 순서 · 값만 보이고 모두 비활성 + 「준비 중」(spec §5-2 규칙 3). 값은 제어형(운영 연결 때 그대로 씀).
@@ -32,9 +32,11 @@ function Find({ label }: { label: string }) {
 export interface MatchConditionsProps {
   value: MatchConditionValues
   onChange: (next: MatchConditionValues) => void
+  /** 사건 창 안 — 파란 띠 대신 작은 소제목 */
+  bare?: boolean
 }
 
-export function MatchConditions({ value, onChange }: MatchConditionsProps) {
+export function MatchConditions({ value, onChange, bare = false }: MatchConditionsProps) {
   const radio = (name: string, key: "searchKind" | "gender" | "heel") => (
     <RadioRow
       name={name}
@@ -47,9 +49,15 @@ export function MatchConditions({ value, onChange }: MatchConditionsProps) {
   )
   return (
     <section aria-label="매칭 조건" title="준비 중" className="flex flex-col gap-[6px]">
-      <Band title="매칭 조건">
-        <span className="text-[11px] text-dim">준비 중</span>
-      </Band>
+      {bare ? (
+        <SubHead title="매칭 조건">
+          <span className="text-[11px] text-dim">준비 중</span>
+        </SubHead>
+      ) : (
+        <Band title="매칭 조건">
+          <span className="text-[11px] text-dim">준비 중</span>
+        </Band>
+      )}
       <dl className="m-0 grid grid-cols-[66px_minmax(0,1fr)]">
         <Row label="검색구분">{radio("검색구분", "searchKind")}</Row>
         <Row label="등록기간">

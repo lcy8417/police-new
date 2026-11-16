@@ -6,6 +6,7 @@ import { PatternIcon } from "@/shared/ui/viewer"
 
 import { DRAG_FORMAT, PALETTE_KINDS, PALETTE_SUB_TABS, patternName } from "../model/constants"
 import type { PaletteKind } from "../model/types"
+import { SubHead } from "./Band"
 
 export interface PalettePanelProps {
   kind: PaletteKind
@@ -21,6 +22,8 @@ export interface PalettePanelProps {
   /** 「최근 사용」 그림 경로 */
   recent?: readonly string[]
   onPlusAction?: (label: string) => void
+  /** 사건 창 안 — 테두리 상자 대신 작은 소제목 + 간격으로 묶음 */
+  bare?: boolean
 }
 
 /** 팔레트 문양 한 칸(누르면 넣기 · 끌기, 이미 넣은 문양은 비활성) */
@@ -62,7 +65,7 @@ function PaletteItem({
  * 문양을 누르면 고른 부위에 넣고, 끌어서 다른 부위 행에 놓을 수도 있다. 이미 넣은 문양은 비활성(지금 앱 `PatternPalette`와 같음).
  * 신규 켜기면 시안 덧붙임 — 이름 찾기(화면 안 거르기, 저장 안 함) · 최근 사용 줄 · 하위 탭.
  */
-export function PalettePanel({ kind, onKindChange, palette, inserted, onInsert, canEdit, plus, recent, onPlusAction }: PalettePanelProps) {
+export function PalettePanel({ kind, onKindChange, palette, inserted, onInsert, canEdit, plus, recent, onPlusAction, bare = false }: PalettePanelProps) {
   const [query, setQuery] = React.useState("")
   const [subTab, setSubTab] = React.useState<string>(PALETTE_SUB_TABS[0])
   const q = plus ? query.trim().toLowerCase() : ""
@@ -79,7 +82,8 @@ export function PalettePanel({ kind, onKindChange, palette, inserted, onInsert, 
   )
 
   return (
-    <div className="flex flex-col gap-[8px] rounded-[10px] border border-solid border-border bg-panel-2 p-[10px]">
+    <div className={cn("flex flex-col gap-[8px]", !bare && "rounded-[10px] border border-solid border-border bg-panel-2 p-[10px]")}>
+      {bare ? <SubHead title="문양 팔레트" /> : null}
       {plus ? (
         <div className="flex flex-wrap items-center gap-[8px]">
           {kinds}
