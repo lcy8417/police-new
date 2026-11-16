@@ -36,6 +36,107 @@ export interface PatternIconItem {
 /** 부위별 문양(상 · 중 · 하 · 윤곽) */
 export type ZonePatterns = Record<"top" | "mid" | "bottom" | "outline", readonly PatternIconItem[]>
 
+/** +α AI 대응점 한 쌍(시안 r3 39개) — 좌표는 MatchCorrespondence 와 같은 두 좌표계(현장 · 신발 이미지) */
+export interface DensePair {
+  /** 현장 x */
+  fx: number
+  /** 현장 y */
+  fy: number
+  /** 신발 x */
+  sx: number
+  /** 신발 y */
+  sy: number
+  /** 일치(청록 실선) · 불일치(빨강 점선) */
+  ok: boolean
+}
+
+/** +α 상 · 중 · 하 구역 선(한 이미지 좌표계) */
+export interface ZoneLines {
+  /** 선의 왼쪽 · 오른쪽 끝 x */
+  x: readonly [number, number]
+  /** 밑창 맨 위 y */
+  top: number
+  /** 상|중 · 중|하 경계 y */
+  bounds: readonly [number, number]
+  /** 밑창 맨 아래 y */
+  bottom: number
+}
+
+/** 부위 잘라 보기 한 칸(38×34 상자 안에 그림을 놓을 자리, px) */
+export interface CropView {
+  /** 그림 URL */
+  src: string
+  /** 상자 기준 왼쪽 */
+  left: number
+  /** 상자 기준 위 */
+  top: number
+  /** 그림 폭 */
+  width: number
+  /** 그림 높이 */
+  height: number
+}
+
+/** +α 부위별 근거 한 줄(시안 r3 BASIS) */
+export interface ZoneBasis {
+  /** 부위 이름(상 · 중 · 하) */
+  zone: string
+  /** 일치 여부(일치 · 불일치 칩) */
+  ok: boolean
+  /** 부위 점수 0~1 */
+  score: number
+  /** 대응점 일치 수(예 「12/13」) */
+  pairs: string
+  /** 칸 수 · 도형 개수 · 각도 비교 한 줄 */
+  why: string
+  /** 유류 사진 잘라 보기 */
+  crimeCrop: CropView
+  /** 발견 밑창 잘라 보기 */
+  shoeCrop: CropView
+}
+
+/**
+ * +α(시안 r3) 정밀 대조 값 묶음 — `showPlus` 일 때만 보인다. 지금 match_top10 응답에 없는 값이라
+ * 운영 연결 전까지는 진열 페이지만 채운다(시안 S15 정밀 대조 모델 기록과 같은 값).
+ */
+export interface MatchInsight {
+  /** 처리 구분(예 「현장」) */
+  processType: string
+  /** 목적 한 줄 */
+  purpose: string
+  /** AI 정합 각도 글자(예 「−4.0°」) */
+  alignAngle: string
+  /** AI 대응점(앞의 `representative` 개는 대표점 — 굵은 선) */
+  pairs: readonly DensePair[]
+  /** 대표 대응점 수(번호 1–n) */
+  representative: number
+  /** 구역 선 — 현장 · 신발 이미지 좌표계 */
+  zoneLines: { crime: ZoneLines; shoe: ZoneLines }
+  /** AI 미리 대조 시각 · 걸린 시간(예 「07-24 17:31 · 2.4초」) */
+  preparedAt: string
+  /** AI 미리 대조 숫자 4칸(라벨 · 값) */
+  preStats: readonly (readonly [string, string])[]
+  /** 겹쳐 보기 미리보기 — 현장 사진 */
+  overlayCrime: string
+  /** 겹쳐 보기 미리보기 — 바탕 없는 신발 밑창 */
+  overlayShoe: string
+  /** 겹쳐 보기 투명도(%) */
+  overlayOpacity: number
+  /** 종합 신뢰도(%) */
+  confidence: number
+  /** 지표 4개(Inlier Ratio · NCC · Wasserstein · Mutual Info.) */
+  metrics: readonly (readonly [string, string])[]
+  /** AI 의견 한 줄 */
+  opinion: string
+  /** 부위별 근거 */
+  basis: readonly ZoneBasis[]
+  /** 측면 이미지 URL */
+  sideImage: string
+  /** 사건정보 표에 더할 SCAS 칸(지금 데이터에 없음): SCAS번호 · 문서번호 · 채취방법 */
+  caseExtra: { scasNo: string; docNo: string; pickMethod: string }
+  /** 신발정보 표에 더할 SCAS 칸(지금 데이터에 없음): 화종 · 비고 */
+  shoeExtra: { kind: string; note: string }
+}
+
 export interface MatchCompareScreenProps {
   /** 조회 상태. 결과 0건 화면이 따로 없어 empty 는 받지 않는다(정렬 미설정은 alignment 로 나타낸다) */
   status: Exclude<ScreenStatus, "empty">
@@ -73,4 +174,10 @@ export interface MatchCompareScreenProps {
   onConfirmTarget: () => void
   /** 「닫기」 — 검색 결과로 돌아감 */
   onClose: () => void
+  /** +α · 실증 요소를 보이나(기본 true). 운영 연결은 false 로 시작 */
+  showPlus?: boolean
+  /** +α 정밀 대조 값 묶음(showPlus 일 때만 쓴다) */
+  insight?: MatchInsight
+  /** 동작이 아직 없는 +α 버튼(이전 · 다음 · 그룹등록 · 프린트 · 감정서 첨부 · 확대 줄 …) — 누른 버튼 글자 */
+  onPlusAction?: (label: string) => void
 }

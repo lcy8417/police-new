@@ -6,14 +6,18 @@ import type { CrimeHistoryRow } from "@/entities/crime"
 import { toKstIso } from "@/shared/lib/kst"
 import { ResultConfirmScreen, type ConfirmImageBlock, type Judgement } from "@/widgets/result-confirm"
 
-import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevViewer } from "../frame"
+import { DevScreenFrame, SCREEN_CASES, devScreen, useDevCase, useDevNavigate, useDevPlus, useDevViewer } from "../frame"
 import { fakePhotoUrl } from "../mock-assets/FakePhoto"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
 import type { ZoneTriple } from "../mock-assets/fake-art"
 import {
   CASE_SUMMARY,
+  INITIAL_COMPLETED,
   makeBlocks,
+  makeConfirmInsight,
   NEXT_SEARCH_NO,
+  OTHER_ZONES,
+  REVIEWERS,
   S07_DEFAULT_FTWR,
   S07_ERROR_AT,
 } from "./mock-cases"
@@ -27,10 +31,11 @@ const SCENE: readonly { zones: ZoneTriple; rotate: number }[] = [
   { zones: ["grid", "grid", "lines"], rotate: -7 },
 ]
 
-const LABEL: Record<Judgement, string> = { found: "발견", notFound: "불발견" }
+const LABEL: Record<Judgement, string> = { found: "발견", notFound: "불발견", unable: "감정불능" }
+const PLUS_NOT_READY = "시안 — 기능 준비 중"
 
-// S07 검색결과 확인 진열 페이지. 판정 값과 이력은 여기서 들고(제어형), 「결과확인완료」를 누르면
-// 지금 앱처럼 이력 한 줄(발견 = 매칭 신발 ID, 불발견 = 매칭 없음)을 쌓고 알림을 띄운다. `?ftwr=`는 S06 「확인대상」에서 넘어온다.
+// S07 검색결과 확인 진열 페이지. 판정 값 · 이력 · 결과확인완료 · 교차 검증자는 여기서 들고(제어형), 「결과확인완료」를 누르면
+// 지금 앱처럼 이력 한 줄(발견 = 매칭 신발 ID, 그 밖 = 매칭 없음)을 쌓고 알림을 띄운다. `?ftwr=`는 S06 「확인대상」에서 넘어온다.
 export function S07DevPage() {
   const to = useDevNavigate()
   const { search } = useLocation()
@@ -38,15 +43,22 @@ export function S07DevPage() {
   const ftwr = params.get("ftwr") || S07_DEFAULT_FTWR
   const activeCase = useDevCase(SCREEN_CASES.s07, "ready")
   const viewer = useDevViewer()
+  const showPlus = useDevPlus()
 
   const [judgements, setJudgements] = useState<Record<string, Judgement>>({})
   const [added, setAdded] = useState<Record<string, CrimeHistoryRow[]>>({})
+  const [completed, setCompleted] = useState<Record<string, Judgement>>(INITIAL_COMPLETED)
+  const [reviewer, setReviewer] = useState<string | null>(REVIEWERS[0].value)
 
   const images = useMemo(
     () => ({
       scenes: SCENE.map((s, i) => fakePhotoUrl({ zones: s.zones, rotate: s.rotate, tag: String(i + 1) })),
       shoe: fakeSoleUrl({ kind: "shoe", zones: ["herring", "grid", "tri"] }),
     }),
+    [],
+  )
+  const insight = useMemo(
+    () => makeConfirmInsight((id) => fakeSoleUrl({ kind: "shoe", zones: OTHER_ZONES[id] ?? ["herring", "grid", "tri"] })),
     [],
   )
 
@@ -85,8 +97,19 @@ export function S07DevPage() {
             mtchgId: result === "found" ? ftwrId : null,
           }
           setAdded((prev) => ({ ...prev, [aprthngNo]: [...(prev[aprthngNo] ?? []), row] }))
+          setCompleted((prev) => ({ ...prev, [aprthngNo]: result }))
           toast.success(`${aprthngNo} ${LABEL[result]} 저장(진열용)`)
         }}
+        showPlus={showPlus}
+        insight={insight}
+        completed={completed}
+        crossReviewer={reviewer}
+        onCrossReviewerChange={setReviewer}
+        onRequestCrossReview={(r) => {
+          const name = REVIEWERS.find((x) => x.value === r)?.label ?? r
+          toast(PLUS_NOT_READY, { description: `교차 검증 요청 → ${name}` })
+        }}
+        onPlusAction={(label) => toast(PLUS_NOT_READY, { description: label })}
       />
     </DevScreenFrame>
   )
