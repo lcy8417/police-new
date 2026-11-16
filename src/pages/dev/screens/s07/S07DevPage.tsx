@@ -1,12 +1,102 @@
-import { DEV_CASES, DEV_SCREENS, DevScreenFrame } from "../frame"
+import { useMemo, useState } from "react"
+import { useLocation, useNavigate } from "react-router-dom"
+import { toast } from "sonner"
+
+import type { CrimeHistoryRow } from "@/entities/crime"
+import { toKstIso } from "@/shared/lib/kst"
+import { ResultConfirmScreen, type ConfirmImageBlock, type Judgement } from "@/widgets/result-confirm"
+
+import { DEV_SCREENS, DevScreenFrame, useDevCase, useDevViewer } from "../frame"
+import { fakePhotoUrl } from "../mock-assets/FakePhoto"
+import { fakeSoleUrl } from "../mock-assets/FakeSole"
+import type { ZoneTriple } from "../mock-assets/fake-art"
+import {
+  CASE_SUMMARY,
+  makeBlocks,
+  NEXT_SEARCH_NO,
+  S07_CASES,
+  S07_DEFAULT_FTWR,
+  S07_ERROR_AT,
+} from "./mock-cases"
 
 const info = DEV_SCREENS.find((s) => s.id === "s07")!
 
-// S07 결과 확인 진열 페이지(자리). 화면 트랙이 위젯으로 채운다.
+// 이미지마다 다른 가짜 사진 무늬 · 기울기(시안 S07 BLOCKS)
+const SCENE: readonly { zones: ZoneTriple; rotate: number }[] = [
+  { zones: ["herring", "grid", "tri"], rotate: -4 },
+  { zones: ["dots", "grid", "lines"], rotate: 3 },
+  { zones: ["grid", "grid", "lines"], rotate: -7 },
+]
+
+const LABEL: Record<Judgement, string> = { found: "발견", notFound: "불발견" }
+
+// S07 검색결과 확인 진열 페이지. 판정 값과 이력은 여기서 들고(제어형), 「결과확인완료」를 누르면
+// 지금 앱처럼 이력 한 줄(발견 = 매칭 신발 ID, 불발견 = 매칭 없음)을 쌓고 알림을 띄운다. `?ftwr=`는 S06 「확인대상」에서 넘어온다.
 export function S07DevPage() {
+  const navigate = useNavigate()
+  const { search } = useLocation()
+  const params = new URLSearchParams(search)
+  const as = params.get("as")
+  const ftwr = params.get("ftwr") || S07_DEFAULT_FTWR
+  const activeCase = useDevCase(S07_CASES, "ready")
+  const viewer = useDevViewer()
+
+  const [judgements, setJudgements] = useState<Record<string, Judgement>>({})
+  const [added, setAdded] = useState<Record<string, CrimeHistoryRow[]>>({})
+
+  const images = useMemo(
+    () => ({
+      scenes: SCENE.map((s, i) => fakePhotoUrl({ zones: s.zones, rotate: s.rotate, tag: String(i + 1) })),
+      shoe: fakeSoleUrl({ kind: "shoe", zones: ["herring", "grid", "tri"] }),
+    }),
+    [],
+  )
+
+  const blocks: ConfirmImageBlock[] = useMemo(
+    () =>
+      makeBlocks(ftwr).map((b, i) => ({
+        aprthngNo: b.aprthngNo,
+        sceneImage: images.scenes[i % images.scenes.length],
+        history: [...b.history, ...(added[b.aprthngNo] ?? [])],
+        target: b.target ? { ...b.target, image: images.shoe } : null,
+      })),
+    [ftwr, images, added],
+  )
+
+  const withAs = (path: string, query: Record<string, string>) => {
+    const q = new URLSearchParams(query)
+    if (as) q.set("as", as)
+    return `${path}?${q.toString()}`
+  }
+
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={DEV_CASES}>
-      <p className="text-[12.5px] text-muted-foreground">준비 중</p>
+    <DevScreenFrame screen={info.screen} title={info.title} cases={S07_CASES}>
+      <ResultConfirmScreen
+        status={activeCase}
+        errorAt={S07_ERROR_AT}
+        onRetry={() => {
+          toast("검색 결과를 다시 불러옵니다(진열용)")
+          navigate(withAs("/dev/s07", { case: "ready", ftwr }))
+        }}
+        isAdmin={viewer.isAdmin}
+        features={viewer.features}
+        caseSummary={CASE_SUMMARY}
+        blocks={activeCase === "ready" ? blocks : []}
+        judgements={judgements}
+        onJudgementChange={(aprthngNo, result) => setJudgements((prev) => ({ ...prev, [aprthngNo]: result }))}
+        onSaveJudgement={({ aprthngNo, ftwrId, result }) => {
+          const target = blocks.find((b) => b.aprthngNo === aprthngNo)?.target
+          const count = Object.values(added).reduce((n, rows) => n + rows.length, 0)
+          const row: CrimeHistoryRow = {
+            searchNo: NEXT_SEARCH_NO + count,
+            frstRegistDt: toKstIso().slice(0, 19).replace("T", " "),
+            ranking: target?.ranking ?? 0,
+            mtchgId: result === "found" ? ftwrId : null,
+          }
+          setAdded((prev) => ({ ...prev, [aprthngNo]: [...(prev[aprthngNo] ?? []), row] }))
+          toast.success(`${aprthngNo} ${LABEL[result]} 저장(진열용)`)
+        }}
+      />
     </DevScreenFrame>
   )
 }
