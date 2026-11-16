@@ -81,7 +81,7 @@ export function ResultDetail({
             발견 이미지
             <AiTag className="ml-auto h-[15px] text-[9px]">일치 부위 켬</AiTag>
           </span>
-          <span className="relative block h-[150px] overflow-hidden rounded-[10px] border border-solid border-border bg-foreground">
+          <span className="relative block h-[150px] overflow-hidden rounded-[10px] border border-solid border-border bg-paper">
             <img src={detail.shoeImage} alt={`발견 이미지 ${detail.ftwrId}`} className="block size-full object-contain" />
             <SoleHeat />
           </span>

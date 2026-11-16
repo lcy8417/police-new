@@ -83,7 +83,7 @@ export function ColumnPicker({ columns, visible, onChange, defaultVisible, partI
           id={panelId}
           role="group"
           aria-label="보일 열"
-          className="absolute right-0 top-[30px] z-20 w-[200px] rounded-[8px] border border-solid border-border bg-panel p-[8px] [box-shadow:0_8px_24px_rgba(0,0,0,0.35)]"
+          className="absolute right-0 top-[30px] z-20 w-[200px] rounded-[8px] border border-solid border-border bg-panel p-[8px] [box-shadow:0_8px_24px_var(--t-panel-drop)]"
         >
           <div className="mb-[6px] flex gap-[6px]">
             <button type="button" className={small} onClick={() => emit(new Set(columns.map((c) => c.key)))}>

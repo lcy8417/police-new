@@ -46,7 +46,7 @@ export function QuickPeekWindow({
           <img src={peek.sceneImage} alt="현장 족적" className="block size-full object-cover" />
           <span className={cn(PHOTO_LABEL, "text-fg-2")}>현장</span>
         </span>
-        <span className="relative h-[148px] overflow-hidden rounded-[7px] border border-solid border-brand-line bg-foreground">
+        <span className="relative h-[148px] overflow-hidden rounded-[7px] border border-solid border-brand-line bg-paper">
           <img src={shoeImage} alt={`신발 ${ftwrId} 밑창`} className="block size-full object-contain" />
           <SoleHeat />
           <span className={cn(PHOTO_LABEL, "text-ai")}>{ftwrId}</span>

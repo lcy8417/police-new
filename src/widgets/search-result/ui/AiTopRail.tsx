@@ -45,7 +45,7 @@ export function AiTopRail({ items, targets }: { items: readonly AiTopItem[]; tar
                 t.seen && !star && "opacity-[.72]",
               )}
             >
-              <span className="relative block h-[74px] overflow-hidden rounded-[5px] bg-foreground">
+              <span className="relative block h-[74px] overflow-hidden rounded-[5px] bg-paper">
                 <img src={t.image} alt={`신발 ${t.ftwrId} 밑창`} className="block size-full object-contain" />
                 {t.heat ? <SoleHeat /> : null}
                 <b

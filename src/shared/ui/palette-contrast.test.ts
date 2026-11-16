@@ -107,6 +107,9 @@ const STATUS_PAIRS: Pair[] = [
     ),
   ),
   [WHITE, "--t-brand-3", 4.5],
+  // 종이색 글자(`text-paper`): 파란 띠(S07 검색이력) · 빨간 번호 배지(S04 구분선) 위
+  ["--t-paper", "--t-brand-3", 4.5],
+  ["--t-paper", "--t-danger", 4.5],
 ];
 
 function check(tokens: Record<string, string>, pairs: Pair[]) {

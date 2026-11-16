@@ -48,7 +48,7 @@ function Crop({ view, light }: { view: CropView; light?: boolean }) {
     <span
       className={cn(
         "relative block h-[34px] w-[38px] overflow-hidden rounded-[5px] border border-solid border-line-3",
-        light && "bg-foreground",
+        light && "bg-paper",
       )}
     >
       <img

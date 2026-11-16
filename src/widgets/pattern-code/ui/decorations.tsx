@@ -9,7 +9,7 @@ export function BoundaryLines({ ys }: { ys: readonly [number, number] }) {
     <div data-deco="boundary-lines" aria-hidden="true" className="pointer-events-none absolute inset-0">
       {ys.map((y, i) => (
         <span key={i} className="absolute inset-x-0 h-0 border-t-2 border-dashed border-danger" style={{ top: `${y}%` }}>
-          <span className="absolute right-[6px] -top-[8px] grid h-[14px] w-[22px] place-items-center rounded-[3px] bg-danger text-[9px] leading-none text-foreground">
+          <span className="absolute right-[6px] -top-[8px] grid h-[14px] w-[22px] place-items-center rounded-[3px] bg-danger text-[9px] leading-none text-paper">
             ⇕
           </span>
         </span>

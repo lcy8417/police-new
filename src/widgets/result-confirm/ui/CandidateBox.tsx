@@ -71,7 +71,7 @@ export function CandidateBox({
             <img src={sceneImage} alt="현장 족적" className="block size-full object-cover" />
           </span>
           <span className="text-[11px] text-ai">→</span>
-          <span className="relative block h-[84px] w-[54px] overflow-hidden rounded-[6px] border border-solid border-border bg-foreground">
+          <span className="relative block h-[84px] w-[54px] overflow-hidden rounded-[6px] border border-solid border-border bg-paper">
             <img src={target.image} alt={`신발 ${target.ftwrId} 밑창`} className="block size-full object-contain" />
             <SoleHeat />
             <ScanOverlay active className="motion-safe:[animation-duration:2.8s]" />
@@ -92,7 +92,7 @@ export function CandidateBox({
           data-excluded={c.excluded ? "true" : undefined}
           className={cn("grid w-[112px] justify-items-center gap-[2px] pt-[3px]", c.excluded && "opacity-45")}
         >
-          <span className="relative block h-[84px] w-[62px] overflow-hidden rounded-[10px] border border-solid border-border bg-foreground">
+          <span className="relative block h-[84px] w-[62px] overflow-hidden rounded-[10px] border border-solid border-border bg-paper">
             <img src={c.image} alt={`신발 ${c.ftwrId} 밑창`} className="block size-full object-contain" />
           </span>
           <b className={cn("font-code text-[11px] text-foreground", c.excluded && "line-through")}>{c.ftwrId}</b>

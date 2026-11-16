@@ -123,7 +123,7 @@ export function CaseTable<Row>({
                           !selected &&
                           "bg-[linear-gradient(90deg,color-mix(in_srgb,var(--t-ai-bg)_55%,transparent),transparent_60%)]",
                         i === 0 && selected && "[box-shadow:inset_3px_0_0_var(--t-brand)]",
-                        i === 0 && fresh && !selected && "[box-shadow:inset_3px_0_0_var(--t-ai)]",
+                        i === 0 && fresh && !selected && "[box-shadow:inset_3px_0_0_var(--t-ai)] motion-safe:animate-fx-glow",
                         c.cellClass
                       )}
                     >

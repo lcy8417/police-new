@@ -56,6 +56,8 @@
   --t-ai-bg-deep: #0b2a26; /* 표 안 작은 AI 표식 배경(S01 인라인 값) */
   --t-ai-tag-drop: rgba(0, 0, 0, 0.6); /* 진행 중 AI 표식 그림자 */
   --t-ai-pulse: rgba(45, 212, 191, 0.55); /* 진행 점 맥박 */
+  --t-ai-glow: rgba(45, 212, 191, 0.12); /* DataGrid 새 행 첫 칸 번짐(시안 fx-glow 끝값) */
+  --t-paper: #e5e9f0; /* 사진 · 그림 칸 「종이」 바탕(다크 = 글자색과 같은 밝은 값 · 밝은 팔레트 = 밝은 종이색, 항상 밝음) */
   --t-picon-bg: #f3f5f8; /* PatternIcon 바탕(밝은 종이색, 시안 .picon) */
   --t-ai-scan-glow: rgba(45, 212, 191, 0.6); /* ScanOverlay 스캔선 번짐(시안 .fx-scan) */
   --t-ai-shine: #b9fff4; /* AiProgress 반짝임 띠(시안 .fx-bar.run) */
@@ -242,6 +244,8 @@
   --t-ai-bg-deep: #d4eee9;
   --t-ai-tag-drop: rgba(31, 42, 90, 0.12);
   --t-ai-pulse: rgba(11, 110, 100, 0.45);
+  --t-ai-glow: rgba(11, 110, 100, 0.1);
+  --t-paper: #f3f5f8;
   --t-picon-bg: #f3f5f8;
   --t-ai-scan-glow: rgba(11, 110, 100, 0.45);
   --t-ai-shine: #e6fffb;
@@ -305,6 +309,8 @@
   --t-ai-bg-deep: #cfeae4;
   --t-ai-tag-drop: rgba(11, 13, 18, 0.15);
   --t-ai-pulse: rgba(0, 86, 78, 0.5);
+  --t-ai-glow: rgba(0, 86, 78, 0.1);
+  --t-paper: #ffffff;
   --t-picon-bg: #f3f5f8;
   --t-ai-scan-glow: rgba(0, 86, 78, 0.5);
   --t-ai-shine: #e6fffb;
@@ -374,6 +380,8 @@
   --t-ai-bg-deep: #cfe6e1;
   --t-ai-tag-drop: rgba(38, 43, 52, 0.1);
   --t-ai-pulse: rgba(17, 98, 88, 0.4);
+  --t-ai-glow: rgba(17, 98, 88, 0.1);
+  --t-paper: #eceef2;
   --t-picon-bg: #f3f5f8;
   --t-ai-scan-glow: rgba(17, 98, 88, 0.4);
   --t-ai-shine: #e6fffb;
@@ -388,6 +396,27 @@
   --t-stat-glow-warn: rgba(127, 74, 8, 0.08);
   --t-stat-glow-danger: rgba(168, 50, 58, 0.08);
   --t-heat-yellow: #facc15;
+}
+
+/* shadcn Checkbox · Switch 는 다크 hex 고정색이라(운영 화면 공유, 값을 바꾸면 변함) 밝은 팔레트 범위에서만 토큰으로 덮는다.
+   다크 팔레트 · 범위 밖은 건드리지 않는다. 안 덮이면 흰 바탕에 검은 네모로 보인다. */
+:is([data-theme="scas-light"], [data-theme="light-contrast"], [data-theme="light-soft"]) [data-slot="checkbox"] {
+  background-color: var(--t-panel);
+  border-color: var(--t-faint);
+}
+:is([data-theme="scas-light"], [data-theme="light-contrast"], [data-theme="light-soft"]) [data-slot="checkbox"][data-state="checked"] {
+  background-color: var(--t-brand-3);
+  border-color: var(--t-brand-3);
+  color: var(--t-paper);
+}
+:is([data-theme="scas-light"], [data-theme="light-contrast"], [data-theme="light-soft"]) [data-slot="switch"][data-state="unchecked"] {
+  background-color: var(--t-line-3);
+}
+:is([data-theme="scas-light"], [data-theme="light-contrast"], [data-theme="light-soft"]) [data-slot="switch"][data-state="checked"] {
+  background-color: var(--t-brand-3);
+}
+:is([data-theme="scas-light"], [data-theme="light-contrast"], [data-theme="light-soft"]) [data-slot="switch-thumb"][data-state="unchecked"] {
+  background-color: var(--t-dim);
 }
 
 /* ───────── 시안 화면 범위 글꼴 (설계서 §14-3, 사용자 결정 「여러 개 받아서 선택할 수 있게」) ─────────
@@ -579,6 +608,7 @@
   --color-line-2: var(--t-line-2);
   --color-line-3: var(--t-line-3);
   --color-picon: var(--t-picon-bg);
+  --color-paper: var(--t-paper);
   --color-fg-2: var(--t-fg-2);
   --color-dim: var(--t-dim);
   --color-faint: var(--t-faint);
@@ -592,6 +622,7 @@
   --animate-fx-scan: fx-scan 3.2s ease-in-out infinite;
   --animate-fx-fill: fx-fill 1.4s ease-out;
   --animate-fx-run: fx-fill 1.4s ease-out, fx-shimmer 1.6s linear infinite;
+  --animate-fx-glow: fx-glow 2.4s ease-in-out infinite;
   --color-danger: var(--t-danger);
   --color-danger-bg: var(--t-danger-bg);
   --color-ok: var(--t-ok);
@@ -639,6 +670,20 @@
 @keyframes fx-fill {
   from {
     width: 0;
+  }
+}
+/* 새 행 첫 칸: 왼쪽 3px ai 선 + 바깥 번짐 0 ↔ 22px(시안 fx-glow). 멈춘 모양 = 선만(기본 스타일 `shadow-[inset_3px_0_0_var(--t-ai)]`) */
+@keyframes fx-glow {
+  0%,
+  100% {
+    box-shadow:
+      inset 3px 0 0 var(--t-ai),
+      0 0 0 transparent;
+  }
+  50% {
+    box-shadow:
+      inset 3px 0 0 var(--t-ai),
+      0 0 22px var(--t-ai-glow);
   }
 }
 @keyframes fx-shimmer {

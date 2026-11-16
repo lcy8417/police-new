@@ -82,6 +82,8 @@
 | `--t-stat-glow` · `-brand` · `-ai` · `-warn` · `-danger` | `rgba(74, 158, 255, 0.14)` · `0.18` · `rgba(45, 212, 191, 0.2)` · `rgba(245, 158, 11, 0.2)` · `rgba(239, 68, 68, 0.2)` | StatTile 모서리 번짐(시안 `.stat::after` 의 `--glow`) |
 | `--t-heat-yellow` | `#facc15` | HeatOverlay `match` 약한 일치 번짐(시안 S06 heatSvg) |
 | `--t-picon-bg` (역할 이름 `--color-picon`, `bg-picon`) | `#f3f5f8` | PatternIcon 바탕 밝은 종이색(시안 `.picon`) |
+| `--t-paper` (역할 `--color-paper`, `bg-paper` · `text-paper`) | 다크 `#e5e9f0`(= `--t-fg`와 같은 값) · 밝은 팔레트 `#f3f5f8` · `#ffffff` · `#eceef2` | 사진 · 그림 칸 「종이」 바탕(S05 카드 · S07 후보 · S10 …) + 파란 띠 · 빨간 배지 위 글자. 모든 팔레트에서 밝음(r3 polish) |
+| `--t-ai-glow` | `rgba(45, 212, 191, 0.12)` | 새 행 첫 칸 번짐 `fx-glow` 끝값(밝은 팔레트는 ai 색 0.1) |
 | `--t-emblem-from` · `--t-emblem-to` · `--t-emblem-stroke` | `#1f3f73` · `#0b1730` · `#7fb6ff` | ScasShell 방패 배지 바탕 그라데이션 · 바깥 선(시안 `.emblem`) |
 | `--t-dot-grid` · `--t-glow-orb` | `rgba(74, 158, 255, 0.14)` · `rgba(37, 99, 235, 0.1)` | ScasShell 내용 영역 점 격자 · 번짐 빛(시안 `.content::before/::after`) |
 
@@ -117,7 +119,9 @@
 - **겹침 창(포털)**: `ThemeScope`가 상자 끝에 포털 자리(`[data-theme-portal]`)를 두고 맥락(`useThemePortalContainer`)으로 알린다. `DialogShell`(modal · layer)은 범위 안이면 그 자리로 포털해 팔레트 · 글꼴 · 배율을 받고, 범위 밖이면 전과 같이 body. 앱 전체 알림 `Toaster`(`src/shared/ui/sonner.tsx`)는 범위가 열려 있을 때만(`useActiveThemeScope`) 같은 범위 속성 상자로 감싸고 sonner 테마를 light/dark 로 맞춘다. 새 포털 부품(팝오버 · 툴팁 등)을 시안 화면에 쓰면 같은 맥락을 받아 `container`로 넘긴다.
 - **범위 안 shadcn 역할**: `.dark`는 `<html>`에서 이미 계산돼 내려오므로 `[data-theme]` 블록이 `--background` · `--card` · `--border` 등을 다시 가리킨다(dark 에서는 같은 값). 밝은 팔레트는 `--destructive`를 `var(--t-danger)`로, `color-scheme: light`.
 - **새 토큰을 `:root`에 더하면** 밝은 팔레트 3블록에도 값을 넣는다(④가 막는다). 새 글자/바탕 짝이면 대비 검사 짝 목록에도 더한다.
-- **바탕을 「밝은 종이」로 쓰는 자리는 `bg-picon`**(모든 팔레트에서 밝음). `bg-foreground`는 밝은 팔레트에서 진한 남색이 된다(글자색 역할이므로).
+- **바탕을 「밝은 종이」로 쓰는 자리는 `bg-paper`**(사진 · 그림 칸, 다크 값은 전과 같음) 또는 `bg-picon`(문양 아이콘). 둘 다 모든 팔레트에서 밝음. `bg-foreground`는 밝은 팔레트에서 진한 남색이 된다(글자색 역할이므로). 진한 바탕(파란 띠 · 빨간 배지) 위 밝은 글자는 `text-paper`.
+- **Tooltip**(`shared/ui/tooltip`)은 범위 안이면 포털 자리로 열린다(`useThemePortalContainer`) — 팔레트를 받는다. 지금 11화면 중 Tooltip 을 쓰는 곳은 S03 편집 도구(ThresholdControls); Popover · Select 부품은 저장소에 없고 화면은 네이티브 select · 직접 만든 펼침(ColumnPicker · Combobox)을 쓴다.
+- **shadcn Checkbox · Switch**(hex 고정)는 `src/index.css`의 밝은 팔레트 3종 범위 규칙(`[data-slot=checkbox|switch]`)이 토큰으로 덮는다. 다크 · 범위 밖은 그대로.
 
 | 글꼴 `data-font` | 이름표 | 파일(`src/assets/fonts/…`, woff2 보통 400 · 굵게 700) | 받은 곳 · 라이선스 | 크기(보통 + 굵게) |
 |---|---|---|---|---|

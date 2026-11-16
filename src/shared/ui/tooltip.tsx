@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Tooltip as TooltipPrimitive } from "radix-ui"
 
+import { useThemePortalContainer } from "@/shared/lib/display-prefs"
 import { cn } from "@/shared/lib/utils"
 
 function TooltipProvider({
@@ -34,8 +35,10 @@ function TooltipContent({
   children,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  // 시안 화면 범위 안이면 범위의 포털 자리로 — 팔레트 · 글꼴 · 배율을 받는다(범위 밖은 null = 전과 같이 body)
+  const container = useThemePortalContainer()
   return (
-    <TooltipPrimitive.Portal>
+    <TooltipPrimitive.Portal container={container}>
       <TooltipPrimitive.Content
         data-slot="tooltip-content"
         sideOffset={sideOffset}

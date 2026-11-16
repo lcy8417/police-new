@@ -121,7 +121,7 @@ function formatPercent(similarity: number | string): string {
 function TargetCard({ target }: { target: ConfirmTarget }) {
   return (
     <div className="flex items-center gap-[10px]">
-      <span className="relative block h-[96px] w-[64px] flex-none overflow-hidden rounded-[6px] bg-foreground">
+      <span className="relative block h-[96px] w-[64px] flex-none overflow-hidden rounded-[6px] bg-paper">
         <img src={target.image} alt={`신발 ${target.ftwrId} 밑창`} className="block size-full object-contain" />
       </span>
       <span className="grid min-w-0 gap-[2px] text-[11.5px]">
@@ -350,7 +350,7 @@ function ProgressStrip({
         label="결과확인완료"
         className="h-[5px] w-[96px] bg-canvas/45"
       />
-      <span className="text-fg-2">
+      <span className="text-paper/85">
         AI 추천과 판정 일치 <b className="font-code">{`${agree} / ${doneBlocks.length}`}</b>
       </span>
     </span>
@@ -627,7 +627,7 @@ export function ResultConfirmScreen({
           </tbody>
         </table>
       </div>
-      <div className="mx-[14px] mt-[8px] flex min-h-[32px] flex-wrap items-center gap-[10px] rounded-[8px] bg-brand-3 px-[12px] py-[4px] text-[12.5px] font-semibold text-foreground">
+      <div className="mx-[14px] mt-[8px] flex min-h-[32px] flex-wrap items-center gap-[10px] rounded-[8px] bg-brand-3 px-[12px] py-[4px] text-[12.5px] font-semibold text-paper">
         검색이력
         {plus && status === "ready" ? (
           <ProgressStrip blocks={blocks} insight={plus} completed={completed} onJump={jumpTo} />

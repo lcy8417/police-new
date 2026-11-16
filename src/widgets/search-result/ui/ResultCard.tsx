@@ -87,7 +87,7 @@ export function ResultCard({
       >
         <span
           className={cn(
-            "relative block overflow-hidden rounded-[6px] bg-foreground",
+            "relative block overflow-hidden rounded-[6px] bg-paper",
             compact ? THUMB_H[thumbSize].compact : THUMB_H[thumbSize].normal,
           )}
         >
