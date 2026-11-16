@@ -174,6 +174,12 @@ export interface SearchResultScreenProps {
   onOpenResult: (item: ImageSearchResultItem, ranking: number) => void
   /** +α · 실증 요소를 보이나(기본 true). 운영 연결은 false 로 시작 */
   showPlus?: boolean
+  /**
+   * 사건 창 「검색 결과」 탭 안에 넣는가(11/17). true 면 같은 상태 · 핸들러로 배치만 바꾼다:
+   * 왼쪽 현장 족적(높이 꽉) + 검색 요약 칸(칸 안 스크롤) | 오른쪽 결과(칸 머리 + 두 줄 도구 막대 + 칸 안 스크롤 — AI 10건 · 그리드 · 쪽수 · 상세조회).
+   * 창 머리와 겹치는 「문양검색결과」 제목 줄 · 이미지번호는 그리지 않고, 설명 문장은 칸 머리 ⓘ 로 모은다.
+   */
+  inWindow?: boolean
   /** +α 값 묶음(showPlus 일 때만 쓴다) */
   insight?: SearchInsight
   /** 확인대상(+α ★ · 확인대상 칸) — 저장되는 값이라 제어형 */

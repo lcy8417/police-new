@@ -2,6 +2,7 @@ import * as React from "react"
 
 import { AiTag } from "@/shared/ui/ai"
 import { Button } from "@/shared/ui/kit"
+import { PaneHead } from "@/shared/ui/panel"
 
 import type { ResultDetailInsight } from "../model/types"
 import { SoleHeat } from "./SoleHeat"
@@ -18,6 +19,7 @@ export function ResultDetail({
   onRegister,
   onAction,
   onClose,
+  compact = false,
 }: {
   detail: ResultDetailInsight
   /** 그룹등록 · 확인대상 — 감정관 · 관리자 */
@@ -27,17 +29,20 @@ export function ResultDetail({
   /** 동작이 아직 없는 버튼 */
   onAction: (label: string) => void
   onClose: () => void
+  /**
+   * 사건 창 안(11/17) — 파란 띠 대신 칸 머리(PaneHead), 단추는 그 아래 한 줄(넘치면 줄바꿈),
+   * 그림 셋은 같은 폭 3칸 · 정보 표는 그 아래 전체 폭(좁은 칸에서도 가로로 넘치지 않게)
+   */
+  compact?: boolean
 }) {
   const [asking, setAsking] = React.useState(true)
   // 2열로 흐르는 라벨-값 표, 칸 수가 홀수면 빈 칸 한 쌍을 채운다(시안처럼)
   const cells = detail.info.length % 2 === 0 ? detail.info : [...detail.info, ["", ""] as const]
-  return (
-    <section data-plus data-result-detail aria-label="현장문양검색결과 상세조회" className="mt-[4px]">
-      <div className="flex min-h-[30px] flex-wrap items-center gap-[8px] border-l-[3px] border-solid border-brand-2 bg-panel-3 px-[10px] text-[12.5px] font-semibold">
-        현장문양검색결과 상세조회
-        <span className="ml-[4px] font-code font-normal text-muted-foreground">{`${detail.rank}위 · ${detail.similarity.toFixed(1)}%`}</span>
-        <span className="ml-auto flex items-center gap-[6px] font-normal">
-          <span className="inline-flex gap-[5px]">
+  const score = `${detail.rank}위 · ${detail.similarity.toFixed(1)}%`
+  const photo = compact ? "h-[120px]" : "h-[150px]"
+  const buttons = (
+    <>
+      <span className={compact ? "inline-flex flex-wrap gap-[5px]" : "inline-flex gap-[5px]"}>
             <Button size="sm" onClick={() => onAction("이전")}>
               이전
             </Button>
@@ -62,37 +67,57 @@ export function ResultDetail({
             <Button size="sm" onClick={onClose}>
               닫기
             </Button>
-          </span>
-          <span aria-hidden="true" className="h-[18px] w-px bg-line-3" />
-          <Button size="sm" onClick={() => onAction("크게 보기(뷰어)")}>
-            크게 보기(뷰어)
-          </Button>
-        </span>
-      </div>
-      <div className="grid grid-cols-[150px_150px_190px_minmax(0,1fr)] gap-[10px] pt-[10px]">
-        <div className="grid gap-[3px] text-[11px] text-muted-foreground">
+      </span>
+      <span aria-hidden="true" className="h-[18px] w-px bg-line-3" />
+      <Button size="sm" onClick={() => onAction("크게 보기(뷰어)")}>
+        크게 보기(뷰어)
+      </Button>
+    </>
+  )
+  return (
+    <section data-plus data-result-detail aria-label="현장문양검색결과 상세조회" className={compact ? "grid gap-[8px]" : "mt-[4px]"}>
+      {compact ? (
+        <>
+          <PaneHead title="현장문양검색결과 상세조회" as="h4" sub={<span className="font-code">{score}</span>} />
+          <div className="flex flex-wrap items-center gap-[6px]">{buttons}</div>
+        </>
+      ) : (
+        <div className="flex min-h-[30px] flex-wrap items-center gap-[8px] border-l-[3px] border-solid border-brand-2 bg-panel-3 px-[10px] text-[12.5px] font-semibold">
+          현장문양검색결과 상세조회
+          <span className="ml-[4px] font-code font-normal text-muted-foreground">{score}</span>
+          <span className="ml-auto flex items-center gap-[6px] font-normal">{buttons}</span>
+        </div>
+      )}
+      <div
+        className={
+          compact
+            ? "grid grid-cols-3 gap-[10px]"
+            : "grid grid-cols-[150px_150px_190px_minmax(0,1fr)] gap-[10px] pt-[10px]"
+        }
+      >
+        <div className="grid min-w-0 gap-[3px] text-[11px] text-muted-foreground">
           유류 이미지
-          <span className="relative block h-[150px] overflow-hidden rounded-[10px] border border-solid border-border bg-canvas">
+          <span className={`relative block ${photo} overflow-hidden rounded-[10px] border border-solid border-border bg-canvas`}>
             <img src={detail.crimeImage} alt="유류 이미지" className="block size-full object-cover" />
           </span>
         </div>
-        <div className="grid gap-[3px] text-[11px] text-muted-foreground">
+        <div className="grid min-w-0 gap-[3px] text-[11px] text-muted-foreground">
           <span className="flex items-center">
             발견 이미지
             <AiTag className="ml-auto h-[15px] text-[9px]">일치 부위 켬</AiTag>
           </span>
-          <span className="relative block h-[150px] overflow-hidden rounded-[10px] border border-solid border-border bg-paper">
+          <span className={`relative block ${photo} overflow-hidden rounded-[10px] border border-solid border-border bg-paper`}>
             <img src={detail.shoeImage} alt={`발견 이미지 ${detail.ftwrId}`} className="block size-full object-contain" />
             <SoleHeat />
           </span>
         </div>
-        <div className="grid gap-[3px] text-[11px] text-muted-foreground">
+        <div className="grid min-w-0 gap-[3px] text-[11px] text-muted-foreground">
           측면 이미지
-          <span className="relative block h-[150px] overflow-hidden rounded-[10px] border border-solid border-border bg-canvas">
+          <span className={`relative block ${photo} overflow-hidden rounded-[10px] border border-solid border-border bg-canvas`}>
             <img src={detail.sideImage} alt="측면 이미지" className="block size-full object-contain" />
           </span>
         </div>
-        <div className="grid min-w-0 content-start gap-[8px]">
+        <div className={compact ? "col-span-full grid min-w-0 content-start gap-[8px]" : "grid min-w-0 content-start gap-[8px]"}>
           <div className="grid grid-cols-[72px_minmax(0,1fr)_72px_minmax(0,1fr)] border-t border-solid border-line-2">
             {cells.map(([label, value], i) => (
               <React.Fragment key={`${label}-${i}`}>

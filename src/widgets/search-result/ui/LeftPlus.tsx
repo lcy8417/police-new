@@ -2,7 +2,7 @@ import { cn } from "@/shared/lib/utils"
 import { Button } from "@/shared/ui/kit"
 
 import type { SearchInsight, SearchTarget } from "../model/types"
-import { SIDE_BOX } from "./plus-style"
+import { KEYBOARD_NOTE, SIDE_BOX } from "./plus-style"
 
 // 시안 S05 왼쪽 칸 +α: 검색 요약 · 본 위치 · 유사도 분포 · 확인대상 · 키보드 안내.
 
@@ -51,6 +51,7 @@ export function LeftPlus({
   canEditTargets,
   onResume,
   onRemoveTarget,
+  bare = false,
 }: {
   insight: SearchInsight
   total: number
@@ -59,9 +60,12 @@ export function LeftPlus({
   canEditTargets: boolean
   onResume: () => void
   onRemoveTarget: (target: SearchTarget) => void
+  /** 사건 창 안 — 상자 테두리 대신 가는 구분선 · 간격으로 묶고, 키보드 안내 줄은 부르는 쪽 ⓘ 로 */
+  bare?: boolean
 }) {
   const nextRank = insight.seenUpTo + 1
   const seenRatio = total > 0 ? insight.seenUpTo / total : 0
+  const box = bare ? "grid gap-[6px] border-0 border-t border-solid border-line-2 pt-[10px]" : SIDE_BOX
   return (
     <>
       <div data-plus className="text-[11.5px] leading-[1.6] text-muted-foreground">
@@ -70,7 +74,7 @@ export function LeftPlus({
         {insight.essentialSummary} · {insight.searchedAt}
       </div>
 
-      <div data-plus data-seen-box className={SIDE_BOX}>
+      <div data-plus data-seen-box className={box}>
         <div className="flex justify-between text-[12px]">
           <b>본 위치</b>
           <span className="font-code tabular-nums text-fg-2">{`${insight.seenUpTo}위 / ${total}건`}</span>
@@ -93,7 +97,7 @@ export function LeftPlus({
         </div>
       </div>
 
-      <div data-plus className={cn(SIDE_BOX, "gap-[5px]")}>
+      <div data-plus className={cn(box, "gap-[5px]")}>
         <div className="flex justify-between text-[12px]">
           <b>유사도 분포</b>
           <span className="font-code text-[10.5px] text-dim">{`${total}건 · 순위 →`}</span>
@@ -113,7 +117,11 @@ export function LeftPlus({
       <div
         data-plus
         data-target-box
-        className="grid gap-[4px] rounded-[8px] border border-solid border-warn-line bg-warn-bg px-[10px] py-[8px]"
+        className={
+          bare
+            ? "grid gap-[4px] border-0 border-t border-solid border-line-2 pt-[10px]"
+            : "grid gap-[4px] rounded-[8px] border border-solid border-warn-line bg-warn-bg px-[10px] py-[8px]"
+        }
       >
         <div className="flex justify-between text-[12px] text-warn">
           <b>확인대상</b>
@@ -135,9 +143,11 @@ export function LeftPlus({
         ))}
       </div>
 
-      <div data-plus className="text-[11px] leading-[1.6] text-dim">
-        키보드 ← → 한 장 · PgDn 한 쪽 · Enter 상세조회 · S ★
-      </div>
+      {bare ? null : (
+        <div data-plus className="text-[11px] leading-[1.6] text-dim">
+          {KEYBOARD_NOTE}
+        </div>
+      )}
     </>
   )
 }

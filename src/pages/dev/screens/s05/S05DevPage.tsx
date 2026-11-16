@@ -65,6 +65,8 @@ export interface S05ContentProps {
   imageNo?: string
   /** 화면 옮기기(없으면 진열 주소 이동) — 사건 창은 탭 바꾸기로 받는다 */
   go?: DevGo
+  /** 사건 창 안(11/17) — 겹치는 제목 줄 · 이미지번호 없이 두 칸 · 높이 꽉(위젯 `inWindow`) */
+  inWindow?: boolean
 }
 
 // S05 검색 결과 진열 페이지: 쪽 번호 · 이진화/원본 보기 · 확인대상(★)을 여기서 들고(제어형), 카드를 누르면 S06 으로 간다.
@@ -78,7 +80,7 @@ export function S05DevPage() {
 }
 
 /** S05 틀 없는 내용 — 진열 페이지와 사건 창(「검색 결과」 탭)이 같이 쓴다 */
-export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go }: S05ContentProps) {
+export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, inWindow }: S05ContentProps) {
   const nav = useDevNavigate()
   const to = go ?? nav
   const viewer = useDevViewer()
@@ -146,6 +148,7 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go }: 
       }}
       onOpenResult={(item, ranking) => to("/dev/s06", { ftwr: item.ftwrId, rank: String(ranking) })}
       showPlus={showPlus}
+      inWindow={inWindow}
       insight={insight}
       targets={targets}
       onToggleTarget={(t) => {

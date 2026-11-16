@@ -14,7 +14,7 @@ import {
   ViewCountSwitch,
   type FilterGroup,
 } from "@/shared/ui/kit"
-import { Panel } from "@/shared/ui/panel"
+import { PaneHead, Panel } from "@/shared/ui/panel"
 import { EvidenceImage } from "@/shared/ui/viewer"
 
 import { filterResults, hasActiveFilter, optionCount, type FilterContext, type RankedResult } from "../model/result-filter"
@@ -30,7 +30,7 @@ import type {
 } from "../model/types"
 import { AiTopRail } from "./AiTopRail"
 import { LeftPlus } from "./LeftPlus"
-import { AI_MARK, CHIP_TEAL } from "./plus-style"
+import { AI_MARK, CHIP_TEAL, FILTER_NOTE, KEYBOARD_NOTE, STAR_NOTE } from "./plus-style"
 import { QuickPeekWindow } from "./QuickPeekWindow"
 import { ResultCard } from "./ResultCard"
 import { ResultDetail } from "./ResultDetail"
@@ -72,6 +72,10 @@ const FILTERS = ["이미 본 것 흐리게", "같은 그룹 묶기", "하 부위
 type Filter = (typeof FILTERS)[number]
 
 const NOT_READY = "준비 중"
+
+/** 사건 창 도구 막대: 안의 분할 단추(Segmented)를 단추 sm 높이(24)로 — 결과형태 · 썸네일 · 보기 · 수동/자동 */
+const COMPACT_SEGMENTS =
+  "[&_[data-part=Segmented]]:p-[2px] [&_[data-part=Segmented]_button]:px-[8px] [&_[data-part=Segmented]_button]:py-[2px] [&_[data-part=Segmented]_button]:text-[11.5px] [&_[data-part=ViewCountSwitch]>span]:text-[11.5px]"
 const DEFAULT_INTERVAL_MS = 2000
 const FULLSCREEN_UNAVAILABLE = "이 브라우저에서는 전체 화면을 쓸 수 없습니다 — 브라우저의 전체 화면(F11)을 써 주세요"
 
@@ -99,6 +103,7 @@ export function SearchResultScreen({
   onImageModeChange,
   onOpenResult,
   showPlus = true,
+  inWindow = false,
   insight,
   targets = [],
   onToggleTarget,
@@ -473,7 +478,7 @@ export function SearchResultScreen({
                   </button>
                 )
               })}
-              <span className="ml-auto text-dim">끝까지 보기는 그대로 — 거르는 건 보기만 바꿉니다</span>
+              {inWindow ? null : <span className="ml-auto text-dim">{FILTER_NOTE}</span>}
             </div>
           </>
         ) : null}
@@ -520,9 +525,9 @@ export function SearchResultScreen({
             onPageChange={onPageChange}
             className="px-0"
           />
-          {plus ? (
+          {plus && !inWindow ? (
             <span data-plus className="ml-auto text-[11px] text-dim">
-              카드 ☆ = 확인대상 지름길(상세조회 버튼과 같음)
+              {STAR_NOTE}
             </span>
           ) : null}
         </div>
@@ -533,62 +538,199 @@ export function SearchResultScreen({
   const detail = plus?.detail ?? null
   const position = Math.min(Math.max(0, (focusOnPage && focus !== null ? focus : firstRank) - 1), Math.max(0, totalCount - 1))
 
+  // ── 두 배치(단독 진열 · 사건 창)가 같이 쓰는 조각 — 상태 · 핸들러는 하나 ──
+  const roleChips = showPlus ? (
+    <span data-plus className="inline-flex gap-[6px]">
+      {roles.verifier ? <Chip>기술책임자 · 보기만</Chip> : null}
+      {roles.investigator ? <Chip>수사관 · 볼 수 없음</Chip> : null}
+    </span>
+  ) : undefined
+  const countText =
+    status === "ready" ? (
+      plus ? (
+        <span data-plus className="font-code text-[12px] tabular-nums text-fg-2">{`${firstRank}위 / ${totalCount}건`}</span>
+      ) : (
+        <span className="font-code text-[12px] tabular-nums text-fg-2">{`전체 ${totalCount}건`}</span>
+      )
+    ) : null
+  const columnSwitch = (
+    // r3: 1–4열 그대로 + 5 · 6개씩 확장(SCAS 「결과형태」 자리)
+    <ViewCountSwitch<string>
+      label="결과형태"
+      options={COLUMN_OPTIONS}
+      // 촘촘 8열(+α)이면 어느 칸도 눌리지 않는다
+      value={`${columns}열`}
+      onChange={(label) => setColumns(parseColumns(label as ColumnLabel))}
+    />
+  )
+  const confirmViewButton = (
+    // SCAS 버튼 — 확인대상 보기 기능이 지금 앱에 없어 비활성(준비 중)
+    <span title={NOT_READY} className="inline-flex">
+      <Button size="sm" disabled>
+        확인대상보기
+      </Button>
+    </span>
+  )
+  const denseButton = (
+    <Button
+      data-plus
+      size="sm"
+      aria-pressed={columns === 8}
+      onClick={() => setColumns(8)}
+      className={cn(columns === 8 && "text-foreground [box-shadow:inset_0_0_0_1px_var(--t-brand)]")}
+    >
+      촘촘 8열
+    </Button>
+  )
+  const rerankChip = (className?: string) => (
+    <Chip data-plus className={cn(CHIP_TEAL, className)}>
+      <span className={AI_MARK}>AI</span> 순위 다시 매김
+    </Chip>
+  )
+  const autoPlay =
+    onAutoModeChange && status === "ready" ? (
+      <AutoPlayControl
+        mode={autoMode}
+        onModeChange={onAutoModeChange}
+        intervalMs={intervalMs}
+        onIntervalChange={(ms) => onIntervalChange?.(ms)}
+        playing={playing}
+        onPlayPause={() => onPlayingChange?.(!playing)}
+        position={{ index: position, total: totalCount }}
+        remainingRatio={remainingRatio}
+      />
+    ) : null
+  const thumbSwitch = onThumbSizeChange ? (
+    <ViewCountSwitch label="썸네일" options={THUMB_OPTIONS} value={thumbSize} onChange={onThumbSizeChange} />
+  ) : null
+  const fullButton = (
+    <Button size="sm" aria-pressed={full} onClick={toggleFullscreen}>
+      {full ? "전체 화면 끝내기" : "전체 화면"}
+    </Button>
+  )
+  const helpButton = (
+    <Button
+      size="sm"
+      aria-expanded={helpOpen}
+      aria-controls="s05-shortcut-help"
+      aria-keyshortcuts="?"
+      onClick={() => setHelpOpen((v) => !v)}
+    >
+      단축키 ?
+    </Button>
+  )
+  const modeSegmented = (className: string) => (
+    <Segmented
+      items={MODE_ITEMS}
+      value={imageMode}
+      onValueChange={(v) => onImageModeChange(v as ImageMode)}
+      aria-label="결과 이미지 보기"
+      className={className}
+    />
+  )
+  const leftPlus = (bare: boolean) =>
+    plus && status === "ready" ? (
+      <LeftPlus
+        insight={plus}
+        total={totalCount}
+        targets={targets}
+        canEditTargets={roles.analyst}
+        onResume={() => onResume?.(plus.seenUpTo + 1)}
+        onRemoveTarget={toggleTarget}
+        bare={bare}
+      />
+    ) : (
+      <span className="text-[11px] leading-[1.5] text-dim">결과 신발 이미지를 이진화 / 원본으로 바꿔 봅니다</span>
+    )
+  const resultDetail = (compact: boolean) =>
+    detail && detailOpen && status === "ready" ? (
+      <ResultDetail
+        detail={detail}
+        canWrite={roles.analyst}
+        onRegister={() => {
+          if (!isTarget(detail.rank)) toggleTarget({ rank: detail.rank, ftwrId: detail.ftwrId })
+        }}
+        onAction={action}
+        onClose={() => setDetailOpen(false)}
+        compact={compact}
+      />
+    ) : null
+
+  // 사건 창 안(11/17 사용자 「컴팩트하면서 고급지게」): 왼쪽 현장 족적(높이 꽉) + 검색 요약(칸 안 스크롤) |
+  // 오른쪽 결과 — 칸 머리(결과 수 · AI 순위 · ⓘ 안내) · 두 줄 도구 막대 · 칸 안 스크롤(AI 10건 · 거르기 · 그리드 · 쪽수 · 상세조회).
+  // 「문양검색결과」 제목 줄 · 이미지번호(창 머리 · 탭 앞 「_n」 과 같은 말)는 그리지 않는다.
+  if (inWindow) {
+    const tip = plus ? `${FILTER_NOTE}. ${STAR_NOTE}. ${KEYBOARD_NOTE}` : KEYBOARD_NOTE
+    return (
+      <div
+        ref={rootRef}
+        data-fullscreen-root
+        data-slot="search-result-window"
+        className={cn("grid h-full min-h-0 min-w-0 grid-cols-[232px_minmax(0,1fr)] gap-[14px] p-[12px]", full && "overflow-auto bg-background")}
+      >
+        <section aria-label="현장 족적" className="flex min-h-0 min-w-0 flex-col gap-[8px]">
+          <PaneHead title="현장 족적" sub={plus ? "고정 · 두 번 누르면 뷰어" : undefined} />
+          <div className="min-h-[140px] flex-[1.25]">
+            <EvidenceImage src={sceneImage} alt="현장 족적" className="aspect-auto h-full" />
+          </div>
+          <div className="flex min-h-0 flex-1 flex-col gap-[10px] overflow-y-auto pr-[2px]">{leftPlus(true)}</div>
+        </section>
+
+        <section aria-label="검색 결과" className="flex min-h-0 min-w-0 flex-col gap-[6px]">
+          <PaneHead
+            title="검색 결과"
+            sub={countText}
+            tip={tip}
+            end={
+              <>
+                {roleChips}
+                {plus ? rerankChip() : null}
+              </>
+            }
+          />
+          <div className={cn("flex shrink-0 flex-wrap items-center gap-x-[12px] gap-y-[6px]", COMPACT_SEGMENTS)}>
+            {columnSwitch}
+            {plus ? denseButton : null}
+            <span className="ml-auto inline-flex flex-wrap items-center gap-[8px]">
+              {thumbSwitch}
+              {modeSegmented("")}
+            </span>
+          </div>
+          <div data-r3-toolbar className={cn("relative flex shrink-0 flex-wrap items-center gap-x-[12px] gap-y-[6px]", COMPACT_SEGMENTS)}>
+            {autoPlay}
+            <span className="ml-auto inline-flex flex-wrap items-center gap-[6px]">
+              {confirmViewButton}
+              {fullButton}
+              {helpButton}
+            </span>
+            {helpOpen ? <ShortcutHelp /> : null}
+          </div>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-[14px] overflow-y-auto border-0 border-t border-solid border-line-2 pt-[10px] pr-[2px]">
+            {body}
+            {resultDetail(true)}
+          </div>
+        </section>
+      </div>
+    )
+  }
+
   return (
     <div ref={rootRef} data-fullscreen-root className={cn("min-w-0", full && "overflow-auto bg-background p-[12px]")}>
-      <Panel
-        title="문양검색결과"
-        className="min-w-0"
-        actions={
-          showPlus ? (
-            <span data-plus className="inline-flex gap-[6px]">
-              {roles.verifier ? <Chip>기술책임자 · 보기만</Chip> : null}
-              {roles.investigator ? <Chip>수사관 · 볼 수 없음</Chip> : null}
-            </span>
-          ) : undefined
-        }
-      >
+      <Panel title="문양검색결과" className="min-w-0" actions={roleChips}>
         <div className="flex flex-wrap items-center gap-[10px] border-b border-solid border-line-2 px-[14px] py-[8px]">
           <span className="text-[12px] text-muted-foreground">
             이미지번호 <b className="font-code text-foreground">{imageNo}</b>
           </span>
-          {status === "ready" ? (
-            plus ? (
-              <span data-plus className="font-code text-[12px] tabular-nums text-fg-2">{`${firstRank}위 / ${totalCount}건`}</span>
-            ) : (
-              <span className="font-code text-[12px] tabular-nums text-fg-2">{`전체 ${totalCount}건`}</span>
-            )
-          ) : null}
+          {countText}
           <span className="ml-auto inline-flex items-center gap-[6px]">
-            {/* r3: 1–4열 그대로 + 5 · 6개씩 확장(SCAS 「결과형태」 자리) */}
-            <ViewCountSwitch<string>
-              label="결과형태"
-              options={COLUMN_OPTIONS}
-              // 촘촘 8열(+α)이면 어느 칸도 눌리지 않는다
-              value={`${columns}열`}
-              onChange={(label) => setColumns(parseColumns(label as ColumnLabel))}
-            />
-            {/* SCAS 버튼 — 확인대상 보기 기능이 지금 앱에 없어 비활성(준비 중) */}
-            <span title={NOT_READY} className="inline-flex">
-              <Button size="sm" disabled>
-                확인대상보기
-              </Button>
-            </span>
+            {columnSwitch}
+            {confirmViewButton}
           </span>
           {plus ? (
             <>
               <span data-plus aria-hidden="true" className="h-[20px] w-px bg-line-3" />
-              <Button
-                data-plus
-                size="sm"
-                aria-pressed={columns === 8}
-                onClick={() => setColumns(8)}
-                className={cn(columns === 8 && "text-foreground [box-shadow:inset_0_0_0_1px_var(--t-brand)]")}
-              >
-                촘촘 8열
-              </Button>
-              <Chip data-plus className={cn(CHIP_TEAL, "mr-[6px]")}>
-                <span className={AI_MARK}>AI</span> 순위 다시 매김
-              </Chip>
+              {denseButton}
+              {rerankChip("mr-[6px]")}
             </>
           ) : null}
         </div>
@@ -598,34 +740,11 @@ export function SearchResultScreen({
           data-r3-toolbar
           className="relative flex flex-wrap items-center gap-x-[14px] gap-y-[6px] border-b border-solid border-line-2 px-[14px] py-[6px]"
         >
-          {onAutoModeChange && status === "ready" ? (
-            <AutoPlayControl
-              mode={autoMode}
-              onModeChange={onAutoModeChange}
-              intervalMs={intervalMs}
-              onIntervalChange={(ms) => onIntervalChange?.(ms)}
-              playing={playing}
-              onPlayPause={() => onPlayingChange?.(!playing)}
-              position={{ index: position, total: totalCount }}
-              remainingRatio={remainingRatio}
-            />
-          ) : null}
+          {autoPlay}
           <span className="ml-auto inline-flex flex-wrap items-center gap-[8px]">
-            {onThumbSizeChange ? (
-              <ViewCountSwitch label="썸네일" options={THUMB_OPTIONS} value={thumbSize} onChange={onThumbSizeChange} />
-            ) : null}
-            <Button size="sm" aria-pressed={full} onClick={toggleFullscreen}>
-              {full ? "전체 화면 끝내기" : "전체 화면"}
-            </Button>
-            <Button
-              size="sm"
-              aria-expanded={helpOpen}
-              aria-controls="s05-shortcut-help"
-              aria-keyshortcuts="?"
-              onClick={() => setHelpOpen((v) => !v)}
-            >
-              단축키 ?
-            </Button>
+            {thumbSwitch}
+            {fullButton}
+            {helpButton}
           </span>
           {helpOpen ? <ShortcutHelp className="right-[14px]" /> : null}
         </div>
@@ -635,13 +754,7 @@ export function SearchResultScreen({
             <div className="grid content-start gap-[8px]">
               <div className="flex min-h-[30px] items-center gap-[8px] border-l-[3px] border-solid border-brand-2 bg-panel-3 px-[10px] text-[12.5px] font-semibold">
                 현장 족적
-                <Segmented
-                  items={MODE_ITEMS}
-                  value={imageMode}
-                  onValueChange={(v) => onImageModeChange(v as ImageMode)}
-                  aria-label="결과 이미지 보기"
-                  className="ml-auto p-[2px] font-normal [&_button]:px-[8px] [&_button]:py-[2px] [&_button]:text-[11.5px]"
-                />
+                {modeSegmented("ml-auto p-[2px] font-normal [&_button]:px-[8px] [&_button]:py-[2px] [&_button]:text-[11.5px]")}
               </div>
               <EvidenceImage
                 src={sceneImage}
@@ -649,32 +762,11 @@ export function SearchResultScreen({
                 caption={plus ? "고정 · 두 번 누르면 뷰어" : undefined}
                 className={cn(plus && "aspect-auto h-[330px]")}
               />
-              {plus && status === "ready" ? (
-                <LeftPlus
-                  insight={plus}
-                  total={totalCount}
-                  targets={targets}
-                  canEditTargets={roles.analyst}
-                  onResume={() => onResume?.(plus.seenUpTo + 1)}
-                  onRemoveTarget={toggleTarget}
-                />
-              ) : (
-                <span className="text-[11px] leading-[1.5] text-dim">결과 신발 이미지를 이진화 / 원본으로 바꿔 봅니다</span>
-              )}
+              {leftPlus(false)}
             </div>
             <div className="min-w-0">{body}</div>
           </div>
-          {detail && detailOpen && status === "ready" ? (
-            <ResultDetail
-              detail={detail}
-              canWrite={roles.analyst}
-              onRegister={() => {
-                if (!isTarget(detail.rank)) toggleTarget({ rank: detail.rank, ftwrId: detail.ftwrId })
-              }}
-              onAction={action}
-              onClose={() => setDetailOpen(false)}
-            />
-          ) : null}
+          {resultDetail(false)}
         </div>
       </Panel>
     </div>

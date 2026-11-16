@@ -186,6 +186,27 @@ describe("S01 사건 창", () => {
       expect(within(within(d).getByRole("region", { name: "검색이력" })).getAllByRole("button", { name: "보기" }).length).toBeGreaterThan(0)
     })
 
+    it("검색 결과 탭: 「문양검색결과」 제목 줄 · 이미지번호 없음, 왼쪽 현장 족적 | 오른쪽 검색 결과(칸 머리 ⓘ 에 안내 문장), 상세조회는 결과 칸 안", () => {
+      renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=1&tab=search")
+      const d = dialog()
+      expect(within(d).queryByText("문양검색결과")).toBeNull()
+      expect(within(d).queryByText("이미지번호")).toBeNull()
+      const left = within(d).getByRole("region", { name: "현장 족적" })
+      expect(within(left).getByRole("heading", { name: "현장 족적" })).toBeInTheDocument()
+      expect(within(left).getByRole("button", { name: "137위부터 이어 보기" })).toBeInTheDocument()
+      const result = within(d).getByRole("region", { name: "검색 결과" })
+      expect(within(result).getByRole("heading", { name: "검색 결과" })).toBeInTheDocument()
+      expect(within(result).getByRole("button", { name: /^도움말 — 끝까지 보기는 그대로/ })).toBeInTheDocument()
+      // 설명 문장은 칸 안에 늘어놓지 않는다
+      expect(within(result).queryByText("끝까지 보기는 그대로 — 거르는 건 보기만 바꿉니다")).toBeNull()
+      expect(within(left).queryByText(/키보드 ← →/)).toBeNull()
+      // 도구는 그대로 · 상세조회는 결과 칸 안 아래
+      expect(within(result).getByRole("group", { name: "결과형태" })).toBeInTheDocument()
+      expect(within(result).getByRole("group", { name: "결과 이미지 보기" })).toBeInTheDocument()
+      expect(within(result).getByRole("region", { name: "현장문양검색결과 상세조회" })).toBeInTheDocument()
+      expect(within(result).getByLabelText("결과 이미지 보기")).toBeInTheDocument()
+    })
+
     it("?plus=0: 흐름 줄 · 탭은 그대로 보인다", () => {
       renderAt("/dev/s01?case=ready&plus=0&open=00001-25-0649&img=1&tab=info")
       expect(within(screen.getByRole("list", { name: "사건 진행 흐름" })).getAllByRole("listitem")).toHaveLength(5)
