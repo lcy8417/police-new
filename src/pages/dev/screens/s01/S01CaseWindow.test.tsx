@@ -35,7 +35,7 @@ function renderAt(url: string) {
 
 const query = () => new URLSearchParams(screen.getByTestId("search").textContent ?? "")
 const dialog = () => screen.getByRole("dialog")
-const rowOf = (no: string) => screen.getByText(no).closest("tr") as HTMLElement
+const rowOf = (no: string) => screen.getByText(no).closest('[role="row"]') as HTMLElement
 const workTab = (name: string | RegExp) => within(dialog().closest('[data-slot="case-window-tabbed"]') as HTMLElement).getByRole("tab", { name })
 
 beforeEach(() => {
@@ -446,7 +446,7 @@ describe("S01 사건 창", () => {
     expect(within(dialog().closest('[data-slot="case-window-tabbed"]') as HTMLElement).getByRole("status")).toHaveTextContent(OPEN_CASES_FULL)
   })
 
-  it("행 끝 「검색」 → 검색 안 한 첫 이미지의 검색 결과 탭, 「확인」 → 사건 단위 결과 확인 탭", () => {
+  it("사건 진행 칸 「검색」 → 검색 안 한 첫 이미지의 검색 결과 탭, 「확인」 → 사건 단위 결과 확인 탭", () => {
     renderAt("/dev/s01?case=ready")
     fireEvent.click(within(rowOf("00001-25-0649")).getByRole("button", { name: "검색" }))
     expect([query().get("tab"), query().get("img")]).toEqual(["search", "4"])
@@ -454,18 +454,6 @@ describe("S01 사건 창", () => {
     fireEvent.click(screen.getByRole("button", { name: "창 닫기" }))
     fireEvent.click(within(rowOf("00001-25-0647")).getByRole("button", { name: "확인" }))
     expect(query().get("tab")).toBe("confirm")
-  })
-
-  it("펼침 줄: 이미지 블록 → 그 이미지, 「사건 열기 (S02)」 → 사건 정보, 「검색결과 확인」 → 결과 확인", () => {
-    renderAt("/dev/s01?case=ready")
-    fireEvent.click(screen.getByRole("button", { name: "_2 불발견 이미지 열기" }))
-    expect([query().get("open"), query().get("img"), query().get("tab")]).toEqual(["00001-25-0646", "2", "info"])
-    fireEvent.click(screen.getByRole("button", { name: "창 닫기" }))
-    fireEvent.click(screen.getByRole("button", { name: "검색결과 확인" }))
-    expect(query().get("tab")).toBe("confirm")
-    fireEvent.click(screen.getByRole("button", { name: "창 닫기" }))
-    fireEvent.click(screen.getByRole("button", { name: "사건 열기 (S02)" }))
-    expect(query().get("tab")).toBe("info")
   })
 
   it("창 안 S02 「이미지 커팅 열기」 같은 화면 이동은 창 탭 바꾸기로 받는다", () => {

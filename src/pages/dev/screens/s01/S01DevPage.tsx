@@ -4,19 +4,14 @@ import { toast } from "sonner"
 
 import { FEATURES } from "@/entities/session"
 import type { FilterGroup } from "@/shared/ui/kit"
-import {
-  CaseListScreen,
-  type CaseListFilters,
-  type CaseListRow,
-  type CaseListRowHeight,
-} from "@/widgets/case-list"
+import { CaseWindowFrame, WindowHead } from "@/shared/ui/panel"
+import { CaseListScreen, type CaseListRow, type CaseListRowHeight } from "@/widgets/case-list"
 import { CaseWindow, type CaseWindowTab } from "@/widgets/case-window"
 
 import {
   DevScreenFrame,
   SCREEN_CASES,
   devScreen,
-  isStringArray,
   oneOf,
   useDevCase,
   useDevNavigate,
@@ -33,6 +28,7 @@ import { S04Content } from "../s04"
 import { S05Content } from "../s05"
 import { S06Content } from "../s06"
 import { S07Content } from "../s07"
+import { S10Content } from "../s10"
 import {
   MAX_OPEN_CASES,
   OPEN_CASES_FULL,
@@ -44,7 +40,7 @@ import {
   writeCaseWindow,
   type CaseWindowQuery,
 } from "./case-window-query"
-import { EMPTY_FILTERS, S01_LIVE_AT, S01_PAGE_SIZE, makeCaseImages, makeCaseRows, stageLabel } from "./mock-cases"
+import { S01_LIVE_AT, S01_PAGE_SIZE, makeCaseImages, makeCaseRows, stageLabel } from "./mock-cases"
 
 /** 사건 창 본문 탭 ↔ 진열 화면 주소(창 안 내용이 `go("/dev/s04")` 처럼 부르면 그 탭으로 바꾼다) */
 const TAB_OF_PATH: Record<string, CaseWindowTab> = {
@@ -90,41 +86,16 @@ export function S01DevPage() {
   const to = useDevNavigate()
 
   const allRows = React.useMemo(() => makeCaseRows(), [])
-  const [filters, setFilters] = React.useState<CaseListFilters>(EMPTY_FILTERS)
-  const [applied, setApplied] = React.useState<CaseListFilters>(EMPTY_FILTERS)
   const [page, setPage] = React.useState(1)
   const [query, setQuery] = React.useState("")
   const [quickValues, setQuickValues] = React.useState<QuickValues>(EMPTY_QUICK)
-  // 11/17 사용자 「중요한 거 제외하고 나머지는 안 보이는 게」: 문서번호 · 사건명(감정번호 칸 둘째 줄로) · 발생관서 · 처리 구분 · 용의자는 기본 숨김
-  // (열 선택으로 다시 켤 수 있다). 예전에 기억된 빈 목록이 새 기본값을 덮지 않게 저장 이름을 바꿈
-  const [hiddenColumns, setHiddenColumns] = useRememberedState<string[]>(
-    "s01",
-    "hiddenColumns-v2",
-    ["docNo", "caseName", "occ", "kind", "sus"],
-    isStringArray
-  )
   const [pageSize, setPageSize] = useRememberedState<number>("s01", "pageSize", S01_PAGE_SIZE, isPageSize)
   const [rowHeight, setRowHeight] = useRememberedState<CaseListRowHeight>("s01", "rowHeight", "보통", isRowHeight)
 
-  // 목록 열에 값이 있는 조건은 모두 건다(피해자 · 사건장소 · 검거여부 · 타기관여부는 위젯에서 「준비 중」으로 잠김)
-  const has = (value: string, needle: string) => value.includes(needle.trim())
-  const matched = allRows.filter(
-    (r) =>
-      has(r.aprthngNo, applied.aprthngNo) &&
-      has(r.docNo, applied.docNo) &&
-      has(r.caseName, applied.caseName) &&
-      has(r.processOffice, applied.processOffice) &&
-      has(r.requestOffice, applied.requestOffice) &&
-      has(r.occurOffice, applied.occurOffice) &&
-      has(r.author, applied.author) &&
-      has(r.caseResult, applied.caseResult) &&
-      (applied.registeredFrom === "" || r.registeredAt >= applied.registeredFrom) &&
-      (applied.registeredTo === "" || r.registeredAt <= applied.registeredTo) &&
-      (applied.kind === "all" || (applied.kind === "shoe" ? r.shoeCount > 0 : r.tireCount > 0)) &&
-      (!applied.awaitingResult || r.caseResult === "")
-  )
+  // 11/17 사용자 「상세 검색은 그냥 필터로 대체될 거 같은데」: SCAS 검색 양식은 뺐다 — 전체 사건 안에서 막대 찾기 · 뚜껑 칩으로만 거른다
+  const matched = allRows
 
-  // 빠른 찾기: SCAS 검색 폼으로 찾은 결과 안에서 더 좁힌다
+  // 빠른 찾기: 위 막대 「바로 찾기」 글자 + 뚜껑 칩
   const me = viewer.who.split(" ")[0]
   const needle = query.trim().toLowerCase()
   const anyOf = (key: string, test: (v: string) => boolean) => quickValues[key].length === 0 || quickValues[key].some(test)
@@ -189,12 +160,19 @@ export function S01DevPage() {
   ]
 
   const pageRows = quickMatched.slice((page - 1) * pageSize, page * pageSize)
-  // SCAS 조회 조건에 맞는 사건이 없으면 「결과 없음」(케이스 전환과 같은 모양). 빠른 찾기 0건은 위젯이 따로 안내한다.
+  // 사건이 없으면 「결과 없음」(케이스 전환과 같은 모양). 빠른 찾기 0건은 위젯이 따로 안내한다.
   const status = devCase === "ready" && matched.length === 0 ? "empty" : devCase
 
   // ── 사건 창(r4 — 행을 누르면 목록 위 오른쪽에 큰 창). 상태는 주소(query) 에 둔다 → case-window-query.ts ──
   const [params, setParams] = useSearchParams()
-  const win = readCaseWindow(params)
+  // 신발 DB 슬라이드 패널(11/17 — 위 막대 「신발 DB」, `?shoe=1`). 열려 있으면 사건 창은 그 뒤에 숨는다(닫으면 다시 보임)
+  const shoeOpen = params.get("shoe") === "1"
+  const closeShoe = () => {
+    const next = new URLSearchParams(params)
+    next.delete("shoe")
+    setParams(next)
+  }
+  const win = shoeOpen ? null : readCaseWindow(params)
   const rowOf = (no: string) => allRows.find((r) => r.aprthngNo === no)
   const imagesOf = (no: string) => {
     const row = rowOf(no)
@@ -331,8 +309,48 @@ export function S01DevPage() {
     )
   }
 
+  const shoePanel = shoeOpen ? (
+    <CaseWindowFrame
+      label="신발 DB"
+      onClose={closeShoe}
+      head={<WindowHead mark="신" title="신발 DB" subtitle="신발 문양 관리" onClose={closeShoe} />}
+    >
+      <div className="p-4">
+        <S10Content caseName="ready" />
+      </div>
+    </CaseWindowFrame>
+  ) : null
+
+  // 위 막대 제목 뒤: 전체 건수 · (+α) 갱신 시각
+  const meta = (
+    <>
+      <span className="font-code tabular-nums">{allRows.length}건</span>
+      {plus ? (
+        <span className="inline-flex items-center gap-1">
+          <i aria-hidden="true" className="size-1.5 rounded-full bg-ok" />
+          {S01_LIVE_AT} 갱신
+        </span>
+      ) : null}
+    </>
+  )
+  const handleQuery = (q: string) => {
+    setQuery(q)
+    setPage(1)
+  }
+
   return (
-    <DevScreenFrame screen={info.screen} title={info.title} cases={info.cases}>
+    <DevScreenFrame
+      screen={info.screen}
+      title={info.title}
+      cases={info.cases}
+      meta={meta}
+      search={{
+        value: query,
+        onChange: handleQuery,
+        label: "감정번호 · 문서번호 바로 찾기",
+        placeholder: "감정번호·문서번호·사건명 바로 찾기",
+      }}
+    >
       <CaseListScreen
         status={status}
         errorAt="09:12"
@@ -344,35 +362,18 @@ export function S01DevPage() {
         page={page}
         pageSize={pageSize}
         onPageChange={setPage}
-        filters={filters}
-        onFiltersChange={setFilters}
-        onSearch={() => {
-          setApplied(filters)
-          setPage(1)
-        }}
-        onReset={() => {
-          setFilters(EMPTY_FILTERS)
-          setApplied(EMPTY_FILTERS)
-          setQuery("")
-          setQuickValues(EMPTY_QUICK)
-          setPage(1)
-        }}
         onOpenCase={(no) => openWindow(no, "info")}
-        onOpenImage={(no, seq) => openWindow(no, "info", seq.replace(/^_/, ""))}
         onRegister={() => to("/dev/s02")}
         // 「검색」 = 검색 안 한 첫 이미지의 검색 결과 탭, 「확인」 = 사건 단위 결과 확인 탭
         onSearchCase={(no) => openWindow(no, "search", imagesOf(no).find((i) => i.status === "등록")?.no)}
         onConfirmCase={(no) => openWindow(no, "confirm")}
         showPlus={plus}
-        liveAt={S01_LIVE_AT}
+        selectedCase={win?.open ?? null}
         onMockAction={() => toast("시안 — 기능 준비 중")}
         quick={{
           query,
           views,
-          onQueryChange: (q) => {
-            setQuery(q)
-            setPage(1)
-          },
+          onQueryChange: handleQuery,
           groups,
           onGroupChange: (key, values) => {
             setQuickValues((prev) => ({ ...prev, [key]: values }))
@@ -386,8 +387,6 @@ export function S01DevPage() {
           resultCount: quickMatched.length,
           total: matched.length,
         }}
-        hiddenColumns={hiddenColumns}
-        onHiddenColumnsChange={setHiddenColumns}
         onPageSizeChange={(n) => {
           setPageSize(n)
           setPage(1)
@@ -396,6 +395,7 @@ export function S01DevPage() {
         onRowHeightChange={setRowHeight}
       />
       {caseWindow}
+      {shoePanel}
     </DevScreenFrame>
   )
 }

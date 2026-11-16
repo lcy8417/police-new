@@ -147,31 +147,25 @@ export interface CaseListScreenProps {
   page: number
   pageSize: number
   onPageChange: (page: number) => void
-  filters: CaseListFilters
-  onFiltersChange: (next: CaseListFilters) => void
-  onSearch: () => void
-  onReset: () => void
-  /** 행(또는 이미지)을 눌러 사건 상세로 */
+  /** 행(또는 이미지)을 눌러 사건 창으로 */
   onOpenCase: (aprthngNo: string) => void
-  /** (+α) 펼침 줄의 이미지 블록을 눌러 그 이미지로(`seq` = `_1`). 없으면 블록은 누를 수 없다 */
-  onOpenImage?: (aprthngNo: string, seq: string) => void
-  /** 사건 등록(권한 있을 때만 버튼이 보인다) */
+  /** 사건 등록(권한 있을 때만 거르기 줄 끝에 「+ 등록」) */
   onRegister: () => void
-  /** 행 끝 「검색」 — 문양 코딩 · 검색으로 */
+  /** 사건 진행 칸 「검색」 — 검색 안 한 장이 있을 때 */
   onSearchCase: (aprthngNo: string) => void
-  /** 행 끝 「확인」 — 검색 결과 확인으로 */
+  /** 사건 진행 칸 「확인」 — 확인 대기 장이 있을 때 */
   onConfirmCase: (aprthngNo: string) => void
   /** (+α) 신규 기능 숨김 — 기본 true. false 면 `data-plus` 요소가 하나도 없다 */
   showPlus?: boolean
-  /** (+α) 「실시간 · 09:12 갱신」의 시각 */
-  liveAt?: string
-  /** 아직 기능이 없는 버튼(엑셀 · 문양보기 · 검증요청 · 검증)을 눌렀을 때 — 이름을 넘긴다(시안 — 기능 준비 중) */
+  /** 아직 기능이 없는 단추(검증요청 · 검증)를 눌렀을 때 — 이름을 넘긴다(시안 — 기능 준비 중) */
   onMockAction?: (label: string) => void
-  /** (r3) 빠른 찾기 — 없으면 줄이 없다 */
+  /**
+   * (r3) 빠른 찾기 — 없으면 거르기 칩이 없다. 11/17: 찾기 칸은 앱 틀 위 막대 하나라 위젯은 칸을 그리지 않고
+   * `query` 를 「조건 지우기」 판단에만 쓴다
+   */
   quick?: CaseListQuickFilter
-  /** (r3) 숨긴 열 key(SCAS 순서는 그대로, 감정번호는 못 숨김). 없으면 모두 보임 */
-  hiddenColumns?: readonly string[]
-  onHiddenColumnsChange?: (keys: string[]) => void
+  /** 지금 사건 창에 열린 사건(그 행을 고른 모양으로) */
+  selectedCase?: string | null
   /** (r3) 쪽당 행 수 고르기(10 · 20 · 50) — onPageSizeChange 가 있을 때만 보인다 */
   onPageSizeChange?: (pageSize: number) => void
   /** (r3) 행 높이 — onRowHeightChange 가 있을 때만 고르기가 보인다 */

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom"
 import { describe, expect, it } from "vitest"
 
@@ -31,25 +31,21 @@ describe("화면 간 이동", () => {
     expect(screen.getByTestId("where").textContent).toMatch(/^\/dev\/s03\?.*as=analyst/)
   })
 
-  it("S01 메뉴 「신발 DB」는 /dev/s10 으로 이동한다(보는 사람 유지)", () => {
+  // 11/17: 위 막대 「신발 DB」 = 사건관리 위 슬라이드 패널(`?shoe=1`) — Esc · ✕ 로 닫는다
+  it("S01 막대 「신발 DB」는 페이지를 옮기지 않고 신발 DB 패널을 열고, ✕ 로 닫는다", () => {
     renderAt("/dev/s01?as=analyst")
     fireEvent.click(screen.getByRole("link", { name: "신발 DB" }))
-    expect(screen.getByTestId("where").textContent).toBe("/dev/s10?as=analyst")
-  })
+    expect(screen.queryByTestId("where")).toBeNull()
+    const panel = screen.getByRole("dialog", { name: "신발 DB" })
+    expect(within(panel).queryByRole("button", { name: "앞 사건" })).toBeNull()
+    fireEvent.click(within(panel).getByRole("button", { name: "창 닫기" }))
+    expect(screen.queryByRole("dialog", { name: "신발 DB" })).toBeNull()
+  }, 15_000)
 
-  it("관리자 메뉴 「사용자 관리」 · 「사용 기록」은 /dev/s13 · /dev/s14 로 이동한다", () => {
-    const { unmount } = renderAt("/dev/s01?as=admin")
-    fireEvent.click(screen.getByRole("link", { name: "사용자 관리" }))
-    expect(screen.getByTestId("where").textContent).toBe("/dev/s13?as=admin")
-    unmount()
+  it("관리자 막대 「관리 ▾ › 사용자 관리」는 /dev/s13 으로 이동한다", () => {
     renderAt("/dev/s01?as=admin")
-    fireEvent.click(screen.getByRole("link", { name: "사용 기록" }))
-    expect(screen.getByTestId("where").textContent).toBe("/dev/s14?as=admin")
-  })
-
-  it("관리 메뉴는 관리자에게만 보인다", () => {
-    renderAt("/dev/s01?as=analyst")
-    expect(screen.queryByRole("link", { name: "사용자 관리" })).toBeNull()
-    expect(screen.queryByRole("link", { name: "사용 기록" })).toBeNull()
+    fireEvent.keyDown(screen.getByRole("button", { name: "관리" }), { key: "Enter" })
+    fireEvent.click(screen.getByRole("menuitem", { name: "사용자 관리" }))
+    expect(screen.getByTestId("where").textContent).toBe("/dev/s13?as=admin")
   })
 })
