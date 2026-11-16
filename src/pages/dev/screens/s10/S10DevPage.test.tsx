@@ -30,6 +30,31 @@ describe("S10 신발문양 관리 진열 페이지", () => {
     })
   })
 
+  it("검색 폼은 3열이고 11칸이 4행에 놓인다", () => {
+    const { container } = renderAt("case=ready&as=admin")
+    const form = container.querySelector('[data-part="SearchForm"]')
+    expect(form).toHaveAttribute("data-part-variant", "col3")
+    const labelCount = form!.querySelectorAll(":scope > div > div:nth-child(odd)").length
+    expect(labelCount).toBe(11)
+    expect(Math.ceil(labelCount / 3)).toBe(4)
+  })
+
+  it("검색 칸은 한국어 이름으로 찾는다", () => {
+    renderAt("case=ready&as=admin")
+    for (const name of ["화류번호", "제조사", "상표", "그룹명", "화종", "비고", "등록일자 시작일", "등록일자 종료일"]) {
+      expect(screen.getByRole("textbox", { name })).toBeInTheDocument()
+    }
+  })
+
+  it("케이스를 같은 화면에서 ready → duplicate 로 바꾸면 창이 열린다", () => {
+    renderAt("case=ready&as=admin")
+    expect(screen.queryByRole("dialog")).toBeNull()
+    fireEvent.click(screen.getByRole("link", { name: "duplicate" }))
+    expect(screen.getByRole("alert")).toHaveTextContent("이미 등록된 번호입니다")
+    fireEvent.click(screen.getByRole("link", { name: "ready", hidden: true }))
+    expect(screen.queryByRole("dialog")).toBeNull()
+  })
+
   it("툴바가 원문 순서다", () => {
     renderAt("case=ready&as=admin")
     const names = ["목록보기", "문양보기", "조회", "엑셀", "삭제", "승인", "등록", "초기화", "엑셀 일괄 등록"]
@@ -104,5 +129,6 @@ describe("S10 신발문양 관리 진열 페이지", () => {
   it("긴 모델명 행이 있다(가로 넘침 점검용)", () => {
     renderAt("case=ready")
     expect(screen.getAllByRole("row").length).toBeGreaterThan(10)
+    expect(screen.getByText(/한정판 컬러웨이$/)).toBeInTheDocument()
   })
 })

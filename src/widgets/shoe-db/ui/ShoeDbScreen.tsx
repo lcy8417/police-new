@@ -35,35 +35,35 @@ export function ShoeDbScreen(props: ShoeDbScreenProps) {
 
   const canEdit = isAdmin || features.includes(FEATURES.SHOE_EDIT)
   const set = (patch: Partial<ShoeDbFilters>) => onFiltersChange({ ...filters, ...patch })
-  const text = (key: keyof ShoeDbFilters, variant: "text" | "mono" = "text") => (
-    <Field variant={variant} aria-label={String(key)} value={(filters[key] as string | null) ?? ""} onChange={(e) => set({ [key]: e.target.value })} />
+  const text = (key: keyof ShoeDbFilters, label: string) => (
+    <Field aria-label={label} value={(filters[key] as string | null) ?? ""} onChange={(e) => set({ [key]: e.target.value })} />
   )
 
   // SCAS 순서: 3열 × 4행 (마지막 줄은 두 쌍)
   const rows: SearchFormRow[] = [
-    { label: "화류번호", field: <Field variant="mono" placeholder="(신발 번호)" value={filters.ftwrId} onChange={(e) => set({ ftwrId: e.target.value })} /> },
-    { label: "제조사", field: text("makrCode") },
+    { label: "화류번호", field: <Field variant="mono" aria-label="화류번호" placeholder="(신발 번호)" value={filters.ftwrId} onChange={(e) => set({ ftwrId: e.target.value })} /> },
+    { label: "제조사", field: text("makrCode", "제조사") },
     { label: "성별", field: <RadioRow name="성별" options={SEX_OPTIONS} value={filters.sex} onValueChange={(sex) => set({ sex })} /> },
     {
       label: "등록일자",
       field: (
         <span className="flex items-center gap-[6px]">
-          <Field variant="mono" aria-label="등록일자 시작" value={filters.regFrom} onChange={(e) => set({ regFrom: e.target.value })} />
+          <Field variant="mono" aria-label="등록일자 시작일" value={filters.regFrom} onChange={(e) => set({ regFrom: e.target.value })} />
           <span aria-hidden="true">~</span>
-          <Field variant="mono" aria-label="등록일자 끝" value={filters.regTo} onChange={(e) => set({ regTo: e.target.value })} />
+          <Field variant="mono" aria-label="등록일자 종료일" value={filters.regTo} onChange={(e) => set({ regTo: e.target.value })} />
         </span>
       ),
     },
-    { label: "상표", field: text("brandCode") },
+    { label: "상표", field: text("brandCode", "상표") },
     { label: "승인", field: <RadioRow name="승인" options={APPROVAL_OPTIONS} value={filters.approval} onValueChange={(approval) => set({ approval })} /> },
     { label: "등록관서", field: <Combobox items={officeItems} value={filters.office} onValueChange={(office) => set({ office })} placeholder="전체" /> },
-    { label: "그룹명", field: text("groupNm") },
+    { label: "그룹명", field: text("groupNm", "그룹명") },
     {
       label: "문양 입력",
       field: <RadioRow name="문양 입력" options={PATTERN_INPUT_OPTIONS} value={filters.patternInput} onValueChange={(patternInput) => set({ patternInput })} />,
     },
-    { label: "화종", field: text("shoeKind") },
-    { label: "비고", field: text("remark") },
+    { label: "화종", field: text("shoeKind", "화종") },
+    { label: "비고", field: text("remark", "비고") },
   ]
 
   const columns: DataGridColumn<Shoe>[] = [
