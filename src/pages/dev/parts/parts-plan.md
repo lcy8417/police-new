@@ -39,6 +39,10 @@
 | 진열 화면 S00–S14 ai | AiSuggestion | 새로 | r2: 시안 원본에서 값 읽어 구현(11/16 화면 시안 r2 설계서 §13) |
 | 진열 화면 S00–S14 viewer | HeatOverlay | 새로 | r2: 시안 원본에서 값 읽어 구현(11/16 화면 시안 r2 설계서 §13) |
 | 진열 화면 S00–S14 panel | Stepper | 새로 | r2: 시안 원본에서 값 읽어 구현(11/16 화면 시안 r2 설계서 §13) |
+| 진열 화면 S00–S14 kit | FilterBar | 새로 | r3: 시안 짝 없음 — 사용자 r3 피드백(검색 결과 걸러 보기), 기존 부품 모양 따름 |
+| 진열 화면 S00–S14 kit | ColumnPicker | 새로 | r3: 시안 짝 없음 — 사용자 r3 피드백(열 고르기) |
+| 진열 화면 S00–S14 kit | ViewCountSwitch | 새로 | r3: 시안 짝 없음 — 사용자 r3 피드백(족적 1·3·5개 보기) |
+| 진열 화면 S00–S14 kit | AutoPlayControl | 새로 | r3: 시안 짝 없음 — 사용자 r3 피드백(자동 모드 간격 조절) |
 | 화면 진열 페이지 S00–S14 | Segmented | 그대로 | 잠금 후 화면이 가져다 씀(구현됨) |
 | 화면 진열 페이지 S00–S14 | RadioRow | 그대로 | 잠금 후 화면이 가져다 씀(구현됨) |
 | 화면 진열 페이지 S00–S14 | Combobox | 그대로 | 잠금 후 화면이 가져다 씀(구현됨) |
@@ -93,3 +97,7 @@
 승인: 11/16 소유자 — AiSuggestion
 승인: 11/16 소유자 — HeatOverlay
 승인: 11/16 소유자 — Stepper
+승인: 11/16 소유자 — FilterBar
+승인: 11/16 소유자 — ColumnPicker
+승인: 11/16 소유자 — ViewCountSwitch
+승인: 11/16 소유자 — AutoPlayControl

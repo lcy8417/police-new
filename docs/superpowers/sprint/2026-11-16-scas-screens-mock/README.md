@@ -66,3 +66,15 @@
 | `Stepper` | panel | `steps: string[]` `current`(0부터, 칸 수와 같으면 모두 끝남, NaN · ±Infinity 는 첫 칸) `variant`(**bar** 기본 = S01 5px 막대 · **labeled** = S02 제목 줄 점+이름+연결선, 지금 단계 `aria-current="step"`) `width`(bar 전용, 20 기본 · 18). labeled 의 왼쪽 여백(시안 margin-left 14)은 화면이 `className` 으로 | 검증됨(S01-44 bar · S02-42 labeled 차이 0) |
 
 화면 갈래 주의: StatTile·Stepper 의 글자 크기·줄 높이는 부모에서 상속(시안 body 14px/1.6)이라, 타일 줄은 flex 로 두고 높이를 늘어나게 둘 것(타일 안 grid 가 늘어난 높이를 나눠 가진다). 시안 `data-role` 숨김은 부품이 모르므로 화면이 감싼다.
+
+## r3 부품 (편의: 필터 · 열 고르기 · 보기 개수 · 자동 모드) — 시안 짝 없음, 구현됨
+
+모두 `@/shared/ui/kit`(훅은 `@/shared/lib`)에서 가져온다. 색은 토큰만이라 어떤 팔레트에서도 동작한다. `partId?` 를 받는다.
+
+| 부품 | props 요약 |
+|---|---|
+| `FilterBar` | `query` `onQueryChange` `filters: { key; label; options: { value; label; count? }[]; value: string[] }[]` `onFilterChange(key, values)` `onClear` `resultCount?` `total?`(「n / 전체 m」, total 없으면 「n건」) `searchPlaceholder?`. 조건이 없으면 「조건 지우기」 비활성. 0건 안내 글은 화면이 그린다 |
+| `ColumnPicker` | `columns: { key; label; locked? }[]`(이 순서 그대로) `visible: string[]` `onChange(keys)`(열 순서 유지, 잠긴 열 항상 포함) `defaultVisible?`(「기본으로」, 없으면 전체) |
+| `ViewCountSwitch` | `options: number[] \| string[]` `value` `onChange(value)`(받은 종류 그대로) `label?`(「보기」). 숫자는 「n개」로 보인다 |
+| `AutoPlayControl` | `mode: "manual"\|"auto"` `onModeChange` `intervalMs` `onIntervalChange(ms)`(빠른 1·2·3·5초, − + 는 0.5초 단위 0.5~10초) `playing` `onPlayPause` `position: { index(0부터); total }` `remainingRatio`(0~1). 수동에서는 모드 + 위치만. Space 키는 화면이 처리 |
+| `useAutoPlay` | `({ count, intervalMs, enabled, onStep?, loop? })` → `{ index, playing, play, pause, next, prev, remainingMs }`. `enabled`=자동 모드. 마지막 칸에서 정지(loop 기본 꺼짐), 정지 뒤 `play()` 는 처음부터. 주기 변경은 즉시 새 주기로. 움직임 줄이기와 무관. `remainingRatio = remainingMs / intervalMs` 로 `AutoPlayControl` 에 연결 |
