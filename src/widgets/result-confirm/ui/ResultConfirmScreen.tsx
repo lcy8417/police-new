@@ -179,7 +179,7 @@ export function ResultConfirmScreen({
                   >
                     {label}
                   </th>
-                  <td className="border-b border-solid border-line-2 px-[10px] py-[6px] break-all text-fg-2">
+                  <td className="border-b border-solid border-line-2 px-[10px] py-[6px] break-keep [overflow-wrap:anywhere] text-fg-2">
                     <span className={label === "감정번호" ? "font-code" : undefined}>{value}</span>
                   </td>
                 </Fragment>

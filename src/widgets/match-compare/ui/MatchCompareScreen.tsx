@@ -296,7 +296,7 @@ export function MatchCompareScreen({
                       >
                         {cell?.[0] ?? ""}
                       </th>
-                      <td className="border border-solid border-line-2 px-[6px] py-[3px] break-all text-fg-2">
+                      <td className="border border-solid border-line-2 px-[6px] py-[3px] break-keep [overflow-wrap:anywhere] text-fg-2">
                         {cell ? <span className={cn(/\d{4}/.test(cell[1]) && "font-code")}>{cell[1]}</span> : null}
                       </td>
                     </React.Fragment>

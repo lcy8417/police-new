@@ -171,7 +171,7 @@ export function SearchResultScreen({
           <div className="flex min-h-[30px] items-center gap-[8px] border-l-[3px] border-solid border-brand-2 bg-panel-3 px-[10px] text-[12.5px] font-semibold">
             현장 족적
           </div>
-          <EvidenceImage src={sceneImage} alt="현장 족적" caption={imageNo} />
+          <EvidenceImage src={sceneImage} alt="현장 족적" />
           <Segmented
             items={MODE_ITEMS}
             value={imageMode}
