@@ -38,4 +38,14 @@ describe("PatternIcon", () => {
     rerender(<PatternIcon name="a" src="a.png" ai />)
     expect(container.firstElementChild).toHaveAttribute("data-part-state", "ai")
   })
+
+  it("선택 · AI 는 색 말고 글자(화면낭독)로도 알린다", () => {
+    const { rerender } = render(<PatternIcon name="a" src="a.png" selected />)
+    expect(screen.getByText("선택됨")).toHaveClass("sr-only")
+    rerender(<PatternIcon name="a" src="a.png" ai />)
+    expect(screen.getByText("AI 제안")).toHaveClass("sr-only")
+    rerender(<PatternIcon name="a" src="a.png" />)
+    expect(screen.queryByText("선택됨")).toBeNull()
+    expect(screen.queryByText("AI 제안")).toBeNull()
+  })
 })

@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 import { EvidenceImage, CompareView, PatternIcon, PointPairs, SoleThumb, ZoneBands } from "@/shared/ui/viewer";
-import { fakePhotoUrl } from "../screens/mock-assets/FakePhoto";
-import { fakeSoleUrl } from "../screens/mock-assets/FakeSole";
+import { fakePhotoUrl } from "@/pages/dev/screens/mock-assets/FakePhoto";
+import { fakeSoleUrl } from "@/pages/dev/screens/mock-assets/FakeSole";
 
 // viewer 출입구 진열 예시를 그리는 쪽(id → 그리기). 데이터는 fixtures-viewer-meta.ts. 컨트롤러가 FIXTURE_RENDERS 에 합친다.
 // 부품에는 props 만 넘긴다(className · 손으로 쓴 data-part-* 금지). 그림은 가짜 그림(개발 전용).
@@ -21,7 +21,7 @@ export const VIEWER_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
   ),
   "S05-32": () => (
     <EvidenceImage
-      src={fakePhotoUrl({ zones: [...PHOTO.zones], look: "binary", rotate: 0, tag: "" })}
+      src={fakePhotoUrl({ zones: [...PHOTO.zones], rotate: 0, tag: "" })}
       alt="현장 족적 이진화(가짜)"
       look="binary"
       partId="S05-32"

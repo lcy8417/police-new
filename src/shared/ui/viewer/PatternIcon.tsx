@@ -59,6 +59,7 @@ export function PatternIcon({
       {...props}
     >
       <img src={src} alt={name} loading="lazy" className="size-full overflow-hidden rounded-[5px] object-contain" />
+      {selected ? <span className="sr-only">선택됨</span> : ai ? <span className="sr-only">AI 제안</span> : null}
       {essential ? (
         <span className="absolute -top-[5px] -left-[5px] rounded-[3px] border border-solid border-danger-line bg-danger-bg px-[3px] text-[9px] leading-[12px] text-danger-fg">
           필수

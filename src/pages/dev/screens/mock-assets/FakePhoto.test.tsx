@@ -1,5 +1,5 @@
 import { render } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { FakePhoto, fakePhotoUrl } from "./FakePhoto"
 import { FakeSole, fakeSoleUrl } from "./FakeSole"
@@ -57,5 +57,21 @@ describe("FakeSole", () => {
     const url = decodeURIComponent(fakeSoleUrl({ kind: "bin" }))
     expect(url).toContain("<svg")
     expect(url).not.toContain("var(")
+  })
+})
+
+describe("데이터 URL 색 굳히기", () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it("토큰 값을 읽어 SVG 안에 넣는다(var 참조 없음)", () => {
+    vi.spyOn(window, "getComputedStyle").mockReturnValue({
+      getPropertyValue: (name: string) => (name === "--t-fg-2" ? "rgb(1, 2, 3)" : "rgb(9, 8, 7)"),
+    } as unknown as CSSStyleDeclaration)
+    const photo = decodeURIComponent(fakePhotoUrl({ look: "raw" }))
+    expect(photo).toContain("rgb(1, 2, 3)")
+    expect(photo).toContain("rgb(9, 8, 7)")
+    expect(photo).not.toContain("var(")
+    expect(photo).not.toContain("gray")
+    expect(decodeURIComponent(fakeSoleUrl({ kind: "shoe" }))).toContain("rgb(9, 8, 7)")
   })
 })

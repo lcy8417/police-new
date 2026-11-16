@@ -38,5 +38,10 @@ fixtures-viewer-meta.ts 의 id는 위와 같다. 시안 쪽에 표식이 없으�
 
 ## 5. 남은 차이 / 주의
 - 부품 · 변형 · 대조 id · 남은 차이: 위 표(대조는 Task 5 이후).
-- PointPairs · MatchBox: `@/entities/match` 타입 import 가 eslint boundaries 경고(shared→entities)를 낸다(오류 아님). 브리프 지시라 유지. 필요하면 타입을 shared 로 옮기는 결정 필요.
+- PointPairs · MatchBox: (R7) 자체 타입 `PointPairBox`(cx · cy · size, MatchBox 와 구조 호환 — 화면이 MatchBox 를 그대로 넘긴다)를 배럴로 내보낸다. entities import 없음.
 - EvidenceImage 는 `<img>`+CSS 필터라 `binary` 는 진짜 이진화가 아니라 근사. 시안은 별도 SVG.
+
+## 6. 리뷰 수정(R7 외)
+- components.md PointPairs 행 변형 칸: `boxes: PointPairBox[]`(MatchBox 와 구조 호환, entities 의존 없음).
+- PatternIcon 고름 · AI 는 색 테 + `sr-only` 「선택됨」 / 「AI 제안」 글자. 시안에는 보이는 표식이 없어(색 테만) 보이는 모양은 새로 만들지 않았다 — 시안 빈틈: 색 말고 눈에 보이는 단서 없음(승인 필요 시 시안에 먼저 그릴 것).
+- PointPairs: Space 키 기본 동작 막음 · 키보드 초점 시 테두리 굵게(brand-2).

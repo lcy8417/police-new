@@ -1,11 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
-import type { MatchBox } from "@/entities/match"
+import { PointPairs, type PointPairBox } from "./PointPairs"
 
-import { PointPairs } from "./PointPairs"
-
-const BOXES: MatchBox[] = [
+const BOXES: PointPairBox[] = [
   { cx: 100, cy: 120, size: 96 },
   { cx: 300, cy: 400, size: 96 },
   { cx: 200, cy: 250, size: 96 },
@@ -44,6 +42,15 @@ describe("PointPairs", () => {
     expect(rect).toHaveAttribute("x", "52")
     expect(rect).toHaveAttribute("y", "72")
     expect(rect).toHaveAttribute("width", "96")
+  })
+
+  it("Space 키는 기본 동작을 막고 선택한다", () => {
+    const onSelect = vi.fn()
+    const { container } = setup({ onSelect })
+    const first = container.querySelector("[data-pair='0']") as SVGElement
+    const notPrevented = fireEvent.keyDown(first, { key: " " })
+    expect(notPrevented).toBe(false)
+    expect(onSelect).toHaveBeenCalledWith(0)
   })
 
   it("클릭하면 onSelect(i), 올리면 onHover(i) · 내리면 onHover(null)", () => {
