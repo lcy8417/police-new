@@ -1,23 +1,12 @@
 import * as React from "react"
-import {
-  ClipboardCheck,
-  Columns2,
-  Crop,
-  FileText,
-  FolderOpen,
-  Footprints,
-  History,
-  Search,
-  Shapes,
-  Users,
-} from "lucide-react"
+import { FolderOpen, Footprints, History, Users } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
 import { ScasShell, ThemeScope, ThemeSettings, type ScasMenuGroup, type ScasMenuIcon } from "@/shared/ui/panel"
 import { useDisplayPrefs } from "@/shared/lib/display-prefs"
 import { cn } from "@/shared/lib/utils"
 
-import { DEV_SCREENS } from "./dev-screens"
+import { DEV_SCREENS, devScreen, type DevScreenId } from "./dev-screens"
 import { DEV_VIEWER_KEYS, DEV_VIEWERS, useDevPlus, useDevViewerKey, type DevViewerInfo } from "./dev-viewers"
 import { useDevCase } from "./use-dev-case"
 
@@ -36,16 +25,17 @@ export interface DevScreenFrameProps {
 // r4 앱 틀 메뉴 아이콘(로망 사이드바처럼 줄마다 선 아이콘 17px) — 화면별로 뜻이 가까운 lucide 아이콘
 const MENU_ICONS: Partial<Record<(typeof DEV_SCREENS)[number]["id"], ScasMenuIcon>> = {
   s01: FolderOpen,
-  s02: FileText,
-  s03: Crop,
-  s04: Shapes,
-  s05: Search,
-  s06: Columns2,
-  s07: ClipboardCheck,
   s10: Footprints,
   s13: Users,
   s14: History,
 }
+
+// r4 사이드바(2026-11-16 사용자 「사이드바 저렇게 구성할거야?? 사건관리에서 클릭하면 저쪽으로 넘어가게?」):
+// 진열 화면 11개를 다 늘어놓지 않고 업무 메뉴만 — 사건관리 · 신발 DB(관리자는 사용자 관리 · 사용 기록).
+// 사건 상세 ~ 결과 확인(S02–S07)은 사건관리 목록의 사건 창 안 탭으로 들어간다. 개별 화면 확인은 `/dev` 목차 · 진열 막대로.
+const WORK_MENU: readonly DevScreenId[] = ["s01", "s10"]
+/** S02–S07 은 사건관리 안 화면 — 사이드바에서는 「사건관리」가 켜진다 */
+const UNDER_CASES: readonly DevScreenId[] = ["s02", "s03", "s04", "s05", "s06", "s07"]
 
 function menuFor(viewer: DevViewerInfo, as: string | null, plusOff: boolean): ScasMenuGroup[] {
   const parts = [as ? `as=${encodeURIComponent(as)}` : "", plusOff ? "plus=0" : ""].filter(Boolean)
@@ -56,12 +46,18 @@ function menuFor(viewer: DevViewerInfo, as: string | null, plusOff: boolean): Sc
     icon: MENU_ICONS[s.id],
   })
   const visible = DEV_SCREENS.filter(
-    (s) => !s.admin && s.id !== "s00" && (!s.feature || viewer.isAdmin || viewer.features.includes(s.feature)),
+    (s) => WORK_MENU.includes(s.id) && (!s.feature || viewer.isAdmin || viewer.features.includes(s.feature)),
   )
   const groups: ScasMenuGroup[] = []
-  if (visible.length > 0) groups.push({ group: "족윤적 감정", items: visible.map(toItem) })
+  if (visible.length > 0) groups.push({ group: "업무", items: visible.map(toItem) })
   if (viewer.isAdmin) groups.push({ group: "관리", items: DEV_SCREENS.filter((s) => s.admin).map(toItem) })
   return groups
+}
+
+/** 사이드바에서 켤 메뉴 이름 — 사건관리 안 화면(S02–S07)이면 「사건관리」, 그 밖은 화면 이름 그대로 */
+function activeMenuFor(pathname: string, title: string): string {
+  const id = pathname.split("/")[2]
+  return UNDER_CASES.some((s) => s === id) ? devScreen("s01").title : title
 }
 
 // 틀 = 화면 높이 상자 + 세로 스크롤. html · body · #root 가 overflow:hidden 이라 틀이 스스로 스크롤해야
@@ -145,7 +141,8 @@ export function DevScreenFrame({ screen, title, cases, bare = false, children }:
     <ThemeScope prefs={display} className={FRAME_SCROLL}>
       {bar}
       <ScasShell
-        active={title}
+        active={activeMenuFor(pathname, title)}
+        title={title}
         menu={menuFor(viewer, as, !plus)}
         renderLink={({ href, children, ...rest }) => (
           <Link to={href} {...rest}>
