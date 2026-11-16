@@ -79,6 +79,7 @@ describe("ColumnPicker", () => {
     expect(screen.getByRole("button", { name: /열 선택/ })).toHaveAttribute("aria-expanded", "true")
     fireEvent.keyDown(screen.getByRole("group", { name: "보일 열" }), { key: "Escape" })
     expect(screen.queryByRole("checkbox")).toBeNull()
+    expect(screen.getByRole("button", { name: /열 선택/ })).toHaveFocus()
     open()
     fireEvent.mouseDown(screen.getByRole("button", { name: "바깥" }))
     expect(screen.queryByRole("checkbox")).toBeNull()

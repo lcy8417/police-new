@@ -135,13 +135,50 @@ describe("useAutoPlay", () => {
     expect(result.current.playing).toBe(true)
   })
 
-  it("count 가 줄어 index 가 넘치면 마지막 칸으로 맞춘다", () => {
-    const { result, rerender } = setup({ count: 5 })
+  it("count 가 줄어 index 가 넘치면 마지막 칸으로 맞추고 onStep 을 한 번 부른다", () => {
+    const { result, rerender, onStep } = setup({ count: 5 })
     act(() => result.current.next())
     act(() => result.current.next())
     act(() => result.current.next())
     expect(result.current.index).toBe(3)
+    onStep.mockClear()
     rerender({ count: 2 })
+    expect(result.current.index).toBe(1)
+    expect(onStep).toHaveBeenCalledTimes(1)
+    expect(onStep).toHaveBeenCalledWith(1)
+    // 맞춘 뒤에는 다시 부르지 않는다
+    rerender({ count: 2 })
+    expect(onStep).toHaveBeenCalledTimes(1)
+  })
+
+  it("틱이 늦어도 기한이 밀리지 않는다(450ms 주기로 10칸이 정확히 4500ms)", () => {
+    const { result } = setup({ count: 12, intervalMs: 450 })
+    act(() => void vi.advanceTimersByTime(4499))
+    expect(result.current.index).toBe(9)
+    act(() => void vi.advanceTimersByTime(1))
+    expect(result.current.index).toBe(10)
+  })
+
+  it("count 가 주기보다 자주 바뀌어도 칸은 주기대로 넘어간다", () => {
+    const { result, rerender } = setup({ count: 3 })
+    act(() => void vi.advanceTimersByTime(400))
+    rerender({ count: 4 })
+    act(() => void vi.advanceTimersByTime(400))
+    rerender({ count: 5 })
+    act(() => void vi.advanceTimersByTime(199))
+    expect(result.current.index).toBe(0)
+    act(() => void vi.advanceTimersByTime(1))
+    expect(result.current.index).toBe(1)
+  })
+
+  it("멈춘 동안 주기를 줄이면 남은 시간도 새 주기까지로 줄어든다", () => {
+    const { result, rerender } = setup({ intervalMs: 3000 })
+    act(() => void vi.advanceTimersByTime(300))
+    act(() => result.current.pause())
+    rerender({ intervalMs: 1000 })
+    act(() => result.current.play())
+    expect(result.current.remainingMs).toBe(1000)
+    act(() => void vi.advanceTimersByTime(1000))
     expect(result.current.index).toBe(1)
   })
 })

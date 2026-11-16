@@ -26,6 +26,7 @@ export interface ColumnPickerProps {
 export function ColumnPicker({ columns, visible, onChange, defaultVisible, partId, className }: ColumnPickerProps) {
   const [open, setOpen] = React.useState(false)
   const rootRef = React.useRef<HTMLDivElement>(null)
+  const triggerRef = React.useRef<HTMLButtonElement>(null)
   const panelId = React.useId()
 
   React.useEffect(() => {
@@ -60,10 +61,12 @@ export function ColumnPicker({ columns, visible, onChange, defaultVisible, partI
         if (e.key === "Escape" && open) {
           e.stopPropagation()
           setOpen(false)
+          triggerRef.current?.focus()
         }
       }}
     >
       <button
+        ref={triggerRef}
         type="button"
         aria-expanded={open}
         aria-controls={panelId}

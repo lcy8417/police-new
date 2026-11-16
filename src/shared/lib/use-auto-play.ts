@@ -51,9 +51,14 @@ export function useAutoPlay({ count, intervalMs, enabled, onStep, loop = false }
   const onStepRef = useRef(onStep)
   const deadlineRef = useRef(0)
   const resumeRef = useRef<number | null>(null)
+  // count · loop 가 바뀌어도 기한이 다시 시작되지 않도록 틱이 읽는 값은 ref 로 둔다
+  const lastRef = useRef(last)
+  const loopRef = useRef(loop)
   useEffect(() => {
     indexRef.current = index
     onStepRef.current = onStep
+    lastRef.current = last
+    loopRef.current = loop
   })
 
   const goTo = useCallback((to: number) => {
@@ -62,9 +67,15 @@ export function useAutoPlay({ count, intervalMs, enabled, onStep, loop = false }
     onStepRef.current?.(to)
   }, [])
 
+  // count 가 줄어 index 가 넘치면 저장값도 맞추고 onStep 을 한 번 부른다
+  useEffect(() => {
+    if (rawIndex > last) goTo(last)
+  }, [rawIndex, last, goTo])
+
   useEffect(() => {
     if (!enabled || paused) return
-    const first = resumeRef.current ?? intervalMs
+    // 멈춘 동안 주기가 줄었으면 남은 시간도 새 주기를 넘지 않게
+    const first = Math.min(resumeRef.current ?? intervalMs, intervalMs)
     resumeRef.current = null
     deadlineRef.current = Date.now() + first
     const id = setInterval(() => {
@@ -75,22 +86,26 @@ export function useAutoPlay({ count, intervalMs, enabled, onStep, loop = false }
         return
       }
       const cur = indexRef.current
-      if (cur < last) {
+      const lastNow = lastRef.current
+      if (cur < lastNow) {
         goTo(cur + 1)
-      } else if (loop && last > 0) {
+      } else if (loopRef.current && lastNow > 0) {
         goTo(0)
       } else {
         setRemaining(0)
         setPaused(true)
         return
       }
-      deadlineRef.current = now + intervalMs
-      setRemaining(intervalMs)
+      // 틱 늦음이 쌓이지 않게 기한에서 이어 센다(한 주기 넘게 밀렸을 때만 지금부터)
+      let nextDeadline = deadlineRef.current + intervalMs
+      if (now - nextDeadline > intervalMs) nextDeadline = now + intervalMs
+      deadlineRef.current = nextDeadline
+      setRemaining(Math.max(0, nextDeadline - now))
     }, Math.min(TICK_MS, Math.max(1, intervalMs)))
     // 시작(주기 변경 · 재개) 때 남은 시간 표시를 맞춘다
     setRemaining(first)
     return () => clearInterval(id)
-  }, [enabled, paused, intervalMs, last, loop, goTo])
+  }, [enabled, paused, intervalMs, goTo])
 
   const restart = useCallback(() => {
     resumeRef.current = null
