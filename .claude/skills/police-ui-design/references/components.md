@@ -104,6 +104,8 @@
 | Stepper | panel | `src/shared/ui/panel/Stepper.tsx` | `.stepper` | S01 (+ S07 · S08 흐름 띠는 표식 때 확인) | [새로] 변형 `bar`(기본, S01 5px 막대) · `labeled`(S02 제목 줄: 점 + 이름 + 14px 연결선, 지금 단계 청록 맥박 · `aria-current="step"`). `steps` · `current`(0부터, NaN · ±Infinity 는 첫 칸, 칸 수와 같으면 모두 끝남). 끝남 파랑 · 지금 주황 + 빛 · 남음 회색, `width` 20(S01) · 18(CSS 기본), 읽는 이름에 지금 단계 | 검증됨 |
 | Crumb | panel | `src/shared/ui/panel/Crumb.tsx` | `.crumb` | S00 · S06–S15 | [새로] — | 구현됨 |
 | PageHead | panel | `src/shared/ui/panel/PageHead.tsx` | `.page-head` | S06–S08 · S10–S15 | [새로] — | 구현됨 |
+| ThemeScope | panel | `src/shared/ui/panel/ThemeScope.tsx` | (시안 없음 — r3 사용자 결정 2026-11-16) | 진열 틀(S00–S14) | [새로] 범위 상자 하나: `prefs`(DisplayPrefs)를 `data-theme` · `data-font` · `data-scale` · `data-motion` 속성으로 단다. 값은 `src/index.css` 범위 규칙(`tokens.md` 「팔레트 · 글꼴 범위」). 겹쳐도 글자 배율은 바깥 한 번. 상자 끝 포털 자리(`[data-theme-portal]`, 맥락 `useThemePortalContainer`) — DialogShell 이 범위 안이면 여기로 포털, 열린 동안 Toaster 에 설정을 알림(`useActiveThemeScope`) | 구현됨 |
+| ThemeSettings | panel | `src/shared/ui/panel/ThemeSettings.tsx` | (시안 없음 — r3 사용자 결정 2026-11-16, 설계서 §14-4) | 진열 틀(ScasShell `headerEnd` · S00 진열 막대 끝) | [새로] 「화면 설정」 버튼 + 펼침 칸(disclosure — `aria-expanded` · `aria-controls`, 이름 있는 `section`, 초점을 가두지 않음. Esc · 바깥 누름 · 닫기로 닫힘, Esc 면 버튼으로 초점 복귀). 안: 팔레트 4(미리보기 4칸 = 그 팔레트 범위 토큰) · 글꼴 6(이름표를 그 글꼴로) · 글자 크기 3 · 움직임 줄이기 — 모두 kit `Segmented`. 값은 `useDisplayPrefs`(localStorage, 실패 → 기본값). 상태 `open` | 구현됨 |
 
 부품이 아닌 것(시안 설명 장치): `.pin` · `.pinbox` · `.notes` · `.fit*` · `.scas-pain` · `.toc` · `.frame` · `.viewport` · `M.pin` · `M.apin` · `M.scasShell` · 「보는 사람」 토글. 대조 때 시안 쪽에서 `.pin`을 떼고 `.pinbox` 클래스를 뗀 뒤 읽는다.
 
