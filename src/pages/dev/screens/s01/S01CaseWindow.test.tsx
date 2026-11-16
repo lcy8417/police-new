@@ -240,8 +240,11 @@ describe("S01 사건 창", () => {
         const lib = within(d).getByRole("region", { name: "문양 목록" })
         // 선 폴더 전체(76개) — 시안 앞쪽 일부(12개)가 아니다
         expect(within(lib).getByRole("group", { name: "선 문양 76개" })).toBeInTheDocument()
-        fireEvent.click(within(within(lib).getByRole("group", { name: "넣을 부위" })).getByRole("button", { name: "하" }))
+        // 넣을 부위 = 가운데 4부위 행 중 고른 행(목록 위 따로 고르는 줄 없음)
+        expect(within(lib).queryByRole("group", { name: "넣을 부위" })).toBeNull()
+        expect(within(lib).queryByRole("textbox", { name: "문양 찾기" })).toBeNull()
         const board = within(d).getByRole("group", { name: "현장 이미지 문양" })
+        fireEvent.click(within(board).getByRole("button", { name: /^하 부위/ }))
         expect(within(board).getByRole("button", { name: "하 부위 1개 입력 중" })).toBeInTheDocument()
         fireEvent.click(within(lib).getByRole("button", { name: "하에 n31_02 넣기" }))
         expect(within(board).getByRole("button", { name: "하 부위 2개 입력 중" })).toBeInTheDocument()
@@ -251,11 +254,11 @@ describe("S01 사건 창", () => {
         fireEvent.click(again)
         expect(within(board).getByRole("button", { name: "하 부위 1개 입력 중" })).toBeInTheDocument()
         // 윤곽 종류도 있다
-        fireEvent.click(within(within(lib).getByRole("group", { name: "문양 종류" })).getByRole("button", { name: "윤곽" }))
+        fireEvent.click(within(within(lib).getByRole("tablist", { name: "문양 종류" })).getByRole("tab", { name: "윤곽" }))
         expect(within(lib).getByRole("group", { name: "윤곽 문양 16개" })).toBeInTheDocument()
       })
 
-      it("「검색」을 누르면 검색 이력 탭에 한 줄이 늘고(필수 · 가중치 · 결과 수 · 상위 3), 「다시 불러오기」 · 「결과 보기」", () => {
+      it("「검색」을 누르면 검색 이력 탭에 한 줄이 늘고(문양 그림 · 필수 · 가중치 막대 · 결과 수 · 상위 5 그림), 「다시 불러오기」 · 「자세히 →」", () => {
         const d = open()
         fireEvent.click(within(side(d)).getByRole("tab", { name: /검색 이력/ }))
         const list = () => within(d).getByRole("list", { name: "검색 이력" })
@@ -266,19 +269,18 @@ describe("S01 사건 창", () => {
         const rows = within(list()).getAllByRole("listitem", { name: /^검색 / })
         expect(rows).toHaveLength(3)
         expect(rows[0]).toHaveAccessibleName("검색 572434")
-        expect(rows[0]).toHaveTextContent(/s81b×2/)
-        expect(within(rows[0]).getAllByRole("listitem")).toHaveLength(3)
+        // 넣은 문양 = 실제 그림(필수 · 가중치는 이름에, 배수 글자 「×」 없음)
+        expect(within(rows[0]).getByRole("img", { name: "중 s81b · 가중치 높음(직접)" })).toBeInTheDocument()
+        expect(rows[0]).not.toHaveTextContent(/×/)
+        expect(within(within(rows[0]).getByRole("list", { name: "상위 결과" })).getAllByRole("listitem")).toHaveLength(5)
         expect(toastMock.success).toHaveBeenCalledWith(expect.stringMatching(/^검색 572434 — 결과 [\d,]+건/))
-        // 줄을 펼치면 조건 전체
-        fireEvent.click(within(rows[0]).getByRole("button", { name: "조건 전체 보기" }))
-        expect(rows[0]).toHaveTextContent("직접 1개 · 나머지 규칙 값")
         // 맨 처음 검색(상 · 중 n32_04 만)을 다시 불러오면 4부위가 그때로
         fireEvent.click(within(d).getByRole("button", { name: "검색 572419 — 이 조건 다시 불러오기" }))
         const board = within(d).getByRole("group", { name: "현장 이미지 문양" })
         expect(within(board).getByRole("button", { name: /^중 부위 1개/ })).toBeInTheDocument()
         expect(within(board).getByRole("button", { name: /^윤곽 부위 0개/ })).toBeInTheDocument()
-        // 결과 보기 = 검색 결과 탭
-        fireEvent.click(within(d).getByRole("button", { name: "검색 572419 — 결과 보기" }))
+        // 자세히 = 검색 결과 탭
+        fireEvent.click(within(d).getByRole("button", { name: "검색 572419 — 자세히" }))
         expect(query().get("tab")).toBe("search")
       })
 
@@ -349,7 +351,7 @@ describe("S01 사건 창", () => {
       expect(workTab("정밀 대조")).toHaveAttribute("aria-selected", "true")
     })
 
-    it("정밀 대조 탭: 제목 줄 · 닫기 없음, 왼쪽 유류 · 발견 대조(무대 + 바닥 단추) | 오른쪽 「AI 대조 · 대응 목록 · 정보」 탭", () => {
+    it("정밀 대조 탭: 먹색 작업판(유류 | 발견 · 칸마다 보기 조정) · 함께 확대 · 상중하 문양 비교 띠 · AI 대조 한눈에 — 자동/수동 · 대응 목록 · 정보 탭 없음", () => {
       renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=1&tab=compare")
       const d = dialog()
       expect(within(d).queryByText("현장문양검색결과 상세조회")).toBeNull()
@@ -357,18 +359,36 @@ describe("S01 사건 창", () => {
       const main = within(d).getByRole("region", { name: "유류 · 발견 대조" })
       expect(within(main).getByRole("heading", { name: "유류 · 발견 대조" })).toBeInTheDocument()
       expect(within(main).getByRole("group", { name: "비교" })).toBeInTheDocument()
-      for (const name of ["이전", "다음", "확인대상", "정렬 설정", "근거 이미지 감정서에 첨부"]) {
+      for (const name of ["이전", "다음", "정렬 설정", "확대 찍기", "확대경", "연동", "신발 상세 보기"]) {
         expect(within(main).getByRole("button", { name })).toBeInTheDocument()
       }
-      expect(main.querySelector("[data-pair-stage]")).not.toBeNull()
-      const side = within(d).getByRole("tablist", { name: "대조 근거 · 정보" })
-      expect(within(side).getAllByRole("tab").map((t) => t.textContent)).toEqual(["AI 대조", "대응 목록10", "정보"])
-      expect(within(d).getByRole("complementary", { name: "+α 정밀 대조" })).toBeInTheDocument()
-      fireEvent.click(within(side).getByRole("tab", { name: /대응 목록/ }))
-      expect(within(within(d).getByLabelText("대응 목록")).getAllByRole("listitem")).toHaveLength(10)
-      fireEvent.click(within(side).getByRole("tab", { name: "정보" }))
-      expect(within(d).getByRole("columnheader", { name: "사건정보" })).toBeInTheDocument()
-      expect(within(d).getByText("유류 이미지 문양")).toBeInTheDocument()
+      for (const name of ["확인대상", "감정서 첨부", "그룹등록"]) expect(within(d).getByRole("button", { name })).toBeInTheDocument()
+      // 칸마다 보기 조정(대비 · 반전 · 이진화 · 회전)
+      expect(within(main).getAllByRole("group", { name: "보기 조정" })).toHaveLength(2)
+      expect(within(main).getAllByRole("button", { name: "회전" })).toHaveLength(2)
+      // 뺀 것: 자동/수동 · 대응 목록 · 정보 탭 · 확인 물음 막대
+      expect(within(d).queryByRole("radio", { name: "자동" })).toBeNull()
+      expect(within(d).queryByRole("tablist", { name: "대조 근거 · 정보" })).toBeNull()
+      expect(within(d).queryByLabelText("대응 목록")).toBeNull()
+      expect(within(d).queryByText(/확인대상에 등록할까요/)).toBeNull()
+      // 확대 찍기 → 한쪽을 누르면 두 그림이 함께 확대(연동) · 다시 누르면 풀림
+      const crime = main.querySelector('[data-match-image="crime"]') as HTMLElement
+      const shoe = main.querySelector('[data-match-image="shoe"]') as HTMLElement
+      fireEvent.click(within(main).getByRole("button", { name: "확대 찍기" }))
+      fireEvent.click(crime)
+      expect(crime).toHaveAttribute("data-pinned", "true")
+      expect(shoe).toHaveAttribute("data-pinned", "true")
+      fireEvent.click(crime)
+      expect(shoe).not.toHaveAttribute("data-pinned")
+      // 상 · 중 · 하 문양 비교 띠 · AI 대조(종합 · 부위 점수)
+      const strip = within(main).getByRole("region", { name: "상 · 중 · 하 문양 비교" })
+      expect(strip.querySelectorAll("[data-zone-cell]")).toHaveLength(4)
+      const ai = within(d).getByRole("region", { name: "AI 대조" })
+      expect(ai).toHaveTextContent("87")
+      expect(within(ai).getAllByRole("meter", { name: /부위 점수/ })).toHaveLength(3)
+      // 신발 상세는 발견 이미지 쪽 작은 팝
+      fireEvent.click(within(main).getByRole("button", { name: "신발 상세 보기" }))
+      expect(within(d).getByRole("dialog", { name: "신발 상세" })).toHaveTextContent("00758")
     })
 
     it("?plus=0: 흐름 줄 · 탭은 그대로 보인다", () => {

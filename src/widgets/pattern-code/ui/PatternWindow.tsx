@@ -312,9 +312,10 @@ export function PatternWindow(props: PatternWindowProps) {
                 <MatchConditions value={props.matchConditions} onChange={props.onMatchConditionsChange} bare />
                 <section aria-label="가중치 규칙" className="flex flex-col gap-[6px]">
                   <SubHead title="가중치 규칙">
-                    <span className="text-[11px] text-muted-foreground">직접 {overrideCount}개</span>
+                    <span title="합을 −1 ~ +1 로 자름 · 카드에서 고른 「직접」 값이 규칙보다 먼저 · 필수는 따로 거르기" className="text-[11px] text-muted-foreground">
+                      직접 {overrideCount}개
+                    </span>
                   </SubHead>
-                  <p className="m-0 font-code text-[11px] text-fg-2">낮음 ×0.5 · 보통 ×1 · 높음 ×2</p>
                   <ul className="m-0 flex list-none flex-col gap-[3px] p-0">
                     {WEIGHT_RULES.map((r) => (
                       <li key={r.id} className="flex gap-[6px] text-[11.5px] text-fg-2">
@@ -323,7 +324,6 @@ export function PatternWindow(props: PatternWindowProps) {
                       </li>
                     ))}
                   </ul>
-                  <p className="m-0 text-[11px] leading-[1.45] text-muted-foreground">합을 −1 ~ +1 로 자름. 카드에서 고르면 「직접」이 규칙보다 먼저, 필수는 따로 거르기.</p>
                   <WorkbenchButton
                     size="sm"
                     variant="soft"

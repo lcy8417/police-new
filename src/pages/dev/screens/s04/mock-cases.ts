@@ -18,6 +18,18 @@ import {
 } from "@/widgets/pattern-code"
 
 import type { SCREEN_CASES } from "../frame/dev-screens"
+import { fakeSoleUrl } from "../mock-assets/FakeSole"
+
+/** 신발 ID → 가짜 밑창 그림(검색 이력 썸네일 — 같은 ID 는 같은 그림, 한 번만 만든다) */
+const SOLE_CACHE = new Map<string, string>()
+const soleOf = (ftwrId: string) => {
+  let url = SOLE_CACHE.get(ftwrId)
+  if (!url) {
+    url = fakeSoleUrl({ kind: "shoe", seed: (Number.parseInt(ftwrId, 10) % 7) + 1 })
+    SOLE_CACHE.set(ftwrId, url)
+  }
+  return url
+}
 
 // S04 문양 코딩 · 검색 조건 진열 케이스. 숫자는 시안 예시값(감정물 00001-25-0649_2, 상 · 중 n32_04 필수, 점수 0.93 · 0.61 · 0.42 · 0.71).
 // 서버처럼 문양은 「이름」으로 들고 있고, 진열 페이지가 insertPatternPath 로 경로를 붙여 위젯에 넘긴다(docs/pattern-data-model.md §3).
@@ -222,7 +234,7 @@ export function fakeSearchRun(args: {
     zones: runSnapshot(query, weights),
     conditions: args.conditions,
     resultCount: ranked.length,
-    top: ranked.slice(0, 3),
+    top: ranked.slice(0, 5).map((h) => ({ ...h, src: soleOf(h.ftwrId) })),
   }
 }
 

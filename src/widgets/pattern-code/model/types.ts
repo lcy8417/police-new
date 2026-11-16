@@ -138,6 +138,8 @@ export interface SearchRunHit {
   ftwrId: string
   /** 문양 점수 0~1(spec §4) */
   score: number
+  /** 밑창 그림 주소(검색 이력 썸네일 — 운영 `/shoes_images/{B|Shoerinsics}/<ftwrId>.png`) */
+  src?: string
 }
 
 /** 검색 한 번 = 이력 한 줄(사건 창 「검색 이력」 탭) — 어떤 조건으로 어떤 결과가 나왔나 */
@@ -154,7 +156,7 @@ export interface SearchRun {
   conditions: MatchConditionValues
   /** 결과 수(필수 거르기 통과) */
   resultCount: number
-  /** 상위 신발(최대 3) */
+  /** 상위 신발(최대 5) */
   top: readonly SearchRunHit[]
 }
 

@@ -377,7 +377,7 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
       }}
       searchRuns={searchRuns}
       onRestoreRun={restoreRun}
-      onOpenRun={() => go("/dev/s05")}
+      onOpenRun={(searchNo) => go("/dev/s05", { run: String(searchNo) })}
       lensSource={<FakePatternCanvas source={searchImage} plus={plus} />}
     />
   )
