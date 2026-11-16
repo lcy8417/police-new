@@ -106,6 +106,57 @@ describe("S13 사용자 관리 진열 페이지", () => {
     expect(screen.getByLabelText("임시 비밀번호")).toBeInTheDocument()
   })
 
+  it("사용자 추가 창에 기능 권한 선택 · 본청 소속 안내 · 전국 사건 사진 안내가 있다", () => {
+    admin("ready")
+    fireEvent.click(screen.getByRole("button", { name: "사용자 추가" }))
+    const dlg = screen.getByRole("dialog")
+    expect(within(dlg).getByText("새 사용자는 본청 소속 — 관서를 지정하세요")).toBeInTheDocument()
+    expect(within(dlg).getAllByRole("checkbox")).toHaveLength(12)
+    expect(within(dlg).queryByText("전국 사건 사진을 볼 수 있게 됩니다")).toBeNull()
+    fireEvent.click(within(dlg).getByRole("checkbox", { name: "사건 조회" }))
+    expect(within(dlg).getByText("전국 사건 사진을 볼 수 있게 됩니다")).toBeInTheDocument()
+  })
+
+  it("사용자 추가 창에서 관리자를 고르면 기능 선택 대신 안내를 보인다", () => {
+    admin("ready")
+    fireEvent.click(screen.getByRole("button", { name: "사용자 추가" }))
+    const dlg = screen.getByRole("dialog")
+    fireEvent.click(within(dlg).getByRole("button", { name: "관리자" }))
+    expect(within(dlg).queryAllByRole("checkbox")).toHaveLength(0)
+    expect(within(dlg).getByText("관리자는 모든 기능을 사용할 수 있습니다")).toBeInTheDocument()
+  })
+
+  it("추가 창이 아이디 규칙 위반을 서버 규칙 문구로 막는다", () => {
+    admin("ready")
+    fireEvent.click(screen.getByRole("button", { name: "사용자 추가" }))
+    fireEvent.click(screen.getByRole("button", { name: "추가" }))
+    expect(screen.getByRole("alert")).toHaveTextContent("아이디는 영문·숫자·_ 4~20자로 입력하세요")
+  })
+
+  it("비직원이 사건 조회를 켜면 상세에도 전국 사건 사진 안내가 뜬다", () => {
+    admin("ready")
+    fireEvent.click(rowOf("han0911")) // INVESTIGATOR · 이미 CRIME_SEARCH
+    const detail = screen.getByRole("region", { name: "사용자 상세" })
+    expect(within(detail).getByText("전국 사건 사진을 볼 수 있게 됩니다")).toBeInTheDocument()
+    fireEvent.click(rowOf("park0412")) // 감정관(직원) — 안내 없음
+    expect(within(screen.getByRole("region", { name: "사용자 상세" })).queryByText("전국 사건 사진을 볼 수 있게 됩니다")).toBeNull()
+  })
+
+  it("본청 소속 비직원 상세에는 관서 지정 안내가 뜬다", () => {
+    admin("ready")
+    fireEvent.click(rowOf("kim0301")) // 감정관 · 본청 → 직원이라 안내 없음
+    expect(screen.queryByText("본청 소속이라 의뢰를 볼 수 없습니다 — 관서를 지정하세요")).toBeNull()
+    fireEvent.click(rowOf("newbie01"))
+    expect(screen.getByText("본청 소속이라 의뢰를 볼 수 없습니다 — 관서를 지정하세요")).toBeInTheDocument()
+  })
+
+  it("본인 계정의 구분 칸은 aria-disabled", () => {
+    admin("ready")
+    fireEvent.click(rowOf("admin01"))
+    const detail = screen.getByRole("region", { name: "사용자 상세" })
+    expect(within(detail).getByRole("group", { name: "구분", hidden: true }).parentElement).toHaveAttribute("aria-disabled", "true")
+  })
+
   it("loading 케이스는 aria-busy=true", () => {
     const { container } = admin("loading")
     expect(container.querySelector('[aria-busy="true"]')).not.toBeNull()

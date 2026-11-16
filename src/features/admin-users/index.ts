@@ -13,6 +13,20 @@ export {
   type AdminUserMutationOptions,
 } from "./model/use-admin-users"
 export { userStatus, type UserStatus } from "./model/user-rules"
+// 화면 표시 위젯(widgets/admin-users-screen)이 같은 규칙을 쓰도록 순수 규칙만 더 내보낸다.
+export {
+  USER_FORM_MESSAGES,
+  USER_ID_PATTERN,
+  USER_STATUS_LABELS,
+  grantsNationwidePhotos,
+  isImpliedFeature,
+  isStaffUser,
+  needsOrgAssignment,
+  sameFeatures,
+  sameRoles,
+  toggleFeature,
+  toggleRole,
+} from "./model/user-rules"
 export { UserTable } from "./ui/UserTable"
 export { UserDetailPanel } from "./ui/UserDetailPanel"
 export { FeatureToggles } from "./ui/FeatureToggles"

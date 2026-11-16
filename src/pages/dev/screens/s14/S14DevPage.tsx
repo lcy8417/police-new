@@ -1,7 +1,7 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
-import { LOG_PAGE_SIZE, AdminLogsScreen, type LogFilters, type LogTab } from "@/widgets/admin-logs-screen"
+import { LOG_PAGE_SIZE, AdminLogsScreen, type LogFilters, type LogTab, type SessionTimeline } from "@/widgets/admin-logs-screen"
 
 import { DEV_SCREENS, DevScreenFrame, useDevCase, useDevViewer } from "../frame"
 import { MANY_SESSIONS, MOCK_ACTIONS, MOCK_EVENTS, MOCK_LOG_USERS, MOCK_SESSIONS, MOCK_TIMELINES, S14_CASES } from "./mock-cases"
@@ -18,6 +18,24 @@ export function S14DevPage() {
   const [tab, setTab] = useState<LogTab>("sessions")
   const [filters, setFilters] = useState<LogFilters>(DEFAULT_FILTERS)
   const [page, setPage] = useState(1)
+  const [expandedIds, setExpandedIds] = useState<string[]>([])
+  const [timelines, setTimelines] = useState<Record<string, SessionTimeline>>({})
+  const timers = useRef<number[]>([])
+  useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), [])
+
+  // 펼칠 때 기능 기록을 불러오는 것을 흉내 낸다: 불러오는 중 → 불러옴(또는 못 읽음)
+  const loadTimeline = (id: string) => {
+    setTimelines((prev) => ({ ...prev, [id]: { status: "loading", events: [] } }))
+    timers.current.push(
+      window.setTimeout(() => {
+        setTimelines((prev) => ({ ...prev, [id]: MOCK_TIMELINES[id] ?? { status: "ready", events: [] } }))
+      }, 120)
+    )
+  }
+  const toggleSession = (id: string, open: boolean) => {
+    setExpandedIds((prev) => (open ? [...prev, id] : prev.filter((x) => x !== id)))
+    if (open) loadTimeline(id)
+  }
 
   const changeFilters = (next: LogFilters) => {
     setFilters(next)
@@ -25,7 +43,7 @@ export function S14DevPage() {
   }
 
   const inRange = (iso: string) => dateOf(iso) >= (filters.from || "0000") && dateOf(iso) <= (filters.to || "9999")
-  const allSessions = (activeCase === "full-page" ? MANY_SESSIONS : MOCK_SESSIONS).filter(
+  const allSessions = (activeCase === "full-page" ? MANY_SESSIONS : activeCase === "exact-page" ? MANY_SESSIONS.slice(0, LOG_PAGE_SIZE) : MOCK_SESSIONS).filter(
     (s) => (!filters.userId || s.userId === filters.userId) && inRange(s.loginDt)
   )
   const allEvents = MOCK_EVENTS.filter(
@@ -37,11 +55,11 @@ export function S14DevPage() {
   )
   const slice = <T,>(all: T[]) => all.slice((page - 1) * LOG_PAGE_SIZE, page * LOG_PAGE_SIZE)
 
-  const filtered = tab === "sessions" ? allSessions : allEvents
+  const shown = tab === "sessions" ? slice(allSessions) : slice(allEvents)
   const status =
     activeCase === "loading" || activeCase === "error"
       ? activeCase
-      : activeCase === "empty" || filtered.length === 0
+      : activeCase === "empty" || shown.length === 0
         ? "empty"
         : "ready"
 
@@ -64,8 +82,10 @@ export function S14DevPage() {
         actions={MOCK_ACTIONS}
         sessions={slice(allSessions)}
         events={slice(allEvents)}
-        timelines={MOCK_TIMELINES}
-        onRetryTimeline={(id) => toast(`${id} 기능 기록을 다시 확인합니다(진열용)`)}
+        timelines={timelines}
+        onRetryTimeline={loadTimeline}
+        expandedSessionIds={expandedIds}
+        onToggleSession={toggleSession}
         page={page}
         onPageChange={setPage}
       />

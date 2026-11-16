@@ -66,7 +66,7 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
     }
     const empty = status === "empty"
     return tab === "sessions" ? (
-      <SessionTable sessions={empty ? [] : props.sessions} timelines={props.timelines} onRetryTimeline={props.onRetryTimeline} />
+      <SessionTable sessions={empty ? [] : props.sessions} timelines={props.timelines} onRetryTimeline={props.onRetryTimeline} expandedSessionIds={props.expandedSessionIds} onToggleSession={props.onToggleSession} />
     ) : (
       <div className="overflow-x-auto">
         <DataGrid columns={EVENT_COLUMNS} rows={empty ? [] : props.events} rowKey={(e) => String(e.logId)} />
@@ -104,7 +104,7 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
           }
         >
           {body}
-          {status === "ready" && (
+          {(status === "ready" || (status === "empty" && props.page > 1)) && (
             <Pagination page={props.page} pageSize={LOG_PAGE_SIZE} total={total} hasNext={hasNext} onPageChange={props.onPageChange} />
           )}
         </Panel>

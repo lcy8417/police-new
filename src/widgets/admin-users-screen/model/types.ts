@@ -23,6 +23,8 @@ export interface CreateUserDraft {
   userSe: UserSe
   /** 임시 비밀번호 */
   initialPassword: string
+  /** 켤 기능 권한(관리자는 전부라 쓰지 않음) */
+  features: FeatureCode[]
 }
 
 /** 열려 있는 창 — 값 입력 · 닫기는 `onDialogChange` 로 알린다 */

@@ -31,5 +31,6 @@
 
 - S00 케이스: `ready · loading · failed · locked · error · password-change`. S14 케이스: 기본 4개 + `full-page`(62개 → 50개 꽉 찬 쪽 확인).
 - S00 `status="error"`(서버에 닿지 못함)만 「다시」가 있고, 자격 오류 · 잠금은 칸을 고쳐 다시 제출한다.
-- S13 위젯은 `features/admin-users` 규칙 일부(`toggleFeature` · `isImpliedFeature` · 상태 판정)를 `widgets/admin-users-screen/model/user-rules.ts`에 같은 값으로 다시 적었다(위젯이 features를 가져오지 않기 위해). 운영 연결 때 한쪽으로 합친다.
+- S13 위젯은 `features/admin-users`의 순수 규칙 · 문구를 가져다 쓴다(`index.ts`에 내보내기 줄만 추가, R11). 사용자 추가 창은 지금 앱처럼 기능 권한 체크 12개 · 「본청 소속」 안내 · 「전국 사건 사진」 안내를 담았다. 지금 앱의 추가 창에도 관서 고르기는 없어(새 사용자는 본청, 만든 뒤 상세에서 지정) 같게 뺐다. 상세에는 본청 비직원 관서 안내 · 전국 사진 안내가 있다.
+- S14 세션 펼침은 제어형(`expandedSessionIds` + `onToggleSession`)이다. 진열 페이지가 펼칠 때 「불러오는 중 → 불러옴」을 흉내 낸다. 케이스 `exact-page`(딱 50개, 다음 쪽이 빔)에서 빈 쪽에도 쪽 넘김이 남는다.
 - 눈으로 본 화면 대조(`check:ui:visual`)와 반응형 폭 확인은 하지 않았다(Task 11).

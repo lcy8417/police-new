@@ -34,32 +34,34 @@ describe("S14 사용·감사 기록 진열 페이지", () => {
     expect(within(list()).getAllByText("사용 중").length).toBeGreaterThan(0)
   })
 
-  it("세션 행을 펼치면 기능 타임라인이 보이고 다시 누르면 접힌다", () => {
+  it("세션 행을 펼치면 기능 타임라인이 보이고 다시 누르면 접힌다", async () => {
     admin("ready")
     expect(screen.queryByRole("list", { name: "이 로그인의 기능 기록" })).toBeNull()
     const toggle = within(list()).getAllByRole("button", { name: "기능 기록 펼치기" })[0]
     fireEvent.click(toggle)
-    const timeline = screen.getByRole("list", { name: "이 로그인의 기능 기록" })
+    expect(screen.getByText("기능 기록을 불러오는 중…")).toBeInTheDocument()
+    const timeline = await screen.findByRole("list", { name: "이 로그인의 기능 기록" })
     expect(within(timeline).getAllByText("성공").length).toBeGreaterThan(0)
     expect(within(timeline).getAllByText("실패").length).toBeGreaterThan(0)
     fireEvent.click(toggle)
     expect(screen.queryByRole("list", { name: "이 로그인의 기능 기록" })).toBeNull()
   })
 
-  it("실패 이벤트를 누르면 오류 내용(긴 문구 포함)이 펼쳐진다", () => {
+  it("실패 이벤트를 누르면 오류 내용(긴 문구 포함)이 펼쳐진다", async () => {
     admin("ready")
     fireEvent.click(within(list()).getAllByRole("button", { name: "기능 기록 펼치기" })[0])
-    const timeline = screen.getByRole("list", { name: "이 로그인의 기능 기록" })
+    const timeline = await screen.findByRole("list", { name: "이 로그인의 기능 기록" })
     const failRow = within(timeline).getByRole("button", { name: /감정서 출력/ })
     fireEvent.click(failRow)
     expect(within(timeline).getByText(/프린터 응답 없음/)).toBeInTheDocument()
   })
 
-  it("타임라인을 못 읽은 세션은 「결과 없음」이 아니라 오류와 「다시」를 보인다", () => {
+  it("타임라인을 못 읽은 세션은 「결과 없음」이 아니라 오류와 「다시」를 보인다", async () => {
     admin("ready")
-    const toggles = within(list()).getAllByRole("button", { name: "기능 기록 펼치기" })
-    fireEvent.click(toggles[3]) // lee0508 — 타임라인 조회 실패
-    expect(screen.getByText("기능 기록을 확인하지 못했습니다")).toBeInTheDocument()
+    // lee0508 행(이름으로 찾음) — 타임라인 조회 실패
+    const row = within(list()).getByText("lee0508").closest("tr") as HTMLElement
+    fireEvent.click(within(row).getByRole("button", { name: "기능 기록 펼치기" }))
+    expect(await screen.findByText("기능 기록을 확인하지 못했습니다")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "다시" })).toBeInTheDocument()
     expect(screen.queryByText("결과 없음")).toBeNull()
   })
@@ -78,6 +80,17 @@ describe("S14 사용·감사 기록 진열 페이지", () => {
     fireEvent.click(next)
     expect(screen.getByRole("button", { name: /다음/ })).toBeDisabled()
     expect(screen.getByRole("button", { name: /이전/ })).toBeEnabled()
+  })
+
+  it("꽉 찬 쪽 다음이 빈 쪽이면 「결과 없음」과 함께 「이전」이 남아 있다", () => {
+    admin("exact-page")
+    fireEvent.click(screen.getByRole("button", { name: /다음/ }))
+    expect(screen.getByText("결과 없음")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "다시" })).toBeNull()
+    const prev = screen.getByRole("button", { name: /이전/ })
+    expect(prev).toBeEnabled()
+    fireEvent.click(prev)
+    expect(within(list()).getAllByRole("row")).toHaveLength(1 + 50)
   })
 
   it("기능 기록 탭은 결과 칩 성공 · 실패 · 권한 없음을 보인다", () => {

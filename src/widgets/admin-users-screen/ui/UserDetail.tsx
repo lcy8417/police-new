@@ -1,13 +1,25 @@
 import { useId, type ReactNode } from "react"
 import { KeyRound, LockOpen, Power, PowerOff, ShieldCheck } from "lucide-react"
 
+import {
+  USER_FORM_MESSAGES,
+  grantsNationwidePhotos,
+  isImpliedFeature,
+  isStaffUser,
+  needsOrgAssignment,
+  sameFeatures,
+  sameRoles,
+  toggleFeature,
+  toggleRole,
+  userStatus,
+} from "@/features/admin-users"
+import { FEATURES } from "@/entities/session"
 import type { AdminUser, FeatureInfo, Org, RoleInfo } from "@/entities/admin"
 import { formatKstDateTime } from "@/shared/lib"
 import { Avatar, Button, Checkbox, Chip, Combobox, Field, Segmented, Switch } from "@/shared/ui/kit"
 import { Panel } from "@/shared/ui/panel"
 
 import type { UserDraft } from "../model/types"
-import { isImpliedFeature, sameSet, toggleFeature, toggleRole, userStatus } from "../model/user-rules"
 import { UserStatusChip } from "./UserStatusChip"
 
 interface UserDetailProps {
@@ -71,8 +83,11 @@ export function UserDetail({
   const status = userStatus(user)
   const isAdminUser = user.userSe === "ADMIN"
   const infoDirty = draft.userNm.trim() !== user.userNm || draft.userSe !== user.userSe || draft.orgId !== user.orgId
-  const rolesDirty = !sameSet(draft.roles, user.roles)
-  const featuresDirty = !sameSet(draft.features, user.features)
+  const rolesDirty = !sameRoles(draft.roles, user.roles)
+  const featuresDirty = !sameFeatures(draft.features, user.features)
+  // 저장된 소속이 본청인 비직원은 의뢰를 볼 수 없다 · 비직원의 개인 사건 조회는 전국 사건 사진 열람이 된다
+  const orgHint = needsOrgAssignment(user, orgs.find((o) => o.orgId === user.orgId)?.orgSe)
+  const nationwide = grantsNationwidePhotos(isStaffUser(user), draft.features)
   const roleOrder = roles.map((r) => r.roleCode)
   const orgItems = orgs
     .filter((o) => o.useAt === "Y" || o.orgId === user.orgId)
@@ -103,7 +118,7 @@ export function UserDetail({
           </label>
           <Field id={`${baseId}-nm`} value={draft.userNm} onChange={(e) => onDraftChange({ userNm: e.target.value })} />
           <span className="text-[12.5px] text-muted-foreground">구분</span>
-          <span className={isSelf ? "pointer-events-none opacity-60" : undefined}>
+          <span aria-disabled={isSelf || undefined} inert={isSelf} className={isSelf ? "opacity-60" : undefined}>
             <Segmented
               aria-label="구분"
               items={[
@@ -122,6 +137,7 @@ export function UserDetail({
             placeholder="관서 이름으로 검색"
           />
         </div>
+        {orgHint && <p className="m-0 text-[11.5px] text-warn">{USER_FORM_MESSAGES.hqNonStaff}</p>}
         {isSelf && <p className="m-0 text-[11.5px] text-dim">본인 계정의 구분·사용 여부는 바꿀 수 없습니다.</p>}
         <div className="flex justify-end">
           <Button size="sm" disabled={!infoDirty} onClick={onSaveInfo}>
@@ -181,6 +197,9 @@ export function UserDetail({
                         {f.featureCode}
                         {implied ? " · 신발 등록·수정에 포함됩니다" : ""}
                       </span>
+                      {f.featureCode === FEATURES.CRIME_SEARCH && nationwide && (
+                        <span className="text-[11px] text-warn">{USER_FORM_MESSAGES.nationwidePhotos}</span>
+                      )}
                     </span>
                     <Switch
                       id={id}

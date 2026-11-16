@@ -2,6 +2,8 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import type { AdminUser } from "@/entities/admin"
+import { passwordRuleError } from "@/entities/session"
+import { USER_FORM_MESSAGES, USER_ID_PATTERN } from "@/features/admin-users"
 import { AdminUsersScreen, type UserDialogState, type UserDraft } from "@/widgets/admin-users-screen"
 
 import { DEV_CASES, DEV_SCREENS, DevScreenFrame, useDevCase, useDevViewer } from "../frame"
@@ -35,18 +37,20 @@ export function S13DevPage() {
 
   const handleDialogSubmit = () => {
     if (dialog.kind === "create") {
-      const { userId, userNm, userSe, initialPassword } = dialog.draft
-      if (!/^[A-Za-z0-9_]{4,20}$/.test(userId)) return setDialog({ ...dialog, error: "아이디는 영문·숫자·_ 4~20자여야 합니다" })
-      if (!userNm.trim()) return setDialog({ ...dialog, error: "이름을 입력하세요" })
-      if (initialPassword.length < 8) return setDialog({ ...dialog, error: "비밀번호는 8자 이상이어야 합니다" })
+      const { userId, userNm, userSe, initialPassword, features } = dialog.draft
+      if (!USER_ID_PATTERN.test(userId)) return setDialog({ ...dialog, error: USER_FORM_MESSAGES.userId })
+      if (!userNm.trim()) return setDialog({ ...dialog, error: USER_FORM_MESSAGES.userNm })
+      const ruleError = passwordRuleError(initialPassword)
+      if (ruleError) return setDialog({ ...dialog, error: ruleError })
       if (users.some((u) => u.userId === userId)) return setDialog({ ...dialog, error: "이미 등록된 아이디입니다" })
-      const created: AdminUser = { userId, userNm: userNm.trim(), userSe, useAt: "Y", lockAt: "N", features: [], lastLoginDt: null, roles: [], orgId: MOCK_ORGS[0].orgId, orgNm: MOCK_ORGS[0].orgNm }
+      const created: AdminUser = { userId, userNm: userNm.trim(), userSe, useAt: "Y", lockAt: "N", features: userSe === "ADMIN" ? [] : features, lastLoginDt: null, roles: [], orgId: MOCK_ORGS[0].orgId, orgNm: MOCK_ORGS[0].orgNm }
       setUsers((prev) => [...prev, created])
       setSelectedUserId(userId)
       setDialog({ kind: "none" })
       toast.success(`${userId} 사용자를 추가했습니다`)
     } else if (dialog.kind === "reset") {
-      if (dialog.tempPassword.length < 8) return setDialog({ ...dialog, error: "비밀번호는 8자 이상이어야 합니다" })
+      const ruleError = passwordRuleError(dialog.tempPassword)
+      if (ruleError) return setDialog({ ...dialog, error: ruleError })
       toast.success(`${dialog.userId} 비밀번호를 초기화했습니다(진열용)`)
       setDialog({ kind: "none" })
     }

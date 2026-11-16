@@ -50,6 +50,10 @@ export interface AdminLogsScreenProps {
   /** 세션 번호 → 펼쳤을 때 보일 타임라인. 없으면 불러오는 중으로 본다 */
   timelines: Record<string, SessionTimeline>
   onRetryTimeline: (sessionId: string) => void
+  /** 펼친 세션 번호(제어형 — 펼칠 때 기능 기록을 불러와야 하므로 쓰는 쪽이 안다) */
+  expandedSessionIds: string[]
+  /** 세션 행을 펼치거나 접었다 */
+  onToggleSession: (sessionId: string, open: boolean) => void
   /** 1부터 시작하는 쪽 번호 */
   page: number
   onPageChange: (page: number) => void

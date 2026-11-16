@@ -35,6 +35,7 @@ export const MOCK_USERS: AdminUser[] = [
   { ...base, userId: "han0911", userNm: "한○○ 경사", userSe: "USER", roles: ["INVESTIGATOR"], features: [FEATURES.CRIME_SEARCH], orgId: 3, orgNm: "경북청 과학수사계", lastLoginDt: "2026-11-12T09:12:00+09:00" },
   { ...base, userId: "admin01", userNm: "시스템 관리자", userSe: "ADMIN", orgId: 5, orgNm: "과학수사관리관실", lastLoginDt: "2026-11-16T08:51:00+09:00" },
   { ...base, userId: "yoon0203", userNm: "윤○○ 경장", userSe: "USER", useAt: "N", roles: ["INVESTIGATOR"], orgId: 4, orgNm: "부산청 과학수사계", lastLoginDt: "2026-03-02T10:05:00+09:00" },
+  { ...base, userId: "newbie01", userNm: "정○○ 순경", userSe: "USER", roles: ["INVESTIGATOR"], features: [FEATURES.CASE_STATUS_VIEW], orgId: 1, orgNm: "경찰청 범죄분석과", lastLoginDt: null },
   { ...base, userId: "seo0322", userNm: "서○○ 주무관", userSe: "USER", roles: ["EXAMINER"], features: [FEATURES.SHOE_EDIT, FEATURES.SHOE_VIEW], orgId: 6, orgNm: MOCK_ORGS[5].orgNm, lastLoginDt: null },
 ]
 

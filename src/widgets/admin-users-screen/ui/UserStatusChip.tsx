@@ -1,7 +1,7 @@
 import type { AdminUser } from "@/entities/admin"
 import { Chip } from "@/shared/ui/kit"
 
-import { USER_STATUS_LABELS, userStatus, type UserStatus } from "../model/user-rules"
+import { USER_STATUS_LABELS, userStatus, type UserStatus } from "@/features/admin-users"
 
 // Chip 에 「초록」 변형이 22 높이로는 없어 색만 토큰 클래스로 덮는다(사용 = 초록 — 시안은 청록을 AI 전용으로 둔다).
 const TONE: Record<UserStatus, { variant: "default" | "amber"; className?: string }> = {

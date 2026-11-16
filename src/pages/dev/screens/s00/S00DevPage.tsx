@@ -21,7 +21,10 @@ export function S00DevPage() {
   const [current, setCurrent] = useState("")
   const [next, setNext] = useState("")
   const [confirm, setConfirm] = useState("")
-  const [localError, setLocalError] = useState<string | null>(null)
+  // 입력 검사 문구는 만든 케이스에서만 보인다(케이스를 바꾸면 사라짐)
+  const [local, setLocal] = useState<{ at: string; message: string } | null>(null)
+  const localError = local && local.at === activeCase ? local.message : null
+  const setLocalError = (message: string | null) => setLocal(message === null ? null : { at: activeCase, message })
 
   const fixed =
     activeCase === "failed" ? LOGIN_FAILED_MESSAGE : activeCase === "locked" ? LOCKED_MESSAGE : null

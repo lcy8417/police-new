@@ -100,4 +100,13 @@ describe("S00 로그인 진열 페이지", () => {
     fireEvent.click(screen.getByRole("button", { name: "비밀번호 변경" }))
     expect(screen.getByRole("alert")).toHaveTextContent("새 비밀번호가 일치하지 않습니다")
   })
+
+  it("입력 검사 문구는 케이스를 바꾸면 사라진다", () => {
+    const { unmount } = renderAt("?case=ready")
+    fireEvent.click(screen.getByRole("button", { name: "로그인" }))
+    expect(screen.getByRole("alert")).toBeInTheDocument()
+    unmount()
+    renderAt("?case=password-change")
+    expect(screen.queryByRole("alert")).toBeNull()
+  })
 })

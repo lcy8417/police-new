@@ -1,4 +1,6 @@
-import { Button, DialogShell, Field, Segmented } from "@/shared/ui/kit"
+import { FEATURE_LABELS, FEATURE_ORDER } from "@/entities/session"
+import { USER_FORM_MESSAGES, grantsNationwidePhotos, isImpliedFeature, toggleFeature } from "@/features/admin-users"
+import { Button, Checkbox, DialogShell, Field, Segmented } from "@/shared/ui/kit"
 import { ButtonBar } from "@/shared/ui/panel"
 
 import type { UserDialogState } from "../model/types"
@@ -71,6 +73,39 @@ export function UserDialogs({ dialog, onChange, onSubmit }: UserDialogsProps) {
             <Field id="create-user-pw" type="password" value={draft.initialPassword} autoComplete="new-password" onChange={(e) => set({ initialPassword: e.target.value })} />
           </Row>
           <p className="m-0 text-[11.5px] text-dim">8자 이상. 첫 로그인 뒤 본인이 바꾸도록 강제합니다.</p>
+          {/* 새 계정의 기본 소속은 본청 — 만든 뒤 상세에서 관서를 바꾼다 */}
+          <p className="m-0 text-[12px] text-warn">{USER_FORM_MESSAGES.newUserHq}</p>
+          <fieldset className="m-0 grid gap-[8px] border-0 p-0">
+            <legend className="mb-[6px] text-[12px] text-muted-foreground">기능 권한</legend>
+            {draft.userSe === "ADMIN" ? (
+              <p className="m-0 rounded-[8px] border border-solid border-brand-line bg-brand-bg px-[12px] py-[8px] text-[12px] text-brand">
+                관리자는 모든 기능을 사용할 수 있습니다
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-[8px]">
+                {FEATURE_ORDER.map((code) => {
+                  const id = `create-feat-${code}`
+                  const implied = isImpliedFeature(draft.features, code)
+                  return (
+                    <div key={code} className="flex items-center gap-[8px] rounded-[6px] border border-solid border-line-2 bg-strip px-[10px] py-[6px]">
+                      <Checkbox
+                        id={id}
+                        checked={implied || draft.features.includes(code)}
+                        disabled={implied}
+                        onCheckedChange={(on) => set({ features: toggleFeature(draft.features, code, on === true) })}
+                      />
+                      <label htmlFor={id} className="cursor-pointer text-[12.5px] text-fg-2">
+                        {FEATURE_LABELS[code]}
+                      </label>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {draft.userSe !== "ADMIN" && grantsNationwidePhotos(false, draft.features) && (
+              <p className="m-0 text-[12px] text-warn">{USER_FORM_MESSAGES.nationwidePhotos}</p>
+            )}
+          </fieldset>
           <ErrorLine message={error} />
         </div>
       </DialogShell>

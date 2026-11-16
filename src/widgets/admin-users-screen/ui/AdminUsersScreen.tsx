@@ -96,7 +96,7 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
               <>
                 <span className="font-code text-[11px] text-brand">{status === "ready" ? `${users.length}명` : ""}</span>
                 <ButtonBar>
-                  <Button size="sm" variant="pri" disabled={status === "loading"} onClick={() => props.onDialogChange({ kind: "create", draft: { userId: "", userNm: "", userSe: "USER", initialPassword: "" }, error: null })}>
+                  <Button size="sm" variant="pri" disabled={status === "loading"} onClick={() => props.onDialogChange({ kind: "create", draft: { userId: "", userNm: "", userSe: "USER", initialPassword: "", features: [] }, error: null })}>
                     <UserPlus aria-hidden="true" className="size-[12px]" />
                     사용자 추가
                   </Button>

@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react"
+import { Fragment } from "react"
 import { ChevronRight } from "lucide-react"
 
 import type { AdminSession, LogoutReason } from "@/entities/admin"
@@ -35,21 +35,16 @@ interface SessionTableProps {
   sessions: AdminSession[]
   timelines: Record<string, Timeline>
   onRetryTimeline: (sessionId: string) => void
+  expandedSessionIds: string[]
+  onToggleSession: (sessionId: string, open: boolean) => void
 }
 
 /**
  * 로그인 기록 표. DataGrid 에는 행 펼침이 없어(노트에 요청) 같은 토큰으로 이 화면 안에서 그린다.
- * 펼침/접힘은 저장되지 않는 화면 내부 상태라 안에 둔다.
+ * 펼침은 펼칠 때 기능 기록을 불러와야 해서 제어형(expandedSessionIds + onToggleSession)이다.
  */
-export function SessionTable({ sessions, timelines, onRetryTimeline }: SessionTableProps) {
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set())
-  const toggle = (id: string) =>
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+export function SessionTable({ sessions, timelines, onRetryTimeline, expandedSessionIds, onToggleSession }: SessionTableProps) {
+  const expanded = new Set(expandedSessionIds)
 
   return (
     <div className="overflow-x-auto">
@@ -81,7 +76,7 @@ export function SessionTable({ sessions, timelines, onRetryTimeline }: SessionTa
                         type="button"
                         aria-label="기능 기록 펼치기"
                         aria-expanded={open}
-                        onClick={() => toggle(s.sessionId)}
+                        onClick={() => onToggleSession(s.sessionId, !open)}
                         className="grid size-[26px] cursor-pointer place-items-center rounded-[6px] border-0 bg-transparent text-dim hover:text-brand"
                       >
                         <ChevronRight aria-hidden="true" className={cn("size-[14px]", open && "rotate-90 text-brand")} />
