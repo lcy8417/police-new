@@ -56,6 +56,21 @@ export function leadTarget(list: readonly CaseTarget[]): CaseTarget | undefined 
   return [...list].sort((a, b) => (a.from === b.from ? (a.rank ?? 1e9) - (b.rank ?? 1e9) : a.from === "compare" ? -1 : 1))[0]
 }
 
+/**
+ * 지금 유효한 판정 — 결과 확인 줄 · 이미지 목록 알약 · 탭 표시 · 사건 목록이 같은 규칙으로 본다(3회차 검수 — 줄만 「다시 판정」이고 알약은 「발견」이던 것).
+ * 누른 판정이 있으면 그것, 없으면 처음 저장된 판정. 발견은 그때의 확인대상 지문과 지금 지문이 같을 때만 유효하다.
+ */
+export function liveJudgement(
+  base: Judgement | null,
+  baseKey: string,
+  pick: CaseJudgementPick | undefined,
+  nowKey: string,
+): { judgement: Judgement | null; stale: boolean } {
+  if (pick) return pick.result === "found" && pick.targets !== nowKey ? { judgement: null, stale: true } : { judgement: pick.result, stale: false }
+  if (base === "found" && baseKey !== nowKey) return { judgement: null, stale: true }
+  return { judgement: base, stale: false }
+}
+
 /** 판정 당시 확인대상 묶음의 지문(판정 뒤 대상이 바뀌었는지 비교) */
 export function targetsKey(list: readonly CaseTarget[]): string {
   return list

@@ -163,6 +163,8 @@ export interface SearchTarget {
 export interface SearchResultScreenProps {
   /** 검색 상태. error 는 조회 실패, empty 는 결과 0건(서로 다른 모양) */
   status: ScreenStatus
+  /** empty 일 때 안내 글(없으면 「결과 없음 · 필수 문양을 조정해 다시 검색」) — 사건 창의 검색 전 장 등 */
+  emptyNote?: { title: string; hint: string }
   /** 조회 실패 시각 「시:분」(error 일 때만 보임) */
   errorAt?: string
   /** error 일 때 「다시」 */

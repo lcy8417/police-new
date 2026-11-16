@@ -152,10 +152,22 @@ export function SearchWindow(props: SearchResultScreenProps) {
     }
   })
 
+  // 본 위치는 자동 재생만이 아니라 손 스크롤 · 카드 고름 · 정밀 대조 열기에서도 올린다(3회차 검수 — 손으로 본 후보가 「안 본 것」으로 남던 것)
+  const raiseSeen = (rank: number) => {
+    if (plus !== null && rank > seenUpTo) props.onSeenUpToChange?.(rank)
+  }
   const onListScroll = () => {
     const el = listRef.current
     if (!el) return
     if (el.scrollHeight - el.scrollTop - el.clientHeight < LOAD_MORE_GAP) askMore()
+    if (plus === null || running) return
+    const top = el.getBoundingClientRect().top
+    const cards = Array.from(el.querySelectorAll<HTMLElement>("[data-result-card]")).map((c) => ({
+      rank: Number(c.dataset.rank),
+      bottom: c.getBoundingClientRect().bottom,
+    }))
+    const r = passedRank(cards, top)
+    if (r !== null) raiseSeen(r)
   }
 
   // ── 자동 스크롤: 속도(rAF) · 쪽 넘김(n초) ──
@@ -297,8 +309,8 @@ export function SearchWindow(props: SearchResultScreenProps) {
   } else if (status === "empty") {
     body = (
       <div className="grid h-full place-content-center justify-items-center gap-[4px] text-[12.5px] text-muted-foreground">
-        <span className="font-semibold text-fg-2">결과 없음</span>
-        <span className="text-[11px]">필수 문양을 조정해 다시 검색해 보세요</span>
+        <span className="font-semibold text-fg-2">{props.emptyNote?.title ?? "결과 없음"}</span>
+        <span className="text-[11px]">{props.emptyNote?.hint ?? "필수 문양을 조정해 다시 검색해 보세요"}</span>
       </div>
     )
   } else {
@@ -316,9 +328,13 @@ export function SearchWindow(props: SearchResultScreenProps) {
           canStar={roles.analyst}
           onSelect={() => {
             props.onFocusChange?.(rank)
+            raiseSeen(rank)
             if (auto) setAuto("manual")
           }}
-          onOpen={() => props.onOpenResult(item, rank)}
+          onOpen={() => {
+            raiseSeen(rank)
+            props.onOpenResult(item, rank)
+          }}
           onStar={() => toggleTarget({ rank, ftwrId: item.ftwrId })}
           onPeekStart={(el, now) => startPeek(el, rank, now)}
           onPeekEnd={endPeek}
@@ -420,7 +436,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
                   <span className="min-w-0 truncate font-code text-[10px] text-muted-foreground">{plus.seenAt}</span>
                   <span className="ml-auto font-code tabular-nums text-fg-2">{`${seenUpTo} / ${totalCount}`}</span>
                 </span>
-                <WorkbenchButton size="sm" variant="soft" icon={ArrowRight} className="justify-self-end" onClick={() => goTo(seenUpTo + 1)}>
+                <WorkbenchButton size="sm" variant="soft" icon={ArrowRight} className="justify-self-end" disabled={seenUpTo >= totalCount} onClick={() => goTo(seenUpTo + 1)}>
                   {`${seenUpTo + 1}위부터 이어 보기`}
                 </WorkbenchButton>
               </div>
@@ -430,7 +446,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
                   <span className="font-code tabular-nums text-fg-2">{targets.length}</span>
                 </span>
                 {targets.map((t) => (
-                  <span key={t.rank} className="flex items-center gap-[4px] text-[11px] text-fg-2">
+                  <span key={t.ftwrId} className="flex items-center gap-[4px] text-[11px] text-fg-2">
                     <Star aria-hidden="true" className="size-[11px] fill-current text-warn" strokeWidth={2} />
                     <button
                       type="button"

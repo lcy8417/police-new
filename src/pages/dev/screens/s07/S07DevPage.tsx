@@ -27,6 +27,7 @@ import {
   useWorkState,
   CASE_CROSS_REQUESTED_FIELD,
   CASE_JUDGEMENTS_FIELD,
+  liveJudgement,
   type CaseJudgementPick,
   type DevGo,
 } from "../frame"
@@ -106,13 +107,12 @@ function S07WindowContent({ devCase, facts, go }: { devCase: S07ContentProps["de
   const rows = useMemo<ConfirmRow[]>(
     () =>
       facts.rows.map((r) => {
-        const now = facts.targetKeys?.[r.no] ?? ""
-        const p = picked[r.no]
-        const stale = p ? p.result === "found" && p.targets !== now : r.judgement === "found" && now !== ""
-        if (stale) return { ...r, judgement: null, note: "판정 뒤 확인대상이 바뀌었습니다 — 다시 판정하세요" }
-        return p ? { ...r, judgement: p.result } : r
+        // 이미지 목록 알약 · 사건 목록과 같은 규칙(frame liveJudgement — 3회차 검수)
+        const live = liveJudgement(r.judgement, facts.baseTargetKeys?.[r.no] ?? "", picked[r.no], facts.targetKeys?.[r.no] ?? "")
+        if (live.stale) return { ...r, judgement: null, note: "판정 뒤 확인대상이 바뀌었습니다 — 다시 판정하세요" }
+        return { ...r, judgement: live.judgement }
       }),
-    [facts.rows, facts.targetKeys, picked],
+    [facts.rows, facts.targetKeys, facts.baseTargetKeys, picked],
   )
   const crossReview = requested && facts.crossReview === "none" ? "requested" : facts.crossReview
   // 요청 전이면 고를 수 있는 검증자 목록, 요청 뒤면 그 사람 이름 하나
@@ -137,8 +137,9 @@ function S07WindowContent({ devCase, facts, go }: { devCase: S07ContentProps["de
       lockedReason={crossReview === "none" ? undefined : (facts.lockedReason ?? "교차 검증 중에는 판정을 바꿀 수 없습니다")}
       // 「열기」 = 그 줄의 확인대상 신발 · 순위 · 검색번호 그대로(다른 장의 발견 줄이 기본 신발로 열리던 것 — 2회차 검수)
       onOpenImage={(row) => {
-        const run = facts.runOf?.[row.no] ?? row.searchNo ?? undefined
         const shoe = row.shoe?.confirmed ? row.shoe : null
+        // 확인대상 줄은 그 후보를 찾은 검색번호가 먼저(3회차 검수 — 마지막에 본 다른 검색으로 열리던 것), 아니면 그 장의 지금 검색
+        const run = (shoe ? row.searchNo : null) ?? facts.runOf?.[row.no] ?? row.searchNo ?? undefined
         if (row.judgement === "found" && shoe) {
           to("/dev/s06", { image: row.imageNo, ftwr: shoe.ftwrId, rank: String(shoe.ranking), ...(run ? { run } : {}) })
         } else {

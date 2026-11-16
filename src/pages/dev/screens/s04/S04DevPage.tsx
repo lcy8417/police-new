@@ -10,6 +10,7 @@ import {
   PatternCodeScreen,
   patternName,
   patternWeights,
+  pendingSnapshot,
   PriceTagBox,
   RoiBox,
   runSnapshot,
@@ -43,8 +44,10 @@ import {
   useDevViewer,
   useRememberedState,
   useWorkState,
+  useWorkWriter,
   type DevGo,
 } from "../frame"
+import { S05_RUN_NO_FIELD } from "../s05/mock-cases"
 import { FakePhoto } from "../mock-assets/FakePhoto"
 import { hasSamplePhotos, samplePhotoUrl } from "../mock-assets/sample-images"
 import {
@@ -151,11 +154,24 @@ export interface S04CaseImage {
   status: ImageCodingStatus
 }
 
-/** 지금 화면 조건의 검색 이력 모양(「지금」 줄 찾기 — 문양 · 필수 · 가중치 · 매칭 조건 · 이미지가 모두 같은 줄) */
-function conditionKey(zones: NamedZones, meta: PatternMetaMap, overrides: WeightOverrideMap, conditions: MatchConditionValues, source: SearchImageSource) {
+/**
+ * 지금 화면 조건의 검색 이력 모양(「지금」 줄 찾기 — 문양 · 필수 · 가중치 · 개수 · 확인 전 제안 · 문자열 · 매칭 조건 · 이미지가 모두 같은 줄).
+ * 3회차 검수: 확인 전 제안 · 문자열이 빠져 다른 조건도 「지금」으로 보이던 것
+ */
+function conditionKey(
+  zones: NamedZones,
+  meta: PatternMetaMap,
+  overrides: WeightOverrideMap,
+  conditions: MatchConditionValues,
+  source: SearchImageSource,
+  soleText: string,
+) {
   const weights = patternWeights(zones, meta, S04_KINDS, overrides)
-  return JSON.stringify([runSnapshot(searchQuery(zones, meta, weights), weights, meta), conditions, source])
+  return JSON.stringify([runSnapshot(searchQuery(zones, meta, weights), weights, meta), pendingSnapshot(zones, meta, overrides) ?? null, soleText, conditions, source])
 }
+
+/** 이력 한 줄의 조건 모양(conditionKey 와 같은 순서) */
+const runConditionKey = (r: SearchRun) => JSON.stringify([r.zones, r.pending ?? null, r.soleText ?? "", r.conditions, r.source])
 
 interface S04StageProps {
   caseName: S04Case
@@ -172,6 +188,7 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow, caseImages, onPickI
   const plus = useDevPlus()
   const nav = useDevNavigate()
   const go = goProp ?? nav
+  const writeWork = useWorkWriter()
   // 탭을 옮겨도 남는 작업 값(1회차 검수) — 사건 창이면 S01 보관함에 이미지별로 남는다(frame/work-memory). 단독 진열은 useState 와 같음
   const [meta, setMeta] = useWorkState<PatternMetaMap>(S04_META_FIELD, mock.meta)
   const [ownStatuses, setImageStatuses] = React.useState<Record<string, ImageCodingStatus>>(S04_IMAGE_STATUSES)
@@ -207,9 +224,9 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow, caseImages, onPickI
   // 「지금」 줄 = 지금 조건과 똑같은 이력 줄(가장 최근)
   const currentRunNo = React.useMemo(() => {
     if (!inWindow) return undefined
-    const now = conditionKey(zones, meta, weightOverrides, matchConditions, searchImage)
-    return searchRuns.find((r) => JSON.stringify([r.zones, r.conditions, r.source]) === now)?.searchNo
-  }, [inWindow, zones, meta, weightOverrides, matchConditions, searchImage, searchRuns])
+    const now = conditionKey(zones, meta, weightOverrides, matchConditions, searchImage, soleText)
+    return searchRuns.find((r) => runConditionKey(r) === now)?.searchNo
+  }, [inWindow, zones, meta, weightOverrides, matchConditions, searchImage, soleText, searchRuns])
 
   // 진열용 실시간 재검색: 필수를 바꾸면 잠깐 「갱신 중」, S04_RESEARCH_MS 뒤 「갱신했습니다」(F20)
   React.useEffect(() => {
@@ -293,6 +310,11 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow, caseImages, onPickI
       soleText,
     })
     setSearchRuns((prev) => [run, ...prev])
+    // 사건 창: 새 검색이 이 장의 지금 검색 — 검색 결과 · 정밀 대조 · 결과 확인이 새 검색을 보고, 앞 검색의 신발 · 순위는 주소에서 지운다(3회차 검수)
+    if (inWindow) {
+      writeWork(S05_RUN_NO_FIELD, searchNo)
+      go("/dev/s04", { run: String(searchNo) })
+    }
     toast.success(`검색 ${searchNo} — 결과 ${run.resultCount.toLocaleString("ko-KR")}건(진열 가짜 계산)`)
   }
 
@@ -317,10 +339,17 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow, caseImages, onPickI
         if (p.manual) zoneOverrides[p.name] = p.weight
       }
       // 그때의 확인 전 AI 제안도 되살린다(검색엔 안 들어갔지만 R5 세 부위 반복이 제안까지 센다 — 2회차 검수)
+      // 제안 카드에 바꿔 둔 직접 가중치 · 개수 · 「AI 제안?」도 그대로(3회차 검수)
       for (const s of run.pending?.[z] ?? []) {
         if (nextZones[z].some(([n]) => n === s.name)) continue
         nextZones[z] = [...nextZones[z], [s.name, 0] as const]
-        zoneMeta[s.name] = { status: "suggested", ...(s.confidence !== undefined ? { confidence: s.confidence } : {}) }
+        zoneMeta[s.name] = {
+          status: "suggested",
+          ...(s.confidence !== undefined ? { confidence: s.confidence } : {}),
+          ...(s.count !== undefined ? { count: s.count } : {}),
+          ...(s.doubtful ? { doubtful: true } : {}),
+        }
+        if (s.weight !== undefined) zoneOverrides[s.name] = s.weight
       }
       nextMeta[z] = zoneMeta
       nextOverrides[z] = zoneOverrides

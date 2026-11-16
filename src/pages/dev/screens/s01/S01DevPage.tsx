@@ -20,21 +20,12 @@ import {
   useRememberedState,
   WorkMemoryProvider,
   imageScope,
-  readWork,
-  CASE_CROSS_REQUESTED_FIELD,
-  CASE_JUDGEMENTS_FIELD,
-  CASE_TARGETS_FIELD,
-  leadTarget,
-  targetsKey,
-  type CaseJudgementPick,
-  type CaseTarget,
   type DevGo,
   type WorkStore,
 } from "../frame"
-import { sampleSoleUrl } from "../mock-assets/sample-images"
-import { S05_RUN_NO_FIELD } from "../s05/mock-cases"
 import { S02Content } from "../s02"
 import { CaseWindowUpload } from "./CaseWindowUpload"
+import { liveCaseOf, liveRowOf, seedCaseWork } from "./case-live"
 import { caseFlowOf, s02FactsOf, s07FactsOf, tabMarksOf, type S07Facts } from "./case-flow"
 import { S03Content } from "../s03"
 import { S04Content } from "../s04"
@@ -53,7 +44,7 @@ import {
   writeCaseWindow,
   type CaseWindowQuery,
 } from "./case-window-query"
-import { S01_LIVE_AT, S01_PAGE_SIZE, makeCaseImages, makeCaseRows, stageLabel } from "./mock-cases"
+import { S01_LIVE_AT, S01_PAGE_SIZE, makeCaseRows, stageLabel } from "./mock-cases"
 
 /** 사건 창 본문 탭 ↔ 진열 화면 주소(창 안 내용이 `go("/dev/s04")` 처럼 부르면 그 탭으로 바꾼다) */
 const TAB_OF_PATH: Record<string, CaseWindowTab> = {
@@ -76,8 +67,18 @@ const EMPTY_QUICK: QuickValues = { view: [], progress: [], result: [], kind: [],
 
 const resultKey = (r: CaseListRow) => (r.caseResult === "" ? "none" : r.caseResult)
 
-/** 결과 확인에서 누른 판정 → 이미지 목록 알약 */
-const STATUS_OF_JUDGEMENT = { found: "발견", notFound: "불발견", unable: "감정불능" } as const
+/**
+ * 바로 찾기 · 「+」 사건 찾기 공통(3회차 검수): 감정번호 · 문서번호 · 사건명 · SCAS 사건번호 부분 일치, 또는 이미지 번호(`…_2`) —
+ * 앞 감정번호가 부분 일치하고 장 번호가 그 사건 장수(1 … 신발 + 타이어) 안이면 그 사건
+ */
+function caseMatches(r: CaseListRow, needle: string): boolean {
+  if (needle === "") return true
+  if ([r.aprthngNo, r.docNo, r.caseName, r.scasNo].some((t) => t.toLowerCase().includes(needle))) return true
+  const m = /^(.*)_(\d+)$/.exec(needle)
+  if (!m || m[1] === "") return false
+  const n = Number(m[2])
+  return r.aprthngNo.toLowerCase().includes(m[1]) && n >= 1 && n <= r.shoeCount + r.tireCount
+}
 
 // (r4 +α) 「빠른 보기」 — 옛 할 일 타일(결과 확인 전 · 이미지 미검색 · 교차 검증)을 뚜껑 칩으로 옮긴 것. 가짜 데이터 기준 정의:
 //  결과 확인 전 = 아직 확인 안 된 장(등록 · 검색 단계 장)이 하나라도 있는 사건
@@ -101,7 +102,17 @@ export function S01DevPage() {
   const plus = useDevPlus()
   const to = useDevNavigate()
 
-  const allRows = React.useMemo(() => makeCaseRows(), [])
+  const seedRows = React.useMemo(() => makeCaseRows(), [])
+  // 사건 창 작업 보관함(1회차 검수 — 탭을 옮겨도 문양 · 가중치 · 검색 이력 · 확인대상 · 판정 · 편집 이력이 남게).
+  // 본문(S02–S07 내용)은 탭마다 새로 그려지므로 작업 값은 여기(S01)가 사건 · 이미지별로 든다(frame/work-memory)
+  const [workStore] = React.useState<WorkStore>(() => new Map())
+  // 창 안에서 판정 · 확인대상 · 검색 · 교차 검증 요청이 바뀌면 다시 그려 이미지 목록 알약 · 머리 흐름 · 탭 표시 · 목록 행을 맞춘다(2 · 3회차 검수)
+  const [workVersion, bumpWork] = React.useReducer((n: number) => n + 1, 0)
+  // 목록 행도 보관함 값(판정 · 검색 · 교차 검증 요청)을 반영한다 — 창에서 판정해도 목록 결과 · 진행 · 단계가 처음 값에 머물던 것(3회차 검수)
+  const allRows = React.useMemo(
+    () => (workVersion >= 0 ? seedRows.map((r) => liveRowOf(workStore, r)) : seedRows),
+    [seedRows, workStore, workVersion],
+  )
   const [page, setPage] = React.useState(1)
   const [query, setQuery] = React.useState("")
   const [quickValues, setQuickValues] = React.useState<QuickValues>(EMPTY_QUICK)
@@ -124,10 +135,8 @@ export function S01DevPage() {
   const anyOf = (key: string, test: (v: string) => boolean) => quickValues[key].length === 0 || quickValues[key].some(test)
   const quickMatched = matched.filter(
     (r) =>
-      // 감정번호 · 문서번호 · 사건명 · SCAS 사건번호, 이미지 번호(`…_2`)로 찾아도 그 사건(1회차 검수)
-      (needle === "" ||
-        [r.aprthngNo, r.docNo, r.caseName, r.scasNo].some((t) => t.toLowerCase().includes(needle)) ||
-        (/_\d+$/.test(needle) && r.aprthngNo.toLowerCase() === needle.replace(/_\d+$/, ""))) &&
+      // 감정번호 · 문서번호 · 사건명 · SCAS 사건번호, 이미지 번호(`…_2` — 앞번호 부분 일치 · 장수 안)로 찾아도 그 사건(1 · 3회차 검수)
+      caseMatches(r, needle) &&
       // 「빠른 보기」 칩은 신규(+α) 기능 — 꺼져 있으면 칩이 안 보이므로 걸러 두었던 값도 쓰지 않는다(1회차 검수)
       (!plus || anyOf("view", (v) => viewTest(v)(r))) &&
       anyOf("progress", (v) => (v === "registered" ? r.progress.registered > 0 : v === "searched" ? r.progress.searched > 0 : r.progress.confirmed > 0)) &&
@@ -208,16 +217,13 @@ export function S01DevPage() {
   const rawWin = shoeOpen ? null : readCaseWindow(params)
   // 수사관은 「사건 정보」(진행 상태 · 자기가 올린 이미지)만 — 이미지 편집 · 문양 · 검색 · 대조 · 판정 탭은 없다(주소로 와도 사건 정보로)
   const win: CaseWindowQuery | null = rawWin && statusOnly && rawWin.tab !== "info" ? { ...rawWin, tab: "info" } : rawWin
-  // 사건 창 작업 보관함(1회차 검수 — 탭을 옮겨도 문양 · 가중치 · 검색 이력 · 확인대상 · 판정 · 편집 이력이 남게).
-  // 본문(S02–S07 내용)은 탭마다 새로 그려지므로 작업 값은 여기(S01)가 사건 · 이미지별로 든다(frame/work-memory)
-  const [workStore] = React.useState<WorkStore>(() => new Map())
-  // 창 안에서 판정 · 확인대상 · 교차 검증 요청이 바뀌면 다시 그려 이미지 목록 알약 · 머리 흐름 · 탭 표시를 맞춘다(2회차 검수)
-  const [, bumpWork] = React.useReducer((n: number) => n + 1, 0)
   // 볼 수 있는 사건만 창으로 연다(수사관은 다른 관서 사건을 주소로 열어도 안 열림)
   const rowOf = (no: string) => matched.find((r) => r.aprthngNo === no)
+  // 이미지 목록 = 보관함 값을 반영한 지금 상태(판정 · 검색 — case-live.ts)
+  const seedOf = (no: string) => (rowOf(no) ? seedRows.find((r) => r.aprthngNo === no) : undefined)
   const imagesOf = (no: string) => {
-    const row = rowOf(no)
-    return row ? makeCaseImages(row) : []
+    const row = seedOf(no)
+    return row ? liveCaseOf(workStore, row).images : []
   }
   const firstImage = (no: string) => imagesOf(no)[0]?.no ?? null
   const setWindow = (next: CaseWindowQuery | null, clearTabs = false) => setParams(writeCaseWindow(params, next, clearTabs))
@@ -249,6 +255,11 @@ export function S01DevPage() {
     }
     const img = extra.image ? (/_(\d+)$/.exec(extra.image)?.[1] ?? win.img) : win.img
     const next = writeCaseWindow(params, { ...win, tab, img })
+    // 다른 검색으로 옮기면(새 검색 · 이력 「자세히 →」) 앞 검색에서 고른 신발 · 순위를 지운다(3회차 검수 — 옛 신발로 정밀 대조가 열리던 것)
+    if (extra.run && extra.run !== params.get("run")) {
+      next.delete("ftwr")
+      next.delete("rank")
+    }
     if (extra.ftwr) next.set("ftwr", extra.ftwr)
     if (extra.rank) next.set("rank", extra.rank)
     // 문양 코드 검색 이력 「자세히 →」 = 그 검색 번호의 결과로(검색 결과 탭이 읽는다).
@@ -257,14 +268,16 @@ export function S01DevPage() {
     setParams(next)
   }
 
-  const openRow = win ? rowOf(win.open) : undefined
+  const openSeed = win ? seedOf(win.open) : undefined
   let caseWindow: React.ReactNode = null
-  if (win && openRow) {
-    // 결과 확인 탭에서 누른 판정 · 교차 검증 요청을 이미지 목록 알약 · 머리 흐름 · 탭 표시에 바로 반영(2회차 검수 — 처음 값에 머물던 것)
-    const picks = readWork<Record<string, CaseJudgementPick>>(workStore, win.open, CASE_JUDGEMENTS_FIELD) ?? {}
-    const crossAsked = readWork<boolean>(workStore, win.open, CASE_CROSS_REQUESTED_FIELD) === true
-    const images = makeCaseImages(openRow).map((i) => (picks[i.no] ? { ...i, status: STATUS_OF_JUDGEMENT[picks[i.no].result] } : i))
-    const liveRow: CaseListRow = crossAsked && (openRow.stage ?? -1) < 0 ? { ...openRow, stage: 1 } : openRow
+  if (win && openSeed) {
+    // 그 사건 장들의 처음 값(검색 이력 · 확인대상)을 보관함에 적어 두고(이미 있으면 그대로), 지금 상태를 한 규칙으로 읽는다(3회차 검수 — case-live.ts).
+    // 판정 · 확인대상 · 검색 · 교차 검증 요청이 이미지 목록 알약 · 머리 흐름 · 탭 표시 · 결과 확인 줄에 같이 반영된다
+    seedCaseWork(workStore, openSeed)
+    const live = liveCaseOf(workStore, openSeed)
+    const openRow = live.row
+    const images = live.images
+    const liveRow: CaseListRow = openRow
     const img = win.img ?? images[0]?.no ?? null
     const imageNo = img ? `${win.open}_${img}` : undefined
     // ‹ › = 지금 목록(걸러진 · 이 쪽) 순서의 앞 · 뒤 사건. 목록에 없으면 둘 다 잠김
@@ -289,36 +302,13 @@ export function S01DevPage() {
     }
     // 결과 확인 = 그 장의 확인대상 목록(검색 결과 ★ · 정밀 대조 「확인대상」 — 여러 검색 · 여러 후보)을 판정 줄에 싣는다(2회차 검수).
     // 대표 1켤레(정밀 대조에서 정한 것 먼저)를 보이고 나머지는 「외 n」. 확인대상이 있어야 발견 판정
-    const baseFacts = s07FactsOf(openRow, flow)
-    const targetKeys: Record<string, string> = {}
-    const runOf: Record<string, string> = {}
+    // 판정은 처음 저장 값으로 넘기고, 누른 판정 · 확인대상 지문은 결과 확인 탭이 같은 규칙(liveJudgement)으로 얹는다
     const confirmFacts: S07Facts = {
-      ...baseFacts,
-      targetKeys,
-      runOf,
-      rows: baseFacts.rows.map((r) => {
-        const scope = imageScope(win.open, r.no)
-        const list = readWork<readonly CaseTarget[]>(workStore, scope, CASE_TARGETS_FIELD) ?? []
-        const runNo = readWork<number>(workStore, scope, S05_RUN_NO_FIELD)
-        targetKeys[r.no] = targetsKey(list)
-        if (runNo !== undefined) runOf[r.no] = String(runNo)
-        const lead = leadTarget(list)
-        const withRun = runNo !== undefined ? { ...r, searchNo: String(runNo) } : r
-        if (!lead) return withRun
-        return {
-          ...withRun,
-          searchNo: lead.searchNo ?? withRun.searchNo,
-          moreTargets: list.length - 1,
-          shoe: {
-            ftwrId: lead.ftwrId,
-            image: sampleSoleUrl(lead.ftwrId, { kind: "shoe" }),
-            // 점수를 모르면(검색번호 없는 기본 검색 등) 0 이 아니라 「—」
-            score: lead.similarity,
-            ranking: lead.rank ?? 1,
-            confirmed: true,
-          },
-        }
-      }),
+      ...s07FactsOf(openSeed, flow),
+      rows: live.confirmRows,
+      targetKeys: live.targetKeys,
+      baseTargetKeys: live.baseTargetKeys,
+      runOf: live.runOf,
     }
     const body =
       win.tab === "info" ? (
@@ -347,14 +337,14 @@ export function S01DevPage() {
     // 작업 탭 줄 「+」(11/17 사용자 「오른쪽에 + 버튼으로 기존 기능들이나 사건들 추가」): 사건 찾아 열기 · 기능 열기
     const needleAdd = addQuery.trim().toLowerCase()
     const full = win.tabs.length >= MAX_OPEN_CASES
-    const caseHits = (needleAdd === "" ? matched : matched.filter((r) => [r.aprthngNo, r.docNo, r.caseName].some((t) => t.toLowerCase().includes(needleAdd)))).slice(0, 6)
+    const caseHits = matched.filter((r) => caseMatches(r, needleAdd)).slice(0, 6)
     const tabAdd = (
       <WorkTabAdd
         label="탭 추가"
         query={addQuery}
         onQueryChange={setAddQuery}
         searchLabel="사건 찾기"
-        placeholder="감정번호 · 문서번호 · 사건명"
+        placeholder="감정번호 · 문서번호 · 사건명 · SCAS번호 · 이미지 번호"
         groups={[
           {
             key: "case",
@@ -509,8 +499,8 @@ export function S01DevPage() {
         onPageChange={setPage}
         onOpenCase={(no) => openWindow(no, "info")}
         onRegister={() => to("/dev/s02")}
-        // 「검색」 = 검색 안 한 첫 이미지의 검색 결과 탭, 「확인」 = 사건 단위 결과 확인 탭
-        onSearchCase={(no) => openWindow(no, "search", imagesOf(no).find((i) => i.status === "등록")?.no)}
+        // 「검색」 = 검색 안 한 첫 이미지의 문양 코드 탭(검색은 거기서 한다 — 3회차 검수: 검색 결과 탭만 열면 검색 전이라 빈 화면), 「확인」 = 사건 단위 결과 확인 탭
+        onSearchCase={(no) => openWindow(no, "pattern", imagesOf(no).find((i) => i.status === "등록")?.no)}
         onConfirmCase={(no) => openWindow(no, "confirm")}
         showPlus={plus}
         selectedCase={win?.open ?? null}

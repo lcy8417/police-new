@@ -458,9 +458,9 @@ describe("S01 사건 창", () => {
       const ai = within(d).getByRole("region", { name: "AI 대조" })
       expect(ai).toHaveTextContent("87")
       expect(within(ai).getAllByRole("meter", { name: /부위 점수/ })).toHaveLength(3)
-      // 신발 상세는 발견 이미지 쪽 작은 팝
+      // 신발 상세는 발견 이미지 쪽 작은 팝 — 신발 없이 연 정밀 대조는 그 장의 확인대상(_1 발견 = 처음 검색 1위)으로(3회차 검수 — 고정 00758)
       fireEvent.click(within(main).getByRole("button", { name: "신발 상세 보기" }))
-      expect(within(d).getByRole("dialog", { name: "신발 상세" })).toHaveTextContent("00758")
+      expect(within(d).getByRole("dialog", { name: "신발 상세" })).toHaveTextContent(rankOfRun(S04_RUNS[0])[0].ftwrId)
     })
 
     it("?plus=0: 흐름 줄 · 탭은 그대로 보인다", () => {
@@ -676,11 +676,11 @@ describe("S01 사건 창", () => {
     expect(within(dialog().closest('[data-slot="case-window-tabbed"]') as HTMLElement).getByRole("status")).toHaveTextContent(OPEN_CASES_FULL)
   })
 
-  it("사건 진행 칸 「검색」 → 검색 안 한 첫 이미지의 검색 결과 탭, 「확인」 → 사건 단위 결과 확인 탭", () => {
+  it("사건 진행 칸 「검색」 → 검색 안 한 첫 이미지의 문양 코드 탭(3회차 검수), 「확인」 → 사건 단위 결과 확인 탭", () => {
     renderAt("/dev/s01?case=ready")
     fireEvent.click(within(rowOf("00001-25-0649")).getByRole("button", { name: "검색" }))
-    expect([query().get("tab"), query().get("img")]).toEqual(["search", "4"])
-    expect(within(dialog()).getByLabelText("결과 이미지 보기")).toBeInTheDocument()
+    expect([query().get("tab"), query().get("img")]).toEqual(["pattern", "4"])
+    expect(workTab(/문양 코드/)).toHaveAttribute("aria-selected", "true")
     fireEvent.click(screen.getByRole("button", { name: "창 닫기" }))
     fireEvent.click(within(rowOf("00001-25-0647")).getByRole("button", { name: "확인" }))
     expect(query().get("tab")).toBe("confirm")
@@ -703,6 +703,47 @@ describe("S01 사건 창", () => {
     const head = container.querySelector('[data-slot="window-head"]') as HTMLElement
     expect(within(head).getByText("대구청")).toBeInTheDocument()
     expect(within(head).queryByText("이미지 확인 중")).toBeNull()
+  })
+
+  describe("3회차 검수 — 사건 창 상태 한 규칙(case-live)", () => {
+    const railItem = (n: number) => screen.getByRole("navigation", { name: /현장 이미지/ }).querySelectorAll('[data-slot="window-rail-item"]')[n - 1]
+
+    it("검색 안 한 장에서 검색 결과 탭만 열면 「검색 전」 — 처음 이력으로 검색됨이 되지 않는다", () => {
+      renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=4&tab=search")
+      expect(within(dialog()).getByText("검색 전")).toBeInTheDocument()
+      fireEvent.click(workTab(/결과 확인/))
+      expect(within(dialog()).getByRole("group", { name: "00001-25-0649_4 판정" })).not.toHaveTextContent(String(S04_RUNS[0].searchNo))
+      expect(railItem(4)).toHaveAccessibleName("_4 · 등록")
+    })
+
+    it("문양 코드 탭에서 검색하면 그 장이 바로 「검색됨」, 검색 결과 탭은 새 검색번호, 목록 진행 칸도 바뀐다", () => {
+      renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=4&tab=pattern")
+      fireEvent.click(within(dialog()).getByRole("button", { name: "검색" }))
+      expect(railItem(4)).toHaveAccessibleName("_4 · 검색됨")
+      const no = query().get("run")
+      expect(no).not.toBeNull()
+      fireEvent.click(workTab(/검색 결과/))
+      expect(within(dialog()).getByRole("region", { name: "검색 결과" })).toHaveTextContent(`검색 ${no}`)
+    })
+
+    it("처음부터 발견인 장도 확인대상이 바뀌면 알약이 「발견」에 머물지 않는다(결과 확인 줄과 같게)", () => {
+      renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=1&tab=compare")
+      expect(railItem(1)).toHaveAccessibleName("_1 · 발견")
+      fireEvent.click(within(dialog()).getByRole("button", { name: "다음" }))
+      fireEvent.click(within(dialog()).getByRole("button", { name: "확인대상" }))
+      expect(within(dialog()).getByRole("group", { name: "00001-25-0649_1 판정" })).toHaveTextContent("다시 판정")
+      expect(railItem(1)).toHaveAccessibleName("_1 · 검색됨")
+    })
+
+    it("창에서 판정하면 사건관리 목록 행의 진행 · 결과도 바뀐다", () => {
+      renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0647&tab=confirm")
+      const judge = (no: string) => within(within(dialog()).getByRole("group", { name: `_${no} 판정` }))
+      fireEvent.click(judge("1").getByRole("button", { name: "불발견" }))
+      fireEvent.click(judge("2").getByRole("button", { name: "불발견" }))
+      fireEvent.click(screen.getByRole("button", { name: "창 닫기" }))
+      // 0647 = 검색됨 2장 → 둘 다 불발견: 결과 칸 「불발 2」
+      expect(within(rowOf("00001-25-0647")).getByTitle("발견 0 · 불발 2 · 불능 0")).toBeInTheDocument()
+    })
   })
 
   it("주소만으로 같은 창이 열린다(공유 가능)", () => {

@@ -34,7 +34,7 @@ function Distribution({ insight, total, targets }: { insight: SearchInsight; tot
       })}
       <line x1={xr(insight.seenUpTo)} y1={0} x2={xr(insight.seenUpTo)} y2={50} className="stroke-brand" strokeWidth={1.2} />
       {targets.map((t) => (
-        <path key={t.rank} d={`M${xr(t.rank) - 3} 0L${xr(t.rank) + 3} 0L${xr(t.rank)} 5Z`} className="fill-warn" />
+        <path key={t.ftwrId} d={`M${xr(t.rank) - 3} 0L${xr(t.rank) + 3} 0L${xr(t.rank)} 5Z`} className="fill-warn" />
       ))}
       <text x={0} y={57} fontSize={6} className="fill-dim font-code">{`1위 ${Math.round(insight.topSimilarity)}%`}</text>
       <text x={width} y={57} fontSize={6} textAnchor="end" className="fill-dim font-code">
@@ -128,7 +128,7 @@ export function LeftPlus({
           <span className="tabular-nums">{`${targets.length}건`}</span>
         </div>
         {targets.map((t) => (
-          <div key={t.rank} className="flex items-center gap-[6px] text-[11.5px] text-fg-2">
+          <div key={t.ftwrId} className="flex items-center gap-[6px] text-[11.5px] text-fg-2">
             <span className="w-[38px] tabular-nums">{`${t.rank}위`}</span>
             <span className="font-code">{t.ftwrId}</span>
             <Button

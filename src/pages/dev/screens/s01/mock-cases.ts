@@ -2,6 +2,7 @@ import type { CaseListFilters, CaseListRow, CaseListRowSummary } from "@/widgets
 import type { CaseImageStatus, CaseWindowImage } from "@/widgets/case-window"
 import type { ConfirmRow, Judgement } from "@/widgets/result-confirm"
 
+import { rankOfRun, S04_RUNS } from "../s04/mock-cases"
 import { fakeSoleUrl } from "../mock-assets/FakeSole"
 import { samplePhotoUrl, sampleSoleUrl } from "../mock-assets/sample-images"
 import type { ZoneTriple } from "../mock-assets/fake-art"
@@ -118,38 +119,41 @@ export function makeCaseImages(row: CaseListRow): CaseWindowImage[] {
 /** 사건 진행 단계 이름(목록 「사건 진행」 열과 같은 말 — 결재 없음: 옛 3 · 4 단계는 감정서 · 완료) */
 export function stageLabel(stage: number | undefined): string {
   if (stage === undefined || stage < 0) return "이미지 확인 중"
-  return ["검증요청", "교차 검증", "감정서", "감정서", "완료"][stage] ?? "이미지 확인 중"
+  // 0 = 교차 검증 요청 전(목록 단계 알약 「검증요청 전」과 같은 말 — 3회차 검수)
+  return ["검증요청 전", "교차 검증", "감정서", "감정서", "완료"][stage] ?? "이미지 확인 중"
 }
 
-/** 결과 확인 탭의 확인대상 · 1위 후보 신발(검색 결과 탭 가짜 값과 같은 번호) */
-const CONFIRM_SHOES: readonly { ftwrId: string; zones: ZoneTriple }[] = [
-  { ftwrId: "00758", zones: ["herring", "grid", "tri"] },
-  { ftwrId: "305659", zones: ["grid", "grid", "lines"] },
-  { ftwrId: "281904", zones: ["wave", "grid", "blocks"] },
-  { ftwrId: "274466", zones: ["dots", "grid", "herring"] },
-  { ftwrId: "SH-20251", zones: ["tri", "wave", "blocks"] },
+/** 결과 확인 탭 판정 줄 신발 무늬(표본 사진이 없을 때 가짜 그림) */
+const CONFIRM_ZONES: readonly ZoneTriple[] = [
+  ["herring", "grid", "tri"],
+  ["grid", "grid", "lines"],
+  ["wave", "grid", "blocks"],
 ]
 
-let confirmShoeThumbs: string[] | null = null
+/** 처음 검색(문양 코드 탭 처음 이력의 가장 최근 줄)의 순위 — 판정 줄 신발 · 점수 · 검색번호가 검색 결과 탭과 같은 값이게(3회차 검수) */
+let firstRunHits: ReturnType<typeof rankOfRun> | null = null
 
 /**
  * 사건 창 「결과 확인」 탭 판정 줄 — 그 사건의 이미지 목록(makeCaseImages) 상태에서 만든다.
  * 발견 = 확인대상 신발 · 점수, 불발견 · 확인 = 검색했고 매칭 없음, 감정불능 = 검색 안 함, 검색됨 = 판정 전(1위 후보), 등록 = 검색 전.
+ * 검색한 장의 검색번호 · 신발 · 순위 · 점수는 그 장 처음 검색 이력(S04_RUNS 가장 최근 줄)의 결과 그대로 —
+ * 「열기」로 검색 결과 · 정밀 대조 탭에 가도 같은 검색 · 같은 후보가 열린다(3회차 검수 — 이력에 없는 번호라 고정 목록으로 열리던 것).
  */
 export function makeConfirmRows(row: CaseListRow): ConfirmRow[] {
-  confirmShoeThumbs ??= CONFIRM_SHOES.map((s) => sampleSoleUrl(s.ftwrId, { kind: "shoe", zones: [...s.zones] }))
-  const thumbsOf = confirmShoeThumbs
+  firstRunHits ??= rankOfRun(S04_RUNS[0])
+  const hits = firstRunHits
   return makeCaseImages(row).map((img, i) => {
-    const k = (i + Number(row.aprthngNo.slice(-2))) % CONFIRM_SHOES.length
-    // 발견으로 저장된 장 = 채택한 확인대상, 검색만 한 장 = 검색 1위 후보(참고 — 발견 판정 근거가 아님)
+    // 발견으로 저장된 장 = 채택한 확인대상(그 검색 1~3위 중 하나), 검색만 한 장 = 검색 1위 후보(참고 — 발견 판정 근거가 아님)
+    const at = img.status === "발견" ? i % 3 : 0
+    const hit = hits[at]
     const shoe = {
-      ftwrId: CONFIRM_SHOES[k].ftwrId,
-      image: thumbsOf[k],
-      score: Math.round((84.1 - i * 2.7) * 10) / 10,
-      ranking: img.status === "발견" ? 1 + (i % 3) : 1,
+      ftwrId: hit.ftwrId,
+      image: sampleSoleUrl(hit.ftwrId, { kind: "shoe", zones: [...CONFIRM_ZONES[at % CONFIRM_ZONES.length]] }),
+      score: hit.score === null ? null : Math.round(hit.score * 10000) / 100,
+      ranking: at + 1,
       confirmed: img.status === "발견",
     }
-    const searchNo = String(572420 - i * 37)
+    const searchNo = String(S04_RUNS[0].searchNo)
     const judgement: Judgement | null =
       img.status === "발견" ? "found" : img.status === "불발견" || img.status === "확인" ? "notFound" : img.status === "감정불능" ? "unable" : null
     const searched = img.status !== "등록" && img.status !== "감정불능"

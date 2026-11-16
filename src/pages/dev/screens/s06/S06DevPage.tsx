@@ -29,6 +29,7 @@ import {
   useInWorkMemory,
   CASE_TARGETS_FIELD,
   addTarget,
+  leadTarget,
   type CaseTarget,
   type DevGo,
 } from "../frame"
@@ -117,7 +118,13 @@ function makeCandidates(ftwr: string, rank: number | null, hits?: readonly Searc
     similarity: r.similarity,
     ...imagesOf(r.ftwrId, i),
   }))
-  if (!list.some((c) => c.ftwrId === ftwr)) list.unshift({ ftwrId: ftwr, rank, similarity: "—", ...imagesOf(ftwr, 0) })
+  if (!list.some((c) => c.ftwrId === ftwr)) {
+    // 21위 아래 후보도 그 검색의 순위 · 점수를 그대로(3회차 검수 — 「—」로 바뀌고 확인대상에 점수 없이 들어가던 것)
+    const at = hits ? hits.findIndex((h) => h.ftwrId === ftwr) : -1
+    const hit = at >= 0 && hits ? hits[at] : undefined
+    const similarity = hit ? (hit.score === null ? "—" : Math.round(hit.score * 10000) / 100) : "—"
+    list.unshift({ ftwrId: ftwr, rank: hit ? at + 1 : rank, similarity, ...imagesOf(ftwr, 0) })
+  }
   return list
 }
 
@@ -148,7 +155,6 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
   const to = go ?? nav
   const { search } = useLocation()
   const params = new URLSearchParams(search)
-  const urlFtwr = params.get("ftwr") || S06_DEFAULT_FTWR
   const rankParam = Number(params.get("rank"))
   const urlRank = Number.isInteger(rankParam) && rankParam > 0 ? rankParam : null
   const caseInfo = useMemo(() => (imageNo ? { ...CASE_INFO, aprthngNo: imageNo } : CASE_INFO), [imageNo])
@@ -176,6 +182,11 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
   // 확인대상 목록(검색 결과 ★ 와 같은 목록 — 여러 후보를 쌓는다, 2회차 검수). 넣고 곧바로 결과 확인 탭으로 옮기므로 보관함에 바로 적는다
   const caseTargets = useWorkValue<readonly CaseTarget[]>(CASE_TARGETS_FIELD) ?? []
   const writeWork = useWorkWriter()
+  // 사건 창에서 신발 없이 열면(작업 탭) 고정 기본 신발을 끼우지 않고 이 검색의 확인대상(정밀 대조에서 정한 것 먼저) → 1위 후보로(3회차 검수)
+  const runKey = run ? String(run.searchNo) : null
+  const lead = inWork ? leadTarget(caseTargets.filter((t) => t.searchNo === runKey)) : undefined
+  const fallbackFtwr = lead?.ftwrId ?? (inWork ? runHits?.[0]?.ftwrId : undefined) ?? S06_DEFAULT_FTWR
+  const urlFtwr = params.get("ftwr") || fallbackFtwr
   const candidates = useMemo(() => makeCandidates(urlFtwr, urlRank, runHits), [urlFtwr, urlRank, runHits])
   const [current, setCurrent] = useState<{ ftwrId: string; rank: number | null }>(() => {
     const hit = candidates.find((c) => c.ftwrId === urlFtwr && (urlRank === null || c.rank === urlRank))

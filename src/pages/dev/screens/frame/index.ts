@@ -20,6 +20,7 @@ export {
   type CaseJudgementPick,
   addTarget,
   leadTarget,
+  liveJudgement,
   removeTarget,
   sameTarget,
   targetsKey,

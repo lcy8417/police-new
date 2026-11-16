@@ -9,7 +9,7 @@ import { makeConfirmRows } from "./mock-cases"
 //
 // 지금 단계(목록 「사건 진행」 = row.stage 와 같은 근거):
 //   stage 없음/-1(이미지 확인 중) → AI 1차 작업이 도는 중이거나 검색 · 확인한 장이 없으면 「1차 작업」, 아니면 「검색·판정」
-//   0 검증요청 · 1 교차 검증 → 「교차 검증」 · 2 감정서 → 「감정서」 · 3 이상(목록 옛 말 「결재」 · 「결재완료」) → 「감정서」 끝(다 끝남)
+//   0 검증요청 전 → 「검색·판정」 · 1 교차 검증 → 「교차 검증」 · 2 감정서 → 「감정서」 · 3 이상(목록 옛 말 「결재」 · 「결재완료」) → 「감정서」 끝(다 끝남)
 
 /** 흐름 5칸 이름(결재 없음) */
 export const FLOW_STAGES = ["접수", "1차 작업", "검색·판정", "교차 검증", "감정서"] as const
@@ -19,6 +19,8 @@ const JUDGED = new Set(["확인", "발견", "불발견", "감정불능"])
 /** 지금 단계(FLOW_STAGES 번호) */
 export function flowStageOf(row: Pick<CaseListRow, "stage" | "ai" | "progress">): number {
   const s = row.stage ?? -1
+  // 0 = 교차 검증 요청 전(목록 「검증요청 전」) — 아직 검색·판정 단계, 판정도 잠기지 않는다(3회차 검수 — 창은 교차 검증 중으로 보던 것)
+  if (s === 0) return 2
   if (s < 0) return row.ai?.state === "running" || row.progress.searched + row.progress.confirmed === 0 ? 1 : 2
   return s <= 1 ? 3 : 4
 }
@@ -107,7 +109,7 @@ export function s02FactsOf(row: CaseListRow, flow: CaseFlow, imageCount: number,
 /** 사건 창 「결과 확인」 탭(S07 내용)에 넘기는 그 사건 값 — 판정 줄은 이미지 목록에서, 교차 검증 상태는 흐름 단계에서 */
 export function s07FactsOf(row: CaseListRow, flow: CaseFlow) {
   const s = row.stage ?? -1
-  const crossReview: CrossReviewState = s < 0 ? "none" : s <= 1 ? "requested" : "done"
+  const crossReview: CrossReviewState = s <= 0 ? "none" : s === 1 ? "requested" : "done"
   return {
     aprthngNo: row.aprthngNo,
     rows: makeConfirmRows(row),
@@ -122,6 +124,8 @@ export function s07FactsOf(row: CaseListRow, flow: CaseFlow) {
 export type S07Facts = ReturnType<typeof s07FactsOf> & {
   /** 장마다 지금 확인대상 지문(`targetsKey`) — 판정 뒤 대상이 바뀌면 발견 판정을 다시 받는다(2회차 검수) */
   targetKeys?: Readonly<Record<string, string>>
+  /** 장마다 처음(저장된 판정 당시) 확인대상 지문 — 처음 발견 줄도 대상이 바뀌면 다시 판정(3회차 검수) */
+  baseTargetKeys?: Readonly<Record<string, string>>
   /** 장마다 그 장에서 마지막으로 본 검색번호(검색 결과 탭) — 「열기」가 그 검색으로 */
   runOf?: Readonly<Record<string, string>>
 }

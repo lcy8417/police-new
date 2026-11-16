@@ -116,11 +116,15 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
   const workRuns = useWorkValue<SearchRun[]>(S04_RUNS_FIELD)
   const lastRunNo = useWorkValue<number>(S05_RUN_NO_FIELD)
   const runs = windowed ? (workRuns ?? S04_RUNS) : workRuns
+  // 이력에 없는 검색번호가 오면(옛 주소 등) 고정 목록으로 바꾸지 않고 이 장의 지금 검색으로(3회차 검수)
   const run = useMemo(() => {
     if (!runs) return undefined
-    if (searchNo) return runs.find((r) => String(r.searchNo) === searchNo)
-    return windowed ? (runs.find((r) => r.searchNo === lastRunNo) ?? runs[0]) : undefined
+    const asked = searchNo ? runs.find((r) => String(r.searchNo) === searchNo) : undefined
+    if (asked || !windowed) return asked
+    return runs.find((r) => r.searchNo === lastRunNo) ?? runs[0]
   }, [runs, searchNo, windowed, lastRunNo])
+  // 사건 창에서 이 장 검색 이력이 비었으면 = 아직 검색 안 한 장 — 고정 결과 대신 「검색 전」 안내(3회차 검수)
+  const notSearched = windowed && run === undefined
   // 문양 없이 한 검색도 그 검색의 결과(이미지 유사도 순 · 점수 없음) 그대로 — 시안 고정값으로 바꾸지 않는다
   const runHits = useMemo(() => (run ? rankOfRun(run) : undefined), [run])
   const runHasPatterns = run ? runQueryPatterns(run).length > 0 : false
@@ -139,9 +143,10 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
     () =>
       caseTargets
         .filter((t) => t.searchNo === runKey)
-        .map((t) => ({ rank: t.rank ?? 0, ftwrId: t.ftwrId }))
+        // 순위를 모르면(정밀 대조에서 목록 밖 후보) 이 검색 결과에서 찾아 채운다(3회차 검수 — 「0위」로 보이던 것)
+        .map((t) => ({ rank: t.rank ?? (runHits ? runHits.findIndex((h) => h.ftwrId === t.ftwrId) + 1 : 0), ftwrId: t.ftwrId }))
         .sort((a, b) => a.rank - b.rank),
-    [caseTargets, runKey],
+    [caseTargets, runKey, runHits],
   )
 
   // r3 보기 설정 — 결과형태 · 썸네일 · 간격 · 필터는 이 브라우저에 기억(결과형태 null = 화면 기본: +α 8열 · 아니면 4열)
@@ -166,14 +171,16 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
   // 사건 창(11/17 「순위가 쭉」)은 1위부터 이어진 한 목록 — 끝에 닿으면 더 붙인다. 단독 진열은 쪽 넘김 그대로
   const [windowCount, setWindowCount] = useState(S05_WINDOW_FIRST)
   const results = useMemo(() => {
-    if (activeCase !== "ready") return []
+    if (activeCase !== "ready" || notSearched) return []
     const imageFor = (rank: number, ftwrId: string) => sampleSoleUrl(ftwrId, { kind: soleKind }, () => soleUrls[(rank - 1) % soleUrls.length])
     if (inWindow && run && runHits) return runResults(run, runHits, windowCount, imageFor, fakeShoePatterns)
     return inWindow
       ? makeRange(windowCount, imageFor, (rank) => ZONES[(rank - 1) % ZONES.length])
       : makeResults(page, imageFor)
-  }, [activeCase, page, soleUrls, soleKind, inWindow, windowCount, run, runHits])
-  const total = runHits ? runHits.length : S05_TOTAL
+  }, [activeCase, notSearched, page, soleUrls, soleKind, inWindow, windowCount, run, runHits])
+  const total = runHits ? runHits.length : notSearched ? 0 : S05_TOTAL
+  // 검색했는데 후보 0건 · 검색 전이면 빈 목록이 아니라 「결과 없음」 · 「검색 전」 안내(3회차 검수)
+  const status = activeCase === "ready" && total === 0 ? "empty" : activeCase
   const baseInsight = useMemo(
     () => ({
       ...makeInsight({
@@ -206,7 +213,8 @@ export function S05Content({ devCase: activeCase, imageNo = S05_IMAGE_NO, go, in
 
   return (
     <SearchResultScreen
-      status={activeCase}
+      status={status}
+      emptyNote={notSearched ? { title: "검색 전", hint: "이 이미지는 아직 검색하지 않았습니다 — 문양 코드 탭에서 「검색」" } : undefined}
       errorAt={S05_ERROR_AT}
       onRetry={() => {
         toast("다시 검색합니다(진열용)")
