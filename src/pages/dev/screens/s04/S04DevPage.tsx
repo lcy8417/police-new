@@ -2,6 +2,7 @@ import * as React from "react"
 import { toast } from "sonner"
 
 import { insertPatternPath, type PatternZone } from "@/entities/pattern"
+import { toKstIso } from "@/shared/lib"
 import { ZoneBands, type ZoneBand } from "@/shared/ui/viewer"
 import {
   BoundaryLines,
@@ -22,6 +23,9 @@ import {
   type ResearchState,
   type SearchImageSource,
   type SearchMethod,
+  type SearchRun,
+  type WeightLevel,
+  type WeightOverrideMap,
   type ZoneConfidenceTag,
 } from "@/widgets/pattern-code"
 
@@ -40,7 +44,11 @@ import {
 import { FakePhoto } from "../mock-assets/FakePhoto"
 import {
   DEFAULT_CODE_NOTE,
+  fakeSearchRun,
   S04_APRTHNG_NO,
+  S04_KINDS,
+  S04_LIBRARY,
+  S04_RUNS,
   S04_CODE_NOTES,
   S04_FUNNEL,
   S04_IMAGE_REST,
@@ -145,6 +153,9 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
   const [noteCode, setNoteCode] = React.useState<string | null>(caseName === "ready" ? "n32_04" : null)
   const [researchState, setResearchState] = React.useState<ResearchState>("idle")
   const [matchConditions, setMatchConditions] = React.useState<MatchConditionValues>(S04_MATCH_CONDITIONS)
+  // 사건 창(11/17): 사람이 고른 가중치 · 조건별 검색 이력(가짜 계산 — spec 2026-11-17-pattern-weight-rule-design §4)
+  const [weightOverrides, setWeightOverrides] = React.useState<WeightOverrideMap>({})
+  const [searchRuns, setSearchRuns] = React.useState<SearchRun[]>(caseName === "ready" || caseName === "running" ? S04_RUNS : [])
 
   // 진열용 실시간 재검색: 필수를 바꾸면 잠깐 「갱신 중」, S04_RESEARCH_MS 뒤 「갱신했습니다」(F20)
   React.useEffect(() => {
@@ -164,9 +175,10 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
   }, [extractState, caseName])
 
   const hydrated = React.useMemo(() => hydrate(zones), [zones])
+  // 사건 창은 전체 문양 목록(폴더 그대로), 단독 진열은 시안 앞쪽 일부 그대로
   const palette = React.useMemo(
-    () => S04_PALETTE[paletteKind].map((n) => insertPatternPath(n) as string),
-    [paletteKind],
+    () => (inWindow ? S04_LIBRARY : S04_PALETTE)[paletteKind].map((n) => insertPatternPath(n) as string),
+    [paletteKind, inWindow],
   )
   const recentPaths = React.useMemo(() => S04_RECENT.map((n) => insertPatternPath(n) as string), [])
   const extractedView = React.useMemo(
@@ -192,6 +204,58 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
     const name = patternName(src)
     updateZone(zone, (items) => (items.some(([n]) => n === name) ? items : [...items, [name, 0] as const]))
     setNoteCode(name)
+  }
+
+  /** 가중치 한 칸 고치기(이름 기준). null 이면 지워 규칙 값으로 */
+  const setWeight = (zone: PatternZone, name: string, level: WeightLevel | null) =>
+    setWeightOverrides((prev) => {
+      const row = { ...(prev[zone] ?? {}) }
+      if (level === null) delete row[name]
+      else row[name] = level
+      return { ...prev, [zone]: row }
+    })
+
+  /** 사건 창 「검색」 — 지금 문양 · 필수 · 가중치 · 조건으로 가짜 신발 DB 를 돌려 이력 한 줄을 더한다 */
+  const runSearch = () => {
+    const searchNo = Math.max(572400, ...searchRuns.map((r) => r.searchNo)) + 1
+    const run = fakeSearchRun({
+      searchNo,
+      at: toKstIso().slice(0, 19).replace("T", " "),
+      source: searchImage,
+      zones,
+      meta,
+      overrides: weightOverrides,
+      conditions: matchConditions,
+    })
+    setSearchRuns((prev) => [run, ...prev])
+    toast.success(`검색 ${searchNo} — 결과 ${run.resultCount.toLocaleString("ko-KR")}건(진열 가짜 계산)`)
+  }
+
+  /** 「이 조건 다시 불러오기」 — 그때의 문양 · 필수 · 가중치 · 매칭 조건 · 이미지를 되살린다(그때 검색한 문양은 모두 확인된 문양) */
+  const restoreRun = (searchNo: number) => {
+    const run = searchRuns.find((r) => r.searchNo === searchNo)
+    if (!run) return
+    const nextZones = {} as NamedZones
+    const nextMeta: PatternMetaMap = {}
+    const nextOverrides: WeightOverrideMap = {}
+    for (const z of ZONE_KEYS) {
+      nextZones[z] = run.zones[z].map((p) => [p.name, p.essential ? 1 : 0] as const)
+      const zoneMeta: Record<string, PatternCardMeta> = {}
+      const zoneOverrides: Record<string, WeightLevel> = {}
+      for (const p of run.zones[z]) {
+        const m = meta[z]?.[p.name]
+        if (m) zoneMeta[p.name] = m.status === "suggested" ? { ...m, status: "ai" } : m
+        if (p.manual) zoneOverrides[p.name] = p.weight
+      }
+      nextMeta[z] = zoneMeta
+      nextOverrides[z] = zoneOverrides
+    }
+    setZones(nextZones)
+    setMeta(nextMeta)
+    setWeightOverrides(nextOverrides)
+    setMatchConditions(run.conditions)
+    setSearchImage(run.source)
+    toast(`검색 ${searchNo} 조건을 다시 불러왔습니다.`)
   }
 
   return (
@@ -226,6 +290,7 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
       onInsertPatternToZone={insertInto}
       onRemovePattern={(zone, index) => {
         patchMeta(zone, nameAt(zone, index), null)
+        setWeight(zone, nameAt(zone, index), null)
         updateZone(zone, (items) => items.filter((_, i) => i !== index))
       }}
       onToggleEssential={(zone, index) => {
@@ -254,10 +319,14 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
         setSelectedSearchNo(no)
         toast(`검색 이력 ${no}을 엽니다(진열용).`)
       }}
-      onSearch={() => {
-        toast.success("필수 문양으로 신발을 검색합니다.")
-        go("/dev/s05")
-      }}
+      onSearch={
+        inWindow
+          ? runSearch
+          : () => {
+              toast.success("필수 문양으로 신발을 검색합니다.")
+              go("/dev/s05")
+            }
+      }
       onOpenResults={() => go("/dev/s05")}
       onClose={() => go("/dev/s02")}
       // ── 시안 r2 신규(+α) ──
@@ -298,6 +367,18 @@ function S04Stage({ caseName, imageNo, go: goProp, inWindow }: { caseName: S04Ca
       searchMethod={searchMethod}
       onSearchMethodChange={setSearchMethod}
       funnel={S04_FUNNEL}
+      // ── 사건 창(11/17) — 가중치 · 검색 이력 · 확대경 그림 ──
+      patternKinds={S04_KINDS}
+      weightOverrides={weightOverrides}
+      onWeightChange={(zone, index, level) => setWeight(zone, nameAt(zone, index), level)}
+      onResetWeights={() => {
+        setWeightOverrides({})
+        toast("가중치를 모두 규칙 기본값으로 되돌렸습니다.")
+      }}
+      searchRuns={searchRuns}
+      onRestoreRun={restoreRun}
+      onOpenRun={() => go("/dev/s05")}
+      lensSource={<FakePatternCanvas source={searchImage} plus={plus} />}
     />
   )
 }

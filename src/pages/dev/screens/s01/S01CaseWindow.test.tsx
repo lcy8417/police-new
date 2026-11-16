@@ -170,29 +170,154 @@ describe("S01 사건 창", () => {
       expect(within(history()).getAllByRole("listitem")).toHaveLength(1)
     })
 
-    it("문양 코드 탭: 제목 줄 · 닫기 · 이미지 목록 표 없음, 세 칸(현장 이미지 | 문양 | 추출 · 검색 탭) + 바닥 단추 줄(검색만 채움)", () => {
-      renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=1&tab=pattern")
-      const d = dialog()
-      expect(within(d).queryByText("문양 상세보기")).toBeNull()
-      expect(within(d).queryByRole("button", { name: /^닫기$/ })).toBeNull()
-      expect(within(d).queryByRole("columnheader", { name: "이미지 번호" })).toBeNull()
-      for (const name of ["현장 이미지", "현장 이미지 문양", "추출 · 검색"]) expect(within(d).getByRole("region", { name })).toBeInTheDocument()
-      // 칸 머리 = 밑줄 탭 모양(파란 띠 아님)
-      expect(within(within(d).getByRole("region", { name: "현장 이미지" })).getByRole("heading", { name: "현장 이미지" })).toBeInTheDocument()
-      expect(within(d).getByRole("group", { name: "검색 이미지" })).toBeInTheDocument()
-      // 바닥 단추: 검색만 채움, 다음 이미지 →
-      const search = within(d).getByRole("button", { name: "검색" })
-      expect(search).toHaveAttribute("data-part-variant", "sm-pri")
-      expect(within(d).getByRole("button", { name: /다음 이미지 _3/ })).not.toHaveAttribute("data-part-variant", "sm-pri")
-      // 오른쪽 탭: AI 추출(기본) → 검색 조건 → 검색이력
-      const side = within(d).getByRole("tablist", { name: "추출 · 검색" })
-      expect(within(d).getByRole("region", { name: "AI 추출 결과" })).toBeInTheDocument()
-      expect(within(d).queryByRole("region", { name: "매칭 조건" })).toBeNull()
-      fireEvent.click(within(side).getByRole("tab", { name: "검색 조건" }))
-      expect(within(d).getByRole("region", { name: "매칭 조건" })).toBeInTheDocument()
-      expect(within(d).getByRole("radiogroup", { name: "검색 방식" })).toBeInTheDocument()
-      fireEvent.click(within(side).getByRole("tab", { name: /검색이력/ }))
-      expect(within(within(d).getByRole("region", { name: "검색이력" })).getAllByRole("button", { name: "보기" }).length).toBeGreaterThan(0)
+    describe("문양 코드 탭(11/17 「먹색 · AI 조건은 빼 · 확대경 · 더블 클릭 · 이력 · 가중치 · 전체 문양 리스트」)", () => {
+      const open = () => {
+        renderAt("/dev/s01?case=ready&as=analyst&open=00001-25-0649&img=1&tab=pattern")
+        return screen.getByRole("dialog", { name: /사건 창$/ })
+      }
+      const side = (d: HTMLElement) => within(d).getByRole("tablist", { name: "문양 · 검색" })
+
+      it("제목 줄 · 닫기 · 이미지 목록 표 없음, 어두운 작업판(현장 이미지 | 4부위) + 오른쪽 밝은 칸 + 바닥 단추 줄(검색만 채움)", () => {
+        const d = open()
+        expect(within(d).queryByText("문양 상세보기")).toBeNull()
+        expect(within(d).queryByRole("button", { name: /^닫기$/ })).toBeNull()
+        expect(within(d).queryByRole("columnheader", { name: "이미지 번호" })).toBeNull()
+        for (const name of ["현장 이미지", "현장 이미지 문양", "문양 · 검색"]) expect(within(d).getByRole("region", { name })).toBeInTheDocument()
+        // 작업판만 어두운 팔레트(data-theme="dark") — 현장 이미지 · 4부위는 그 안, 오른쪽 칸은 밖(밝은 바탕)
+        const bench = d.querySelector('[data-slot="pattern-workbench"]') as HTMLElement
+        expect(bench).toHaveAttribute("data-theme", "dark")
+        expect(bench).toContainElement(within(d).getByRole("region", { name: "현장 이미지" }))
+        expect(bench).toContainElement(within(d).getByRole("region", { name: "현장 이미지 문양" }))
+        expect(bench).not.toContainElement(within(d).getByRole("region", { name: "문양 · 검색" }))
+        expect(within(within(d).getByRole("region", { name: "현장 이미지" })).getByRole("heading", { name: "현장 이미지" })).toBeInTheDocument()
+        expect(within(d).getByRole("group", { name: "검색 이미지" })).toBeInTheDocument()
+        // 바닥 단추: 작업판 단추(WorkbenchButton) — 검색만 primary
+        expect(within(d).getByRole("button", { name: "검색" })).toHaveAttribute("data-part-variant", "primary")
+        expect(within(d).getByRole("button", { name: "검색결과" })).toHaveAttribute("data-part-variant", "soft")
+        expect(within(d).getByRole("button", { name: "다시입력" })).toHaveAttribute("data-part-variant", "ghost")
+        expect(within(d).getByRole("button", { name: /다음 이미지 _3/ })).toHaveAttribute("data-part", "WorkbenchButton")
+      })
+
+      it("AI 조건은 뺀다 — 검색 방식 · 깔때기 · 인공지능문양관리 없음, AI 동작은 「다시 추출」 하나", () => {
+        const d = open()
+        expect(within(d).queryByRole("button", { name: "인공지능문양관리" })).toBeNull()
+        fireEvent.click(within(side(d)).getByRole("tab", { name: "검색 조건" }))
+        expect(within(d).getByRole("region", { name: "매칭 조건" })).toBeInTheDocument()
+        expect(within(d).queryByRole("radiogroup", { name: "검색 방식" })).toBeNull()
+        expect(within(d).queryByText(/이미지 검색 추천|하이브리드/)).toBeNull()
+        expect(within(d).queryByText("신발 DB")).toBeNull()
+        expect(within(d).getByRole("button", { name: "편집한 이미지로 다시 추출" })).toBeEnabled()
+      })
+
+      it("4부위 = 상 · 중 · 하 · 윤곽, 카드마다 필수 · 가중치 · 개수(SCAS 0–9 · 10이상) · 빼기", () => {
+        const d = open()
+        const board = within(within(d).getByRole("region", { name: "현장 이미지 문양" })).getByRole("group", { name: "현장 이미지 문양" })
+        for (const z of ["상", "중", "하", "윤곽"]) expect(within(board).getByRole("button", { name: new RegExp(`^${z} 부위`) })).toBeInTheDocument()
+        expect(within(board).getByRole("button", { name: "필수 · 상 n32_04" })).toHaveAttribute("aria-pressed", "true")
+        expect(within(board).getByRole("group", { name: "상 n32_04 가중치 낮음" })).toHaveAttribute("title", expect.stringMatching(/R2 흔한 종류\(선\) −1 · R5 상·중·하 반복 −1/))
+        expect(within(board).getByRole("combobox", { name: "상 n32_04 개수" })).toHaveValue("9")
+        expect(within(board).getByRole("button", { name: "빼기 · 윤곽 s10c" })).toBeInTheDocument()
+      })
+
+      it("가중치를 바꾸면 「직접」, 다시 누르면 규칙 값 · 검색 조건 탭 「규칙 기본값으로」는 모두 되돌린다", () => {
+        const d = open()
+        const board = within(d).getByRole("group", { name: "현장 이미지 문양" })
+        fireEvent.click(within(within(board).getByRole("group", { name: /^중 s81b 가중치/ })).getByRole("button", { name: "가중치 높음" }))
+        expect(within(board).getByRole("group", { name: "중 s81b 가중치 높음 직접" })).toBeInTheDocument()
+        fireEvent.click(within(within(board).getByRole("group", { name: /^중 s81b 가중치/ })).getByRole("button", { name: "가중치 높음" }))
+        expect(within(board).getByRole("group", { name: "중 s81b 가중치 낮음" })).toBeInTheDocument()
+        fireEvent.click(within(within(board).getByRole("group", { name: /^윤곽 s10c 가중치/ })).getByRole("button", { name: "가중치 보통" }))
+        fireEvent.click(within(side(d)).getByRole("tab", { name: /검색 조건/ }))
+        const rules = within(d).getByRole("region", { name: "가중치 규칙" })
+        expect(rules).toHaveTextContent("직접 1개")
+        fireEvent.click(within(rules).getByRole("button", { name: "규칙 기본값으로" }))
+        expect(within(board).getByRole("group", { name: "윤곽 s10c 가중치 낮음" })).toBeInTheDocument()
+        expect(within(rules).getByRole("button", { name: "규칙 기본값으로" })).toBeDisabled()
+      })
+
+      it("문양 목록(기본 탭): 전체 종류 폴더 그대로, 누르면 고른 부위에 넣고 다시 누르면 뺀다(이름 기준)", () => {
+        const d = open()
+        const lib = within(d).getByRole("region", { name: "문양 목록" })
+        // 선 폴더 전체(76개) — 시안 앞쪽 일부(12개)가 아니다
+        expect(within(lib).getByRole("group", { name: "선 문양 76개" })).toBeInTheDocument()
+        fireEvent.click(within(within(lib).getByRole("group", { name: "넣을 부위" })).getByRole("button", { name: "하" }))
+        const board = within(d).getByRole("group", { name: "현장 이미지 문양" })
+        expect(within(board).getByRole("button", { name: "하 부위 1개 입력 중" })).toBeInTheDocument()
+        fireEvent.click(within(lib).getByRole("button", { name: "하에 n31_02 넣기" }))
+        expect(within(board).getByRole("button", { name: "하 부위 2개 입력 중" })).toBeInTheDocument()
+        // 이미 넣은 문양 = 눌림 표시, 다시 누르면 빼기
+        const again = within(lib).getByRole("button", { name: "하에서 n31_02 빼기" })
+        expect(again).toHaveAttribute("aria-pressed", "true")
+        fireEvent.click(again)
+        expect(within(board).getByRole("button", { name: "하 부위 1개 입력 중" })).toBeInTheDocument()
+        // 윤곽 종류도 있다
+        fireEvent.click(within(within(lib).getByRole("group", { name: "문양 종류" })).getByRole("button", { name: "윤곽" }))
+        expect(within(lib).getByRole("group", { name: "윤곽 문양 16개" })).toBeInTheDocument()
+      })
+
+      it("「검색」을 누르면 검색 이력 탭에 한 줄이 늘고(필수 · 가중치 · 결과 수 · 상위 3), 「다시 불러오기」 · 「결과 보기」", () => {
+        const d = open()
+        fireEvent.click(within(side(d)).getByRole("tab", { name: /검색 이력/ }))
+        const list = () => within(d).getByRole("list", { name: "검색 이력" })
+        expect(within(list()).getAllByRole("listitem", { name: /^검색 / })).toHaveLength(2)
+        fireEvent.click(within(d).getByRole("button", { name: "제안 모두 확인" }))
+        fireEvent.click(within(within(d).getByRole("group", { name: /^중 s81b 가중치/ })).getByRole("button", { name: "가중치 높음" }))
+        fireEvent.click(within(d).getByRole("button", { name: "검색" }))
+        const rows = within(list()).getAllByRole("listitem", { name: /^검색 / })
+        expect(rows).toHaveLength(3)
+        expect(rows[0]).toHaveAccessibleName("검색 572434")
+        expect(rows[0]).toHaveTextContent(/s81b×2/)
+        expect(within(rows[0]).getAllByRole("listitem")).toHaveLength(3)
+        expect(toastMock.success).toHaveBeenCalledWith(expect.stringMatching(/^검색 572434 — 결과 [\d,]+건/))
+        // 줄을 펼치면 조건 전체
+        fireEvent.click(within(rows[0]).getByRole("button", { name: "조건 전체 보기" }))
+        expect(rows[0]).toHaveTextContent("직접 1개 · 나머지 규칙 값")
+        // 맨 처음 검색(상 · 중 n32_04 만)을 다시 불러오면 4부위가 그때로
+        fireEvent.click(within(d).getByRole("button", { name: "검색 572419 — 이 조건 다시 불러오기" }))
+        const board = within(d).getByRole("group", { name: "현장 이미지 문양" })
+        expect(within(board).getByRole("button", { name: /^중 부위 1개/ })).toBeInTheDocument()
+        expect(within(board).getByRole("button", { name: /^윤곽 부위 0개/ })).toBeInTheDocument()
+        // 결과 보기 = 검색 결과 탭
+        fireEvent.click(within(d).getByRole("button", { name: "검색 572419 — 결과 보기" }))
+        expect(query().get("tab")).toBe("search")
+      })
+
+      it("확대경: 켜고 마우스를 대면 동그란 확대경(누를 수 없는 장식)이 따라오고, [ ] 키로 지름을 바꾼다", () => {
+        const d = open()
+        const box = d.querySelector("[data-lens]") as HTMLElement
+        expect(box).toHaveAttribute("data-lens", "off")
+        fireEvent.click(within(d).getByRole("button", { name: "확대경" }))
+        expect(box).toHaveAttribute("data-lens", "on")
+        fireEvent.pointerMove(box, { clientX: 40, clientY: 60, buttons: 0, pointerType: "mouse" })
+        const lens = d.querySelector('[data-slot="pattern-lens"]') as HTMLElement
+        expect(lens).toHaveClass("pointer-events-none")
+        expect(lens).toHaveAttribute("aria-hidden", "true")
+        expect(lens.style.width).toBe("144px")
+        fireEvent.keyDown(document, { key: "]" })
+        expect((d.querySelector('[data-slot="pattern-lens"]') as HTMLElement).style.width).toBe("168px")
+        expect(within(d).getByRole("slider", { name: "확대경 지름" })).toHaveValue("168")
+        // 누른 채 움직이면(경계선 끌기) 숨긴다
+        fireEvent.pointerMove(box, { clientX: 50, clientY: 60, buttons: 1, pointerType: "mouse" })
+        expect(d.querySelector('[data-slot="pattern-lens"]')).toBeNull()
+      })
+
+      it("현장 이미지를 두 번 누르면 살펴보기 판 — 보기 조정 · 문양 넣기, Esc 는 살펴보기만 닫는다(사건 창은 그대로)", () => {
+        const d = open()
+        fireEvent.doubleClick(d.querySelector("[data-lens]") as HTMLElement)
+        const look = screen.getByRole("dialog", { name: "이미지 살펴보기" })
+        expect(look).toHaveAttribute("data-theme", "dark")
+        expect(look).toHaveTextContent("보기 조정은 저장하지 않습니다")
+        expect(within(look).getByRole("button", { name: "살펴보기 닫기" })).toHaveFocus()
+        fireEvent.click(within(look).getByRole("button", { name: "감마 높이기" }))
+        expect(within(look).getByRole("img", { name: /감마 1\.25/ })).toBeInTheDocument()
+        fireEvent.click(within(look).getByRole("button", { name: "상에 n31_02 넣기" }))
+        expect(within(d).getByRole("button", { name: "상 부위 3개 입력 중" })).toBeInTheDocument()
+        fireEvent.keyDown(document.activeElement ?? document, { key: "Escape" })
+        expect(screen.queryByRole("dialog", { name: "이미지 살펴보기" })).toBeNull()
+        expect(screen.getByRole("dialog", { name: /사건 창$/ })).toBeInTheDocument()
+        // 살펴보기에서 바꾼 보기는 작은 그림에도 남는다(저장은 안 함)
+        expect(within(d).getByText("감마 1.25")).toBeInTheDocument()
+      })
     })
 
     it("검색 결과 탭: 「문양검색결과」 제목 줄 · 이미지번호 없음, 왼쪽 현장 족적 | 오른쪽 검색 결과(칸 머리 ⓘ 에 안내 문장), 상세조회는 결과 칸 안", () => {

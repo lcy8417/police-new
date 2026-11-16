@@ -111,6 +111,53 @@ export interface FunnelStep {
   ratio: number
 }
 
+/**
+ * 문양 가중치 단계(spec 2026-11-17-pattern-weight-rule-design §2) — 낮음 0.5 · 보통 1 · 높음 2.
+ * 사건 문양 튜플(`[이름, 필수]`)은 그대로 두고 가중치는 따로 든다(§6).
+ */
+export type WeightLevel = "low" | "normal" | "high"
+
+/** 사람이 고른 가중치(부위 → 문양 이름 → 단계). 없는 문양은 규칙 값을 쓴다 */
+export type WeightOverrideMap = Partial<Record<PatternZone, Readonly<Record<string, WeightLevel>>>>
+
+/** 검색 이력에 남는 문양 한 칸 — 그때의 필수 · 가중치 */
+export interface SearchRunPattern {
+  /** 문양 이름(경로 아님) */
+  name: string
+  /** 필수(거르기) */
+  essential: boolean
+  /** 그때의 가중치 단계 */
+  weight: WeightLevel
+  /** 사람이 고른 값이었나(「직접」) */
+  manual: boolean
+}
+
+/** 검색 결과 상위 한 건(진열 가짜 계산) */
+export interface SearchRunHit {
+  /** 신발 ID — 문자열 그대로(앞자리 0 보존) */
+  ftwrId: string
+  /** 문양 점수 0~1(spec §4) */
+  score: number
+}
+
+/** 검색 한 번 = 이력 한 줄(사건 창 「검색 이력」 탭) — 어떤 조건으로 어떤 결과가 나왔나 */
+export interface SearchRun {
+  /** 검색번호 */
+  searchNo: number
+  /** 검색 시각 `YYYY-MM-DD HH:MM:SS`(KST) */
+  at: string
+  /** 검색에 쓴 이미지(원본 · 편집본) */
+  source: SearchImageSource
+  /** 부위별 검색 문양(확인 전 AI 제안은 빠짐) */
+  zones: Readonly<Record<PatternZone, readonly SearchRunPattern[]>>
+  /** 그때의 매칭 조건 */
+  conditions: MatchConditionValues
+  /** 결과 수(필수 거르기 통과) */
+  resultCount: number
+  /** 상위 신발(최대 3) */
+  top: readonly SearchRunHit[]
+}
+
 /** S04 문양 코딩 · 검색 조건 화면이 받는 값. 저장되는 값은 모두 제어형(spec §6-1). */
 export interface PatternCodeScreenProps {
   /**
@@ -234,4 +281,25 @@ export interface PatternCodeScreenProps {
   onSearchMethodChange?: (next: SearchMethod) => void
   /** 검색 전 미리보기 깔때기 */
   funnel?: { steps: readonly FunnelStep[]; note: string }
+
+  // ── 사건 창(`inWindow`) 전용 — 11/17 먹색 작업판 · 가중치 · 검색 이력 ──
+  /** 문양 이름 → 종류(팔레트 폴더). 가중치 규칙 R2 와 문양 목록 표시에 쓴다 */
+  patternKinds?: Readonly<Record<string, PaletteKind>>
+  /** 사람이 고른 가중치(없으면 모두 규칙 값) */
+  weightOverrides?: WeightOverrideMap
+  /** 가중치 바꾸기 — null 이면 그 문양을 규칙 값으로 되돌림 */
+  onWeightChange?: (zone: PatternZone, index: number, level: WeightLevel | null) => void
+  /** 「규칙 기본값으로」 — 사람이 고른 가중치를 모두 지움 */
+  onResetWeights?: () => void
+  /** 검색 이력(검색 한 번 = 한 줄, 최신이 앞). 있으면 창 모드 「검색 이력」 탭이 이 모양으로 그린다 */
+  searchRuns?: readonly SearchRun[]
+  /** 「이 조건 다시 불러오기」 */
+  onRestoreRun?: (searchNo: number) => void
+  /** 「결과 보기」(검색 결과 탭으로) */
+  onOpenRun?: (searchNo: number) => void
+  /**
+   * 확대경 · 살펴보기에 그릴 그림(누를 수 없는 복사본 — 운영은 현장 이미지 `<img>`). 없으면 확대경 · 살펴보기 그림 없이 틀만.
+   * 좌표 캔버스(`canvasSlot`)는 건드리지 않는다.
+   */
+  lensSource?: React.ReactNode
 }

@@ -1,12 +1,20 @@
 import type { EssentialFlag, PatternZone } from "@/entities/pattern"
-import type {
-  ExtractState,
-  FunnelStep,
-  ImageCodingStatus,
-  MatchConditionValues,
-  PaletteKind,
-  PatternMetaMap,
-  SearchHistoryRow,
+import {
+  patternWeights,
+  rankShoes,
+  runSnapshot,
+  searchQuery,
+  type ExtractState,
+  type FunnelStep,
+  type ImageCodingStatus,
+  type MatchConditionValues,
+  type PaletteKind,
+  type PatternMetaMap,
+  type SearchHistoryRow,
+  type SearchImageSource,
+  type SearchRun,
+  type ShoePatterns,
+  type WeightOverrideMap,
 } from "@/widgets/pattern-code"
 
 import type { SCREEN_CASES } from "../frame/dev-screens"
@@ -138,6 +146,107 @@ export const S04_PALETTE: Record<PaletteKind, string[]> = {
   원: ["n71_01", "n71_02", "n71_04", "n72_01", "n72_02", "n72_05", "n73_02", "n73_03", "s71a", "s71b"],
   항목: ["s81a", "s81b", "s81c", "s81d", "s81e", "s82a"],
 }
+
+// ── 사건 창(11/17) — 전체 문양 목록 · 가중치 · 검색 이력 ──
+
+/** 팔레트 종류 → 폴더 이름(docs/pattern-data-model.md §3 — 「윤곽」 종류만 폴더가 `윤곽선`) */
+const KIND_FOLDER: Record<PaletteKind, string> = { 무늬: "무늬", 선: "선", 윤곽: "윤곽선", 다각: "다각", 삼각: "삼각", 사각: "사각", 원: "원", 항목: "항목" }
+
+// 문양 그림 폴더의 파일 이름만 읽는다(불러오지 않음 — 진열 전용, 프로덕션 빌드에는 안 들어감)
+const PATTERN_FILES = Object.keys(import.meta.glob("/src/assets/Patterns/*/*.png"))
+
+/** 종류별 전체 문양 이름(폴더 그대로 · 이름순) — 사건 창 「문양 목록」 */
+export const S04_LIBRARY: Record<PaletteKind, string[]> = Object.fromEntries(
+  (Object.keys(KIND_FOLDER) as PaletteKind[]).map((kind) => [
+    kind,
+    PATTERN_FILES.filter((f) => f.split("/").at(-2) === KIND_FOLDER[kind])
+      .map((f) => (f.split("/").at(-1) ?? "").replace(/\.png$/, ""))
+      .sort(),
+  ]),
+) as Record<PaletteKind, string[]>
+
+/** 문양 이름 → 종류(가중치 규칙 R2). 이름 앞자리로 짐작하지 않고 폴더로 정한다 */
+export const S04_KINDS: Record<string, PaletteKind> = Object.fromEntries(
+  (Object.entries(S04_LIBRARY) as [PaletteKind, string[]][]).flatMap(([kind, names]) => names.map((n) => [n, kind])),
+)
+
+/** 결정적 가짜 난수(같은 시드 = 같은 신발 DB) */
+function lcg(seed: number) {
+  let s = seed
+  return () => {
+    s = (s * 1664525 + 1013904223) % 4294967296
+    return s / 4294967296
+  }
+}
+
+/** 진열용 가짜 신발 DB(1,200켤레) — 바탕 무늬 · 드문 마크 · 윤곽을 섞어 가중치 차이가 보이게. 신발 ID 는 문자열(앞자리 0) */
+export const S04_FAKE_SHOES: ShoePatterns[] = (() => {
+  const rnd = lcg(649)
+  const pick = <T>(xs: readonly T[]) => xs[Math.floor(rnd() * xs.length)]
+  const BASE = ["n32_04", "n32_04", "n32_04", "n21_05", "n21_05", "n31_02", "n21_02", "n51_03", "n71_01", "n32_06"]
+  const EXTRA = ["n21_05", "n31_02", "n51_03", "n41_01", "n72_01", "n32_06"]
+  const MARK = ["s81b", "s81a", "n62_02", "n73_01"]
+  const OUTLINE = ["s10a", "s10b", "s10c", "s10d", "s10e", "n10_01"]
+  return Array.from({ length: 1200 }, (_, i) => {
+    const base = pick(BASE)
+    const with2 = (p: number, more: readonly string[]) => (rnd() < p ? [base, pick(more)] : [base])
+    return {
+      ftwrId: String(700 + i).padStart(5, "0"),
+      zones: {
+        top: with2(0.35, EXTRA),
+        mid: rnd() < 0.7 ? with2(0.18, MARK) : rnd() < 0.5 ? [pick(MARK)] : [],
+        bottom: rnd() < 0.8 ? [base] : [pick(EXTRA)],
+        outline: rnd() < 0.6 ? [pick(OUTLINE)] : [],
+      },
+    }
+  })
+})()
+
+/** 검색 한 번(진열 가짜 계산 — spec §4 식 그대로) */
+export function fakeSearchRun(args: {
+  searchNo: number
+  at: string
+  source: SearchImageSource
+  zones: NamedZones
+  meta: PatternMetaMap
+  overrides: WeightOverrideMap
+  conditions: MatchConditionValues
+}): SearchRun {
+  const weights = patternWeights(args.zones, args.meta, S04_KINDS, args.overrides)
+  const query = searchQuery(args.zones, args.meta, weights)
+  const ranked = rankShoes(query, S04_FAKE_SHOES)
+  return {
+    searchNo: args.searchNo,
+    at: args.at,
+    source: args.source,
+    zones: runSnapshot(query, weights),
+    conditions: args.conditions,
+    resultCount: ranked.length,
+    top: ranked.slice(0, 3),
+  }
+}
+
+/** 처음 보이는 검색 이력 두 줄(최신이 앞) — 상 · 중 헤링본 필수만(원본) → 윤곽 · 마크까지 넣고 마크를 높음으로(편집본) */
+export const S04_RUNS: SearchRun[] = [
+  fakeSearchRun({
+    searchNo: 572433,
+    at: "2025-07-24 10:12:05",
+    source: "edited",
+    zones: { top: [["n32_04", 1]], mid: [["n32_04", 1], ["s81b", 0]], bottom: [], outline: [["s10c", 0]] },
+    meta: { mid: { s81b: { status: "ai", confidence: 0.42 } } },
+    overrides: { mid: { s81b: "high" } },
+    conditions: S04_MATCH_CONDITIONS,
+  }),
+  fakeSearchRun({
+    searchNo: 572419,
+    at: "2025-07-24 09:41:30",
+    source: "original",
+    zones: { top: [["n32_04", 1]], mid: [["n32_04", 1]], bottom: [], outline: [] },
+    meta: {},
+    overrides: {},
+    conditions: S04_MATCH_CONDITIONS,
+  }),
+]
 
 /** SCAS 「코드 설명」 가짜 글(긴 값 — 가로 넘침 확인용, Review Focus 3) */
 export const S04_CODE_NOTES: Record<string, string> = {

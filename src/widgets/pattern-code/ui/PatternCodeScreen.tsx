@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "@/shared/lib/utils"
 import { AiProgress, ScanOverlay } from "@/shared/ui/ai"
 import { Button, Chip, ColumnPicker, DataGrid, Field, FilterBar, InlineError, Segmented, type DataGridColumn } from "@/shared/ui/kit"
-import { ButtonBar, PaneHead, Panel, TabMark, UnderlineTabs } from "@/shared/ui/panel"
+import { ButtonBar, Panel } from "@/shared/ui/panel"
 
 import { filterHistory, HISTORY_COLUMNS } from "../model/history-view"
 import { patternCodeAccess } from "../model/access"
@@ -15,10 +15,11 @@ import type {
   SearchHistoryRow,
   SearchImageSource,
 } from "../model/types"
-import { Band, SubHead } from "./Band"
+import { Band } from "./Band"
 import { ExtractResults } from "./ExtractResults"
 import { MatchConditions } from "./MatchConditions"
 import { PalettePanel } from "./PalettePanel"
+import { PatternWindow } from "./PatternWindow"
 import { SearchFunnel, SearchMethodPicker } from "./SearchPlus"
 import { ZoneRows } from "./ZoneRows"
 
@@ -78,16 +79,10 @@ const STATUS_TONE: Record<ImageCodingStatus, string> = {
   duplicate: "text-faint line-through",
 }
 
-/** idle 안내 글(사건 창에서는 칸 머리 ⓘ 말풍선으로) */
-const researchIdleText = (essentialCount: number) => `필수 문양(${essentialCount}개)만 검색에 쓰입니다 — 바꾸면 결과를 다시 찾습니다.`
-
-/** 필수 문양을 바꾼 뒤 실시간 재검색 줄(F20). idle 이면 안내만 — `compact`(사건 창)면 idle 은 빈 줄(안내는 ⓘ) */
-function ResearchLine({ state, essentialCount, compact = false }: { state: ResearchState; essentialCount: number; compact?: boolean }) {
+/** 필수 문양을 바꾼 뒤 실시간 재검색 줄(F20). idle 이면 안내만 */
+function ResearchLine({ state, essentialCount }: { state: ResearchState; essentialCount: number }) {
   return (
-    <div
-      role="status"
-      className={cn("flex min-h-[24px] min-w-0 items-center gap-[8px] text-[11.5px] text-muted-foreground", compact ? "flex-1 px-[2px]" : "px-[10px]")}
-    >
+    <div role="status" className="flex min-h-[24px] min-w-0 items-center gap-[8px] px-[10px] text-[11.5px] text-muted-foreground">
       {state === "running" ? (
         <>
           <span className="whitespace-nowrap">검색 결과 갱신 중…</span>
@@ -95,14 +90,12 @@ function ResearchLine({ state, essentialCount, compact = false }: { state: Resea
         </>
       ) : state === "done" ? (
         <span>필수 문양 {essentialCount}개로 검색 결과를 갱신했습니다.</span>
-      ) : compact ? null : (
-        <span>{researchIdleText(essentialCount)}</span>
+      ) : (
+        <span>필수 문양({essentialCount}개)만 검색에 쓰입니다 — 바꾸면 결과를 다시 찾습니다.</span>
       )}
     </div>
   )
 }
-
-type WindowSideTab = "extract" | "conditions" | "history"
 
 /**
  * S04 문양 코딩 · 검색 조건 —SCAS 「문양 상세보기」 3열(왼쪽 현장 이미지 · 이미지 목록 · 코드 설명 / 가운데 문양 행 ·
@@ -116,9 +109,6 @@ export function PatternCodeScreen(props: PatternCodeScreenProps) {
   const historyQuery = props.historyQuery ?? ""
   const shownHistory = filterHistory(props.history, historyQuery)
   const { canEdit, showVerifierChip, showInvestigatorChip } = patternCodeAccess(isAdmin, features, showPlus)
-  // 사건 창 오른쪽 칸 탭(보기 상태 — 창 배치에서만 쓴다)
-  const [sideTab, setSideTab] = React.useState<WindowSideTab>("extract")
-  const sideTabsId = React.useId()
   const inserted = React.useMemo(
     () => new Set(zones[selectedZone].map(([path]) => patternName(path))),
     [zones, selectedZone],
@@ -361,135 +351,11 @@ export function PatternCodeScreen(props: PatternCodeScreenProps) {
     </>
   )
 
-  // 사건 창 안(11/17 사용자 「컴팩트하면서 고급지게」): 왼쪽 현장 이미지(높이 꽉) | 가운데 4부위 · 팔레트(칸 안 스크롤) |
-  // 오른쪽 좁은 칸 밑줄 탭(AI 추출 · 검색 조건 · 검색이력), 바닥 한 줄 = 진행 · 다음 이미지 | 단추(검색만 채움).
-  // 겹치는 제목 줄(문양 상세보기 · 감정번호) · 닫기 · 이미지 목록 표(창 왼쪽 목록과 같은 일)는 그리지 않는다.
+  // 사건 창 안(11/17 사용자 「여기도 아까와같이 먹색으로 전문적여 보이게 … AI 조건은 빼」): 같은 상태 · 핸들러, 배치만 PatternWindow 가 맡는다.
+  // 겹치는 제목 줄(문양 상세보기 · 감정번호) · 닫기 · 이미지 목록 표(창 왼쪽 목록과 같은 일) · AI 검색 방식 · 깔때기 ·
+  // 인공지능문양관리(준비 중 AI 단추)는 그리지 않는다 — 이 탭의 AI 는 문양 추출뿐.
   if (props.inWindow && (status === "ready" || status === "empty")) {
-    // 좁은 창(왼쪽 목록 펼침)에서는 탭 뒤 수를 숨겨 세 탭이 한 줄에 들게 한다
-    const countMark = (n: number) => (
-      <span className="@max-[760px]:hidden">
-        <TabMark kind="count" count={n} />
-      </span>
-    )
-    const sideTabs: [WindowSideTab, React.ReactNode][] = [
-      ["extract", <>AI 추출{countMark(props.extracted.length)}</>],
-      ["conditions", "검색 조건"],
-      ["history", <>검색이력{countMark(props.history.length)}</>],
-    ]
-    return (
-      <section
-        aria-label="문양 코딩"
-        aria-busy={false}
-        data-screen="S04"
-        data-slot="pattern-code-window"
-        className="@container flex h-full min-h-0 min-w-0 flex-col gap-[10px] p-[12px]"
-      >
-        <div className="grid min-h-0 flex-1 grid-cols-[220px_minmax(0,1fr)_288px] gap-[14px] @max-[760px]:grid-cols-[210px_minmax(0,1fr)_256px]">
-          {/* 왼쪽: 현장 이미지 — 경계선 캔버스 바깥 상자만 키운다(좌표 계약은 슬롯 안 PatternCanvas 몫) */}
-          <section aria-label="현장 이미지" className="flex min-h-0 min-w-0 flex-col gap-[8px]">
-            <PaneHead title="현장 이미지" end={sourcePicker} />
-            {canvasBox("min-h-0 flex-1")}
-            {plus && props.priceTagWarning ? (
-              <p data-plus="" className="m-0 shrink-0 text-[11px] leading-[1.4] text-warn">
-                ▣ 가격표 자리 — AI가 문양을 못 잡을 수 있습니다
-              </p>
-            ) : null}
-            {extractButton("w-full shrink-0 justify-center")}
-          </section>
-
-          {/* 가운데: 4부위 문양 · 문자열 · 팔레트 */}
-          <section aria-label="현장 이미지 문양" className="flex min-h-0 min-w-0 flex-col gap-[6px]">
-            <PaneHead
-              title="현장 이미지 문양"
-              tip={plus && patternMeta ? researchIdleText(essentialCount) : `${researchIdleText(essentialCount)} 끌어 놓기 · 누르면 빼기 · 우클릭 필수.`}
-              sub={
-                plus && patternMeta ? (
-                  <span data-plus="" className="text-ai">
-                    AI 제안 {counts.sug} · 확인 {counts.ok}
-                  </span>
-                ) : undefined
-              }
-            />
-            <div className="flex shrink-0 flex-wrap items-center gap-[6px]">
-              <ResearchLine state={props.researchState} essentialCount={essentialCount} compact />
-              {zoneTools ? (
-                <span data-plus="" className="ml-auto flex flex-wrap items-center gap-[6px]">
-                  {zoneTools}
-                </span>
-              ) : null}
-            </div>
-            <div className="flex min-h-0 flex-1 flex-col gap-[12px] overflow-y-auto pr-[2px]">
-              {zoneRows}
-              {soleTextRow}
-              {palettePanel(true)}
-            </div>
-          </section>
-
-          {/* 오른쪽: AI 추출 · 검색 조건 · 검색이력 */}
-          <section aria-label="추출 · 검색" className="flex min-h-0 min-w-0 flex-col gap-[10px]">
-            <UnderlineTabs
-              label="추출 · 검색"
-              tabs={sideTabs}
-              value={sideTab}
-              onChange={setSideTab}
-              idPrefix={sideTabsId}
-            />
-            <div
-              role="tabpanel"
-              aria-labelledby={`${sideTabsId}-${sideTab}`}
-              className="flex min-h-0 min-w-0 flex-1 flex-col gap-[14px] overflow-y-auto px-[2px]"
-            >
-              {sideTab === "extract" ? (
-                <>
-                  {extractResults(true)}
-                  <section aria-label="코드 설명" className="grid gap-[4px]">
-                    <SubHead title="코드 설명" />
-                    <p className="m-0 text-[12px] leading-[1.5] break-keep text-fg-2">{codeNoteText}</p>
-                  </section>
-                </>
-              ) : sideTab === "conditions" ? (
-                <>
-                  {plus && props.searchMethod && props.onSearchMethodChange ? (
-                    <SearchMethodPicker value={props.searchMethod} onChange={props.onSearchMethodChange} disabled={!canEdit} bare />
-                  ) : null}
-                  {plus && props.funnel ? <SearchFunnel steps={props.funnel.steps} note={props.funnel.note} /> : null}
-                  <MatchConditions value={props.matchConditions} onChange={props.onMatchConditionsChange} bare />
-                </>
-              ) : (
-                <section aria-label="검색이력" className="flex min-w-0 flex-col gap-[6px]">
-                  {columnPicker ? <div className="flex justify-end">{columnPicker}</div> : null}
-                  {historyBody}
-                </section>
-              )}
-            </div>
-          </section>
-        </div>
-
-        {/* 바닥 한 줄: 진행 · 다음 이미지 | SCAS 단추(닫기는 창 ✕ 가 맡음) */}
-        <div className="flex shrink-0 flex-wrap items-center gap-[8px] border-0 border-t border-solid border-border pt-[8px]">
-          {!canEdit ? <span className="text-[11.5px] text-muted-foreground">{readOnlyNote}</span> : null}
-          {progress ? (
-            <span data-plus="" className="flex min-w-0 items-center gap-[8px] text-[11px] text-dim">
-              <span className="font-code tabular-nums">
-                {progress.total}장 중 {progress.done}장 완료
-              </span>
-              {progress.next ? (
-                <Button size="sm" onClick={() => props.onNextImage?.(progress.next as string)}>
-                  다음 이미지 {progress.next.slice(progress.next.lastIndexOf("_"))} →
-                </Button>
-              ) : null}
-            </span>
-          ) : null}
-          {roleChips}
-          <span className="ml-auto flex flex-wrap items-center gap-[4px]">
-            {aiManageButton}
-            {resultsButton}
-            {resetButton}
-            {searchButton}
-          </span>
-        </div>
-      </section>
-    )
+    return <PatternWindow {...props} canEdit={canEdit} readOnlyNote={readOnlyNote} roleChips={roleChips} />
   }
 
   let body: React.ReactNode
