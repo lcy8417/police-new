@@ -211,6 +211,8 @@ export function RetrievalResultsGrid({
               {/* 신발 이미지는 세로형이라 카드도 세로로 길게(2:3) — 이미지가 카드를 꽉 채우게 여백 축소. */}
               <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#05080D]">
                 <LoadingImage
+                  loading="lazy"
+                  decoding="async"
                   src={item.image}
                   alt={`신발 이미지 ${item.ftwrId}`}
                   containerClassName="absolute inset-0"

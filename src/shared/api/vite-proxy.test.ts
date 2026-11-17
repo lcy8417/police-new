@@ -51,12 +51,13 @@ describe("vite.config.js 중계(proxy) 규칙 — 같은 주소(same-origin)", (
     expect(matchesApi("/login")).toBe(false);
   });
 
-  it("정적 이미지 폴더 4개와 API 규칙을 같은 대상·옵션으로 묶는다", () => {
+  it("정적 이미지 폴더 5개(신발 썸네일 포함)와 API 규칙을 같은 대상·옵션으로 묶는다", () => {
     expect(BACKEND_STATIC_PREFIXES).toEqual([
       "/crime_images/",
       "/crime_history/",
       "/crime_outlines/",
       "/shoes_images/",
+      "/shoes_thumbs/",
     ]);
     const proxy = backendProxy("https://localhost:8000");
     expect(Object.keys(proxy)).toEqual([BACKEND_PROXY_PATTERN, ...BACKEND_STATIC_PREFIXES]);

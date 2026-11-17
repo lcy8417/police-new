@@ -23,6 +23,8 @@ export const BACKEND_STATIC_PREFIXES = [
   '/crime_history/',
   '/crime_outlines/',
   '/shoes_images/',
+  // 신발 썸네일(224px WebP — 서버 scripts/make_shoe_thumbs.py). 검색 결과 카드만 쓰고, 없으면 화면이 원본으로 대신한다
+  '/shoes_thumbs/',
 ]
 
 /**

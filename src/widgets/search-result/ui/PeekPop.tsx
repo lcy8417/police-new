@@ -1,6 +1,7 @@
 import { cn } from "@/shared/lib/utils"
 import { ConfidenceBar } from "@/shared/ui/ai"
 
+import { useThumbSrc } from "../lib/use-thumb-src"
 import { formatSimilarity, parseSimilarity } from "../model/similarity"
 import type { ImageSearchResultItem, ZonePatternSet } from "../model/types"
 import { ZONE_MATCH } from "./WindowCard"
@@ -55,6 +56,7 @@ export function PeekPop({
   top: number
 }) {
   const value = parseSimilarity(item.similarity)
+  const shoe = useThumbSrc(item.image)
   const zones = item.zoneScores ?? []
   const cand = item.zonePatterns ?? []
   const rows = (queryPatterns ?? []).map((q) => q.zone)
@@ -83,7 +85,14 @@ export function PeekPop({
           <span className={TAG}>현장</span>
         </span>
         <span className="relative h-[150px] overflow-hidden rounded-[6px] border border-solid border-border bg-paper">
-          <img src={item.image} alt={`신발 ${item.ftwrId} 밑창`} className="block size-full object-contain" />
+          {/* 84px 칸 — 카드와 같은 썸네일(이미 받은 그림이라 바로 뜸), 없으면 원본 */}
+          <img
+            decoding="async"
+            src={shoe.src}
+            onError={shoe.onError}
+            alt={`신발 ${item.ftwrId} 밑창`}
+            className="block size-full object-contain"
+          />
           <span className={TAG}>후보</span>
         </span>
         <div className="grid content-start gap-[7px]">

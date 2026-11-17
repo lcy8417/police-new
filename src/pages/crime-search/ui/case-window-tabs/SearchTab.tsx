@@ -251,8 +251,9 @@ function LiveSearchTab({ viewer, image, onOpenCompare }: SearchTabProps) {
   const debouncedPatterns = React.useMemo(() => JSON.parse(patternsKey) as typeof searchPatterns, [patternsKey])
   const settled = patternsKey === patternsSignature
 
-  // 받은 쪽 수 — 검색 조건이 바뀌면 1쪽부터(조건 문자열이 다르면 1로 본다)
-  const conditionKey = `${searchEdit}|${binary}|${String(similarity)}|${patternsKey}`
+  // 받은 쪽 수 — 검색 조건이 바뀌면 1쪽부터(조건 문자열이 다르면 1로 본다).
+  // 이진화 · 원본 · 유사부위 표출은 화면 전용 값이라 조건이 아니다(서버 순위와 무관 — 바꿔도 다시 검색하지 않고 그림 폴더만 바꿈)
+  const conditionKey = `${searchEdit}|${patternsKey}`
   const [loaded, setLoaded] = React.useState({ key: conditionKey, pages: 1 })
   const pageCount = loaded.key === conditionKey ? loaded.pages : 1
 
@@ -266,15 +267,16 @@ function LiveSearchTab({ viewer, image, onOpenCompare }: SearchTabProps) {
   // @MX:WARN: settled 게이트(docs/api-communication.md §5) — enabled 의 patternsKey === patternsSignature 를 지우면 스테일 문양으로 먼저 나가는 이중 요청
   const pageQueries = useQueries({
     queries: Array.from({ length: pageCount }, (_, page) => ({
-      // 지금 앱(CrimeDetailPage)과 같은 키 모양 — 같은 감정물 · 같은 조건이면 캐시를 같이 쓴다
-      queryKey: ["crimeSearch", "results", aprthngNo, searchEdit, page, binary, similarity, patternsKey],
+      // 키 = 순위에 영향 주는 값만(감정물 · 원본/편집본 · 쪽 · 필수 문양). 이진화 · 원본 · 유사부위 토글은 키에 넣지 않는다 —
+      // 예전에는 토글마다 받은 모든 쪽의 검색 POST 가 다시 나갔다(분석 보고서 B7). 그림 주소는 아래 results 에서 지금 보기로 만든다
+      queryKey: ["crimeSearch", "results", aprthngNo, searchEdit, page, patternsKey],
       queryFn: () =>
         imageSearch({
           aprthngNo,
           body: { image: loadedImage, ...debouncedPatterns },
           page,
           binary,
-          // 지금 앱(JS)은 유사부위 리터럴 문자열 또는 false 를 그대로 넘겼다
+          // 지금 앱(JS)은 유사부위 리터럴 문자열 또는 false 를 그대로 넘겼다(서버는 순위에 쓰지 않음)
           similarity: similarity as unknown as boolean,
         }) as Promise<SearchPage>,
       enabled: Boolean(loadedImage) && (!searchEdit || hasEditImage) && settled && patternsReady,
@@ -283,7 +285,11 @@ function LiveSearchTab({ viewer, image, onOpenCompare }: SearchTabProps) {
 
   const first = pageQueries[0]
   const totalCount = first?.data?.total ?? 0
-  const results = toPercentList(pageQueries.flatMap((q) => q.data?.result ?? []))
+  // 그림 폴더는 지금 보기(이진화 · 원본)로 — 받은 결과의 image 는 받을 때 보기라 다시 만든다(RunResultsTab 과 같은 규칙)
+  const shoeKind = binary === "이진화보기" ? "B" : "Shoerinsics"
+  const results = toPercentList(
+    pageQueries.flatMap((q) => (q.data?.result ?? []).map((r) => ({ ...r, image: shoeImageUrl(r.ftwrId, shoeKind) }))),
+  )
   const fetchingMore = pageQueries.some((q) => q.isFetching)
 
   const noEditImage = searchEdit && !hasEditImage

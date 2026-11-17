@@ -288,6 +288,27 @@ describe("CaseWindowTabBody — 사건 창 탭 본문(의뢰 상세 A2 · 전역
     expect(api.imageSearch).toHaveBeenCalledTimes(1)
   })
 
+  it("검색 결과(기록 없음): 카드는 썸네일 · lazy, 이진화 ↔ 원본 토글은 다시 검색하지 않고 그림 폴더만 바꾼다", async () => {
+    serve()
+    mswServer.use(http.get("*/crime/:no", () => HttpResponse.json([])))
+    renderTab("search")
+    await waitFor(() => expect(api.imageSearch).toHaveBeenCalledTimes(1))
+    const card = await screen.findByAltText("신발 00758 밑창")
+    // 기본 5개 보기(196px 칸) · 이진화보기(B 폴더) → 썸네일, 화면 밖이면 나중에 받기
+    expect(card).toHaveAttribute("src", "/shoes_thumbs/00758.webp")
+    expect(card).toHaveAttribute("loading", "lazy")
+    expect(card).toHaveAttribute("decoding", "async")
+    // 썸네일이 없으면(404) 원본으로 저절로
+    fireEvent.error(card)
+    await waitFor(() => expect(screen.getByAltText("신발 00758 밑창")).toHaveAttribute("src", "/shoes_images/B/00758.png"))
+    fireEvent.click(screen.getByRole("button", { name: "원본" }))
+    await waitFor(() =>
+      expect(screen.getByAltText("신발 01234 밑창")).toHaveAttribute("src", "/shoes_images/Shoerinsics/01234.png")
+    )
+    await new Promise((r) => setTimeout(r, 350))
+    expect(api.imageSearch).toHaveBeenCalledTimes(1) // 토글은 화면 전용 — 검색 POST 반복 없음(예전에는 다시 나감)
+  })
+
   it("없는 사건이면 찾을 수 없음", async () => {
     mswServer.use(http.get("*/requests", () => HttpResponse.json({ items: [], next_cursor: null })))
     renderTab("pattern")

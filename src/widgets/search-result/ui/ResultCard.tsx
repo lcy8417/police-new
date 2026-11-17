@@ -91,7 +91,7 @@ export function ResultCard({
             compact ? THUMB_H[thumbSize].compact : THUMB_H[thumbSize].normal,
           )}
         >
-          <img src={item.image} alt={`신발 ${item.ftwrId} 밑창`} className="block size-full object-contain" />
+          <img loading="lazy" decoding="async" src={item.image} alt={`신발 ${item.ftwrId} 밑창`} className="block size-full object-contain" />
           {plusFocus ? <SoleHeat /> : null}
           <span className="absolute top-[4px] left-[4px] flex flex-col items-start gap-[2px]">
             {ranking <= 3 ? (

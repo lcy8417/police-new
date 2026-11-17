@@ -1,8 +1,23 @@
 import { cn } from "@/shared/lib/utils"
 import { AiProgress, LiveDot } from "@/shared/ui/ai"
 
+import { useThumbSrc } from "../lib/use-thumb-src"
 import type { AiTopItem, SearchTarget } from "../model/types"
 import { SoleHeat } from "./SoleHeat"
+
+/** 74px 칸 — 썸네일(없으면 원본) */
+function RailImage({ src, ftwrId }: { src: string; ftwrId: string }) {
+  const shown = useThumbSrc(src)
+  return (
+    <img
+      decoding="async"
+      src={shown.src}
+      onError={shown.onError}
+      alt={`신발 ${ftwrId} 밑창`}
+      className="block size-full object-contain"
+    />
+  )
+}
 
 // 시안 r3 「AI가 먼저 보라는 10건」: 이미지 유사도 + 필수 문양 + 부위별 근거로 다시 매긴 상위 10건을 한 줄로.
 // 본 것 ✓ · 확인대상 ★ · 근거 한 줄. 끝까지 보는 길(아래 그리드)은 그대로다.
@@ -46,7 +61,7 @@ export function AiTopRail({ items, targets }: { items: readonly AiTopItem[]; tar
               )}
             >
               <span className="relative block h-[74px] overflow-hidden rounded-[5px] bg-paper">
-                <img src={t.image} alt={`신발 ${t.ftwrId} 밑창`} className="block size-full object-contain" />
+                <RailImage src={t.image} ftwrId={t.ftwrId} />
                 {t.heat ? <SoleHeat /> : null}
                 <b
                   className={cn(

@@ -4,6 +4,7 @@ import { Eye, Star } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { ConfidenceBar } from "@/shared/ui/ai"
 
+import { useThumbSrc } from "../lib/use-thumb-src"
 import { parseSimilarity } from "../model/similarity"
 import type { ImageSearchResultItem } from "../model/types"
 
@@ -20,6 +21,8 @@ export interface WindowCardProps {
   per: 1 | 3 | 5
   selected: boolean
   seen: boolean
+  /** 지금 화면 · 다음 한 화면 안 카드 — 그림을 바로 받는다(나머지는 브라우저가 가까워지면 받음 · 빈칸은 회색 틀 그대로) */
+  eager?: boolean
   starred: boolean
   canStar: boolean
   onSelect: () => void
@@ -62,6 +65,7 @@ export function WindowCard({
   per,
   selected,
   seen,
+  eager = false,
   starred,
   canStar,
   onSelect,
@@ -72,6 +76,8 @@ export function WindowCard({
 }: WindowCardProps) {
   const value = parseSimilarity(item.similarity)
   const row = per === 1
+  // 196px 칸(5개 보기)만 224px 썸네일 — 1 · 3개 보기(280 · 360px)는 원본. 썸네일이 없으면 원본으로 저절로
+  const shown = useThumbSrc(item.image, per === 5)
   const score = (
     <b className="font-code text-[16px] font-bold leading-none tabular-nums text-foreground">
       {value === null ? "—" : value.toFixed(1)}
@@ -118,7 +124,15 @@ export function WindowCard({
           </span>
         ) : null}
         <span className={cn("relative block overflow-hidden rounded-[6px] bg-paper", THUMB_H[per])}>
-          <img src={item.image} alt={`신발 ${item.ftwrId} 밑창`} className={cn("block size-full object-contain", seen && "opacity-60")} />
+          {/* loading 을 src 보다 먼저(일부 브라우저는 src 가 먼저 붙으면 바로 받음) */}
+          <img
+            loading={eager ? "eager" : "lazy"}
+            decoding="async"
+            src={shown.src}
+            onError={shown.onError}
+            alt={`신발 ${item.ftwrId} 밑창`}
+            className={cn("block size-full object-contain", seen && "opacity-60")}
+          />
         </span>
         {row ? (
           <span className="grid min-w-0 content-start gap-[10px] py-[4px]">
