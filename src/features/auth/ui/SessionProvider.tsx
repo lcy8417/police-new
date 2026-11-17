@@ -14,6 +14,8 @@ import { SessionLoadingScreen } from "./SessionLoadingScreen"
 
 /** 새 사건관리 주소 — 전역 사건 목록을 쓰지 않는 화면 */
 const CASES_PATH = "/cases"
+/** 전역 사건 목록을 부르지 않는 그 밖의 주소(화면이 아니라 거쳐 가는 곳) */
+const NOT_LEGACY_PATHS = new Set([LOGIN_PATH, PASSWORD_PATH, "/"])
 
 /** 서버가 비밀번호 변경 전 요청을 막을 때 주는 403 문구. */
 const PASSWORD_CHANGE_DETAIL = "비밀번호를 변경해야 합니다"
@@ -94,7 +96,9 @@ export function SessionProvider({ children }: SessionProviderProps) {
   const userId = user?.userId ?? null
   // 화면 이식 계획 §5 R1: 새 사건관리(`/cases`)는 전역 store 를 쓰지 않으므로(A1 · A2 쿼리) 거기서는 전체 사건 목록
   // (`GET /crime/` — 편집 이미지 base64 포함)을 부르지 않는다. 옛 화면 주소에 처음 들어갈 때 1회 부른다.
-  const legacyRoute = !location.pathname.startsWith(CASES_PATH)
+  // 로그인 · 비밀번호 변경 · 첫 화면 넘겨주기(`/`)는 옛 화면이 아니다 — 거기서 자격이 생기면(로그인 직후) 곧바로 `/cases` 로
+  // 가므로 부르지 않는다(스모크 4단계: 로그인 직후 `GET /crime/` 1회가 새던 결함).
+  const legacyRoute = !location.pathname.startsWith(CASES_PATH) && !NOT_LEGACY_PATHS.has(location.pathname)
   const prevEligibilityRef = useRef<{ eligible: boolean; userId: string | null }>({
     eligible: false,
     userId: null,

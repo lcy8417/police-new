@@ -43,6 +43,7 @@ function renderApp(path: string) {
             element={
               <RequireAuth>
                 <p>비밀번호 변경 화면</p>
+                <Link to="/search">옛 화면 가기</Link>
               </RequireAuth>
             }
           />
@@ -266,10 +267,16 @@ describe("SessionProvider — 사건 목록 로딩 자격", () => {
     await screen.findByText("비밀번호 변경 화면");
     expect(refetch).not.toHaveBeenCalled();
 
-    // 비밀번호를 바꿔 자격이 생김 → 1회 로딩
+    // 비밀번호를 바꿔 자격이 생겨도 비밀번호 화면(옛 화면 아님)에서는 부르지 않는다
     act(() => {
       useSessionStore.getState().setUser({ ...pending, passwordChangeRequired: false });
     });
+    expect(refetch).not.toHaveBeenCalled();
+
+    // 옛 화면에 들어가면 1회 로딩(이동 때 세션 재확인이 바뀐 사용자를 돌려주게)
+    fetchMeMock.mockResolvedValue({ ...pending, passwordChangeRequired: false });
+    fireEvent.click(await screen.findByRole("link", { name: "옛 화면 가기" }));
+    await waitFor(() => expect(location()).toBe("/search"));
     expect(refetch).toHaveBeenCalledTimes(1);
 
     // 같은 사용자 정보 재설정(재확인)으로는 다시 부르지 않음
@@ -285,6 +292,17 @@ describe("SessionProvider — 사건 목록 로딩 자격", () => {
     });
     expect(reset).toHaveBeenCalledTimes(1);
     expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("로그인 화면에서 로그인해 /cases 로 가면 전체 사건 목록을 부르지 않는다(스모크 4단계 결함)", async () => {
+    fetchMeMock.mockResolvedValue(null);
+    renderApp("/login");
+    await screen.findByText("로그인 화면");
+    act(() => {
+      useSessionStore.getState().setUser(user([FEATURES.CRIME_SEARCH]));
+    });
+    await waitFor(() => expect(location()).toBe("/cases"));
+    expect(refetch).not.toHaveBeenCalled();
   });
 
   it("새 사건관리(/cases)에서는 전체 사건 목록을 부르지 않고, 옛 화면에 처음 들어갈 때 1회 부른다(이식 계획 R1)", async () => {
