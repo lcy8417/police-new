@@ -13,6 +13,7 @@ import {
   useSearchRun,
   type Crime,
 } from "@/entities/crime"
+import { FEATURES } from "@/entities/session"
 import { shoeImageUrl } from "@/entities/shoe"
 import { useSaveSeen } from "@/features/crime-search"
 import { imageLoad, imageSearch } from "@/services/api"
@@ -69,7 +70,18 @@ export function SearchTab(props: SearchTabProps) {
   const latest = history && history.length ? history[history.length - 1].searchNo : null
   const runNo = selected ?? latest
   // 이력을 못 읽었으면(옛 서버 · 오류) 지금 앱 인라인 검색으로 — 검색 결과를 아예 못 보게 막지 않는다
-  if (runNo === null && (historyQuery.isSuccess || historyQuery.isError)) return <LiveSearchTab {...props} />
+  if (runNo === null && (historyQuery.isSuccess || historyQuery.isError)) {
+    // 즉석 검색(D1 POST)은 검색 권한(CRIME_SEARCH)이 있어야 한다 — 보기 전용(검증자 등)은 403 오류 대신 안내만([검수])
+    const canSearch = props.viewer.isAdmin || props.viewer.features.includes(FEATURES.CRIME_SEARCH)
+    if (!canSearch) {
+      return (
+        <p className="m-0 grid h-full place-items-center p-[24px] text-center text-[12.5px] text-muted-foreground">
+          검색 기록이 없습니다 — 감정관이 문양 코드 탭에서 검색하면 여기에 결과가 보입니다.
+        </p>
+      )
+    }
+    return <LiveSearchTab {...props} />
+  }
   return <RunResultsTab key={runNo ?? "none"} {...props} searchNo={runNo} />
 }
 

@@ -106,7 +106,9 @@ function CompareBody({ viewer, image, target, candidates, view, onConfirmTarget,
     queryFn: () => fetchAlignment({ aprthngNo, ftwrId }),
     enabled: Boolean(aprthngNo && ftwrId),
   })
-  const align = useAlignment({ aprthngNo, ftwrId })
+  // 보기 전용(정렬 저장 권한 CRIME_SEARCH 없음)이면 직전 정렬 이어받기를 저장하지 않는다([검수])
+  const canSaveAlignment = viewer.isAdmin || viewer.features.includes(FEATURES.CRIME_SEARCH)
+  const align = useAlignment({ aprthngNo, ftwrId, canPersist: canSaveAlignment })
   const aligned = Boolean(alignmentQuery.data?.polygon && alignmentQuery.data?.arrow)
   const match = useMatchTop10({ aprthngNo, ftwrId, enabled: aligned })
   // 대응점 계산 실패(게이트 409 · 모델 없음 503)는 위젯에 자리가 없어 아무 표시 없이 빈 판으로 남았다(스모크 4단계) —

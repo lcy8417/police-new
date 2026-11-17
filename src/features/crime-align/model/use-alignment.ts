@@ -55,6 +55,11 @@ export interface UseAlignmentParams {
   aprthngNo: string;
   /** 정렬 대상 신발 ID(`ftwrId`, 문자열 — 앞자리 0 보존). 서버 쿼리 `ftwr_id`로 전송된다. */
   ftwrId: string;
+  /**
+   * 정렬을 저장할 수 있나(정렬 저장 권한 CRIME_SEARCH). 기본 true. false(보기 전용 — 검증자 등)면 직전 정렬 이어받기를
+   * 화면에만 채우고 저장하지 않는다([검수] — 보기만 하는 사람이 대조 탭을 열면 자동 저장이 403 오류 알림을 냈다).
+   */
+  canPersist?: boolean;
 }
 
 export interface UseAlignment {
@@ -127,7 +132,7 @@ export interface UseAlignment {
   canSave: boolean;
 }
 
-export function useAlignment({ aprthngNo, ftwrId }: UseAlignmentParams): UseAlignment {
+export function useAlignment({ aprthngNo, ftwrId, canPersist = true }: UseAlignmentParams): UseAlignment {
   const queryClient = useQueryClient();
   const [polygon, setPolygon] = useState<Point[]>([]);
   const [toe, setToe] = useState<Point | null>(null);
@@ -247,6 +252,7 @@ export function useAlignment({ aprthngNo, ftwrId }: UseAlignmentParams): UseAlig
     setFlipHorizontal(Boolean(src.flipHorizontal));
     setPhase("review");
     setTemplateSeeded(true);  // 템플릿이 덮어쓰지 않도록 막는다
+    if (!canPersist) return;  // 보기 전용 — 화면에만(저장 권한 없음)
 
     void saveAlignment({
       aprthngNo,
@@ -275,6 +281,7 @@ export function useAlignment({ aprthngNo, ftwrId }: UseAlignmentParams): UseAlig
     aprthngNo,
     ftwrId,
     queryClient,
+    canPersist,
   ]);
 
   // ─── 폴리곤: 밑창 템플릿 기본 제공(REQ-ALIGN-017) ───

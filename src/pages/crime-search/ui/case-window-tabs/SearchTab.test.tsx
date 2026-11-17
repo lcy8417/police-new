@@ -97,6 +97,26 @@ describe("SearchTab — 검색 기록의 결과 쪽(D4)", () => {
     })
   })
 
+  it("[검수] 검색 권한(CRIME_SEARCH) 없는 보기 전용은 기록이 없을 때 즉석 검색(POST)을 보내지 않고 안내만", async () => {
+    let liveSearch = 0
+    mswServer.use(
+      http.get("*/crime/:no", () => HttpResponse.json([])),
+      http.post("*/crime/:no/search", () => {
+        liveSearch += 1
+        return HttpResponse.json({ result: [], total: 0 })
+      }),
+    )
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <SearchTab viewer={{ isAdmin: false, features: ["EXAM_VIEW"] }} image={IMAGE} onOpenCompare={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    expect(await screen.findByText(/검색 기록이 없습니다/)).toBeInTheDocument()
+    await new Promise((r) => setTimeout(r, 400))
+    expect(liveSearch).toBe(0)
+  })
+
   it("검색 기록이 없으면 지금 앱 인라인 검색(필수 문양만)", async () => {
     let body: Record<string, unknown> | undefined
     mswServer.use(

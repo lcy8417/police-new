@@ -498,3 +498,37 @@ describe("useAlignment — 저장/복원/재설정/쌍 격리(기존 계약 무�
     expect(resultZ.current.isAligned).toBe(false);
   });
 });
+
+describe("useAlignment — 직전 정렬 이어받기와 쓰기 권한([검수])", () => {
+  const LATEST = { ftwrId: "A1", polygon: [[1, 1], [9, 1], [9, 9]], arrow: [[5, 1], [5, 9]], flipHorizontal: false };
+
+  function serve(posts: unknown[]) {
+    mswServer.use(
+      http.get("*/crime/:no/alignment/latest", () => HttpResponse.json(LATEST)),
+      http.get("*/crime/:no/alignment", () => HttpResponse.json(UNSET)),
+      http.post("*/crime/:no/alignment", async ({ request }) => {
+        posts.push(await request.json());
+        return HttpResponse.json({ ok: true });
+      })
+    );
+  }
+
+  it("쓰기 권한이 있으면 이어받은 정렬을 이 쌍으로 저장한다(예전 동작)", async () => {
+    const posts: unknown[] = [];
+    serve(posts);
+    const { result } = renderUseAlignment("C-1_1", "B2");
+    await waitFor(() => expect(result.current.phase).toBe("review"));
+    await waitFor(() => expect(posts).toHaveLength(1));
+  });
+
+  it("보기 전용(canPersist=false)이면 화면에만 채우고 저장(POST)은 보내지 않는다 — 403 오류 알림 없음", async () => {
+    const posts: unknown[] = [];
+    serve(posts);
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+    const { result } = renderHook(() => useAlignment({ aprthngNo: "C-1_1", ftwrId: "B2", canPersist: false }), { wrapper });
+    await waitFor(() => expect(result.current.phase).toBe("review"));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(posts).toHaveLength(0);
+  });
+});
