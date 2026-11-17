@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { targetKeys, targetsPath, type TargetList } from "@/entities/crime/api/targets-api"
+import { targetKeys, targetsPath, type TargetList } from "@/entities/crime"
 import { apiSend } from "@/shared/api"
 import { convertKeysToCamelCase } from "@/shared/lib"
 

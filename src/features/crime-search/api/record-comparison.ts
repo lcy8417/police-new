@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { comparisonKeys } from "@/entities/crime/api/comparison-api"
+import { comparisonKeys } from "@/entities/crime"
 import { backendFetch, toApiError } from "@/shared/api"
 
 /**

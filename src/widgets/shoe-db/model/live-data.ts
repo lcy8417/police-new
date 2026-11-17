@@ -1,6 +1,6 @@
 import type { Shoe } from "@/entities/shoe"
 // 배럴(`@/entities/shoe`)은 통합 담당 파일 — 새 이름은 통합 때 배럴로 옮긴다(sprint-notes)
-import type { ShoeListFilters, ShoeStages } from "@/entities/shoe/model/types"
+import type { ShoeListFilters, ShoeStages } from "@/entities/shoe"
 
 import type { ShoeCardInfo, ShoeDbFilters, ShoeStageSummary, ShoeWorkStatus } from "./types"
 

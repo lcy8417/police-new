@@ -27,3 +27,8 @@ export type {
   SimilarityMatch,
   SimilarityResponse,
 } from "./model/similarity";
+// B 단계: 검색 기록(D1 record) · 본 위치(E1) · 대조 기록(F1 record)
+export { runSearch, saveSeen, useRunSearch, useSaveSeen } from "./api/use-run-search";
+export type { RunSearchBody, RunSearchItem, RunSearchResponse, SeenResult } from "./api/use-run-search";
+export { recordComparison, useRecordComparison } from "./api/record-comparison";
+export type { RecordComparisonResult } from "./api/record-comparison";

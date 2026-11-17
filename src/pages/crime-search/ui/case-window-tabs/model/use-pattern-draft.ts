@@ -1,11 +1,9 @@
 import * as React from "react"
 
-import type { CrimePatterns } from "@/entities/crime/api/pattern-api"
-import type { CondPattern, SearchHistoryEntry } from "@/entities/crime/api/search-history-api"
+import type { CondPattern, CrimePatterns, SearchHistoryEntry } from "@/entities/crime"
 import { insertPatternPath, type PatternZone } from "@/entities/pattern"
 import { shoeImageUrl } from "@/entities/shoe"
-import type { SavePatternsBody } from "@/features/patterns-extract/api/use-save-patterns"
-import type { RunSearchBody } from "@/features/crime-search/api/use-run-search"
+import type { RunSearchBody } from "@/features/crime-search"
 import {
   insertPattern as insertTuple,
   nameOf,
@@ -13,7 +11,8 @@ import {
   removePattern as removeTuple,
   toggleEssential as toggleTuple,
   type CrimeZoneMap,
-} from "@/features/patterns-extract/model/pattern-ops"
+  type SavePatternsBody,
+} from "@/features/patterns-extract"
 import {
   patternWeights,
   pendingSnapshot,

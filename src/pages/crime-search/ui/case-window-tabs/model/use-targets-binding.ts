@@ -3,9 +3,9 @@
 // 확정 판정이 있는 장에서 ★를 바꾸면 서버가 「다시 판정」을 하고 결과 확인 탭도 다시 읽는다(features/targets).
 import * as React from "react"
 
-import { useTargets } from "@/entities/crime/api/targets-api"
+import { useTargets } from "@/entities/crime"
 import { FEATURES } from "@/entities/session"
-import { useToggleTarget } from "@/features/targets/api/use-toggle-target"
+import { useToggleTarget } from "@/features/targets"
 import { ApiError } from "@/shared/api"
 
 import { useViewer } from "./use-viewer"

@@ -2,7 +2,7 @@
  * 서버 편집 이력(B3) → 이미지 편집 위젯 값(편집 이력 줄 · 원본 해시 · 되돌릴 곳) 순수 변환.
  * 위젯의 줄 번호 `no` 는 이력 순서(1부터), 0 = 받은 원본(작업본)이다. 서버 되돌리기 대상 `toEditId` 는 편집 번호(0 = 작업본).
  */
-import type { EditHistory, EditHistoryItem, EditOp } from "@/entities/crime/api/edit-history-api"
+import type { EditHistory, EditHistoryItem, EditOp } from "@/entities/crime"
 
 /** 위젯 편집 이력 한 줄(`widgets/image-edit` `ImageEditHistoryEntry` 와 같은 모양 — features 가 widgets 를 가져오지 않게 따로 둔다) */
 export interface EditHistoryRow {

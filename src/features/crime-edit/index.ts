@@ -1,4 +1,10 @@
 export { PolygonCaptureCanvas } from "./ui/PolygonCaptureCanvas"
 export { EditToolbar } from "./ui/EditToolbar"
 export { useImageEdit } from "./model/use-image-edit"
-export type { UseImageEdit, EditTool } from "./model/use-image-edit"
+export type { UseImageEdit, EditTool, EditStepOp } from "./model/use-image-edit"
+// B 단계 묶음 ③ — 편집 단계 저장(B4) · 되돌리기(B5) · 반전 · 이력 줄 만들기
+export { revertEdit, saveEditStep, useRevertEdit, useSaveEditStep } from "./api/use-save-edit"
+export type { RevertEditInput, RevertEditResult, SaveEditStepInput, SaveEditStepResult } from "./api/use-save-edit"
+export { flipImage, type FlipAxis } from "./lib/flip-image"
+export { opLabel, revertTargetOf, shortHash, toHistoryRows, undoTargetNo } from "./model/edit-history-view"
+export type { EditHistoryRow } from "./model/edit-history-view"

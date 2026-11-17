@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import type { EditOp } from "@/entities/crime/api/edit-history-api";
+import type { EditOp } from "@/entities/crime";
 import {
   bakeThreshold,
   isDataUrl,
