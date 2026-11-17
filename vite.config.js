@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
 import process from 'node:process'
-import { readFileSync } from 'node:fs'
+import { cpSync, readFileSync } from 'node:fs'
+import path from 'node:path'
 
 /**
  * 백엔드로 중계(proxy)할 API 경로 — 키가 `^`로 시작하면 Vite가 정규식으로 쓴다.
@@ -43,6 +44,29 @@ export function backendProxy(target) {
   )
 }
 
+/**
+ * 문양 그림을 빌드 결과에 같은 경로로 복사한다.
+ * 화면 코드는 문양 그림을 소스 경로 글자(`/src/assets/Patterns/전체/<이름>.png` — entities/pattern `PATTERNS_ROOT`,
+ * `import.meta.glob` 키)로 그린다. 개발 서버는 이 경로를 열어 주지만 빌드 + `vite preview`(운영)는 `dist/`만 내주므로
+ * 그대로면 그림 대신 index.html 이 와서 깨진다. 경로 글자는 문양 비교 · 저장이 기대는 정본이라 바꾸지 않고(docs/pattern-data-model.md §3),
+ * 빌드가 끝날 때 폴더를 `dist/src/assets/Patterns/`로 옮겨 같은 주소가 열리게 한다.
+ */
+function copyPatternAssets() {
+  let outDir = 'dist'
+  let root = process.cwd()
+  return {
+    name: 'copy-pattern-assets',
+    apply: 'build',
+    configResolved(config) {
+      root = config.root
+      outDir = path.resolve(config.root, config.build.outDir)
+    },
+    closeBundle() {
+      cpSync(path.join(root, 'src/assets/Patterns'), path.join(outDir, 'src/assets/Patterns'), { recursive: true })
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   // `.env`의 VITE_PROXY_TARGET을 읽는다(이미 설정된 환경변수가 우선).
@@ -56,7 +80,7 @@ export default defineConfig(({ mode }) => {
   const https = certFile && keyFile ? { cert: readFileSync(certFile), key: readFileSync(keyFile) } : undefined
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), copyPatternAssets()],
     resolve: {
       // FSD layer alias: `@/shared/...`, `@/entities/...`, etc.
       alias: {
