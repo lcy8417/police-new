@@ -9,6 +9,11 @@ export const REJUDGE_MESSAGE = "판정이 확정된 이미지입니다. 저장�
 export interface RejudgeConfirm {
   /** 저장 전에 부른다 — 확정 판정이 없거나 이미 「계속」을 눌렀으면 바로 true, 아니면 확인 창을 띄워 답을 기다린다 */
   confirm: () => Promise<boolean>
+  /**
+   * 지금 저장해도 되나(확정 판정이 없거나 이미 「계속」) — 확인 창을 띄울 수 없는 때(탭을 떠나며 저장)에 본다([검수] —
+   * 확인 창이 떠 있는 동안 탭을 떠나면 동의 없이 저장돼 확정 판정이 풀리던 것)
+   */
+  isAccepted: () => boolean
   /** 탭 본문 끝에 그린다 */
   dialog: React.ReactNode
 }
@@ -66,5 +71,7 @@ export function useRejudgeConfirm(judged: boolean): RejudgeConfirm {
     </DialogShell>
   )
 
-  return { confirm, dialog }
+  const isAccepted = React.useCallback(() => !judged || accepted.current, [judged])
+
+  return { confirm, isAccepted, dialog }
 }

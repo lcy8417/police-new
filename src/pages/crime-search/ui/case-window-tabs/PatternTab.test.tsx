@@ -119,6 +119,41 @@ describe("PatternTab — 서버 문양 · 검색 기록", () => {
     expect((calls.put[0].meta as { top: Record<string, unknown> }).top.n21_05).toMatchObject({ status: "suggested", sortOrdr: 1 })
   })
 
+  it("[검수] 확정 판정 장: 「다시 판정」 확인 창이 떠 있는 동안 탭을 떠나면(닫기 · 이동) 저장하지 않는다", async () => {
+    useHandlers()
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const view = render(
+      <QueryClientProvider client={qc}>
+        <div className="h-[800px]">
+          <PatternTab viewer={VIEWER} image={IMAGE} judged onOpenSearch={vi.fn()} />
+        </div>
+      </QueryClientProvider>,
+    )
+    const input = await screen.findByDisplayValue("NIKE")
+    fireEvent.change(input, { target: { value: "ADIDAS" } })
+    expect(await screen.findByText(/다시 판정 상태가 됩니다/)).toBeInTheDocument()
+    view.unmount() // 확인 창에 답하지 않고 탭을 떠남
+    await new Promise((r) => setTimeout(r, 50))
+    expect(calls.put).toHaveLength(0)
+  })
+
+  it("확정 판정 장이라도 「계속」을 누른 뒤 탭을 떠나면 저장한다", async () => {
+    useHandlers()
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const view = render(
+      <QueryClientProvider client={qc}>
+        <div className="h-[800px]">
+          <PatternTab viewer={VIEWER} image={IMAGE} judged onOpenSearch={vi.fn()} />
+        </div>
+      </QueryClientProvider>,
+    )
+    const input = await screen.findByDisplayValue("NIKE")
+    fireEvent.change(input, { target: { value: "ADIDAS" } })
+    fireEvent.click(await screen.findByRole("button", { name: "계속" }))
+    view.unmount()
+    await waitFor(() => expect(calls.put).toHaveLength(1))
+  })
+
   it("저장이 409 면 검색하지 않고 서버 값으로 되돌린다", async () => {
     useHandlers({ putStatus: 409 })
     const { onOpenSearch } = renderTab()

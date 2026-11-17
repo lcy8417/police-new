@@ -168,12 +168,13 @@ export function PatternTab({ viewer, image, onOpenSearch, judged = false }: Patt
   }, [dirty, confirmRejudge])
 
   // 탭을 떠날 때(탭 · 이미지 이동 · 창 닫기) 바뀐 게 있으면 저장 — 최신 값은 ref 로
-  const latest = React.useRef({ draft, rowVersion, dirty, saveIfDirty })
-  latest.current = { draft, rowVersion, dirty, saveIfDirty }
+  // 확정 판정 장은 「계속」에 답한 뒤에만(확인 창이 떠 있는 채 떠나면 저장하지 않는다 — [검수])
+  const latest = React.useRef({ draft, rowVersion, dirty, saveIfDirty, isAccepted: rejudge.isAccepted })
+  latest.current = { draft, rowVersion, dirty, saveIfDirty, isAccepted: rejudge.isAccepted }
   React.useEffect(
     () => () => {
       const l = latest.current
-      if (l.dirty) void l.saveIfDirty(l.draft, l.rowVersion, true)
+      if (l.dirty && l.isAccepted()) void l.saveIfDirty(l.draft, l.rowVersion, true)
     },
     [],
   )
