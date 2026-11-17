@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 
 import { editFileUrl, useEditHistory, type Crime } from "@/entities/crime"
 import type { RequestDetail, RequestImage } from "@/entities/request"
+import { backendMediaUrl } from "@/shared/api"
 import { resolveImageToDataUrl } from "@/shared/lib"
 
 // 탭 본문이 받는 이미지 한 장(`Crime` 모양 — 탭들이 원래 받던 값)을 서버 의뢰 상세(A2)로 만든다.
@@ -17,8 +18,9 @@ export function toTabImage(detail: RequestDetail, img: RequestImage, editImage: 
     pickMthCode: img.pickMthCode,
     crimeNm: detail.crimeNm,
     rqestGrfcNm: detail.rqestOrgNm,
-    // 현장 그림(루트 기준) — 볼 수 없는 사람 · 과거 사건은 null
-    image: img.thumbUrl,
+    // 현장 그림 — 볼 수 없는 사람 · 과거 사건은 null. 서버 경로(루트 기준)에 API 주소를 붙인다([검수] — 다른 주소의
+    // VITE_API_URL 이면 프론트 주소로 요청해 그림이 깨지던 것)
+    image: backendMediaUrl(img.thumbUrl),
     editImage,
     top: [],
     mid: [],
