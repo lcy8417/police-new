@@ -1,8 +1,9 @@
 import type { ReactNode } from "react"
 
 import type { AdminUser, RoleInfo } from "@/entities/admin"
+import type { ScreenStatus } from "@/shared/lib/screen-status"
 import { cn } from "@/shared/lib/utils"
-import { BoardFrame, ListHeadRow, ListRow, StatePill } from "@/shared/ui/kit"
+import { BoardFrame, InlineError, ListHeadRow, ListNote, ListRow, StatePill } from "@/shared/ui/kit"
 import { PaneHead } from "@/shared/ui/panel"
 
 import {
@@ -260,9 +261,39 @@ export function EffectivePermissions({
 
 /** 관리자 변경 이력(권한 오남용 방지) — R6: 로망 목록 표(ListHeadRow · ListRow) */
 const HISTORY_COLS = ["w-[112px] shrink-0", "w-[150px] shrink-0", "flex-[1_1_140px]", "flex-[1_1_140px]"]
-export function AdminHistory({ rows }: { rows: AdminHistoryRow[] }) {
+export function AdminHistory({
+  rows,
+  status = "ready",
+  errorAt,
+  onRetry,
+}: {
+  rows: AdminHistoryRow[]
+  /** 이력 조회 상태(실제 페이지 — 감사 기록 K2). 없으면 ready */
+  status?: ScreenStatus
+  errorAt?: string
+  onRetry?: () => void
+}) {
+  const end = <span className="text-[11px] text-dim">권한 오남용 방지</span>
+  if (status !== "ready" || rows.length === 0) {
+    // 불러오는 중 · 실패 · 없음을 서로 다른 모양으로(실패를 「결과 없음」으로 덮지 않는다)
+    return (
+      <PanelBox label="관리자 변경 이력" title="관리자 변경 이력" end={end}>
+        {status === "loading" ? (
+          <ListNote role="status" className="text-center">
+            불러오는 중…
+          </ListNote>
+        ) : status === "error" ? (
+          <div className="flex justify-center px-4 py-6">
+            <InlineError message="변경 이력을 확인하지 못했습니다" at={errorAt} onRetry={onRetry} />
+          </div>
+        ) : (
+          <ListNote className="text-center">결과 없음</ListNote>
+        )}
+      </PanelBox>
+    )
+  }
   return (
-    <PanelBox label="관리자 변경 이력" title="관리자 변경 이력" end={<span className="text-[11px] text-dim">권한 오남용 방지</span>}>
+    <PanelBox label="관리자 변경 이력" title="관리자 변경 이력" end={end}>
       <div className="overflow-x-auto">
         <div role="table" aria-label="관리자 변경 이력 표" className="min-w-[560px]">
           <ListHeadRow role="row" aria-hidden={undefined}>
@@ -272,8 +303,8 @@ export function AdminHistory({ rows }: { rows: AdminHistoryRow[] }) {
               </span>
             ))}
           </ListHeadRow>
-          {rows.map((h) => (
-            <ListRow key={`${h.at}-${h.who}`} role="row" className="h-auto min-h-[36px] cursor-default py-[6px]">
+          {rows.map((h, i) => (
+            <ListRow key={`${i}-${h.at}-${h.who}`} role="row" className="h-auto min-h-[36px] cursor-default py-[6px]">
               <span role="cell" className={cn("font-code text-[11px] tabular-nums text-muted-foreground", HISTORY_COLS[0])}>
                 {h.at}
               </span>

@@ -23,7 +23,7 @@ import {
 } from "@/shared/ui/kit"
 
 import { DUTY_COLUMNS, dutiesOf } from "../model/effective-permissions"
-import type { AdminUsersScreenProps } from "../model/types"
+import type { AdminUsersPlusPart, AdminUsersScreenProps } from "../model/types"
 import { USER_COLUMNS } from "../model/user-filter"
 import { AdminHistory, EffectivePermissions, RolePresetTable } from "./PermissionPanels"
 import { UserDetail } from "./UserDetail"
@@ -66,6 +66,8 @@ function LidGroup({ group, onChange }: { group: FilterGroup; onChange: (key: str
 
 export function AdminUsersScreen(props: AdminUsersScreenProps) {
   const { status, isAdmin, users, roles, onRetry, errorAt, showPlus = true } = props
+  // 신규 요소 하나씩: plusParts 를 주면 그 목록만(실제 페이지 — 서버 값이 있는 것만), 없으면 showPlus 하나로(진열)
+  const plusOn = (part: AdminUsersPlusPart) => (props.plusParts ? props.plusParts.includes(part) : showPlus)
 
   if (!isAdmin) {
     return (
@@ -91,7 +93,7 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
         <span className="flex min-w-0 flex-wrap items-center gap-x-[6px] gap-y-[2px] text-[11px] text-muted-foreground">
           <b className={cn("font-bold", u.userSe === "ADMIN" ? "text-brand-3" : "text-fg-2")}>{u.userSe === "ADMIN" ? "관리자" : "사용자"}</b>
           {u.roles.length > 0 && <span className="truncate">{u.roles.map(roleName).join(" · ")}</span>}
-          {showPlus &&
+          {plusOn("duties") &&
             dutiesOf(u, duties[u.userId] ?? []).map((d) => (
               <span key={d} data-plus className="text-violet">
                 ◇ {dutyName(d)}
@@ -244,7 +246,7 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
             </WorkbenchButton>
           </span>
         </BoardLid>
-        {showPlus && ready && props.overview && <UsersOverviewTiles overview={props.overview} />}
+        {plusOn("overview") && ready && props.overview && <UsersOverviewTiles overview={props.overview} />}
 
         <div className="grid min-w-0 items-start xl:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
           <section aria-label="사용자 목록" className="min-w-0">
@@ -253,7 +255,7 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
               <b className="text-[12.5px] font-bold text-foreground">사용자</b>
               <span className="font-code text-[11px] text-muted-foreground tabular-nums">{ready ? `${users.length}명` : ""}</span>
               <span className="ml-auto inline-flex items-center gap-[4px]">
-                {showPlus && (
+                {plusOn("orgFilter") && (
                   <span data-plus className="inline-flex">
                     <WorkbenchButton size="sm" variant="ghost" onClick={props.onOpenOrgFilter}>
                       소속 관서 · 전체
@@ -268,7 +270,7 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
                   visible={props.visibleColumns ?? USER_COLUMNS.map((c) => c.key)}
                   onChange={(keys) => props.onVisibleColumnsChange?.(keys)}
                 />
-                {showPlus ? (
+                {plusOn("export") ? (
                   <span data-plus className="inline-flex">
                     <WorkbenchButton size="sm" variant="ghost" icon={Download} onClick={props.onExport}>
                       엑셀
@@ -297,7 +299,7 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
                 onUnlock={() => props.onUnlock(selected.userId)}
                 onResetPassword={() => props.onDialogChange({ kind: "reset", userId: selected.userId, tempPassword: "", error: null })}
                 onSetUseAt={(useAt) => props.onSetUseAt(selected.userId, useAt)}
-                showPlus={showPlus}
+                showPlus={plusOn("detail")}
                 assignedDuties={duties[selected.userId] ?? []}
                 onToggleDuty={(duty, on) => props.onToggleDuty?.(selected.userId, duty, on)}
                 loginMeta={props.loginMeta?.[selected.userId]}
@@ -310,13 +312,25 @@ export function AdminUsersScreen(props: AdminUsersScreenProps) {
         </div>
       </BoardFrame>
 
-      {showPlus && ready && (
+      {(plusOn("presets") || plusOn("history")) && ready && (
         <div data-plus className="grid min-w-0 items-start gap-[14px] xl:grid-cols-2">
           <div className="grid min-w-0 gap-[14px]">
-            <RolePresetTable roles={roles} dutyRoleCodes={props.dutyRoleCodes ?? []} />
-            {props.adminHistory && props.adminHistory.length > 0 && <AdminHistory rows={props.adminHistory} />}
+            {plusOn("presets") && <RolePresetTable roles={roles} dutyRoleCodes={props.dutyRoleCodes ?? []} />}
+            {plusOn("history") &&
+              props.adminHistory &&
+              // 진열은 줄이 있을 때만, 실제 페이지(상태를 넘김)는 불러오는 중 · 실패 · 없음도 그 자리에
+              (props.adminHistoryStatus !== undefined || props.adminHistory.length > 0) && (
+                <AdminHistory
+                  rows={props.adminHistory}
+                  status={props.adminHistoryStatus}
+                  errorAt={props.adminHistoryErrorAt}
+                  onRetry={props.onRetryAdminHistory}
+                />
+              )}
           </div>
-          <EffectivePermissions users={users} roles={roles} duties={duties} selectedUserId={props.selectedUserId} notes={props.permissionNotes ?? []} />
+          {plusOn("presets") && (
+            <EffectivePermissions users={users} roles={roles} duties={duties} selectedUserId={props.selectedUserId} notes={props.permissionNotes ?? []} />
+          )}
         </div>
       )}
       <UserDialogs dialog={props.dialog} onChange={props.onDialogChange} onSubmit={props.onDialogSubmit} />

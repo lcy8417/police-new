@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   adminQueryKeys,
   createUser,
+  fetchFeatures,
   fetchOrgs,
   fetchRoles,
   fetchUsers,
@@ -45,12 +46,20 @@ export function useOrgsQuery() {
   return useQuery({ queryKey: adminQueryKeys.orgs, queryFn: fetchOrgs, staleTime: 5 * 60_000 })
 }
 
-/** 성공 후 공통 처리: 목록 무효화 + 변경 알림. */
+/** GET /admin/features — 기능 권한 목록(서버 `app.feature` 순서 · 이름 그대로). 바뀌지 않아 오래 캐시. */
+export function useFeaturesQuery() {
+  return useQuery({ queryKey: adminQueryKeys.features, queryFn: fetchFeatures, staleTime: Infinity })
+}
+
+/** 성공 후 공통 처리: 목록 · 감사 기록(관리자 변경 이력 K2) 무효화 + 변경 알림. */
 function useAfterChange(options: AdminUserMutationOptions) {
   const queryClient = useQueryClient()
   return async (userId: string) => {
     options.onUserChanged?.(userId)
-    await queryClient.invalidateQueries({ queryKey: adminQueryKeys.users })
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.users }),
+      queryClient.invalidateQueries({ queryKey: ["admin", "audit-events"] }),
+    ])
   }
 }
 

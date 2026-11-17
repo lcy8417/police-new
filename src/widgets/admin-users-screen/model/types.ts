@@ -86,9 +86,22 @@ export interface UsersFilterProps {
   total: number
 }
 
+/**
+ * 신규(+α) 요소를 하나씩 켜는 이름(이식 계획 — 실제 페이지는 `showPlus` 대신 서버 값이 있는 것만).
+ * `history` = 관리자 변경 이력(감사 K2), `presets` = 역할별 기본 권한 · 사용자별 실제 권한 표, `detail` = 상세의 역할 프리셋 ·
+ * 신발 DB 분업 · 「그 뒤 실패 n회」, `duties` = 표의 ◇ 분업 표시, `overview` · `export` · `orgFilter` = 타일 · 엑셀 · 관서 고르기.
+ */
+export type AdminUsersPlusPart = "overview" | "export" | "orgFilter" | "duties" | "detail" | "presets" | "history"
+
 export interface AdminUsersScreenProps {
   /** 신규(+α) 요소 보이기 — 운영 타일 · 담당 부족 경고 · 필터 칸 · 역할 프리셋 · 신발 DB 분업 · 실제 권한 표 · 변경 이력 · 엑셀 (기본 true) */
   showPlus?: boolean
+  /** 신규 요소를 하나씩 켜기(주면 `showPlus` 대신 이 목록만) */
+  plusParts?: AdminUsersPlusPart[]
+  /** 관리자 변경 이력 조회 상태(실제 페이지 — 감사 K2). 없으면 ready */
+  adminHistoryStatus?: ScreenStatus
+  adminHistoryErrorAt?: string
+  onRetryAdminHistory?: () => void
   /** 사람마다 맡긴 신발 DB 분업(문양 입력 · 신발 승인) — 사용자 ID → 코드. 저장되는 값이라 제어형 */
   duties?: Record<string, ShoeDuty[]>
   /** 분업 스위치를 눌렀다 */

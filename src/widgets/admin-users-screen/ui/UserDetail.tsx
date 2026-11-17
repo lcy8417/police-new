@@ -272,7 +272,7 @@ export function UserDetail({
                       </label>
                       <span className="break-all font-code text-[10px] text-dim">
                         {f.featureCode}
-                        {implied ? " · 신발 등록·수정에 포함됩니다" : ""}
+                        {implied ? " · 신발 DB 일(등록·수정 · 문양 입력 · 승인)에 포함됩니다" : ""}
                       </span>
                       {f.featureCode === FEATURES.CRIME_SEARCH && nationwide && (
                         <span className="text-[11px] text-warn">{USER_FORM_MESSAGES.nationwidePhotos}</span>

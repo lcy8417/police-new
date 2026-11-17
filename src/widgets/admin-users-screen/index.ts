@@ -2,6 +2,7 @@ export { AdminUsersScreen } from "./ui/AdminUsersScreen"
 export type {
   AdminHistoryRow,
   AdminUsersOverview,
+  AdminUsersPlusPart,
   AdminUsersScreenProps,
   CreateUserDraft,
   OverviewCount,

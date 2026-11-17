@@ -52,16 +52,19 @@ export const USER_STATUS_LABELS: Record<UserStatus, string> = {
   DISABLED: "중지",
 }
 
+/** 켜면 신발 조회(`SHOE_VIEW`)가 함께 켜지는 신발 DB 일 — 등록·수정 · 문양 입력 · 승인(서버 실효 권한 규칙, B 단계 §3-1 · 0017). */
+const SHOE_WORK_FEATURES: readonly FeatureCode[] = [FEATURES.SHOE_EDIT, FEATURES.SHOE_PATTERN, FEATURES.SHOE_APPROVE]
+
 /**
- * `SHOE_EDIT`(신발 등록·수정)를 켜면 `SHOE_VIEW`(신발 조회)도 켜진 것(서버 실효 권한 규칙,
- * 설계서 §2). 토글·체크박스에서 `SHOE_VIEW`를 켠 채로 고정해 보여 줄 때 쓴다.
+ * 신발 DB 일(`SHOE_EDIT` · `SHOE_PATTERN` · `SHOE_APPROVE`)을 켜면 `SHOE_VIEW`(신발 조회)도 켜진 것(서버 실효 권한 규칙,
+ * 설계서 §2 · B 단계 §3-1). 토글·체크박스에서 `SHOE_VIEW`를 켠 채로 고정해 보여 줄 때 쓴다.
  */
 export function isImpliedFeature(selected: readonly FeatureCode[], code: FeatureCode): boolean {
-  return code === FEATURES.SHOE_VIEW && selected.includes(FEATURES.SHOE_EDIT)
+  return code === FEATURES.SHOE_VIEW && SHOE_WORK_FEATURES.some((c) => selected.includes(c))
 }
 
 /**
- * 기능 하나를 켜고 끈 새 목록. `SHOE_EDIT`를 켜면 `SHOE_VIEW`도 함께 켠다.
+ * 기능 하나를 켜고 끈 새 목록. 신발 DB 일을 켜면 `SHOE_VIEW`도 함께 켠다.
  * 화면 표시 순서(`FEATURE_ORDER`)로 정렬하고, 목록에 없는 기존 기능 코드(서버에 새로 생긴 기능 등)는
  * 지우지 않고 뒤에 그대로 둔다 — 다른 기능을 켜고 끄다가 모르는 권한이 몰래 빠지지 않게(`toggleRole`과 같은 규칙).
  */
@@ -73,7 +76,7 @@ export function toggleFeature(
   const next = new Set(selected)
   if (on) {
     next.add(code)
-    if (code === FEATURES.SHOE_EDIT) next.add(FEATURES.SHOE_VIEW)
+    if (SHOE_WORK_FEATURES.includes(code)) next.add(FEATURES.SHOE_VIEW)
   } else {
     next.delete(code)
   }

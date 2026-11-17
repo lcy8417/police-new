@@ -37,6 +37,10 @@ describe("user-rules — 사용자·권한 관리 규칙", () => {
     expect(isImpliedFeature([FEATURES.SHOE_EDIT], FEATURES.SHOE_VIEW)).toBe(true)
     expect(isImpliedFeature([FEATURES.SHOE_VIEW], FEATURES.SHOE_VIEW)).toBe(false)
     expect(isImpliedFeature([FEATURES.SHOE_EDIT], FEATURES.CRIME_SEARCH)).toBe(false)
+    // 분업(문양 입력 · 승인)도 신발 조회를 함께(서버 0017 실효 권한)
+    expect(isImpliedFeature([FEATURES.SHOE_PATTERN], FEATURES.SHOE_VIEW)).toBe(true)
+    expect(isImpliedFeature([FEATURES.SHOE_APPROVE], FEATURES.SHOE_VIEW)).toBe(true)
+    expect(toggleFeature([], FEATURES.SHOE_APPROVE, true)).toEqual([FEATURES.SHOE_VIEW, FEATURES.SHOE_APPROVE])
   })
 
   it("기능 목록 비교는 순서와 무관", () => {
