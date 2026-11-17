@@ -47,6 +47,7 @@ export type PatternEntry = string | readonly [string, EssentialFlag];
 - **주의 — 데이터 계층은 hydrate 안 함**: `fetchShoesList`/`fetchCrimeList`는 이름만 준다. 소비 측(페이지)에서 `insertPatternPath`로 붙여 표시 컴포넌트에 넘기고, **표시 컴포넌트 내부에서 재변환 금지**(이중 변환 시 경로 깨짐).
 - 이 루트는 여러 곳에 하드코딩되어 있다(`use-pattern-manager`의 `format` 클로저, 레거시 `path-utils.js`, `crud.js#fetchHistoryData`). 현재는 하드코딩된 `/src/assets/Patterns/전체/`를 사실상 단일 출처로 취급.
 - 팔레트 선택기(picker)는 Vite `import.meta.glob(..., { eager: true })`로 각 폴더를 번들링(`utils/get-patterns-path.js`) — 이 경로는 `/src/assets/Patterns/<폴더>/<이름>.png`라 추출 저장 경로와 **표현이 다름**(§2의 이름 기준 비교 이유).
+- **운영 빌드(`dist/` + `vite preview`)**: `/src/assets/Patterns/...`는 개발 서버만 내주므로 `vite.config.js`의 `copyPatternAssets`가 빌드 때 이 폴더를 `dist/src/assets/Patterns/`로 복사한다(같은 주소). 사건 창 문양 목록(`case-window-tabs/model/palette.ts`)은 glob **열쇠**(원본 경로)를 쓴다 — glob **값**은 운영에서 지문 붙은 주소(`n21_02-CSnegBcJ.png`)나 `data:` 주소라 이름이 깨진다(2026-11-17 운영 PC 사고). 그림이 없는 이름은 `PatternIcon`이 같은 칸 안에 이름만 보인다.
 
 ---
 
