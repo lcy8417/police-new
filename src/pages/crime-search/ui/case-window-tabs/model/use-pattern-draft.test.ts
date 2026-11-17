@@ -1,3 +1,4 @@
+import { act, renderHook } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
 import type { CrimePatterns, ServerCardMeta } from "@/entities/crime/api/pattern-api"
@@ -18,7 +19,9 @@ import {
   runOfEntry,
   saveBodyOf,
   searchBodyOf,
+  usePatternDraft,
   weightAt,
+  type PatternDraft,
 } from "./use-pattern-draft"
 
 const KINDS: Record<string, PaletteKind> = { n32_04: "선", n21_05: "무늬", s81b: "항목", s10c: "윤곽" }
@@ -181,5 +184,65 @@ describe("use-pattern-draft — 서버 C1 ↔ 화면 초안 ↔ C2 · D1", () =>
     const z = hydrateZones({ top: [["n32_04", 1]], mid: [[`${PATTERNS_ROOT}s81b.png`, 0]], bottom: [], outline: [] })
     expect(z.top).toEqual([[`${PATTERNS_ROOT}n32_04.png`, 1]])
     expect(z.mid).toEqual([[`${PATTERNS_ROOT}s81b.png`, 0]])
+  })
+})
+
+describe("usePatternDraft — 내 저장 뒤 판 번호([버그] 혼자 쓰는데 409)", () => {
+  // AI 점수는 넷째 자리(0.9567), 서버는 확신도를 셋째 자리(numeric(4,3) → 0.957)로 저장해 다시 읽은 값의 서명이 달라진다
+  const withAi = (d: PatternDraft) => insertInto(d, "mid", "n21_05", { score: 0.9567, runId: 9 })
+  const reread = (version: number): CrimePatterns => ({
+    ...SERVER,
+    mid: [...SERVER.mid, ["n21_05", 0]],
+    meta: { ...SERVER.meta, mid: { ...SERVER.meta.mid, n21_05: card({ status: "ai", confidence: 0.957, sortOrdr: 2, aiRunId: 9 }) } },
+    rowVersion: version,
+  })
+
+  it("markSaved 없이는 다시 읽은 값이 자릿수만 달라도 옛 판 번호에 묶인다(그래서 다음 저장이 409 였다)", () => {
+    const { result, rerender } = renderHook(({ s }) => usePatternDraft(s), { initialProps: { s: SERVER } })
+    act(() => result.current.update(withAi))
+    rerender({ s: reread(5) })
+    expect(result.current.rowVersion).toBe(4)
+    expect(result.current.dirty).toBe(true)
+  })
+
+  it("markSaved = 기준은 보낸 초안 · 판 번호는 서버가 준 새 번호 — 다시 읽은 값이 와도 깨끗하고, 그 뒤 고치면 새 번호로", () => {
+    const { result, rerender } = renderHook(({ s }) => usePatternDraft(s), { initialProps: { s: SERVER } })
+    act(() => result.current.update(withAi))
+    const sent = result.current.draft
+    act(() => result.current.markSaved(sent, 5))
+    rerender({ s: reread(5) })
+    expect(result.current.rowVersion).toBe(5)
+    expect(result.current.dirty).toBe(false)
+    act(() => result.current.update((d) => ({ ...d, soleText: "PUMA" })))
+    expect(result.current.dirty).toBe(true)
+    expect(result.current.rowVersion).toBe(5)
+  })
+
+  it("내 저장 뒤 다시 읽기가 늦거나 실패해 옛 값(옛 판 번호)이 그대로 와도 그 값으로 되돌아가지 않는다", () => {
+    const { result, rerender } = renderHook(({ s }) => usePatternDraft(s), { initialProps: { s: SERVER } })
+    act(() => result.current.update(withAi))
+    act(() => result.current.markSaved(result.current.draft, 5))
+    rerender({ s: SERVER })
+    expect(result.current.rowVersion).toBe(5)
+    expect(result.current.dirty).toBe(false)
+    expect(result.current.draft.zones.mid.map(([n]) => n)).toContain("n21_05")
+  })
+
+  it("내 저장 뒤 다른 사람이 또 저장했으면(판 번호가 더 앞섬): 고친 게 없으면 그 값으로, 고친 게 있으면 내 번호 그대로(다음 저장 409)", () => {
+    const other = { ...reread(6), soleText: "OTHER" }
+    const clean = renderHook(({ s }) => usePatternDraft(s), { initialProps: { s: SERVER } })
+    act(() => clean.result.current.update(withAi))
+    act(() => clean.result.current.markSaved(clean.result.current.draft, 5))
+    clean.rerender({ s: other })
+    expect(clean.result.current.rowVersion).toBe(6)
+    expect(clean.result.current.draft.soleText).toBe("OTHER")
+
+    const edited = renderHook(({ s }) => usePatternDraft(s), { initialProps: { s: SERVER } })
+    act(() => edited.result.current.update(withAi))
+    act(() => edited.result.current.markSaved(edited.result.current.draft, 5))
+    act(() => edited.result.current.update((d) => ({ ...d, soleText: "MINE" })))
+    edited.rerender({ s: other })
+    expect(edited.result.current.rowVersion).toBe(5)
+    expect(edited.result.current.draft.soleText).toBe("MINE")
   })
 })

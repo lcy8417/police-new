@@ -381,7 +381,11 @@ export function usePatternDraft(server: CrimePatterns | undefined) {
     draft: EMPTY_DRAFT,
   })
   const serverVersion = server?.rowVersion
-  if (server !== undefined && state.version !== serverVersion) {
+  // 판 번호는 늘기만 한다 — 내 저장(markSaved)보다 늦게 온 옛 읽기 값(다시 읽기 실패 · 늦음)으로 되돌아가지 않는다
+  const newer =
+    state.version === undefined ||
+    (state.version !== serverVersion && (serverVersion == null || state.version == null || serverVersion > state.version))
+  if (server !== undefined && newer) {
     const fresh = draftFromServer(server)
     const sig = draftSignature(fresh)
     const current = draftSignature(state.draft)
@@ -391,6 +395,13 @@ export function usePatternDraft(server: CrimePatterns | undefined) {
   const update = React.useCallback((fn: (d: PatternDraft) => PatternDraft) => setState((s) => ({ ...s, draft: fn(s.draft) })), [])
   // 기준을 비우면 다음 그림에서 서버 값(지금 것 — 다시 읽은 값이 오면 그것)으로 맞춘다
   const reset = React.useCallback(() => setState((s) => ({ ...s, version: undefined })), [])
+  // 내 저장(C2)이 성공하면 기준 = 내가 보낸 초안 · 판 번호 = 서버가 준 새 번호. 다시 읽은 서버 값과 글자가 달라도(확신도를
+  // 서버가 소수 셋째 자리로 저장 — AI 점수는 넷째 자리) 옛 번호에 묶여 다음 저장이 409 로 튕기지 않게([버그] 혼자 쓰는데
+  // 「다른 사람이 먼저 고쳤습니다」). 그 사이 다른 사람이 또 저장했으면 다음 다시 읽기에서 서버 번호가 달라 위 규칙대로 가른다
+  const markSaved = React.useCallback(
+    (saved: PatternDraft, version: number) => setState((s) => ({ ...s, base: draftSignature(saved), version })),
+    [],
+  )
   const dirty = draftSignature(state.draft) !== state.base
-  return { draft: state.draft, update, reset, dirty, rowVersion: state.version ?? null, ready: server !== undefined }
+  return { draft: state.draft, update, reset, markSaved, dirty, rowVersion: state.version ?? null, ready: server !== undefined }
 }

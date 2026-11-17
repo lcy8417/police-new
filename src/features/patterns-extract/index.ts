@@ -14,7 +14,7 @@ export {
   runIdOf,
 } from "./api/extract-with-run";
 export type { CrimeExtractResult, ExtractedItem, ShoeExtractResult, ShoeExtractZones } from "./api/extract-with-run";
-export { savePatterns, useSavePatterns } from "./api/use-save-patterns";
+export { patternSaveKey, savePatterns, useSavePatterns } from "./api/use-save-patterns";
 export type { CardMetaBody, SavePatternsBody, SavePatternsResult } from "./api/use-save-patterns";
 export {
   PATTERN_ZONES,

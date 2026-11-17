@@ -1,10 +1,11 @@
 import * as React from "react"
+import { useMutationState } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { useCrimePatterns, useEditHistory, useSearchHistory, type Crime } from "@/entities/crime"
 import { insertPatternPath, type PatternInsertOrigin, type PatternZone } from "@/entities/pattern"
 import { useRunSearch } from "@/features/crime-search"
-import { PatternCanvas, extractCrimeWithRun, useSavePatterns } from "@/features/patterns-extract"
+import { PatternCanvas, extractCrimeWithRun, patternSaveKey, useSavePatterns } from "@/features/patterns-extract"
 import { ApiError } from "@/shared/api"
 import {
   PatternCodeScreen,
@@ -79,7 +80,18 @@ export function PatternTab({ viewer, image, onOpenSearch, judged = false }: Patt
   const patternsQuery = useCrimePatterns(aprthngNo)
   const historyQuery = useSearchHistory(aprthngNo)
   const editsQuery = useEditHistory(aprthngNo)
-  const { draft, update, reset, dirty, rowVersion, ready } = usePatternDraft(patternsQuery.data)
+  // [버그] 혼자 쓰는데 「다른 사람이 먼저 고쳤습니다」(C2 409): 탭을 떠나며 저장한 뒤 다시 들어오면 캐시의 옛 값(옛 판 번호)이 먼저 그려져
+  // 그걸 고치면 다음 저장이 409 였다. 이 탭이 열린 뒤 새로 읽은 값만 쓰고, 앞 탭(이미 사라짐)이 떠나며 한 저장이 아직 진행 중이면
+  // 그 저장 · 다시 읽기가 끝날 때까지 기다린다(고칠 칸을 내주지 않음). 서버(B4 편집 · B5 되돌리기)는 판 번호를 올리지 않는다 — C2 · A8 만.
+  const [mountedAt] = React.useState(() => Date.now())
+  const savingBefore =
+    useMutationState({
+      // 이 탭이 열리기 전(같은 ms 포함 — 이 탭의 저장은 사람이 누른 뒤라 늘 더 늦다)에 시작한 저장만
+      filters: { mutationKey: patternSaveKey(aprthngNo), status: "pending", predicate: (m) => m.state.submittedAt <= mountedAt },
+      select: (m) => m.state.submittedAt,
+    }).length > 0
+  const freshPatterns = patternsQuery.isFetchedAfterMount && !savingBefore ? patternsQuery.data : undefined
+  const { draft, update, reset, markSaved, dirty, rowVersion, ready } = usePatternDraft(freshPatterns)
   const save = useSavePatterns(aprthngNo)
   const search = useRunSearch(aprthngNo)
 
@@ -139,7 +151,9 @@ export function PatternTab({ viewer, image, onOpenSearch, judged = false }: Patt
         return false
       }
       try {
-        await save.mutateAsync(saveBodyOf(current, version))
+        const saved = await save.mutateAsync(saveBodyOf(current, version))
+        // 기준 = 방금 보낸 초안 · 판 번호 = 서버가 준 새 번호(다시 읽은 값의 확신도 자릿수가 달라도 옛 번호에 묶이지 않게)
+        markSaved(current, saved.rowVersion)
         return true
       } catch (error) {
         if (error instanceof ApiError && error.status === 409) {
@@ -151,7 +165,7 @@ export function PatternTab({ viewer, image, onOpenSearch, judged = false }: Patt
         return false
       }
     },
-    [save, reset],
+    [save, reset, markSaved],
   )
 
   // 판정이 확정된 장: 처음 고치는 순간 「다시 판정 상태가 됩니다」를 묻고, 취소면 서버 값으로 되돌린다
