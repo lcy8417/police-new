@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { http, HttpResponse } from "msw"
 
@@ -312,14 +312,18 @@ describe("CaseWindowTabBody — 사건 창 탭 본문(의뢰 상세 A2 · 전역
     renderTab("search")
     await waitFor(() => expect(api.imageSearch).toHaveBeenCalledTimes(1))
     const card = await screen.findByAltText("신발 00758 밑창")
-    // 기본 5개 보기(196px 칸) · 이진화보기(B 폴더) → 썸네일, 화면 밖이면 나중에 받기
+    // 기본 5개 보기(196px 칸) · 「원본」 눌림(B 폴더) → 썸네일, 화면 밖이면 나중에 받기
+    const look = within(screen.getByRole("group", { name: "결과 이미지 보기" }))
+    expect(look.getByRole("button", { name: "원본" })).toHaveAttribute("aria-pressed", "true")
     expect(card).toHaveAttribute("src", "/shoes_thumbs/00758.webp")
     expect(card).toHaveAttribute("loading", "lazy")
     expect(card).toHaveAttribute("decoding", "async")
     // 썸네일이 없으면(404) 원본으로 저절로
     fireEvent.error(card)
     await waitFor(() => expect(screen.getByAltText("신발 00758 밑창")).toHaveAttribute("src", "/shoes_images/B/00758.png"))
-    fireEvent.click(screen.getByRole("button", { name: "원본" }))
+    // 「이진화」를 누르면 이진(Shoerinsics) 그림 — 예전에는 거꾸로(「원본」에서 이진 그림)였다
+    fireEvent.click(look.getByRole("button", { name: "이진화" }))
+    expect(look.getByRole("button", { name: "이진화" })).toHaveAttribute("aria-pressed", "true")
     await waitFor(() =>
       expect(screen.getByAltText("신발 01234 밑창")).toHaveAttribute("src", "/shoes_images/Shoerinsics/01234.png")
     )

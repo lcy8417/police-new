@@ -44,6 +44,18 @@ function seenLabel(iso: string | null): string {
 /** 유사부위 표출 리터럴(지금 앱 값 그대로). 이진화 · 원본을 바꾸면 false 로 꺼진다 */
 const SIMILARITY_ON = "유사부위표출보기"
 
+/** 검색 결과 그림 보기 처음 값 — 「원본」 칸(원본 사진 B) */
+const DEFAULT_IMAGE_MODE: ImageMode = "원본보기"
+
+/**
+ * 보기 칸 → 신발 그림 폴더. 여기 값은 **눌린 칸**(「이진화」 = "이진화보기")이다.
+ * 옛 화면(services/api.js)은 같은 글자를 「누르면 이진화로 바뀌는 단추 글자」로 써서 "이진화보기" → B 였는데,
+ * 그 규칙을 그대로 가져와 「이진화」를 누르면 원본, 「원본」을 누르면 이진 그림이 나왔다(11/17 윈도우 확인).
+ */
+function shoeKindOf(mode: ImageMode): "B" | "Shoerinsics" {
+  return mode === "이진화보기" ? "Shoerinsics" : "B"
+}
+
 interface SearchPage {
   result: ImageSearchResultItem[]
   total: number
@@ -114,7 +126,7 @@ function RunResultsTab({ viewer, image, onOpenCompare, searchNo }: RunResultsTab
   // 그 검색에 쓴 파일(D3 input_file_id) — 옛 이력 · 못 읽으면 null
   const runQuery = useSearchRun(searchNo)
   const sceneImage = useRunSceneImage(aprthngNo, image, runQuery.data?.inputFileId ?? null, searchImage)
-  const [binary, setBinary] = React.useState<ImageMode>("이진화보기")
+  const [binary, setBinary] = React.useState<ImageMode>(DEFAULT_IMAGE_MODE)
   const [columns, setColumns] = React.useState<ResultColumns>(4)
   const [thumbSize, setThumbSize] = React.useState<ThumbSize>("보통")
   const [autoMode, setAutoMode] = React.useState<AutoMode>("manual")
@@ -175,7 +187,7 @@ function RunResultsTab({ viewer, image, onOpenCompare, searchNo }: RunResultsTab
     if (binding.error) toast.error(binding.error)
   }, [binding.error])
 
-  const shoeKind = binary === "이진화보기" ? "B" : "Shoerinsics"
+  const shoeKind = shoeKindOf(binary)
   const results = React.useMemo<ImageSearchResultItem[]>(
     () =>
       toPercentList(
@@ -269,7 +281,7 @@ function LiveSearchTab({ viewer, image, onOpenCompare }: SearchTabProps) {
   const searchEdit = searchImage === "edited"
   const hasEditImage = Boolean(image.editImage)
 
-  const [binary, setBinary] = React.useState<ImageMode>("이진화보기")
+  const [binary, setBinary] = React.useState<ImageMode>(DEFAULT_IMAGE_MODE)
   const [similarity, setSimilarity] = React.useState<string | false>(SIMILARITY_ON)
   const [columns, setColumns] = React.useState<ResultColumns>(4)
   const [thumbSize, setThumbSize] = React.useState<ThumbSize>("보통")
@@ -323,7 +335,7 @@ function LiveSearchTab({ viewer, image, onOpenCompare }: SearchTabProps) {
   const first = pageQueries[0]
   const totalCount = first?.data?.total ?? 0
   // 그림 폴더는 지금 보기(이진화 · 원본)로 — 받은 결과의 image 는 받을 때 보기라 다시 만든다(RunResultsTab 과 같은 규칙)
-  const shoeKind = binary === "이진화보기" ? "B" : "Shoerinsics"
+  const shoeKind = shoeKindOf(binary)
   const results = toPercentList(
     pageQueries.flatMap((q) => (q.data?.result ?? []).map((r) => ({ ...r, image: shoeImageUrl(r.ftwrId, shoeKind) }))),
   )
