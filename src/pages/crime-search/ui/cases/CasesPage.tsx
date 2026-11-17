@@ -416,21 +416,19 @@ export function CasesPage() {
   ) : null
 
   const registerPanel = registerOpen ? (
-    // 머리 줄은 S02 등록 화면이 그린다(제목 · 닫기) — 창 머리를 겹치지 않는다
-    <CaseWindowFrame label="사건 등록" onClose={closeRegister}>
-      <RegisterWindow
-        key={params.get("copy") ?? ""}
-        copyFrom={params.get("copy")}
-        onClose={closeRegister}
-        onRegistered={(no) => {
-          const next = new URLSearchParams(params)
-          next.delete("new")
-          next.delete("copy")
-          const opened = openCaseWindow(readOpenTabs(next), no, { tab: "info", img: null })
-          setParams(opened ? writeCaseWindow(next, opened) : next)
-        }}
-      />
-    </CaseWindowFrame>
+    // 틀(창 머리 · 왼쪽 이미지 목록 · 작업 탭)은 등록 창이 사건 창 위젯으로 그린다
+    <RegisterWindow
+      key={params.get("copy") ?? ""}
+      copyFrom={params.get("copy")}
+      onClose={closeRegister}
+      onRegistered={(no) => {
+        const next = new URLSearchParams(params)
+        next.delete("new")
+        next.delete("copy")
+        const opened = openCaseWindow(readOpenTabs(next), no, { tab: "info", img: null })
+        setParams(opened ? writeCaseWindow(next, opened) : next)
+      }}
+    />
   ) : null
 
   // 신발 권한만 있는 사람(사건 보기 권한 없음) — 목록 자리에 안내, 신발 패널은 위에서 열어 둔다

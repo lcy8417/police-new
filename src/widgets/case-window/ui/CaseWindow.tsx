@@ -74,14 +74,17 @@ export function CaseWindow({
   tabMarks,
   menu,
   railFooter,
+  railInitiallyOpen = false,
+  frameLabel,
   visibleTabs,
   children,
 }: CaseWindowProps) {
   const baseId = React.useId()
   const tabIdPrefix = `${baseId}-tab`
   const current = images.find((i) => i.no === selectedImage) ?? null
-  // 왼쪽 이미지 목록은 기본 접힘(11/17 사용자 「왼쪽 사이드바 기본적으로 접혀있을까??」) — 창 안 보기 상태라 위젯이 든다
-  const [railCollapsed, setRailCollapsed] = React.useState(true)
+  // 왼쪽 이미지 목록은 기본 접힘(11/17 사용자 「왼쪽 사이드바 기본적으로 접혀있을까??」) — 창 안 보기 상태라 위젯이 든다.
+  // 새 사건 등록은 사진 추가가 첫 일이라 펼친 채로 시작(railInitiallyOpen)
+  const [railCollapsed, setRailCollapsed] = React.useState(!railInitiallyOpen)
 
   const groups: WindowRailGroup[] = (["신발", "타이어"] as const)
     .map((kind) => ({
@@ -154,11 +157,11 @@ export function CaseWindow({
 
   return (
     <CaseWindowFrame
-      label={`${summary.aprthngNo} ${summary.caseName} 사건 창`}
+      label={frameLabel ?? `${summary.aprthngNo} ${summary.caseName} 사건 창`}
       onClose={onClose}
       tabs={
         <WorkTabStrip
-          tabs={openCases.map((c) => ({ id: c.aprthngNo, label: `${c.aprthngNo} · ${c.caseName}` }))}
+          tabs={openCases.map((c) => ({ id: c.aprthngNo, label: [c.aprthngNo, c.caseName].filter(Boolean).join(" · ") }))}
           activeId={summary.aprthngNo}
           onSelect={onSelectOpenCase}
           onClose={onCloseOpenCase}

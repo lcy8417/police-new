@@ -467,7 +467,8 @@ export function CaseDetailScreen({
               </Chip>
             ) : null}
             {/* 이미지 편집 탭이 없는 사람(수사관 — 사건 조회 권한 없음)에게는 눌러도 갈 곳이 없으니 숨긴다(3회차 검수) */}
-            {canSearch ? (
+            {/* 새 사건 등록(mode register)은 아직 서버에 없는 사진이라 편집할 곳이 없다 — 등록 뒤 사건 창 「이미지 편집」 */}
+            {canSearch && mode !== "register" ? (
               <WorkbenchButton icon={Scissors} className="ml-auto" disabled={!selected} onClick={() => selected && onOpenImageEdit(selected.id)}>
                 이미지 커팅 열기
               </WorkbenchButton>

@@ -98,6 +98,10 @@ export interface CaseWindowProps {
   menu?: readonly CaseWindowMenuItem[]
   /** 왼쪽 목록 맨 아래(사진 추가 · 끌어 놓기) */
   railFooter?: ReactNode
+  /** 왼쪽 목록을 펼친 채로 시작(새 사건 등록 — 사진 추가 칸이 바로 보이게). 없으면 접힘 */
+  railInitiallyOpen?: boolean
+  /** 창 접근성 이름(없으면 「감정번호 사건명 사건 창」) */
+  frameLabel?: string
   /**
    * 보일 작업 탭(권한별 — 1회차 검수). 없으면 6개 모두. 수사관은 검색 · 대조 · 판정 권한이 없어 「사건 정보」만
    * (DB 설계서 §2-1.4 · §6 — 진행 상태 · 자기가 올린 이미지만).

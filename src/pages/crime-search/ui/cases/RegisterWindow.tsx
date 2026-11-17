@@ -8,8 +8,17 @@ import { useRequestDetail, useRequestIdByNo } from "@/entities/request"
 import { isAdmin, useSessionStore } from "@/features/auth"
 import { originalRejectDetail, useOriginalUpload } from "@/features/crime-register"
 import { ApiError } from "@/shared/api"
+import { WorkbenchButton } from "@/shared/ui/kit"
 import { resizeImage } from "@/utils/get-input-change"
-import { CaseDetailScreen, validateCaseDetail, type CaseDetailFieldName, type CaseDetailForm, type CaseImage } from "@/widgets/case-detail"
+import {
+  CaseDetailScreen,
+  CaseImageDrop,
+  validateCaseDetail,
+  type CaseDetailFieldName,
+  type CaseDetailForm,
+  type CaseImage,
+} from "@/widgets/case-detail"
+import { CaseWindow, type CaseWindowImage } from "@/widgets/case-window"
 import { buildAprthngNo, validateCrimeRegister } from "@/widgets/crime-register-stage"
 
 /** `RegisterWindow` 이 받는 값 */
@@ -40,6 +49,12 @@ const CASE_KEYS = ["apprslReqestNo", "rqestGrfcNm", "crimeNm"] as const
 type CaseKey = (typeof CASE_KEYS)[number]
 const EMPTY_CASE: Pick<CaseDetailForm, CaseKey> = { apprslReqestNo: "", rqestGrfcNm: "", crimeNm: "" }
 const noop = () => undefined
+const NEW_CASE = "새 사건 등록"
+
+/** 오늘 한국 날짜 YYYY-MM-DD */
+function kstToday(): string {
+  return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
+}
 
 /** 그림 파일 → 1000px 이하로 줄인 data URL(지금 등록 화면과 같음) */
 async function readImageFile(file: File): Promise<string> {
@@ -223,38 +238,94 @@ export function RegisterWindow({ copyFrom = null, onClose, onRegistered }: Regis
     else onRegistered(no)
   }
 
+  // 사건 창과 같은 틀(11/17 사용자 「여기처럼 위에 탭이 있는 컴포넌트 그대로 써. 옆에 + 하고 추가할 수 있게」):
+  // 어두운 머리 · 왼쪽 현장 이미지 목록(펼친 채 — 맨 아래 「+ 사진 추가」 · 끌어 놓기 · 고른 장 빼기) · 위 작업 탭.
+  // 작업 탭은 「사건 정보」만 — 이미지 편집 · 문양 · 검색은 서버에 등록된 사진에서만 되므로 저장 뒤 열리는 사건 창에서 한다.
+  // 머리: 번호를 넣기 전에는 「새 사건 등록」 한 줄, 넣으면 번호 + 사건 이름
+  const title = caseForm.apprslReqestNo.trim() || NEW_CASE
+  const caseName = caseForm.crimeNm.trim()
+  const railImages: CaseWindowImage[] = images.map((i) => ({
+    no: i.sn,
+    imageNo: `${base}_${i.sn}`,
+    kind: "신발",
+    status: "등록",
+    thumbSrc: i.src,
+  }))
+  const removeCurrent = () => {
+    if (!current) return
+    setImages((cur) => cur.filter((i) => i.id !== current.id))
+    setSelected(null)
+  }
+
   return (
-    <CaseDetailScreen
-      status="ready"
-      onRetry={noop}
-      isAdmin={isAdmin(user)}
-      features={user?.features ?? []}
-      mode="register"
-      form={form}
-      onFieldChange={onFieldChange}
-      officeItems={officeItems}
-      images={caseImages}
-      selectedImageId={current?.id ?? null}
-      onSelectImage={setSelected}
-      checkedImageIds={checked}
-      onCheckedImageIdsChange={setChecked}
-      onFilesAdded={addFiles}
-      onDeleteChecked={() => {
-        setImages((cur) => cur.filter((i) => !checked.includes(i.id)))
-        setChecked([])
+    <CaseWindow
+      frameLabel="사건 등록"
+      summary={{
+        aprthngNo: title,
+        caseName,
+        requestOffice: caseForm.rqestGrfcNm,
+        registeredAt: kstToday(),
+        imageCount: images.length,
       }}
-      uploading={reading}
-      errorMessage={error}
-      saving={saving}
-      continuous={continuous}
-      onContinuousChange={setContinuous}
-      onSave={() => void onSave()}
-      onReset={reset}
+      images={railImages}
+      selectedImage={current?.sn ?? null}
+      tab="info"
+      visibleTabs={["info"]}
+      openCases={[{ aprthngNo: title, caseName }]}
+      prevOff
+      nextOff
       onClose={onClose}
-      onCopy={noop}
-      onOpenImageEdit={noop}
-      onOpenSearch={noop}
-      showPlus={false}
-    />
+      onPrev={noop}
+      onNext={noop}
+      onSelectImage={(sn) => setSelected(images.find((i) => i.sn === sn)?.id ?? null)}
+      onSelectTab={noop}
+      onSelectOpenCase={noop}
+      onCloseOpenCase={onClose}
+      onConfirmResult={noop}
+      menu={[{ label: "모두 지우고 새로", onSelect: reset }]}
+      railInitiallyOpen
+      railFooter={
+        <div className="grid gap-1.5">
+          <CaseImageDrop compact onFilesAdded={addFiles} uploading={reading} />
+          <WorkbenchButton size="sm" variant="ghost" disabled={!current || saving} onClick={removeCurrent}>
+            {current ? `_${current.sn} 빼기` : "고른 장 빼기"}
+          </WorkbenchButton>
+        </div>
+      }
+    >
+      <CaseDetailScreen
+        inWindow
+        status="ready"
+        onRetry={noop}
+        isAdmin={isAdmin(user)}
+        features={user?.features ?? []}
+        mode="register"
+        form={form}
+        onFieldChange={onFieldChange}
+        officeItems={officeItems}
+        images={caseImages}
+        selectedImageId={current?.id ?? null}
+        onSelectImage={setSelected}
+        checkedImageIds={checked}
+        onCheckedImageIdsChange={setChecked}
+        onFilesAdded={addFiles}
+        onDeleteChecked={() => {
+          setImages((cur) => cur.filter((i) => !checked.includes(i.id)))
+          setChecked([])
+        }}
+        uploading={reading}
+        errorMessage={error}
+        saving={saving}
+        continuous={continuous}
+        onContinuousChange={setContinuous}
+        onSave={() => void onSave()}
+        onReset={reset}
+        onClose={onClose}
+        onCopy={noop}
+        onOpenImageEdit={noop}
+        onOpenSearch={noop}
+        showPlus={false}
+      />
+    </CaseWindow>
   )
 }
