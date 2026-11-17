@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 
-import type { PaletteKind, PatternMetaMap } from "./types"
+import type { PatternZone } from "@/entities/pattern"
+
+import { scoreOf } from "./match-score"
+import CASES from "./pattern-weight-cases.json"
+import type { PaletteKind, PatternMetaMap, WeightOverrideMap } from "./types"
 import { countOverrides, describeWeight, levelOfScore, patternWeights, ruleWeight, type ZoneTuples } from "./weight-rules"
 
 // 스펙 2026-11-17-pattern-weight-rule-design §3 의 규칙 표 · 예 표를 그대로 확인한다.
@@ -106,5 +110,50 @@ describe("patternWeights — 시안 값 예(스펙 §3 표)", () => {
   it("countOverrides — 직접 고른 개수", () => {
     expect(countOverrides(undefined)).toBe(0)
     expect(countOverrides({ top: { a: "low" }, mid: { b: "high", c: "normal" } })).toBe(3)
+  })
+})
+
+// 공용 시험 사례(B 단계 설계서 2026-11-17 §5-1) — 서버 tests/fixtures/pattern_weight_cases.json 과 같은 내용.
+// 화면 규칙 = 서버 규칙(서버가 검색 때 다시 계산하는 값과 같아야 「규칙/직접」 표시가 맞다)
+describe("공용 시험 사례 — 서버 utils/pattern_weight.py 와 같은 입력 → 같은 출력", () => {
+  type Case = {
+    name: string
+    zones: ZoneTuples
+    meta: PatternMetaMap | null
+    overrides: WeightOverrideMap | null
+    expected: Record<string, Record<string, { level: string; source: string; hits: string[]; rule_level?: string }>>
+  }
+  type ScoreCase = {
+    name: string
+    query: { zone: PatternZone; name: string; essential: boolean; weight: number }[]
+    shoes: { ftwr_id: string; zones: Partial<Record<PatternZone, string[]>> }[]
+    expected: { ftwr_id: string; excluded: boolean; score: number | null }[]
+  }
+  const kinds = CASES.kinds as Record<string, PaletteKind>
+
+  it.each(CASES.weights as unknown as Case[])("가중치 — $name", (c) => {
+    const w = patternWeights(c.zones, c.meta ?? undefined, kinds, c.overrides ?? undefined)
+    for (const [zone, names] of Object.entries(c.expected)) {
+      for (const [name, exp] of Object.entries(names)) {
+        const got = w[zone as PatternZone][name]
+        expect(got.level).toBe(exp.level)
+        expect(got.source).toBe(exp.source)
+        expect(got.hits.map((h) => h.rule)).toEqual(exp.hits)
+        if (exp.rule_level) expect(got.ruleLevel).toBe(exp.rule_level)
+      }
+    }
+  })
+
+  it.each(CASES.scores as unknown as ScoreCase[])("문양 점수 — $name", (c) => {
+    c.shoes.forEach((s, i) => {
+      const zones = { top: [], mid: [], bottom: [], outline: [], ...s.zones } as Record<PatternZone, string[]>
+      const r = scoreOf(c.query, { ftwrId: s.ftwr_id, zones })
+      const exp = c.expected[i]
+      expect(r.excluded).toBe(exp.excluded)
+      if (!r.excluded) {
+        if (exp.score === null) expect(r.score).toBeNull()
+        else expect(r.score).toBeCloseTo(exp.score, 6)
+      }
+    })
   })
 })

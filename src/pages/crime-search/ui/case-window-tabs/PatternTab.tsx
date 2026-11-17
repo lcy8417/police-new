@@ -1,30 +1,58 @@
 import * as React from "react"
 import { toast } from "sonner"
 
-import { putCrimePatterns, useCrimeStore, type Crime } from "@/entities/crime"
-import { insertPatternPath, type PatternZone } from "@/entities/pattern"
-import { PatternCanvas, usePatternManager } from "@/features/patterns-extract"
-import { imageChangeHandler } from "@/utils/get-input-change"
+import type { Crime } from "@/entities/crime"
+import { useEditHistory } from "@/entities/crime/api/edit-history-api"
+import { useCrimePatterns } from "@/entities/crime/api/pattern-api"
+import { useSearchHistory } from "@/entities/crime/api/search-history-api"
+import { insertPatternPath, type PatternInsertOrigin, type PatternZone } from "@/entities/pattern"
+import { useRunSearch } from "@/features/crime-search/api/use-run-search"
+import { PatternCanvas } from "@/features/patterns-extract"
+import { extractCrimeWithRun } from "@/features/patterns-extract/api/extract-with-run"
+import { useSavePatterns } from "@/features/patterns-extract/api/use-save-patterns"
+import { ApiError } from "@/shared/api"
 import {
   PatternCodeScreen,
   type ExtractedPatternView,
   type ExtractState,
   type MatchConditionValues,
   type PaletteKind,
+  type SearchHistoryRow,
+  type SearchMethod,
 } from "@/widgets/pattern-code"
 
 import { paletteCounts, paletteOf, patternKinds } from "./model/palette"
+import { useSearchRunSession } from "./model/search-run-session"
 import { useImageSession, useTabSessionStore, type TabSearchImage } from "./model/tab-session"
-import { zonesOf } from "./model/tab-values"
+import {
+  conditionKey,
+  confirmAll,
+  confirmAt,
+  countAt,
+  draftFromRun,
+  hydrateZones,
+  insertInto,
+  removeAt,
+  runConditionKey,
+  runOfEntry,
+  saveBodyOf,
+  searchBodyOf,
+  toggleAt,
+  usePatternDraft,
+  weightAt,
+  type PatternDraft,
+} from "./model/use-pattern-draft"
 import type { TabViewer } from "./model/use-viewer"
 
-/** 부위 인덱스(지금 앱 `usePatternManager.selected` 0~3) ↔ 부위 이름 — PatternZones 순서 그대로 */
-const ZONE_KEYS: readonly PatternZone[] = ["top", "mid", "bottom", "outline"]
-
-/** 매칭 조건 처음 값(지금 검색은 이 값을 보내지 않는다 — 위젯도 「보내지 않음」으로 그린다) */
+/** 매칭 조건 처음 값 */
 const DEFAULT_CONDITIONS: MatchConditionValues = { searchKind: "현장문양", periodFrom: "", periodTo: "", gender: "전체", heel: "전체" }
 
-const NO_HISTORY: never[] = []
+/** 경계선 상태(현장 경로는 경계선 좌표를 보내지 않는다 — PatternCanvas 가 그리기만, 좌표 계약 불변) */
+interface LineState {
+  lineYs: [number, number]
+  draggingLine: number | null
+  offsetY: number
+}
 
 export interface PatternTabProps {
   viewer: TabViewer
@@ -33,47 +61,118 @@ export interface PatternTabProps {
   onOpenSearch: () => void
 }
 
+/** 서버 거절 문구(없으면 기본) */
+const messageOf = (error: unknown, fallback: string) => (error instanceof ApiError && error.detail ? error.detail : fallback)
+
 /**
- * 「문양 코드」 탭 — 지금 앱 커맨드센터(CrimeDetailPage)의 문양 흐름을 그대로 쓴다:
- *   좌표 캔버스 = 실제 `PatternCanvas`(슬롯에 그대로 — 좌표 계약 불변), 상태 = `usePatternManager`(crime 모드, store 갱신)
- *   AI 추출 = `patternsExtract`(현장은 통합 추출 → `extractedRaw`), 넣기 · 빼기 · 필수 = 훅 함수(이름 기준 중복 검사)
- *   「검색」 = 문양 저장(`PUT /crime/:aprthngNo` — `putCrimePatterns`) 뒤 검색 결과 탭
- * 가중치는 규칙 값 표시만(사람이 고르는 칸 · 「직접」 저장 API 없음), 검색 이력 탭은 이력 요약 API 가 없어 숨긴다.
+ * 「문양 코드」 탭(B 단계 묶음 ①) — 서버가 정본:
+ *   문양 · 카드 덧붙임(출처 · 확신도 · 개수 · 「AI 제안?」) · 직접 가중치 · 밑창 문자열 = C1 → 화면 초안(`usePatternDraft`)
+ *   저장 = C2(「검색」 직전 · 탭을 떠날 때 바뀐 게 있으면, 판 번호 `rowVersion` — 409 면 서버 값으로 되돌림)
+ *   AI 추출 = C3(실행 번호 헤더 → AI 카드에 남김), 「검색」 = D1 기록(가중치 단계 · 제안 · 문자열 · 조건 · 입력 파일) → 검색 결과 탭
+ *   검색 이력 = D2(검색 한 번 = 한 줄), 「이 조건 다시 불러오기」 = 그 줄의 조건(cond)으로 초안을 되살림
+ * 좌표 캔버스는 실제 `PatternCanvas`(슬롯에 그대로 — 좌표 계약 불변). 옛 전역 store 는 쓰지 않는다.
  */
 export function PatternTab({ viewer, image, onOpenSearch }: PatternTabProps) {
   const aprthngNo = image.aprthngNo ?? ""
   const imgRef = React.useRef<HTMLImageElement | null>(null)
-  const crimeData = useCrimeStore((s) => s.crimeData)
-  const index = crimeData.findIndex((c) => c.aprthngNo === aprthngNo)
-  const current = index >= 0 ? crimeData[index] : image
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null)
+  const [lineState, setLineState] = React.useState<LineState>({ lineYs: [100, 200], draggingLine: null, offsetY: 0 })
 
-  const pm = usePatternManager({ index, currentData: current, imgRef })
+  const patternsQuery = useCrimePatterns(aprthngNo)
+  const historyQuery = useSearchHistory(aprthngNo)
+  const editsQuery = useEditHistory(aprthngNo)
+  const { draft, update, reset, dirty, rowVersion, ready } = usePatternDraft(patternsQuery.data)
+  const save = useSavePatterns(aprthngNo)
+  const search = useRunSearch(aprthngNo)
+
   const { searchImage } = useImageSession(aprthngNo)
   const setSearchImage = useTabSessionStore((s) => s.setSearchImage)
+  const setRun = useSearchRunSession((s) => s.setRun)
 
-  const [extractState, setExtractState] = React.useState<ExtractState>(current.extractedRaw?.length ? "done" : "idle")
+  const [extractState, setExtractState] = React.useState<ExtractState>("idle")
+  const [lastRunId, setLastRunId] = React.useState<number | null>(null)
   const [paletteKind, setPaletteKind] = React.useState<PaletteKind>("무늬")
   const [conditions, setConditions] = React.useState<MatchConditionValues>(DEFAULT_CONDITIONS)
-  const [saving, setSaving] = React.useState(false)
+  const [searchMethod, setSearchMethod] = React.useState<SearchMethod>("image")
+  const [selectedZone, setSelectedZone] = React.useState<PatternZone>("top")
+  const [selectedSearchNo, setSelectedSearchNo] = React.useState<number | undefined>(undefined)
+  const busy = save.isPending || search.isPending
 
-  const zones = React.useMemo(() => zonesOf(current), [current])
-  const selectedZone = ZONE_KEYS[pm.selected ?? 0]
+  const kinds = React.useMemo(() => patternKinds(), [])
   const palette = React.useMemo(() => paletteOf(paletteKind), [paletteKind])
   const counts = React.useMemo(() => paletteCounts(), [])
+  const zones = React.useMemo(() => hydrateZones(draft.zones), [draft.zones])
   const extracted = React.useMemo<ExtractedPatternView[]>(
+    () => draft.extracted.map((item) => ({ code: item.code, score: item.score, src: insertPatternPath(item.code) as string })),
+    [draft.extracted],
+  )
+
+  // 검색 이력(최신이 앞) — 위젯 이력 줄(조건이 남은 새 기록) · 옛 표 줄
+  const entries = React.useMemo(() => [...(historyQuery.data ?? [])].reverse(), [historyQuery.data])
+  const searchRuns = React.useMemo(() => entries.map(runOfEntry).filter((r): r is NonNullable<typeof r> => r !== null), [entries])
+  const historyRows = React.useMemo<SearchHistoryRow[]>(
     () =>
-      (current.extractedRaw ?? []).map((item) => ({
-        code: item.code,
-        score: item.score,
-        src: insertPatternPath(item.code) as string,
+      entries.map((e) => ({
+        searchNo: e.searchNo,
+        frstRegistDt: e.frstRegistDt ?? "",
+        ranking: e.ranking,
+        mtchgId: e.mtchgId,
+        resultCount: e.resultCount,
+        method: e.method,
       })),
-    [current.extractedRaw]
+    [entries],
+  )
+  const currentRunNo = React.useMemo(() => {
+    const now = conditionKey(draft, kinds, conditions, searchImage)
+    return searchRuns.find((r) => runConditionKey(r) === now)?.searchNo
+  }, [draft, kinds, conditions, searchImage, searchRuns])
+
+  // 검색 · 추출 이미지: 편집본이면 그 data URL, 원본이면 감정물 번호(서버가 저장 장면 그림을 찾는다 — 지금 앱과 같음)
+  const queryImage = searchImage === "edited" && image.editImage ? image.editImage : aprthngNo
+  // 기록에 남길 입력 파일(B3): 편집본 = 지금 편집본, 원본 = 작업본. 옛 감정물(파일 없음)은 기록 없이 검색만
+  const inputFileId = (searchImage === "edited" ? editsQuery.data?.currentFileId : editsQuery.data?.workingFileId) ?? undefined
+
+  /** 바뀐 게 있으면 C2 1건(없으면 그대로). 실패하면 false — 409 면 서버 값으로 되돌린다 */
+  const saveIfDirty = React.useCallback(
+    async (current: PatternDraft, version: number | null, isDirty: boolean): Promise<boolean> => {
+      if (!isDirty) return true
+      if (version === null) {
+        toast("이 감정물은 문양을 저장할 수 없습니다(앱에서 등록한 사건이 아님).")
+        return false
+      }
+      try {
+        await save.mutateAsync(saveBodyOf(current, version))
+        return true
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 409) {
+          toast.error(messageOf(error, "다른 사람이 먼저 고쳤습니다"), { description: "서버의 지금 문양으로 다시 불러옵니다." })
+          reset()
+        } else {
+          toast.error(messageOf(error, "문양 저장에 실패했습니다."))
+        }
+        return false
+      }
+    },
+    [save, reset],
+  )
+
+  // 탭을 떠날 때(탭 · 이미지 이동 · 창 닫기) 바뀐 게 있으면 저장 — 최신 값은 ref 로
+  const latest = React.useRef({ draft, rowVersion, dirty, saveIfDirty })
+  latest.current = { draft, rowVersion, dirty, saveIfDirty }
+  React.useEffect(
+    () => () => {
+      const l = latest.current
+      if (l.dirty) void l.saveIfDirty(l.draft, l.rowVersion, true)
+    },
+    [],
   )
 
   const handleExtract = async () => {
     setExtractState("running")
     try {
-      await pm.extractPattern()
+      const { extracted: items, runId } = await extractCrimeWithRun(aprthngNo, queryImage)
+      update((d) => ({ ...d, extracted: items }))
+      setLastRunId(runId)
       setExtractState("done")
     } catch (error) {
       console.error("패턴 추출 중 오류:", error)
@@ -82,39 +181,52 @@ export function PatternTab({ viewer, image, onOpenSearch }: PatternTabProps) {
     }
   }
 
-  // 원본 · 편집본 — 지금 앱 스와퍼처럼 imgRef.src 를 바꾸고(추출이 이 src 를 읽는다), 검색 결과 탭도 같은 이미지로 검색하게 남긴다
   const handleSearchImage = (next: TabSearchImage) => {
-    if (next === "edited" && !current.editImage) {
+    if (next === "edited" && !image.editImage) {
       toast("편집 이미지가 없습니다. 이미지 편집 탭에서 저장하면 편집본으로 추출 · 검색할 수 있습니다.")
       return
     }
     setSearchImage(aprthngNo, next)
-    imageChangeHandler(next === "edited" ? "edit" : "origin", imgRef, current)
   }
 
-  const entryPath = (zone: PatternZone, i: number) => zones[zone][i]?.[0]
+  const insert = (zone: PatternZone, src: string, origin?: PatternInsertOrigin) => {
+    const hit = origin === "ai" ? draft.extracted.find((e) => e.code === insertedName(src)) : undefined
+    update((d) => insertInto(d, zone, src, hit ? { score: hit.score, runId: lastRunId } : null))
+  }
 
   const handleSearch = async () => {
-    if (saving) return
-    setSaving(true)
+    if (busy) return
+    if (!(await saveIfDirty(draft, rowVersion, dirty))) return
+    const record = inputFileId !== undefined
     try {
-      // 지금 앱과 같이 검색 전에 지금 문양을 서버에 저장한다(PUT — 필수 플래그 · 통합 추출 결과 포함)
-      await putCrimePatterns(aprthngNo, current)
+      const res = await search.mutateAsync(
+        searchBodyOf(draft, kinds, { image: queryImage, source: searchImage, conditions, method: searchMethod, record, inputFileId }),
+      )
+      if (res.search_no !== undefined) {
+        setRun(aprthngNo, res.search_no)
+        toast.success(`검색 ${res.search_no} — 결과 ${res.total.toLocaleString("ko-KR")}건`)
+      } else {
+        toast("이 감정물은 작업 이미지 파일이 없어 검색 기록 없이 결과만 봅니다.")
+      }
+      if (res.weights_mismatch) toast("화면 가중치 규칙이 서버와 달라 서버 값으로 검색했습니다.")
       onOpenSearch()
     } catch (error) {
-      console.error("문양 저장 오류:", error)
-      toast.error("문양 업데이트 중 오류가 발생했습니다.")
-    } finally {
-      setSaving(false)
+      toast.error(messageOf(error, "검색에 실패했습니다."))
     }
   }
 
-  const sceneSrc = searchImage === "edited" ? current.editImage ?? current.image : current.image
+  const openRun = (searchNo: number) => {
+    setRun(aprthngNo, searchNo)
+    onOpenSearch()
+  }
+
+  const status = patternsQuery.isError ? "error" : !ready ? "loading" : "ready"
+  const sceneSrc = searchImage === "edited" ? image.editImage ?? image.image : image.image
 
   return (
     <PatternCodeScreen
-      status="ready"
-      onRetry={() => undefined}
+      status={status}
+      onRetry={() => void patternsQuery.refetch()}
       isAdmin={viewer.isAdmin}
       features={viewer.features}
       showPlus={false}
@@ -124,20 +236,20 @@ export function PatternTab({ viewer, image, onOpenSearch }: PatternTabProps) {
       onSelectImage={() => undefined}
       canvasSlot={
         <PatternCanvas
-          canvasRef={pm.canvasRef}
+          canvasRef={canvasRef}
           imgRef={imgRef}
-          image={current.image ?? null}
-          lineState={pm.lineState}
-          setLineState={pm.setLineState}
+          image={image.image ?? null}
+          lineState={lineState}
+          setLineState={setLineState}
           onExtract={() => void handleExtract()}
-          onClear={pm.clearPattern}
+          onClear={() => update((d) => ({ ...d, zones: { top: [], mid: [], bottom: [], outline: [] }, meta: {}, overrides: {}, runIds: {} }))}
           onShowOrigin={() => handleSearchImage("original")}
           onShowEdit={() => handleSearchImage("edited")}
           isExtracting={extractState === "running"}
           // 현장 경로는 경계선 좌표를 보내지 않으므로 신발용 chrome(경계선 · 영역)은 띄우지 않는다(지금 앱과 같음)
           patternActive={false}
           viewIsEdit={searchImage === "edited"}
-          editImage={current.editImage ?? null}
+          editImage={image.editImage ?? null}
           hideViewSwapper
           readOnly
         />
@@ -149,20 +261,14 @@ export function PatternTab({ viewer, image, onOpenSearch }: PatternTabProps) {
       extracted={extracted}
       zones={zones}
       selectedZone={selectedZone}
-      onSelectZone={(zone) => pm.setSelected(ZONE_KEYS.indexOf(zone))}
-      onInsertPattern={(src) => pm.insertPatternToZone(selectedZone, src)}
-      onInsertPatternToZone={(zone, src) => pm.insertPatternToZone(zone, src)}
-      onRemovePattern={(zone, i) => {
-        const path = entryPath(zone, i)
-        if (path) pm.deletePattern(zone, path)
-      }}
-      onToggleEssential={(zone, i) => {
-        const path = entryPath(zone, i)
-        if (path) pm.essentialCheck(zone, path)
-      }}
-      // 필수를 바꾼 뒤 재검색은 검색 결과 탭이 한다(디바운스 · settled 게이트) — 이 탭에서는 갱신 줄을 띄우지 않는다
+      onSelectZone={setSelectedZone}
+      onInsertPattern={(src, origin) => insert(selectedZone, src, origin)}
+      onInsertPatternToZone={insert}
+      onRemovePattern={(zone, i) => update((d) => removeAt(d, zone, i))}
+      onToggleEssential={(zone, i) => update((d) => toggleAt(d, zone, i))}
+      // 필수를 바꾼 뒤 재검색은 「검색」(기록)으로 — 이 탭에서는 갱신 줄을 띄우지 않는다
       researchState="idle"
-      onReset={pm.clearPattern}
+      onReset={() => update((d) => ({ ...d, zones: { top: [], mid: [], bottom: [], outline: [] }, meta: {}, overrides: {}, runIds: {} }))}
       paletteKind={paletteKind}
       onPaletteKindChange={setPaletteKind}
       palette={palette}
@@ -170,13 +276,47 @@ export function PatternTab({ viewer, image, onOpenSearch }: PatternTabProps) {
       codeNote={null}
       matchConditions={conditions}
       onMatchConditionsChange={setConditions}
-      history={NO_HISTORY}
-      onOpenHistory={() => undefined}
+      history={historyRows}
+      selectedSearchNo={selectedSearchNo}
+      onOpenHistory={(no) => {
+        setSelectedSearchNo(no)
+        openRun(no)
+      }}
       onSearch={() => void handleSearch()}
-      onOpenResults={onOpenSearch}
+      onOpenResults={() => {
+        if (searchRuns[0]) setRun(aprthngNo, searchRuns[0].searchNo)
+        onOpenSearch()
+      }}
       onClose={() => undefined}
-      patternKinds={patternKinds()}
+      patternMeta={draft.meta}
+      onConfirmSuggestion={(zone, i) => update((d) => confirmAt(d, zone, i))}
+      onConfirmAllSuggestions={() => update(confirmAll)}
+      onCountChange={(zone, i, count) => update((d) => countAt(d, zone, i, count))}
+      soleText={draft.soleText}
+      onSoleTextChange={(next) => update((d) => ({ ...d, soleText: next }))}
+      searchMethod={searchMethod}
+      onSearchMethodChange={setSearchMethod}
+      patternKinds={kinds}
+      weightOverrides={draft.overrides}
+      onWeightChange={(zone, i, level) => update((d) => weightAt(d, zone, i, level))}
+      onResetWeights={() => update((d) => ({ ...d, overrides: {} }))}
+      searchRuns={searchRuns}
+      currentRunNo={currentRunNo}
+      onRestoreRun={(searchNo) => {
+        const run = searchRuns.find((r) => r.searchNo === searchNo)
+        if (!run) return
+        update((d) => draftFromRun(run, d))
+        setConditions(run.conditions)
+        if (run.source === "original" || image.editImage) setSearchImage(aprthngNo, run.source)
+        toast(`검색 ${searchNo} 조건을 다시 불러왔습니다.`)
+      }}
+      onOpenRun={openRun}
       lensSource={sceneSrc ? <img src={sceneSrc} alt="" draggable={false} className="block size-full object-contain" /> : undefined}
     />
   )
+}
+
+/** 경로든 이름이든 이름만(추출 결과 찾기용) */
+function insertedName(src: string): string {
+  return src.split("/").pop()!.split(".")[0]
 }

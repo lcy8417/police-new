@@ -1,0 +1,96 @@
+{
+  "_about": "문양 가중치 공용 시험 사례(B 단계 설계서 2026-11-17 §5-1). 같은 내용이 프론트 police-new-scas-mock/src/widgets/pattern-code/model/pattern-weight-cases.json 에 있다 — 규칙을 바꾸면 두 파일과 rule_ver 를 함께 바꾼다.",
+  "rule_ver": "2026-11-17",
+  "kinds": { "n32_04": "선", "n21_05": "무늬", "s81b": "항목", "s10c": "윤곽", "n51_03": "사각", "n62_02": "다각" },
+  "weights": [
+    {
+      "name": "가중치 스펙 §3 예(감정물 00001-25-0649_2)",
+      "zones": {
+        "top": [["n32_04", 1], ["n21_05", 0]],
+        "mid": [["n32_04", 1], ["s81b", 0]],
+        "bottom": [["n32_04", 0]],
+        "outline": [["s10c", 0]]
+      },
+      "meta": {
+        "top": { "n32_04": { "status": "ai", "confidence": 0.93 }, "n21_05": { "status": "suggested", "confidence": 0.61 } },
+        "mid": { "n32_04": { "status": "ai", "confidence": 0.88 }, "s81b": { "status": "suggested", "confidence": 0.42 } },
+        "bottom": { "n32_04": { "status": "suggested", "confidence": 0.71 } },
+        "outline": { "s10c": { "status": "manual" } }
+      },
+      "overrides": null,
+      "expected": {
+        "top": { "n32_04": { "level": "low", "source": "rule", "hits": ["R2", "R5"] }, "n21_05": { "level": "low", "source": "rule", "hits": ["R2", "R4"] } },
+        "mid": { "n32_04": { "level": "low", "source": "rule", "hits": ["R2", "R5"] }, "s81b": { "level": "low", "source": "rule", "hits": ["R2", "R3", "R4"] } },
+        "bottom": { "n32_04": { "level": "low", "source": "rule", "hits": ["R2", "R4", "R5"] } },
+        "outline": { "s10c": { "level": "low", "source": "rule", "hits": ["R1"] } }
+      }
+    },
+    {
+      "name": "사람이 고른 값(직접)이 규칙보다 먼저 — 규칙 단계는 rule_level 에 남는다",
+      "zones": { "top": [], "mid": [["s81b", 0]], "bottom": [], "outline": [] },
+      "meta": { "mid": { "s81b": { "status": "suggested", "confidence": 0.42 } } },
+      "overrides": { "mid": { "s81b": "high" } },
+      "expected": { "mid": { "s81b": { "level": "high", "source": "manual", "rule_level": "low", "hits": ["R2", "R3", "R4"] } } }
+    },
+    {
+      "name": "확인하면 한 단계 오른다(R4 빠짐)",
+      "zones": { "top": [], "mid": [["s81b", 0]], "bottom": [], "outline": [] },
+      "meta": { "mid": { "s81b": { "status": "ai", "confidence": 0.42 } } },
+      "overrides": null,
+      "expected": { "mid": { "s81b": { "level": "normal", "source": "rule", "hits": ["R2", "R3"] } } }
+    },
+    {
+      "name": "규칙이 하나도 안 걸리면 보통",
+      "zones": { "top": [["n51_03", 0]], "mid": [], "bottom": [], "outline": [] },
+      "meta": null,
+      "overrides": null,
+      "expected": { "top": { "n51_03": { "level": "normal", "source": "rule", "hits": [] } } }
+    }
+  ],
+  "scores": [
+    {
+      "name": "가중치 스펙 §4 예시 계산(분모 4.0)",
+      "query": [
+        { "zone": "top", "name": "n32_04", "essential": true, "weight": 0.5 },
+        { "zone": "mid", "name": "n32_04", "essential": true, "weight": 0.5 },
+        { "zone": "bottom", "name": "n32_04", "essential": false, "weight": 0.5 },
+        { "zone": "mid", "name": "s81b", "essential": false, "weight": 2 },
+        { "zone": "outline", "name": "s10c", "essential": false, "weight": 0.5 }
+      ],
+      "shoes": [
+        { "ftwr_id": "A", "zones": { "top": ["n32_04"], "mid": ["n32_04", "s81b"], "bottom": ["n32_04"], "outline": [] } },
+        { "ftwr_id": "B", "zones": { "top": ["n32_04"], "mid": ["n32_04"], "bottom": ["n32_04"], "outline": ["s10c"] } },
+        { "ftwr_id": "C", "zones": { "top": ["n32_04"], "mid": ["s81b"], "bottom": ["n32_04"], "outline": [] } }
+      ],
+      "expected": [
+        { "ftwr_id": "A", "excluded": false, "score": 0.875 },
+        { "ftwr_id": "B", "excluded": false, "score": 0.5 },
+        { "ftwr_id": "C", "excluded": true, "score": null }
+      ]
+    },
+    {
+      "name": "가중치 없이(모두 1) — A · B 동점 0.8",
+      "query": [
+        { "zone": "top", "name": "n32_04", "essential": true, "weight": 1 },
+        { "zone": "mid", "name": "n32_04", "essential": true, "weight": 1 },
+        { "zone": "bottom", "name": "n32_04", "essential": false, "weight": 1 },
+        { "zone": "mid", "name": "s81b", "essential": false, "weight": 1 },
+        { "zone": "outline", "name": "s10c", "essential": false, "weight": 1 }
+      ],
+      "shoes": [
+        { "ftwr_id": "A", "zones": { "top": ["n32_04"], "mid": ["n32_04", "s81b"], "bottom": ["n32_04"], "outline": [] } },
+        { "ftwr_id": "B", "zones": { "top": ["n32_04"], "mid": ["n32_04"], "bottom": ["n32_04"], "outline": ["s10c"] } }
+      ],
+      "expected": [
+        { "ftwr_id": "A", "excluded": false, "score": 0.8 },
+        { "ftwr_id": "B", "excluded": false, "score": 0.8 }
+      ]
+    },
+    {
+      "name": "검색 문양이 비면 점수 없음(0점과 다름)",
+      "query": [],
+      "shoes": [{ "ftwr_id": "A", "zones": { "top": ["n32_04"] } }],
+      "expected": [{ "ftwr_id": "A", "excluded": false, "score": null }]
+    }
+  ]
+}
