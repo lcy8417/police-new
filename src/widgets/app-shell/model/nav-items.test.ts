@@ -22,6 +22,7 @@ describe("visibleNavItems — 권한별 메뉴(설계서 §2·§7-5)", () => {
     // 감정 의뢰·감정 결과는 사건 조회 권한에 묶인다.
     expect(labels(user({ features: [FEATURES.CRIME_SEARCH] }))).toEqual([
       "사건 조회",
+      "사건관리(새 화면)",
       "감정 의뢰",
       "감정 결과",
     ])
@@ -40,6 +41,7 @@ describe("visibleNavItems — 권한별 메뉴(설계서 §2·§7-5)", () => {
     expect(items.map((item) => item.label)).toEqual([
       "사건 등록",
       "사건 조회",
+      "사건관리(새 화면)",
       "신발",
       "감정 의뢰",
       "감정 결과",

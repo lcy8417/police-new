@@ -3,8 +3,9 @@
 // @MX:UPGRADE: src/app/에 라우터 설정이 이전되고 이 파일의 Routes가 제거되면 완료
 import { createElement, lazy, Suspense } from "react";
 import { Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
-import { AppShell } from "@/widgets/app-shell";
+import { AppShell, ScasAppShell } from "@/widgets/app-shell";
 import {
+  CasesPage,
   CrimeDetailPage as CrimeDetail,
   CrimeHistoryPage as CrimeHistory,
   ResultDetailPage as ResultDetail,
@@ -135,6 +136,25 @@ function App() {
           </RequireAuth>
         }
       />
+
+      {/* 새 앱 틀(남색 위 막대 한 줄 `ScasAppShell`) — 화면 이식 계획 §1: 새 라우트 `/cases`(사건관리 목록 + 사건 창 +
+          신발 DB 패널)를 옛 라우트와 나란히 세운다. 옛 라우트는 넘겨주기 전까지 아래 옛 틀(`AppShell`) 그대로. */}
+      <Route
+        element={
+          <RequireAuth>
+            <ScasAppShell />
+          </RequireAuth>
+        }
+      >
+        <Route
+          path="/cases"
+          element={
+            <RequireFeature code={FEATURES.CRIME_SEARCH}>
+              <CasesPage />
+            </RequireFeature>
+          }
+        />
+      </Route>
 
       {/* Persistent shell: fixed TopNav + Sidebar, only the Outlet content swaps. */}
       <Route

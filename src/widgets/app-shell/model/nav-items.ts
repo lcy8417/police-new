@@ -1,5 +1,6 @@
 import {
   FileText,
+  LayoutList,
   ListFilter,
   Footprints,
   FileSearch,
@@ -27,6 +28,8 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { label: "사건 등록", to: "/crimeRegister", icon: FileText, feature: FEATURES.CRIME_REGISTER },
   { label: "사건 조회", to: "/search", icon: ListFilter, feature: FEATURES.CRIME_SEARCH },
+  // 새 화면(화면 이식 계획 §1 — 옛 `/search` 와 나란히 세운 `/cases`, 새 위 막대 틀)으로 가는 길
+  { label: "사건관리(새 화면)", to: "/cases", icon: LayoutList, feature: FEATURES.CRIME_SEARCH },
   { label: "신발", to: "/shoesRepository", icon: Footprints, feature: FEATURES.SHOE_VIEW },
   {
     label: "감정 의뢰",

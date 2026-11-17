@@ -142,8 +142,9 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
       {label("화류번호", <Field variant="mono" aria-label="화류번호" value={filters.ftwrId} onChange={(e) => set({ ftwrId: e.target.value })} />)}
       {label("상표", <Field aria-label="상표" value={filters.brandCode} onChange={(e) => set({ brandCode: e.target.value })} />)}
       {label("제조사", <Field aria-label="제조사" value={filters.makrCode} onChange={(e) => set({ makrCode: e.target.value })} />)}
-      {label("등록관서", <Combobox aria-label="등록관서" items={officeItems} value={filters.office} onValueChange={(office) => set({ office })} placeholder="전체" />)}
-      {label(
+      {/* 등록관서 · 등록일자 · 승인은 서버 값이 생길 때(신발 검수 묶음)까지 실제 화면(showPlus=false)에서 숨긴다 — 화면 이식 계획 §4 ④ */}
+      {showPlus ? label("등록관서", <Combobox aria-label="등록관서" items={officeItems} value={filters.office} onValueChange={(office) => set({ office })} placeholder="전체" />) : null}
+      {showPlus ? label(
         "등록일자",
         <span className="flex min-w-0 items-center gap-[6px]">
           <Field variant="mono" aria-label="등록일자 시작일" value={filters.regFrom} onChange={(e) => set({ regFrom: e.target.value })} />
@@ -151,8 +152,8 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
           <Field variant="mono" aria-label="등록일자 종료일" value={filters.regTo} onChange={(e) => set({ regTo: e.target.value })} />
         </span>,
         true,
-      )}
-      {label("승인", <RadioRow name="승인" options={APPROVAL_OPTIONS} value={filters.approval} onValueChange={(approval) => set({ approval })} />)}
+      ) : null}
+      {showPlus ? label("승인", <RadioRow name="승인" options={APPROVAL_OPTIONS} value={filters.approval} onValueChange={(approval) => set({ approval })} />) : null}
       {label("문양", <RadioRow name="문양 입력" options={PATTERN_INPUT_OPTIONS} value={filters.patternInput} onValueChange={(patternInput) => set({ patternInput })} />)}
       <span className="col-span-4 flex items-center justify-end gap-[6px]">
         <WorkbenchButton size="sm" variant="ghost" onClick={onReset}>
@@ -273,7 +274,7 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
               {quick.resultCount} / {quick.total}
             </span>
           ) : null}
-          {canEdit ? (
+          {canEdit && showPlus ? (
             <WorkbenchButton size="sm" variant="ghost" icon={Check} disabled={!isAdmin} title="승인 담당만" onClick={() => onPlusAction?.("승인")}>
               승인
             </WorkbenchButton>
