@@ -50,6 +50,8 @@ export function CaseDetailScreen({
   aprthngNo,
   form,
   pendingValues,
+  editableLabels,
+  onPendingChange,
   onFieldChange,
   officeItems,
   images,
@@ -154,39 +156,60 @@ export function CaseDetailScreen({
     },
   ]
 
+  // 칸별 수정 가능(editableLabels 를 주면 그 목록만 — 실제 사건 정보 탭)
+  const editableAt = (label: string) => canEdit && (editableLabels === undefined || editableLabels.includes(label))
+  const unlocked = (label: string) => canEdit && editableLabels !== undefined && editableLabels.includes(label)
+
   const text = (name: CaseDetailFieldName, label: string, variant: "text" | "mono" | "mono-sm" = "text") => (
     <Field
       variant={variant}
       value={form[name]}
-      readOnly={!canEdit}
+      readOnly={!editableAt(label)}
       required={name === "apprslReqestNo"}
       onChange={(e) => onFieldChange(name, e.target.value)}
       aria-label={label}
     />
   )
 
-  // 지금 앱에 동작이 없는 SCAS 칸: 자리와 값만 두고 잠근다(spec §5-2 규칙 3 · 판정 R10)
-  const pendingText = (label: string, variant: "text" | "mono-sm" = "text") => (
-    <Field
-      variant={variant}
-      value={pendingValues?.[label] ?? ""}
-      readOnly
-      disabled
-      title="준비 중"
-      aria-label={label}
-    />
-  )
-  const pendingRadio = (label: string, options: string[]) => (
-    <span title="준비 중" className="inline-flex">
+  // 지금 앱에 동작이 없는 SCAS 칸: 자리와 값만 두고 잠근다(spec §5-2 규칙 3 · 판정 R10).
+  // editableLabels 에 든 칸은 잠금을 풀고 값을 고칠 수 있다(실제 사건 정보 탭 — A3 · A8 칸)
+  const pendingText = (label: string, variant: "text" | "mono-sm" = "text") =>
+    unlocked(label) ? (
+      <Field
+        variant={variant}
+        value={pendingValues?.[label] ?? ""}
+        onChange={(e) => onPendingChange?.(label, e.target.value)}
+        aria-label={label}
+      />
+    ) : (
+      <Field
+        variant={variant}
+        value={pendingValues?.[label] ?? ""}
+        readOnly
+        disabled={editableLabels === undefined}
+        title={editableLabels === undefined ? "준비 중" : undefined}
+        aria-label={label}
+      />
+    )
+  const pendingRadio = (label: string, options: string[]) =>
+    unlocked(label) ? (
       <RadioRow
         name={label}
         value={pendingValues?.[label] ?? null}
-        onValueChange={() => undefined}
+        onValueChange={(v) => onPendingChange?.(label, v)}
         options={options.map((o) => ({ value: o, label: o }))}
-        disabled
       />
-    </span>
-  )
+    ) : (
+      <span title={editableLabels === undefined ? "준비 중" : undefined} className="inline-flex">
+        <RadioRow
+          name={label}
+          value={pendingValues?.[label] ?? null}
+          onValueChange={() => undefined}
+          options={options.map((o) => ({ value: o, label: o }))}
+          disabled
+        />
+      </span>
+    )
 
   // 사건정보: 시안 순서 그대로(감정번호 자리에 사건등록번호). 동작하는 칸 7개만 고칠 수 있다.
   const caseRows: SearchFormRow[] = [
@@ -196,7 +219,7 @@ export function CaseDetailScreen({
     { label: "피해자 성명", field: pendingText("피해자 성명") },
     {
       label: "의뢰관서",
-      field: canEdit ? (
+      field: editableAt("의뢰관서") ? (
         <Combobox
           aria-label="의뢰관서"
           items={officeItems}

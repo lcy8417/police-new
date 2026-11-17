@@ -50,6 +50,14 @@ export interface CaseDetailScreenProps {
    * 이 칸들은 「준비 중」으로 잠긴 채 값만 보인다(spec §5-2 규칙 3 · 판정 R10).
    */
   pendingValues?: Readonly<Record<string, string>>
+  /**
+   * 칸별 수정 가능(라벨 목록 — 실제 사건 정보 탭, A3 · A8). 주면 이 목록의 칸만 고칠 수 있다:
+   * 폼 7칸 중 목록 밖은 읽기 전용, 「준비 중」 SCAS 칸 중 목록 안은 잠금을 풀고 `onPendingChange` 로 알린다.
+   * 안 주면 지금처럼(폼 7칸 = 편집 권한대로, SCAS 칸 = 준비 중 잠금). 편집 권한(CRIME_REGISTER)이 없으면 모두 읽기 전용
+   */
+  editableLabels?: readonly string[]
+  /** 잠금을 푼 SCAS 칸 값 바꿈 — 키 = 라벨(`pendingValues` 와 같은 키) */
+  onPendingChange?: (label: string, value: string) => void
   onFieldChange: (name: CaseDetailFieldName, value: string) => void
   /** 의뢰관서 검색 후보(관서 조회는 쓰는 쪽이 조립) */
   officeItems: ComboboxItem[]
