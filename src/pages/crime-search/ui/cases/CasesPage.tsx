@@ -77,7 +77,9 @@ interface QuickValues {
   /** 기간 칩(3m · 1y · all) — case-list-filters.ts */
   period: string[]
 }
-const EMPTY_QUICK: QuickValues = { flow: [], progress: [], mine: [], period: [] }
+/** 처음 · 「조건 지우기」 상태 — 기간은 「전체 기간」을 눌러 둔다(과거 SCAS 사건까지 바로 보이게, 사용자 결정 11/17) */
+const DEFAULT_PERIOD = ["all"]
+const DEFAULT_QUICK: QuickValues = { flow: [], progress: [], mine: [], period: DEFAULT_PERIOD }
 
 /** 조회 실패를 확인한 시각 「시:분」(KST) */
 function kstClock(ms: number): string {
@@ -100,7 +102,7 @@ export function CasesPage() {
 
   // ── 거르기(서버) ──
   const [query, setQuery] = useState("")
-  const [quickValues, setQuickValues] = useState<QuickValues>(EMPTY_QUICK)
+  const [quickValues, setQuickValues] = useState<QuickValues>(DEFAULT_QUICK)
   const debouncedQuery = useDebouncedValue(query.trim(), 300)
   const filters = useMemo<RequestListFilters>(
     () => ({
@@ -144,13 +146,12 @@ export function CasesPage() {
     }
   }
 
+  // 기본으로 눌러 둔 「전체 기간」은 사용자가 건 조건으로 세지 않는다
+  const periodChanged = quickValues.period.join(",") !== DEFAULT_PERIOD.join(",")
   const filtered =
     debouncedQuery !== "" ||
-    quickValues.flow.length +
-      quickValues.progress.length +
-      quickValues.mine.length +
-      quickValues.period.length >
-      0
+    periodChanged ||
+    quickValues.flow.length + quickValues.progress.length + quickValues.mine.length > 0
   const status: ScreenStatus = listQuery.isPending
     ? "loading"
     : listQuery.isError
@@ -495,7 +496,7 @@ export function CasesPage() {
           },
           onClear: () => {
             setQuery("")
-            setQuickValues(EMPTY_QUICK)
+            setQuickValues(DEFAULT_QUICK)
             setPage(1)
           },
           resultCount: items.length,
