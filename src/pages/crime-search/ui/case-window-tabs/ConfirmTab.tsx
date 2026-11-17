@@ -132,14 +132,26 @@ export function ConfirmTab({ aprthngNo, onOpenImage }: ConfirmTabProps) {
   }
 
   // 판정 메모(B15 — 사용자 결정 「둔다」): 같은 판정 + 새 메모로 G2(서버는 같은 결과 · 같은 메모면 새 판본을 만들지 않는다)
+  const opinionSent = React.useRef<string | null>(null)
   const handleOpinion = (row: ConfirmRow, opinion: string) => {
     const dto = byNo.get(row.imageNo)
     if (!dto || dto.judgement === null) return
+    const opinionCn = opinion === "" ? null : opinion
+    // Enter 로 저장한 뒤 칸을 떠나면(blur) 같은 메모가 한 번 더 온다 — 그때는 앞 저장이 판 번호를 올려 낡은 판으로
+    // 409 「다른 사람이 먼저 고쳤습니다」가 나던 결함(스모크 4단계). 바뀐 것이 없거나 저장 중이면 보내지 않는다.
+    // (Enter 와 blur 는 같은 틱에 오고, 저장이 끝나도 결과 확인을 다시 읽기 전까지는 dto 가 옛 메모 — 보냈거나 보내는 중인
+    //  메모를 ref 로 기억해 같은 메모는 다시 보내지 않는다. 실패하면 잊어 다시 보낼 수 있게)
+    const key = `${dto.aprthngNo}|${opinionCn ?? ""}`
+    if (opinionCn === dto.opinionCn || opinionSent.current === key) return
+    opinionSent.current = key
     saveJudgement.mutate(
-      { aprthngNo: dto.aprthngNo, result: dto.judgement, opinionCn: opinion === "" ? null : opinion, expectedExamId: dto.examId, rowVersion: dto.rowVersion },
+      { aprthngNo: dto.aprthngNo, result: dto.judgement, opinionCn, expectedExamId: dto.examId, rowVersion: dto.rowVersion },
       {
         onSuccess: () => toast.success(`_${row.no} 판정 메모를 저장했습니다`),
-        onError: (e) => toast.error(errorText(e, "판정 메모를 저장하지 못했습니다. 다시 시도해 주세요.")),
+        onError: (e) => {
+          opinionSent.current = null
+          toast.error(errorText(e, "판정 메모를 저장하지 못했습니다. 다시 시도해 주세요."))
+        },
       }
     )
   }

@@ -260,6 +260,32 @@ describe("ConfirmTab — 결과 확인(G1) · 판정(G2) · 교차 검증(H1 · 
     )
   })
 
+  it("판정 메모: Enter 로 저장한 뒤 칸을 떠나도 G2 는 한 번만(낡은 판 409 방지 — 스모크 4단계)", async () => {
+    login(EXAMINER)
+    let calls = 0
+    useHandlers(
+      () => confirmBody(),
+      [
+        http.put("*/crime/:no/examination", async () => {
+          calls += 1
+          await new Promise((r) => setTimeout(r, 50))
+          return HttpResponse.json({ exam_id: 12, exam_round: 1, exam_sttus: "CONFIRMED", img_sttus: "불발견", row_version: 3,
+            rqest_sttus: "IN_EXAM" })
+        }),
+      ]
+    )
+    renderTab()
+    const judged = await screen.findByRole("textbox", { name: "_2 판정 메모" })
+    fireEvent.change(judged, { target: { value: "앞꿈치 문양 다름" } })
+    fireEvent.keyDown(judged, { key: "Enter" })
+    fireEvent.blur(judged) // 같은 틱
+    await waitFor(() => expect(calls).toBe(1))
+    await new Promise((r) => setTimeout(r, 120))
+    fireEvent.blur(judged) // 저장이 끝난 뒤(다시 읽은 결과가 아직 옛 메모여도)
+    await new Promise((r) => setTimeout(r, 120))
+    expect(calls).toBe(1)
+  })
+
   it("열기 단추는 판정 전 = 검색 결과, 발견 = 정밀 대조", async () => {
     login(EXAMINER)
     const open = vi.fn()
