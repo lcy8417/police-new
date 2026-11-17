@@ -8,7 +8,7 @@ import { FEATURES } from "@/entities/session"
 import { fetchShoeDetail, shoeImageUrl, shoeKeys, type Shoe } from "@/entities/shoe"
 import { AlignmentCaptureCanvas, sceneImageUrl, useAlignment } from "@/features/crime-align"
 import { useRecordComparison } from "@/features/crime-search"
-import { useMatchTop10 } from "@/features/match-top10"
+import { MATCH_GATE_MESSAGES, MATCH_GENERIC_ERROR_MESSAGE, useMatchTop10 } from "@/features/match-top10"
 import {
   MatchCompareScreen,
   type CompareAutoMode,
@@ -108,6 +108,16 @@ function CompareBody({ viewer, image, target, candidates, view, onConfirmTarget,
   const align = useAlignment({ aprthngNo, ftwrId })
   const aligned = Boolean(alignmentQuery.data?.polygon && alignmentQuery.data?.arrow)
   const match = useMatchTop10({ aprthngNo, ftwrId, enabled: aligned })
+  // 대응점 계산 실패(게이트 409 · 모델 없음 503)는 위젯에 자리가 없어 아무 표시 없이 빈 판으로 남았다(스모크 4단계) —
+  // 원인 문구를 알림으로 한 번(같은 쌍은 id 로 하나만)
+  const matchNotice = match.gateCode
+    ? MATCH_GATE_MESSAGES[match.gateCode]
+    : match.isGenericError
+      ? MATCH_GENERIC_ERROR_MESSAGE
+      : null
+  React.useEffect(() => {
+    if (matchNotice) toast.error(matchNotice, { id: `match-${aprthngNo}-${ftwrId}` })
+  }, [matchNotice, aprthngNo, ftwrId])
 
   const shoeQuery = useQuery({
     queryKey: shoeKeys.detail(ftwrId),
