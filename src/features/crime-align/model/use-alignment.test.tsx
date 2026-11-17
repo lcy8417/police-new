@@ -532,3 +532,107 @@ describe("useAlignment — 직전 정렬 이어받기와 쓰기 권한([검수])
     expect(posts).toHaveLength(0);
   });
 });
+
+describe("useAlignment — 판 안 정렬 지정(11/17 「폴리곤 치기 좀 쉽게」 · 「정렬 설정 누르면 저기서 바로」)", () => {
+  const SAVED = {
+    polygon: [
+      [10, 10],
+      [50, 10],
+      [50, 50],
+    ],
+    arrow: [
+      [20, 20],
+      [30, 40],
+    ],
+    flipHorizontal: false,
+  };
+
+  it("사각형: 끈 두 모서리(클릭 좌표)를 저장 좌표 4점으로 — 이미지 밖은 clamp, 그린 뒤 누르면 바로 앞굽", async () => {
+    mswServer.use(http.get("*/crime/A/alignment", () => HttpResponse.json(UNSET)));
+    const { result } = renderUseAlignment("A", "X");
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() => result.current.seedTemplate(NATURAL_WIDTH, NATURAL_HEIGHT));
+    act(() => result.current.startRect());
+    expect(result.current.drawMode).toBe("rect");
+    expect(result.current.polygon).toEqual([]);
+
+    // 표시 (40,60) → (10,-5): 저장 = ×2, y 는 0 으로 clamp
+    act(() => result.current.setRectangle(40, 60, 10, -5, RECT, NATURAL_WIDTH));
+    expect(result.current.polygon).toEqual([
+      [20, 0],
+      [80, 0],
+      [80, 120],
+      [20, 120],
+    ]);
+    expect(result.current.canClosePolygon).toBe(true);
+    act(() => result.current.pickArrowPoint("toe", 25, 30, RECT, NATURAL_WIDTH));
+    expect(result.current.toe).toEqual([50, 60]);
+    expect(result.current.phase).toBe("arrow");
+  });
+
+  it("사각형 모드가 아니면 setRectangle 은 무시", async () => {
+    mswServer.use(http.get("*/crime/A/alignment", () => HttpResponse.json(UNSET)));
+    const { result } = renderUseAlignment("A", "X");
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() => result.current.startFromScratch());
+    act(() => result.current.setRectangle(0, 0, 10, 10, RECT, NATURAL_WIDTH));
+    expect(result.current.polygon).toEqual([]);
+  });
+
+  it("dragVertex · dragShape 는 저장 대기(review)에서도 고친다 — 반전 미리보기 중에는 잠김", async () => {
+    mswServer.use(http.get("*/crime/A/alignment", () => HttpResponse.json(SAVED)));
+    const { result } = renderUseAlignment("A", "X");
+    await waitFor(() => expect(result.current.phase).toBe("review"));
+    act(() => result.current.seedTemplate(NATURAL_WIDTH, NATURAL_HEIGHT));
+
+    act(() => result.current.dragVertex(0, 5, 5, RECT, NATURAL_WIDTH));
+    expect(result.current.polygon[0]).toEqual([10, 10]);
+    act(() => result.current.dragVertex(0, 2, 3, RECT, NATURAL_WIDTH));
+    expect(result.current.polygon[0]).toEqual([4, 6]);
+    act(() => result.current.dragShape(1, 1, NATURAL_WIDTH, RECT.width));
+    expect(result.current.polygon[1]).toEqual([52, 12]);
+
+    act(() => result.current.toggleFlip());
+    act(() => result.current.dragVertex(0, 40, 40, RECT, NATURAL_WIDTH));
+    expect(result.current.polygon[0]).toEqual([6, 8]);
+  });
+
+  it("clearArrow = 방향 다시(폴리곤 유지), restart = 지금 방식으로 처음부터(방향도), discard = 저장본으로", async () => {
+    mswServer.use(http.get("*/crime/A/alignment", () => HttpResponse.json(SAVED)));
+    const { result } = renderUseAlignment("A", "X");
+    await waitFor(() => expect(result.current.phase).toBe("review"));
+    act(() => result.current.seedTemplate(NATURAL_WIDTH, NATURAL_HEIGHT));
+
+    act(() => result.current.clearArrow());
+    expect(result.current.arrow).toEqual([]);
+    expect(result.current.phase).toBe("arrow");
+    expect(result.current.polygon).toHaveLength(3);
+
+    act(() => result.current.dragVertex(0, 1, 1, RECT, NATURAL_WIDTH));
+    act(() => result.current.discard());
+    expect(result.current.polygon).toEqual(SAVED.polygon);
+    expect(result.current.arrow).toEqual(SAVED.arrow);
+    expect(result.current.phase).toBe("review");
+
+    act(() => result.current.startFromScratch());
+    act(() => result.current.addPoint(10, 10, RECT, NATURAL_WIDTH));
+    act(() => result.current.restart());
+    expect(result.current.drawMode).toBe("scratch");
+    expect(result.current.polygon).toEqual([]);
+    expect(result.current.arrow).toEqual([]);
+    expect(result.current.phase).toBe("polygon");
+  });
+
+  it("startTemplate 은 저장본이 있어도 밑창 틀을 바로 놓는다(사람이 고른 것) — 이미지 크기를 알기 전에는 아무것도", async () => {
+    mswServer.use(http.get("*/crime/A/alignment", () => HttpResponse.json(SAVED)));
+    const { result } = renderUseAlignment("A", "X");
+    await waitFor(() => expect(result.current.phase).toBe("review"));
+    act(() => result.current.startTemplate());
+    expect(result.current.polygon).toEqual(SAVED.polygon);
+    act(() => result.current.seedTemplate(NATURAL_WIDTH, NATURAL_HEIGHT));
+    act(() => result.current.startTemplate());
+    expect(result.current.drawMode).toBe("template");
+    expect(result.current.polygon.length).toBeGreaterThan(3);
+    expect(result.current.phase).toBe("review"); // 방향은 그대로
+  });
+});

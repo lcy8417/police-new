@@ -47,8 +47,11 @@ export type AlignmentPhase = "polygon" | "arrow" | "review";
 /** 방향 선택 진행 단계 — 다음에 무엇을 선택해야 하는지 UI가 명시적으로 라벨링하는 데 쓴다(REQ-ALIGN-019). */
 export type ArrowStep = "toe" | "heel" | "complete";
 
-/** 폴리곤 입력 모드 — template(기본 밑창 템플릿, 드래그로 조정) | scratch(처음부터 클릭으로 그리기). */
-export type DrawMode = "template" | "scratch";
+/**
+ * 폴리곤 입력 모드 — template(기본 밑창 템플릿, 드래그로 조정) | scratch(처음부터 클릭으로 그리기)
+ * | rect(끌어서 네모 = 4점 폴리곤 — 그린 뒤에는 template 처럼 닫힌 틀로 끌어 조정, 11/17 사용자 「폴리곤 치기 좀 쉽게」).
+ */
+export type DrawMode = "template" | "scratch" | "rect";
 
 export interface UseAlignmentParams {
   /** 정렬 대상 감정물 번호(`aprthngNo`, 예 `05019-24-0017_5`). */
@@ -118,6 +121,33 @@ export interface UseAlignment {
   toggleFlip: () => void;
   /** 폴리곤·화살표·단계를 모두 초기화하고 재설정을 시작한다(REQ-ALIGN-009). */
   reset: () => void;
+
+  // ─── 판 안 정렬 지정(사건 창 정밀 대조, 11/17 사용자 「영역만 여기서 바로 … 폴리곤 치기 좀 쉽게」) ───
+  // 아래는 새 캔버스(`AlignmentDrawCanvas`)가 쓴다. 위의 단계 잠금 함수(moveVertexAt · moveWholeShape)는 옛 캔버스용으로 그대로 둔다.
+
+  /** 사각형 모드 시작 — 폴리곤을 비우고 끌기를 기다린다(방향은 그대로 둔다). */
+  startRect: () => void;
+  /** 밑창 틀 모드 — 이미지 크기에 맞춘 밑창 템플릿을 바로 놓는다(저장본이 있어도 — 사람이 고른 것). */
+  startTemplate: () => void;
+  /** 사각형 모드에서 두 클릭 좌표(대각선)로 4점 폴리곤을 만든다 — 좌표 환산 · clamp 는 다른 입력과 같다. */
+  setRectangle: (
+    ax: number,
+    ay: number,
+    bx: number,
+    by: number,
+    rect: RectLike,
+    naturalWidth: number
+  ) => void;
+  /** 정점 끌기 — 단계와 무관(반전 미리보기 중에만 잠김). 그리는 중인 점 · 닫힌 틀 모두. */
+  dragVertex: (index: number, clientX: number, clientY: number, rect: RectLike, naturalWidth: number) => void;
+  /** 닫힌 틀 전체 끌기 — 단계와 무관(반전 미리보기 중에만 잠김). 형태 보존 clamp 는 moveWholeShape 와 같다. */
+  dragShape: (dxDisplay: number, dyDisplay: number, naturalWidth: number, dispWidth: number) => void;
+  /** 앞굽 · 뒤꿈치를 함께 지운다(방향 다시) — 폴리곤은 그대로. */
+  clearArrow: () => void;
+  /** 지금 모드 그대로 처음부터(점 찍기 · 사각형 = 빈 판, 밑창 틀 = 새 틀) — 방향도 지운다. */
+  restart: () => void;
+  /** 저장하지 않은 고침을 버린다 — 저장본이 있으면 그것으로, 없으면 reset(). */
+  discard: () => void;
   /** 현재 폴리곤+화살표(+반전)를 서버에 UPSERT 저장한다(둘 다 갖춰졌을 때만 유효). */
   save: () => Promise<void>;
   /** 저장 요청 진행 중 여부. */
@@ -401,8 +431,9 @@ export function useAlignment({ aprthngNo, ftwrId, canPersist = true }: UseAlignm
       naturalWidth: number
     ) => {
       // 템플릿 틀(닫힌 다각형)이면 「다음: 방향 지정」 단추 없이 바로 찍어도 방향 단계로 넘어간다 — 사건 창 정렬
-      // 대화 상자에는 그 단추가 없어 앞굽 · 뒤꿈치를 영영 못 찍던 결함(스모크 4단계)
-      const templateReady = phase === "polygon" && drawMode === "template" && isPolygonClosable(polygon);
+      // 대화 상자에는 그 단추가 없어 앞굽 · 뒤꿈치를 영영 못 찍던 결함(스모크 4단계). 사각형도 그린 뒤에는 닫힌 틀이다
+      const templateReady =
+        phase === "polygon" && (drawMode === "template" || drawMode === "rect") && isPolygonClosable(polygon);
       if (phase !== "arrow" && !templateReady) return;
       const scale = computeScale(naturalWidth, rect.width);
       const display = toDisplayPoint(clientX, clientY, rect);
@@ -443,6 +474,102 @@ export function useAlignment({ aprthngNo, ftwrId, canPersist = true }: UseAlignm
     // flipHorizontal은 사용자의 명시적 반전 판단이므로 재설정으로 초기화하지 않는다.
   }, []);
 
+  // ─── 판 안 정렬 지정(새 캔버스) ───
+  const startRect = useCallback(() => {
+    setPolygon([]);
+    setDrawMode("rect");
+    setTemplateSeeded(true); // 자동 템플릿 재시드를 막는다.
+    setPhase("polygon");
+  }, []);
+
+  const startTemplate = useCallback(() => {
+    if (!imageSize) return;
+    setPolygon(createSoleTemplatePolygon(imageSize.width, imageSize.height));
+    setDrawMode("template");
+    setTemplateSeeded(true);
+    setPhase(toe && heel ? "review" : toe ? "arrow" : "polygon");
+  }, [imageSize, toe, heel]);
+
+  const setRectangle = useCallback(
+    (ax: number, ay: number, bx: number, by: number, rect: RectLike, naturalWidth: number) => {
+      if (drawMode !== "rect" || flipHorizontal) return;
+      const scale = computeScale(naturalWidth, rect.width);
+      const a = clampSaved(toSavedPoint(toDisplayPoint(ax, ay, rect), scale));
+      const b = clampSaved(toSavedPoint(toDisplayPoint(bx, by, rect), scale));
+      const x0 = Math.min(a[0], b[0]);
+      const x1 = Math.max(a[0], b[0]);
+      const y0 = Math.min(a[1], b[1]);
+      const y1 = Math.max(a[1], b[1]);
+      // 시계 방향 네 모서리(왼쪽 위부터) — 저장 형식은 다른 폴리곤과 같은 [[x, y], …] float
+      setPolygon([
+        [x0, y0],
+        [x1, y0],
+        [x1, y1],
+        [x0, y1],
+      ]);
+      setPhase(toe && heel ? "review" : toe ? "arrow" : "polygon");
+    },
+    [drawMode, flipHorizontal, clampSaved, toe, heel]
+  );
+
+  const dragVertex = useCallback(
+    (index: number, clientX: number, clientY: number, rect: RectLike, naturalWidth: number) => {
+      if (flipHorizontal) return;
+      const scale = computeScale(naturalWidth, rect.width);
+      const saved = clampSaved(toSavedPoint(toDisplayPoint(clientX, clientY, rect), scale));
+      setPolygon((prev) => (index >= 0 && index < prev.length ? moveVertex(prev, index, saved) : prev));
+    },
+    [flipHorizontal, clampSaved]
+  );
+
+  const dragShape = useCallback(
+    (dxDisplay: number, dyDisplay: number, naturalWidth: number, dispWidth: number) => {
+      if (flipHorizontal) return;
+      const scale = computeScale(naturalWidth, dispWidth);
+      setPolygon((prev) => {
+        if (!isPolygonClosable(prev)) return prev;
+        const [dx, dy] = imageSize
+          ? clampTranslation(prev, dxDisplay * scale, dyDisplay * scale, imageSize.width, imageSize.height)
+          : [dxDisplay * scale, dyDisplay * scale];
+        return translatePolygon(prev, dx, dy);
+      });
+    },
+    [flipHorizontal, imageSize]
+  );
+
+  const clearArrow = useCallback(() => {
+    setToe(null);
+    setHeel(null);
+    setPhase((prev) => (prev === "polygon" ? prev : "arrow"));
+  }, []);
+
+  const restart = useCallback(() => {
+    setToe(null);
+    setHeel(null);
+    setPhase("polygon");
+    setTemplateSeeded(true);
+    setPolygon(
+      drawMode === "template" && imageSize
+        ? createSoleTemplatePolygon(imageSize.width, imageSize.height)
+        : []
+    );
+  }, [drawMode, imageSize]);
+
+  const discard = useCallback(() => {
+    const loaded = query.data;
+    if (!loaded?.polygon || !loaded?.arrow) {
+      reset();
+      return;
+    }
+    setPolygon(loaded.polygon.map(([x, y]) => [x, y] as Point));
+    setToe(loaded.arrow[0] ? ([loaded.arrow[0][0], loaded.arrow[0][1]] as Point) : null);
+    setHeel(loaded.arrow[1] ? ([loaded.arrow[1][0], loaded.arrow[1][1]] as Point) : null);
+    setFlipHorizontal(Boolean(loaded.flipHorizontal));
+    setDrawMode("template");
+    setPhase("review");
+    setTemplateSeeded(true);
+  }, [query.data, reset]);
+
   const arrow = useMemo<Point[]>(
     () => (toe && heel ? [toe, heel] : toe ? [toe] : []),
     [toe, heel]
@@ -480,6 +607,14 @@ export function useAlignment({ aprthngNo, ftwrId, canPersist = true }: UseAlignm
     clearArrowPoint,
     toggleFlip,
     reset,
+    startRect,
+    startTemplate,
+    setRectangle,
+    dragVertex,
+    dragShape,
+    clearArrow,
+    restart,
+    discard,
     save,
     isSaving: mutation.isPending,
     isLoading: query.isLoading,
