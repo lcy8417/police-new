@@ -240,8 +240,14 @@ export interface SearchResultScreenProps {
   /** 초점 카드 순위(빠른 비교 창 · 자동 모드가 따라감). 없으면 insight.focusRank */
   focusRank?: number | null
   onFocusChange?: (rank: number) => void
-  /** 「어디까지 봤는지」 — 초점이 지나간 순위까지 올린다(+α 값이 있을 때만 부른다) */
+  /** 「어디까지 봤는지」 — 초점이 지나간 순위까지 올린다(+α 값 또는 `seen` 이 있을 때만 부른다) */
   onSeenUpToChange?: (rank: number) => void
+  /**
+   * 본 위치(서버 E1 값 — 실제 화면). 주면 +α 를 꺼도 본 것 · 확인대상이 보인다(결정 기록 「본 것 안 본 것은 좋네」):
+   * 「여기까지 봤음」 줄 · 본 것 거르기 · 지나간 카드 표시 · 본 위치 · 확인대상 칸. 창 모드(`inWindow`)만 쓴다.
+   * +α(insight)가 켜져 있으면 그 값이 먼저다
+   */
+  seen?: { upTo: number; at: string } | null
   /** 짧은 안내(전체 화면을 못 쓸 때 등) — 진열은 알림으로 띄운다 */
   onNotice?: (message: string) => void
 

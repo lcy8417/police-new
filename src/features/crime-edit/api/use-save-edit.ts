@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { editHistoryKeys, type EditOp } from "@/entities/crime/api/edit-history-api"
+import { editHistoryKeys, type EditOp } from "@/entities/crime"
 import { apiSend, stripDataUrlPrefix } from "@/shared/api"
 import { convertKeysToCamelCase, resolveImageToDataUrl } from "@/shared/lib"
 
@@ -74,7 +74,11 @@ export function useSaveEditStep(aprthngNo: string) {
   return useMutation({
     mutationFn: (input: SaveEditStepInput) => saveEditStep(aprthngNo, input),
     meta: { inlineError: true },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: editHistoryKeys.list(aprthngNo) }),
+    onSettled: () => {
+      // 다시 판정 · 작업본 소급 등록이 의뢰 상세(A2)에도 보이게(기다리지 않음)
+      void queryClient.invalidateQueries({ queryKey: ["request"] })
+      return queryClient.invalidateQueries({ queryKey: editHistoryKeys.list(aprthngNo) })
+    },
   })
 }
 
@@ -84,6 +88,9 @@ export function useRevertEdit(aprthngNo: string) {
   return useMutation({
     mutationFn: (input: RevertEditInput) => revertEdit(aprthngNo, input),
     meta: { inlineError: true },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: editHistoryKeys.list(aprthngNo) }),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["request"] })
+      return queryClient.invalidateQueries({ queryKey: editHistoryKeys.list(aprthngNo) })
+    },
   })
 }

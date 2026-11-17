@@ -115,7 +115,9 @@ export function SearchWindow(props: SearchResultScreenProps) {
   const pendingScroll = React.useRef<number | null>(null)
   const loadAskedAt = React.useRef(-1)
 
-  const seenUpTo = plus?.seenUpTo ?? 0
+  // 본 것 · 확인대상(결정 기록 — 기본 화면에서도): +α 값이 있으면 그것, 없으면 서버 본 위치(`seen`)
+  const seen = plus ? { upTo: plus.seenUpTo, at: plus.seenAt } : (props.seen ?? null)
+  const seenUpTo = seen?.upTo ?? 0
   const focus = focusProp !== undefined ? focusProp : null
   const effectiveMode: AutoScrollMode = reduced ? "page" : scrollMode
   const auto = autoMode === "auto" && status === "ready"
@@ -154,13 +156,13 @@ export function SearchWindow(props: SearchResultScreenProps) {
 
   // 본 위치는 자동 재생만이 아니라 손 스크롤 · 카드 고름 · 정밀 대조 열기에서도 올린다(3회차 검수 — 손으로 본 후보가 「안 본 것」으로 남던 것)
   const raiseSeen = (rank: number) => {
-    if (plus !== null && rank > seenUpTo) props.onSeenUpToChange?.(rank)
+    if (seen !== null && rank > seenUpTo) props.onSeenUpToChange?.(rank)
   }
   const onListScroll = () => {
     const el = listRef.current
     if (!el) return
     if (el.scrollHeight - el.scrollTop - el.clientHeight < LOAD_MORE_GAP) askMore()
-    if (plus === null || running) return
+    if (seen === null || running) return
     const top = el.getBoundingClientRect().top
     const cards = Array.from(el.querySelectorAll<HTMLElement>("[data-result-card]")).map((c) => ({
       rank: Number(c.dataset.rank),
@@ -206,9 +208,9 @@ export function SearchWindow(props: SearchResultScreenProps) {
   React.useEffect(() => {
     seenRef.current = { upTo: seenUpTo, set: props.onSeenUpToChange }
   })
-  const hasPlus = plus !== null
+  const hasSeen = seen !== null
   React.useEffect(() => {
-    if (!running || !hasPlus) return
+    if (!running || !hasSeen) return
     const id = window.setInterval(() => {
       const el = listRef.current
       if (!el) return
@@ -221,7 +223,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
       if (r !== null && r > seenRef.current.upTo) seenRef.current.set?.(r)
     }, 300)
     return () => window.clearInterval(id)
-  }, [running, hasPlus])
+  }, [running, hasSeen])
 
   // 이어 보기 · 확인대상 누름 → 그 카드를 목록 맨 위로(붙인 뒤에)
   React.useEffect(() => {
@@ -323,7 +325,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
           rank={rank}
           per={per}
           selected={focus === rank}
-          seen={plus !== null && rank <= seenUpTo}
+          seen={seen !== null && rank <= seenUpTo}
           starred={isTarget(item.ftwrId)}
           canStar={roles.analyst}
           onSelect={() => {
@@ -341,11 +343,11 @@ export function SearchWindow(props: SearchResultScreenProps) {
         />,
       )
       const next = visible[i + 1]
-      if (plus && seenFilter === "all" && rank === seenUpTo && next) {
+      if (seen && seenFilter === "all" && rank === seenUpTo && next) {
         items.push(
           <li key="seen-line" data-seen-line className="col-span-full flex items-center gap-[8px] font-code text-[10px] text-brand">
             <span aria-hidden="true" className="h-px flex-1 bg-brand-line" />
-            {`여기까지 봤음 · ${seenUpTo}위 · ${plus.seenAt}`}
+            {`여기까지 봤음 · ${seenUpTo}위 · ${seen.at}`}
             <span aria-hidden="true" className="h-px flex-1 bg-brand-line" />
           </li>,
         )
@@ -428,13 +430,13 @@ export function SearchWindow(props: SearchResultScreenProps) {
               </div>
             </LensBox>
           </div>
-          {plus && status === "ready" ? (
+          {seen && status === "ready" ? (
             <div className="grid shrink-0 gap-[8px] border-0 border-t border-solid border-border bg-panel px-[10px] py-[8px]">
               <div data-seen-box className="grid gap-[5px]">
                 {/* R6 1280: 좁은 칸에서 날짜 · 시각이 두 줄로 깨지지 않게 — 날짜는 이름 줄로, 단추는 혼자 한 줄 */}
                 <span className="flex items-baseline gap-[6px] text-[11px]">
                   <b>본 위치</b>
-                  <span className="min-w-0 truncate font-code text-[10px] text-muted-foreground">{plus.seenAt}</span>
+                  <span className="min-w-0 truncate font-code text-[10px] text-muted-foreground">{seen.at}</span>
                   <span className="ml-auto font-code tabular-nums text-fg-2">{`${seenUpTo} / ${totalCount}`}</span>
                 </span>
                 <WorkbenchButton size="sm" variant="soft" icon={ArrowRight} className="justify-self-end" disabled={seenUpTo >= totalCount} onClick={() => goTo(seenUpTo + 1)}>
@@ -477,7 +479,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
         <section ref={stageRef} aria-label="순위 목록" className="relative flex min-h-0 min-w-0 flex-col bg-canvas">
           <div className={cn(BAR, "relative border-0 border-b border-solid border-border")}>
             <h3 className="m-0 text-[12.5px] font-bold whitespace-nowrap text-foreground">순위</h3>
-            {plus ? (
+            {seen ? (
               <Segmented
                 aria-label="본 것 거르기"
                 items={SEEN_ITEMS}

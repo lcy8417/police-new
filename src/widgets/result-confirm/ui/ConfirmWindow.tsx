@@ -3,7 +3,7 @@ import { ArrowUpRight, FileText, Send, Undo2 } from "lucide-react"
 
 import { FEATURES } from "@/entities/session"
 import { cn } from "@/shared/lib/utils"
-import { InlineError, ListHeadRow, ListNote, ListRow, StatePill, WorkbenchButton } from "@/shared/ui/kit"
+import { Field, InlineError, ListHeadRow, ListNote, ListRow, StatePill, WorkbenchButton } from "@/shared/ui/kit"
 import { PaneHead } from "@/shared/ui/panel"
 
 import { JUDGEMENT_LABEL } from "../model/judgement"
@@ -22,6 +22,38 @@ type RowFilter = "all" | "pending"
 const OPTIONS: readonly Judgement[] = ["found", "notFound", "unable"]
 /** 표 칸 폭 — 머리 줄과 줄이 같이 쓴다 */
 const COLS = "grid grid-cols-[112px_92px_minmax(164px,1.1fr)_minmax(120px,1fr)_56px_24px] gap-x-2.5"
+/** 판정 메모 칸이 있을 때(점수 뒤 · 열기 앞) */
+const COLS_MEMO = "grid grid-cols-[112px_92px_minmax(164px,1.1fr)_minmax(120px,1fr)_56px_minmax(120px,0.9fr)_24px] gap-x-2.5"
+
+/** 판정 메모 한 칸 — 고치는 동안은 칸 안 값, 떠날 때 · Enter 에 바뀌었으면 저장 */
+function MemoCell({ row, editable, onCommit }: { row: ConfirmRow; editable: boolean; onCommit: (row: ConfirmRow, opinion: string) => void }) {
+  const saved = row.opinion ?? ""
+  const [draft, setDraft] = React.useState(saved)
+  const [base, setBase] = React.useState(saved)
+  // 서버 값이 바뀌면(다시 읽기) 칸도 서버 값으로
+  if (base !== saved) {
+    setBase(saved)
+    setDraft(saved)
+  }
+  const commit = () => {
+    if (draft.trim() !== saved.trim()) onCommit(row, draft.trim())
+  }
+  return (
+    <Field
+      value={draft}
+      readOnly={!editable}
+      placeholder={editable ? "메모" : undefined}
+      title={row.judgement === null ? "판정한 뒤 메모를 남길 수 있습니다" : undefined}
+      aria-label={`_${row.no} 판정 메모`}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") commit()
+      }}
+      className="h-[28px] text-[12px]"
+    />
+  )
+}
 const NOT_SEARCHED = "검색하지 않은 이미지는 발견 판정을 할 수 없습니다"
 const NO_SHOE = "확인대상 신발이 없어 발견 판정을 할 수 없습니다 — 정밀 대조에서 확인대상을 정하세요"
 const REPORT_NOT_READY = "감정서 화면 준비 중입니다"
@@ -54,6 +86,8 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
   const reviewerLabel = reviewers.find((r) => r.value === reviewer)?.label ?? null
 
   const busy = props.busy === true
+  const memo = props.onOpinionCommit
+  const cols = memo ? COLS_MEMO : COLS
   const canRequest = roles.crossReview && crossReview === "none" && allJudged && reviewer !== null && !busy
   const canReport = roles.analyst && crossReview === "done" && !!props.onToReport
   const showWithdraw = crossReview === "requested" && !!props.onWithdrawCrossReview
@@ -141,18 +175,19 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
     table = <ListNote>확인할 이미지가 없습니다</ListNote>
   } else {
     table = (
-      <div role="group" aria-label="이미지별 판정" className="min-w-[640px]">
-        <ListHeadRow className={COLS}>
+      <div role="group" aria-label="이미지별 판정" className={memo ? "min-w-[760px]" : "min-w-[640px]"}>
+        <ListHeadRow className={cols}>
           <span>이미지</span>
           <span>검색</span>
           <span>판정</span>
           <span>확인대상 신발</span>
           <span className="text-right">점수</span>
+          {memo ? <span>메모</span> : null}
           <span />
         </ListHeadRow>
         {shown.length === 0 ? <ListNote>판정 전 이미지가 없습니다</ListNote> : null}
         {shown.map((row) => (
-          <ListRow key={row.no} role="group" aria-label={`${row.imageNo} 판정`} className={cn(COLS, "h-[54px] cursor-default")}>
+          <ListRow key={row.no} role="group" aria-label={`${row.imageNo} 판정`} className={cn(cols, "h-[54px] cursor-default")}>
             <span className="flex min-w-0 items-center gap-2">
               {row.thumb ? (
                 <img src={row.thumb} alt="" className="size-10 shrink-0 rounded-[6px] border border-solid border-border bg-canvas object-cover" />
@@ -189,6 +224,13 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
             >
               {row.shoe && row.shoe.score !== null ? row.shoe.score.toFixed(1) : "—"}
             </span>
+            {memo ? (
+              <MemoCell
+                row={row}
+                editable={canJudge && !lockedReason && !busy && row.judgement !== null}
+                onCommit={memo}
+              />
+            ) : null}
             {props.onOpenImage ? (
               <WorkbenchButton
                 size="sm"

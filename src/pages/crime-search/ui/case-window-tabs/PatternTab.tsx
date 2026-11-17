@@ -1,15 +1,10 @@
 import * as React from "react"
 import { toast } from "sonner"
 
-import type { Crime } from "@/entities/crime"
-import { useEditHistory } from "@/entities/crime/api/edit-history-api"
-import { useCrimePatterns } from "@/entities/crime/api/pattern-api"
-import { useSearchHistory } from "@/entities/crime/api/search-history-api"
+import { useCrimePatterns, useEditHistory, useSearchHistory, type Crime } from "@/entities/crime"
 import { insertPatternPath, type PatternInsertOrigin, type PatternZone } from "@/entities/pattern"
-import { useRunSearch } from "@/features/crime-search/api/use-run-search"
-import { PatternCanvas } from "@/features/patterns-extract"
-import { extractCrimeWithRun } from "@/features/patterns-extract/api/extract-with-run"
-import { useSavePatterns } from "@/features/patterns-extract/api/use-save-patterns"
+import { useRunSearch } from "@/features/crime-search"
+import { PatternCanvas, extractCrimeWithRun, useSavePatterns } from "@/features/patterns-extract"
 import { ApiError } from "@/shared/api"
 import {
   PatternCodeScreen,
@@ -43,6 +38,7 @@ import {
   type PatternDraft,
 } from "./model/use-pattern-draft"
 import type { TabViewer } from "./model/use-viewer"
+import { useRejudgeConfirm } from "./RejudgeConfirm"
 
 /** 매칭 조건 처음 값 */
 const DEFAULT_CONDITIONS: MatchConditionValues = { searchKind: "현장문양", periodFrom: "", periodTo: "", gender: "전체", heel: "전체" }
@@ -59,6 +55,8 @@ export interface PatternTabProps {
   image: Crime
   /** 「검색」 · 「검색결과」 — 검색 결과 탭으로 */
   onOpenSearch: () => void
+  /** 판정이 확정된 장(A2 `aprthng_sttus` CONFIRMED) — 고치기 전에 「다시 판정」 확인 */
+  judged?: boolean
 }
 
 /** 서버 거절 문구(없으면 기본) */
@@ -72,7 +70,7 @@ const messageOf = (error: unknown, fallback: string) => (error instanceof ApiErr
  *   검색 이력 = D2(검색 한 번 = 한 줄), 「이 조건 다시 불러오기」 = 그 줄의 조건(cond)으로 초안을 되살림
  * 좌표 캔버스는 실제 `PatternCanvas`(슬롯에 그대로 — 좌표 계약 불변). 옛 전역 store 는 쓰지 않는다.
  */
-export function PatternTab({ viewer, image, onOpenSearch }: PatternTabProps) {
+export function PatternTab({ viewer, image, onOpenSearch, judged = false }: PatternTabProps) {
   const aprthngNo = image.aprthngNo ?? ""
   const imgRef = React.useRef<HTMLImageElement | null>(null)
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null)
@@ -156,6 +154,19 @@ export function PatternTab({ viewer, image, onOpenSearch }: PatternTabProps) {
     [save, reset],
   )
 
+  // 판정이 확정된 장: 처음 고치는 순간 「다시 판정 상태가 됩니다」를 묻고, 취소면 서버 값으로 되돌린다
+  // (저장은 「검색」 직전 · 탭을 떠날 때라 그때는 창을 띄울 수 없어 — 고치기 시작할 때 묻는다)
+  const rejudge = useRejudgeConfirm(judged)
+  const { confirm: confirmRejudge } = rejudge
+  const resetRef = React.useRef(reset)
+  resetRef.current = reset
+  React.useEffect(() => {
+    if (!dirty) return
+    void confirmRejudge().then((ok) => {
+      if (!ok) resetRef.current()
+    })
+  }, [dirty, confirmRejudge])
+
   // 탭을 떠날 때(탭 · 이미지 이동 · 창 닫기) 바뀐 게 있으면 저장 — 최신 값은 ref 로
   const latest = React.useRef({ draft, rowVersion, dirty, saveIfDirty })
   latest.current = { draft, rowVersion, dirty, saveIfDirty }
@@ -224,6 +235,8 @@ export function PatternTab({ viewer, image, onOpenSearch }: PatternTabProps) {
   const sceneSrc = searchImage === "edited" ? image.editImage ?? image.image : image.image
 
   return (
+    <>
+    {rejudge.dialog}
     <PatternCodeScreen
       status={status}
       onRetry={() => void patternsQuery.refetch()}
@@ -313,6 +326,7 @@ export function PatternTab({ viewer, image, onOpenSearch }: PatternTabProps) {
       onOpenRun={openRun}
       lensSource={sceneSrc ? <img src={sceneSrc} alt="" draggable={false} className="block size-full object-contain" /> : undefined}
     />
+    </>
   )
 }
 

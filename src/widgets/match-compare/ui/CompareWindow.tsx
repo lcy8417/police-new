@@ -363,6 +363,8 @@ export function CompareWindow(props: MatchCompareScreenProps) {
             <PaneHead title="AI 대조" />
             {plus && ready ? (
               <AiVerdict insight={plus} />
+            ) : props.verdict && ready ? (
+              <AiVerdict insight={props.verdict} plus={false} />
             ) : (
               <p className="m-0 text-[11px] text-muted-foreground">{ready ? "AI 대조 값이 없습니다" : "—"}</p>
             )}

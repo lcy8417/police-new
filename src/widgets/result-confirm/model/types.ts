@@ -221,6 +221,8 @@ export interface ConfirmRow {
   moreTargets?: number
   /** 다시 판정해야 하는 까닭(예 판정 뒤 확인대상이 바뀜) — 줄에 보인다 */
   note?: string
+  /** 판정 메모(B15 — 사용자 결정 「둔다」). `onOpinionCommit` 이 있을 때만 칸이 보인다 */
+  opinion?: string | null
 }
 
 /** 교차 검증 상태 — none 아직 요청 안 함 · requested 요청함(검증 중) · done 검증 끝 */
@@ -262,4 +264,9 @@ export interface ConfirmWindowProps {
   onToReport?: () => void
   /** 저장 중(판정 · 교차 검증 요청 · 회수) — 단추를 잠근다 */
   busy?: boolean
+  /**
+   * 판정 메모 저장(칸을 떠날 때 · Enter — 바뀌었을 때만). 주면 표에 「메모」 칸(kit Field)이 생긴다.
+   * 판정한 줄만 고칠 수 있다(메모는 판정과 함께 저장 — G2). 판정을 바꿀 수 없을 때(잠금 · 권한)는 읽기 전용
+   */
+  onOpinionCommit?: (row: ConfirmRow, opinion: string) => void
 }

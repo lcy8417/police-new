@@ -1,12 +1,11 @@
 import * as React from "react"
 import { toast } from "sonner"
 
-import { useConfirmView, useRequestIdByNo, type ConfirmRowDto, type ConfirmView } from "@/entities/request/api/confirm-api"
-import { useReviewers } from "@/entities/request/api/reviewers-api"
+import { useConfirmView, useRequestIdByNo, useReviewers, type ConfirmRowDto, type ConfirmView } from "@/entities/request"
 import { FEATURES } from "@/entities/session"
 import { shoeImageUrl } from "@/entities/shoe"
-import { useRequestCrossReview, useWithdrawCrossReview } from "@/features/cross-review/api/use-cross-review"
-import { useSaveJudgement } from "@/features/judgement/api/use-save-judgement"
+import { useRequestCrossReview, useWithdrawCrossReview } from "@/features/cross-review"
+import { useSaveJudgement } from "@/features/judgement"
 import { useSessionStore } from "@/features/auth"
 import { ApiError, backendMediaUrl } from "@/shared/api"
 import { toKstIso } from "@/shared/lib"
@@ -54,6 +53,7 @@ function toRow(r: ConfirmRowDto): ConfirmRow {
       : null,
     moreTargets: r.moreTargets,
     note: r.note ?? undefined,
+    opinion: r.opinionCn,
   }
 }
 
@@ -131,6 +131,19 @@ export function ConfirmTab({ aprthngNo, onOpenImage }: ConfirmTabProps) {
     )
   }
 
+  // 판정 메모(B15 — 사용자 결정 「둔다」): 같은 판정 + 새 메모로 G2(서버는 같은 결과 · 같은 메모면 새 판본을 만들지 않는다)
+  const handleOpinion = (row: ConfirmRow, opinion: string) => {
+    const dto = byNo.get(row.imageNo)
+    if (!dto || dto.judgement === null) return
+    saveJudgement.mutate(
+      { aprthngNo: dto.aprthngNo, result: dto.judgement, opinionCn: opinion === "" ? null : opinion, expectedExamId: dto.examId, rowVersion: dto.rowVersion },
+      {
+        onSuccess: () => toast.success(`_${row.no} 판정 메모를 저장했습니다`),
+        onError: (e) => toast.error(errorText(e, "판정 메모를 저장하지 못했습니다. 다시 시도해 주세요.")),
+      }
+    )
+  }
+
   const handleRequest = (reviewerId: string) => {
     if (rqestId === null) return
     requestCross.mutate(
@@ -168,6 +181,7 @@ export function ConfirmTab({ aprthngNo, onOpenImage }: ConfirmTabProps) {
       aprthngNo={requestNoOf(aprthngNo)}
       rows={rows}
       onJudgementChange={canDecide ? handleJudge : undefined}
+      onOpinionCommit={handleOpinion}
       lockedReason={view?.lockedReason ?? undefined}
       onOpenImage={
         onOpenImage ? (row) => onOpenImage(row.imageNo, row.judgement === "found" ? "compare" : "search") : undefined

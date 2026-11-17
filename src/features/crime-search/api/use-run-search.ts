@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { searchHistoryKeys, type CondPattern, type CondPending } from "@/entities/crime/api/search-history-api"
+import { searchHistoryKeys, type CondPattern, type CondPending } from "@/entities/crime"
 import type { PatternZone } from "@/entities/pattern"
 import { apiSend, backendFetch, toApiError } from "@/shared/api"
 
@@ -70,7 +70,11 @@ export function useRunSearch(aprthngNo: string) {
   return useMutation({
     mutationFn: (body: RunSearchBody) => runSearch(aprthngNo, body),
     meta: { inlineError: true },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: searchHistoryKeys.list(aprthngNo) }),
+    onSuccess: () => {
+      // 첫 검색 기록은 의뢰를 「검색·판정」으로 · 감정물을 「검색됨」으로 옮긴다 — 의뢰 쿼리도 다시 읽게(기다리지 않음)
+      void queryClient.invalidateQueries({ queryKey: ["request"] })
+      return queryClient.invalidateQueries({ queryKey: searchHistoryKeys.list(aprthngNo) })
+    },
   })
 }
 

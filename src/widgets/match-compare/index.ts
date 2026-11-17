@@ -10,6 +10,7 @@ export type {
   MatchImage,
   MatchInsight,
   MatchShoeInfo,
+  MatchVerdict,
   PatternIconItem,
   ZoneBasis,
   ZoneLines,

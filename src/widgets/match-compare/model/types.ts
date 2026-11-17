@@ -137,6 +137,25 @@ export interface MatchInsight {
   shoeExtra: { kind: string; note: string }
 }
 
+/**
+ * 오른쪽 칸 「AI 대조」 값(결정 기록 — AI 대조는 종합 · 부위 점수 · 한 줄 의견). +α(insight)와 따로 실제 값으로 켠다.
+ * 서버에 없는 칸은 비워 보낸다 — 부위 · 의견 · 지표가 비면 그 줄을 그리지 않는다(생김새는 같고 보이는 조건만).
+ */
+export interface MatchVerdict {
+  /** 종합(%) — 실제 화면 = 검색 이미지 유사도 */
+  confidence: number
+  /** 대응점(일치 여부만 센다) */
+  pairs: readonly { ok: boolean }[]
+  /** 대조 시각 · 한 사람 등(오른쪽 위 흐린 글자) */
+  preparedAt: string
+  basis: readonly ZoneBasis[]
+  /** 한 줄 의견 — 빈 글자면 줄을 그리지 않는다 */
+  opinion: string
+  /** 「자세히」 안 지표(라벨 · 값) */
+  metrics: readonly (readonly [string, string])[]
+  preStats: readonly (readonly [string, string])[]
+}
+
 /** r3 비교 후보 한 켤레(검색 결과 순서) — 「현장 1장 대 후보 n장」 · 이전/다음 · 자동 넘기기가 이 목록을 걷는다 */
 export interface CompareCandidate {
   /** 신발 ID — 문자열(앞자리 0 보존) */
@@ -204,6 +223,10 @@ export interface MatchCompareScreenProps {
   inWindow?: boolean
   /** +α 정밀 대조 값 묶음(showPlus 일 때만 쓴다) */
   insight?: MatchInsight
+  /**
+   * 실제 「AI 대조」 값(창 모드 오른쪽 칸) — +α 를 꺼도 보인다. +α(insight)가 켜져 있으면 그 값이 먼저다
+   */
+  verdict?: MatchVerdict | null
   /** 동작이 아직 없는 +α 버튼(이전 · 다음 · 그룹등록 · 프린트 · 감정서 첨부 · 확대 줄 …) — 누른 버튼 글자 */
   onPlusAction?: (label: string) => void
 

@@ -237,6 +237,29 @@ describe("ConfirmTab — 결과 확인(G1) · 판정(G2) · 교차 검증(H1 · 
     expect(within(r).getByRole("button", { name: "불발견" })).toBeDisabled()
   })
 
+  it("판정 메모(B15): 판정한 줄만 고칠 수 있고, 칸을 떠나면 같은 판정 + 새 메모로 G2", async () => {
+    login(EXAMINER)
+    let body: unknown = null
+    useHandlers(
+      () => confirmBody(),
+      [
+        http.put("*/crime/:no/examination", async ({ request }) => {
+          body = await request.json()
+          return HttpResponse.json({ exam_id: 12, exam_round: 1, exam_sttus: "CONFIRMED", img_sttus: "불발견", row_version: 3,
+            rqest_sttus: "IN_EXAM" })
+        }),
+      ]
+    )
+    renderTab()
+    const judged = await screen.findByRole("textbox", { name: "_2 판정 메모" })
+    expect(screen.getByRole("textbox", { name: "_1 판정 메모" })).toHaveAttribute("readonly")
+    fireEvent.change(judged, { target: { value: "앞꿈치 문양 다름" } })
+    fireEvent.blur(judged)
+    await waitFor(() =>
+      expect(body).toEqual({ result: "notFound", opinionCn: "앞꿈치 문양 다름", expectedExamId: 12, rowVersion: 2 })
+    )
+  })
+
   it("열기 단추는 판정 전 = 검색 결과, 발견 = 정밀 대조", async () => {
     login(EXAMINER)
     const open = vi.fn()

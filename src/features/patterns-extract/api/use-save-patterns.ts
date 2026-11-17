@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { patternKeys, type ServerCardStatus, type ServerPatternCount, type ServerWeightLevel } from "@/entities/crime/api/pattern-api"
+import { patternKeys, type ServerCardStatus, type ServerPatternCount, type ServerWeightLevel } from "@/entities/crime"
 import type { PatternZone } from "@/entities/pattern"
 import { apiSend } from "@/shared/api"
 
@@ -51,6 +51,10 @@ export function useSavePatterns(aprthngNo: string) {
   return useMutation({
     mutationFn: (body: SavePatternsBody) => savePatterns(aprthngNo, body),
     meta: { inlineError: true },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: patternKeys.detail(aprthngNo) }),
+    onSettled: () => {
+      // 확정 판정이 있던 장은 서버가 「다시 판정」으로 내린다 — 의뢰(목록 · 상세 · 결과 확인)도 다시 읽게(기다리지 않음)
+      void queryClient.invalidateQueries({ queryKey: ["request"] })
+      return queryClient.invalidateQueries({ queryKey: patternKeys.detail(aprthngNo) })
+    },
   })
 }

@@ -2,15 +2,16 @@ import * as React from "react"
 import { useQueries, useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 
-import type { Crime } from "@/entities/crime"
 import {
   fetchSearchResultsPage,
   SEARCH_RESULTS_PAGE_SIZE,
   searchHistoryKeys,
+  useCrimePatterns,
   useSearchHistory,
-} from "@/entities/crime/api/search-history-api"
+  type Crime,
+} from "@/entities/crime"
 import { shoeImageUrl } from "@/entities/shoe"
-import { useSaveSeen } from "@/features/crime-search/api/use-run-search"
+import { useSaveSeen } from "@/features/crime-search"
 import { imageLoad, imageSearch } from "@/services/api"
 import { useDebouncedValue } from "@/shared/lib/use-debounced-value"
 import { filteredPatterns } from "@/utils/get-input-change"
@@ -20,13 +21,20 @@ import {
   type ImageMode,
   type ImageSearchResultItem,
   type ResultColumns,
+  type SearchTarget,
   type ThumbSize,
 } from "@/widgets/search-result"
 
 import { useSelectedRun } from "./model/search-run-session"
+import { targetKey, useTargetsBinding } from "./model/use-targets-binding"
 import { toPercentList } from "./model/similarity-scale"
 import { useImageSession, useTabSessionStore } from "./model/tab-session"
 import type { TabViewer } from "./model/use-viewer"
+
+/** 본 시각 KST ISO → 「MM-DD HH:mm」(이번에 새로 본 곳이면 「지금」) */
+function seenLabel(iso: string | null): string {
+  return iso ? iso.slice(5, 16).replace("T", " ") : "지금"
+}
 
 /** 유사부위 표출 리터럴(지금 앱 값 그대로). 이진화 · 원본을 바꾸면 false 로 꺼진다 */
 const SIMILARITY_ON = "유사부위표출보기"
@@ -106,20 +114,31 @@ function RunResultsTab({ viewer, image, onOpenCompare, searchNo }: RunResultsTab
     })
   }, [recomputed, pageQueries, first?.stored])
 
-  // 본 위치(E1) — 초점이 지나간 순위까지, 서버 값보다 클 때만 올린다(1초 모아 한 번)
+  // 본 위치(E1) — 초점 · 손 스크롤 · 자동 넘김이 지나간 순위까지, 서버 값보다 클 때만 올린다(1초 모아 한 번).
+  // 화면 표시(「여기까지 봤음」 · 본 것 거르기)는 서버 값과 이번에 본 곳 중 큰 값(결정 기록 — 기본 화면에서도)
   const saveSeen = useSaveSeen()
-  const seenRef = React.useRef(0)
+  const serverSeen = first?.seen?.seenUpTo ?? 0
+  const [localSeen, setLocalSeen] = React.useState(0)
+  const seenUpTo = Math.max(serverSeen, localSeen, focusRank ?? 0)
+  const savedRef = React.useRef(0)
   React.useEffect(() => {
-    seenRef.current = Math.max(seenRef.current, first?.seen?.seenUpTo ?? 0)
-  }, [first?.seen?.seenUpTo])
+    savedRef.current = Math.max(savedRef.current, serverSeen)
+  }, [serverSeen])
   React.useEffect(() => {
-    if (searchNo === null || focusRank === null || focusRank <= seenRef.current) return
+    if (searchNo === null || seenUpTo <= savedRef.current) return
     const t = window.setTimeout(() => {
-      seenRef.current = focusRank
-      saveSeen.mutate({ searchNo, seenUpTo: focusRank })
+      savedRef.current = seenUpTo
+      saveSeen.mutate({ searchNo, seenUpTo })
     }, 1000)
     return () => window.clearTimeout(t)
-  }, [focusRank, searchNo, saveSeen])
+  }, [seenUpTo, searchNo, saveSeen])
+  const seenAt = seenLabel(localSeen > serverSeen ? null : (first?.seen?.seenDt ?? null))
+
+  // 확인대상 ★(E3 · E4) — 이 검색의 것만 위젯에 넘긴다(결정 기록 — 기본 화면에서도 보이고 저장)
+  const binding = useTargetsBinding(aprthngNo)
+  React.useEffect(() => {
+    if (binding.error) toast.error(binding.error)
+  }, [binding.error])
 
   const shoeKind = binary === "이진화보기" ? "B" : "Shoerinsics"
   const results = React.useMemo<ImageSearchResultItem[]>(
@@ -145,6 +164,12 @@ function RunResultsTab({ viewer, image, onOpenCompare, searchNo }: RunResultsTab
     onOpenCompare()
   }
 
+  // 이 검색의 확인대상(받은 순위 안에 있는 것만 — 순위는 카드 자리)
+  const targets = React.useMemo<SearchTarget[]>(() => {
+    if (searchNo === null || !binding.ready) return []
+    return results.flatMap((r, i) => (binding.targets.has(targetKey(searchNo, r.ftwrId)) ? [{ rank: i + 1, ftwrId: r.ftwrId }] : []))
+  }, [results, binding.ready, binding.targets, searchNo])
+
   return (
     <SearchResultScreen
       status={status}
@@ -152,6 +177,12 @@ function RunResultsTab({ viewer, image, onOpenCompare, searchNo }: RunResultsTab
         legacy
           ? { title: "옛 이력 — 순위 기록 없음", hint: "문양 코드 탭에서 이 문양으로 새 검색을 하세요" }
           : { title: "결과 없음", hint: "필수 문양을 줄이거나 문양 코드 탭에서 조건을 바꿔 다시 검색하세요" }
+      }
+      seen={legacy || searchNo === null ? null : { upTo: seenUpTo, at: seenAt }}
+      onSeenUpToChange={(rank) => setLocalSeen((s) => Math.max(s, rank))}
+      targets={targets}
+      onToggleTarget={
+        searchNo !== null && binding.canToggle ? (t) => binding.toggleTarget(searchNo, t.ftwrId, "search") : undefined
       }
       onRetry={() => pageQueries.forEach((q) => void q.refetch())}
       isAdmin={viewer.isAdmin}
@@ -209,8 +240,12 @@ function LiveSearchTab({ viewer, image, onOpenCompare }: SearchTabProps) {
   const [playing, setPlaying] = React.useState(false)
   const [focusRank, setFocusRank] = React.useState<number | null>(null)
 
-  // 필수 문양(이름 배열) → 디바운스 시그니처. 키와 body 를 같은 디바운스 값에서 만든다
-  const searchPatterns = React.useMemo(() => filteredPatterns(image), [image])
+  // 필수 문양(이름 배열) → 디바운스 시그니처. 키와 body 를 같은 디바운스 값에서 만든다.
+  // 문양은 서버 문양(C1 — 옛 전역 store 아님). 읽는 동안은 검색을 내보내지 않는다(빈 문양으로 먼저 나가는 이중 요청 방지)
+  const patternsQuery = useCrimePatterns(aprthngNo)
+  const patternsReady = !patternsQuery.isPending
+  const patternSource = patternsQuery.data ?? image
+  const searchPatterns = React.useMemo(() => filteredPatterns(patternSource), [patternSource])
   const patternsSignature = JSON.stringify(searchPatterns)
   const patternsKey = useDebouncedValue(patternsSignature, 300)
   const debouncedPatterns = React.useMemo(() => JSON.parse(patternsKey) as typeof searchPatterns, [patternsKey])
@@ -242,7 +277,7 @@ function LiveSearchTab({ viewer, image, onOpenCompare }: SearchTabProps) {
           // 지금 앱(JS)은 유사부위 리터럴 문자열 또는 false 를 그대로 넘겼다
           similarity: similarity as unknown as boolean,
         }) as Promise<SearchPage>,
-      enabled: Boolean(loadedImage) && (!searchEdit || hasEditImage) && settled,
+      enabled: Boolean(loadedImage) && (!searchEdit || hasEditImage) && settled && patternsReady,
     })),
   })
 

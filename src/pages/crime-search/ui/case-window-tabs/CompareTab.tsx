@@ -3,12 +3,21 @@ import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { alignmentKeys, fetchAlignment } from "@/entities/alignment"
-import type { Crime } from "@/entities/crime"
+import { useComparisons, useCrimePatterns, type Crime } from "@/entities/crime"
+import { FEATURES } from "@/entities/session"
 import { fetchShoeDetail, shoeImageUrl, shoeKeys, type Shoe } from "@/entities/shoe"
 import { AlignmentCaptureCanvas, sceneImageUrl, useAlignment } from "@/features/crime-align"
+import { useRecordComparison } from "@/features/crime-search"
 import { useMatchTop10 } from "@/features/match-top10"
-import { MatchCompareScreen, type CompareAutoMode, type CompareCandidate, type CompareCount } from "@/widgets/match-compare"
+import {
+  MatchCompareScreen,
+  type CompareAutoMode,
+  type CompareCandidate,
+  type CompareCount,
+  type MatchVerdict,
+} from "@/widgets/match-compare"
 
+import { toPercentList } from "./model/similarity-scale"
 import { useImageSession, useTabSessionStore, type TabCompareCandidate } from "./model/tab-session"
 import { zonePatternsOf } from "./model/tab-values"
 import { useNaturalSize } from "./model/use-natural-size"
@@ -36,7 +45,8 @@ export interface CompareTabProps {
  *   정렬(관심영역 + 방향) = `features/crime-align` `useAlignment` · `AlignmentCaptureCanvas`(좌표 수학은 그쪽 소유) · `fetchAlignment`
  *   Top-10 대응점 = `features/match-top10` `useMatchTop10`(정렬이 설정됐을 때만 — GPU 추론)
  *   신발 정보 · 문양 = `fetchShoeDetail`, 그림 = `shoeImageUrl`(B 밑창 · Shoerinsics 이진), 현장 = 저장 원본 `sceneImageUrl`
- * AI 종합 · 부위 점수 · 의견(F1 · F2)과 대조 기록은 API 가 없어 숨김(+α 끔).
+ *   현장 문양 = C1, AI 대조 칸 = 종합(검색 이미지 유사도) + 대조 기록(F1 record 한 번 · F2 — 대응점 수 · 기록 횟수 · 시각).
+ *   부위 점수 · 한 줄 의견은 서버 값이 없어 그 줄을 그리지 않는다(위젯 `verdict`).
  */
 export function CompareTab({ viewer, image, onConfirmTarget, onBackToSearch }: CompareTabProps) {
   const aprthngNo = image.aprthngNo ?? ""
@@ -111,7 +121,43 @@ function CompareBody({ viewer, image, target, candidates, view, onConfirmTarget,
   const sceneSize = useNaturalSize(sceneSrc)
   const shoeSize = useNaturalSize(shoeSketch)
 
-  const crimePatterns = React.useMemo(() => zonePatternsOf(image), [image])
+  // 현장 문양 = 서버 문양(C1) — 옛 전역 store 값은 쓰지 않는다
+  const patternsQuery = useCrimePatterns(aprthngNo)
+  const crimePatterns = React.useMemo(() => zonePatternsOf(patternsQuery.data ?? image), [patternsQuery.data, image])
+
+  // 대조 기록(F1 record · F2) — 정렬이 된 뒤 이 신발과 대조한 기록이 없으면 한 번 남긴다(실패는 조용히 — 접수 전 · 교차 검증 이후 409)
+  const canRecord = viewer.isAdmin || viewer.features.includes(FEATURES.CRIME_SEARCH)
+  const recordsQuery = useComparisons(aprthngNo, ftwrId)
+  const record = useRecordComparison(aprthngNo)
+  const askedRef = React.useRef(false)
+  const { mutate: recordMutate } = record
+  React.useEffect(() => {
+    if (askedRef.current || !aligned || !canRecord || !recordsQuery.isSuccess || recordsQuery.data.length > 0) return
+    askedRef.current = true
+    recordMutate(ftwrId)
+  }, [aligned, canRecord, recordsQuery.isSuccess, recordsQuery.data, recordMutate, ftwrId])
+  // AI 대조 칸(결정 기록 — 종합 · 부위 · 한 줄 의견): 종합 = 검색 이미지 유사도, 부위 점수 · 의견은 서버 값이 없어 비움
+  const verdict = React.useMemo<MatchVerdict | null>(() => {
+    const percent = toPercentList([{ similarity: target.similarity }])[0].similarity
+    const n = typeof percent === "number" ? percent : Number.parseFloat(percent)
+    if (!Number.isFinite(n)) return null
+    const records = recordsQuery.data ?? []
+    const latest = records[0]
+    return {
+      confidence: Math.round(n * 10) / 10,
+      pairs: [],
+      preparedAt: latest ? `${latest.occurredDt.slice(5, 16).replace("T", " ")} · ${latest.actorNm ?? ""}`.replace(/ · $/, "") : "",
+      basis: [],
+      opinion: "",
+      metrics: latest
+        ? [
+            ["대응점", latest.matchCnt === null ? "—" : String(latest.matchCnt)],
+            ["대조 기록", `${records.length}회`],
+          ]
+        : [],
+      preStats: [],
+    }
+  }, [target.similarity, recordsQuery.data])
   const shoePatterns = React.useMemo(() => zonePatternsOf(shoe), [shoe])
   const compareCandidates = React.useMemo(() => candidates.map(toCandidate), [candidates])
 
@@ -186,6 +232,7 @@ function CompareBody({ viewer, image, target, candidates, view, onConfirmTarget,
       onClose={onBackToSearch}
       showPlus={false}
       inWindow
+      verdict={verdict}
       candidates={compareCandidates}
       onCandidateChange={(c) => setCompare(aprthngNo, { ftwrId: c.ftwrId, rank: c.rank ?? 0, similarity: c.similarity })}
       compareCount={view.compareCount}

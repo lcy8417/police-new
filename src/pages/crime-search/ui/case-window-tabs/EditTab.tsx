@@ -2,13 +2,20 @@ import * as React from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
-import { useCrimeStore, type Crime } from "@/entities/crime"
-import { editFileUrl, editHistoryKeys, useEditHistory, type EditHistory } from "@/entities/crime/api/edit-history-api"
-import { PolygonCaptureCanvas, useImageEdit } from "@/features/crime-edit"
-import type { EditStepOp } from "@/features/crime-edit/model/use-image-edit"
-import { useRevertEdit, useSaveEditStep } from "@/features/crime-edit/api/use-save-edit"
-import { flipImage, type FlipAxis } from "@/features/crime-edit/lib/flip-image"
-import { revertTargetOf, shortHash, toHistoryRows, undoTargetNo } from "@/features/crime-edit/model/edit-history-view"
+import { editFileUrl, editHistoryKeys, useCrimeStore, useEditHistory, type Crime, type EditHistory } from "@/entities/crime"
+import {
+  PolygonCaptureCanvas,
+  flipImage,
+  revertTargetOf,
+  shortHash,
+  toHistoryRows,
+  undoTargetNo,
+  useImageEdit,
+  useRevertEdit,
+  useSaveEditStep,
+  type EditStepOp,
+  type FlipAxis,
+} from "@/features/crime-edit"
 import { rotateArbitrary, useImageEditor } from "@/features/crime-register"
 import { ApiError } from "@/shared/api"
 import { resolveImageToDataUrl, toKstIso } from "@/shared/lib"
@@ -21,6 +28,7 @@ import {
 } from "@/widgets/image-edit"
 
 import type { TabViewer } from "./model/use-viewer"
+import { useRejudgeConfirm } from "./RejudgeConfirm"
 
 /** 위젯 도구 중 `useImageEditor`(자르기 · 4점 보정 · 길이 측정)가 맡는 것 → 그 훅의 모드 이름 */
 const EDITOR_MODE = { crop: "crop", calibrate: "calibration", measure: "measure" } as const
@@ -42,6 +50,8 @@ export interface EditTabProps {
   image: Crime
   /** SCAS 「취소」 — 편집을 버리고 사건 정보로 */
   onCancel: () => void
+  /** 판정이 확정된 장(A2 `aprthng_sttus` CONFIRMED) — 저장 전에 「다시 판정」 확인 */
+  judged?: boolean
 }
 
 /**
@@ -52,7 +62,7 @@ export interface EditTabProps {
  * 편집 이력 · 단계 그림 · 원본 해시는 B3(`useEditHistory`), 되돌리기 · 여기까지 되돌리기 · 처음상태 = B5(새 줄 — 지움 없음).
  * 「그새 다른 편집」 409 는 알림 + 이력 다시 읽기 + 서버의 지금 편집본으로 바꿔 놓음.
  */
-export function EditTab({ viewer, image, onCancel }: EditTabProps) {
+export function EditTab({ viewer, image, onCancel, judged = false }: EditTabProps) {
   const aprthngNo = image.aprthngNo ?? ""
   const queryClient = useQueryClient()
   const setCrimeData = useCrimeStore((s) => s.setCrimeData)
@@ -97,7 +107,10 @@ export function EditTab({ viewer, image, onCancel }: EditTabProps) {
     editRef.current?.resetTo(editFileUrl(fresh.currentFileId))
   }, [queryClient, aprthngNo])
 
+  // 판정이 확정된 장이면 첫 저장 전에 「다시 판정 상태가 됩니다」 확인(취소 = 그 단계를 버림)
+  const rejudge = useRejudgeConfirm(judged)
   const onStep = async (img: string, op: EditStepOp) => {
+    if (!(await rejudge.confirm())) throw new Error("다시 판정 확인 취소")
     try {
       const res = await saveStep.mutateAsync({ srcFileId: currentRef.current, image: img, ops: [op] })
       currentRef.current = res.resultFileId
@@ -231,6 +244,7 @@ export function EditTab({ viewer, image, onCancel }: EditTabProps) {
       toast(no === 0 ? "이미 받은 원본 상태입니다." : "이미 그 단계입니다.")
       return
     }
+    if (!(await rejudge.confirm())) return
     setRotation(0)
     exitEditor()
     try {
@@ -306,6 +320,8 @@ export function EditTab({ viewer, image, onCancel }: EditTabProps) {
   )
 
   return (
+    <>
+    {rejudge.dialog}
     <ImageEditScreen
       status={historyQuery.isError ? "error" : history ? "ready" : "loading"}
       errorAt={historyQuery.isError ? kstClock(historyQuery.errorUpdatedAt) : undefined}
@@ -358,5 +374,6 @@ export function EditTab({ viewer, image, onCancel }: EditTabProps) {
       originalHash={history?.original ? shortHash(history.original.sha256) : undefined}
       originalMissing={history ? history.original === null : undefined}
     />
+    </>
   )
 }
