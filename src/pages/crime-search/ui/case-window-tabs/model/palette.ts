@@ -11,13 +11,16 @@ export const PALETTE_KIND_ORDER: readonly PaletteKind[] = ["무늬", "선", "윤
 type GlobModules = Record<string, { default?: string } | string | undefined>
 const table = getPatternsPath as unknown as Partial<Record<PaletteKind, GlobModules>>
 
-/** 그 종류 문양 그림 경로들(지금 앱 `filesLoad` 와 같은 값) */
+/**
+ * 그 종류 문양 그림 경로들(지금 앱 `filesLoad` 와 같은 값).
+ * glob 의 키(소스 경로 `/src/assets/Patterns/<종류>/<이름>.png`)를 쓴다 — 값(`default`)은 빌드하면
+ * `/assets/<이름>-<해시>.png` · `data:` 로 바뀌어 `stripPatternPath` 가 해시 붙은 이름을 뽑는다.
+ * 운영(빌드)에서도 이 경로가 열리는 것은 vite.config.js `copyPatternAssets` 덕분.
+ */
 export function paletteOf(kind: PaletteKind): string[] {
   const modules = table[kind]
   if (!modules) return []
-  return Object.values(modules)
-    .map((m) => (typeof m === "string" ? m : m?.default))
-    .filter((p): p is string => typeof p === "string")
+  return Object.keys(modules)
 }
 
 /** 종류별 문양 수 */
