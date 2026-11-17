@@ -161,7 +161,11 @@ export function InfoTab({ viewer, detail, image, onSelectImage, onOpenImageEdit,
       })
       toast.success("사건 정보를 저장했습니다.")
     } catch (e) {
-      setError(e instanceof ApiError ? (e.detail ?? e.message) : "사건 정보를 저장하지 못했습니다")
+      const message = e instanceof ApiError ? (e.detail ?? e.message) : "사건 정보를 저장하지 못했습니다"
+      setError(message)
+      // 409(다른 사람이 먼저 고침) · 403 은 다시 읽은 판 번호로 탭이 새로 그려져(key) 폼 위 오류 줄이 곧바로 사라진다 —
+      // 알림으로도 남겨 「내 값이 왜 바뀌었나」를 알린다(스모크 4단계 결함: 409 가 아무 안내 없이 서버 값으로 되돌아감)
+      if (e instanceof ApiError && (e.status === 409 || e.status === 403)) toast.error(message)
     }
   }
 
