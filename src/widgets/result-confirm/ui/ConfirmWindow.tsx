@@ -1,5 +1,5 @@
 import * as React from "react"
-import { ArrowUpRight, FileText, Send } from "lucide-react"
+import { ArrowUpRight, FileText, Send, Undo2 } from "lucide-react"
 
 import { FEATURES } from "@/entities/session"
 import { cn } from "@/shared/lib/utils"
@@ -24,6 +24,7 @@ const OPTIONS: readonly Judgement[] = ["found", "notFound", "unable"]
 const COLS = "grid grid-cols-[112px_92px_minmax(164px,1.1fr)_minmax(120px,1fr)_56px_24px] gap-x-2.5"
 const NOT_SEARCHED = "검색하지 않은 이미지는 발견 판정을 할 수 없습니다"
 const NO_SHOE = "확인대상 신발이 없어 발견 판정을 할 수 없습니다 — 정밀 대조에서 확인대상을 정하세요"
+const REPORT_NOT_READY = "감정서 화면 준비 중입니다"
 
 const CROSS_PILL: Record<CrossReviewState, { tone: "pending" | "fact" | "done"; text: string }> = {
   none: { tone: "pending", text: "요청 전" },
@@ -52,8 +53,10 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
   const allJudged = total > 0 && counts.pending === 0
   const reviewerLabel = reviewers.find((r) => r.value === reviewer)?.label ?? null
 
-  const canRequest = roles.crossReview && crossReview === "none" && allJudged && reviewer !== null
-  const canReport = roles.analyst && crossReview === "done"
+  const busy = props.busy === true
+  const canRequest = roles.crossReview && crossReview === "none" && allJudged && reviewer !== null && !busy
+  const canReport = roles.analyst && crossReview === "done" && !!props.onToReport
+  const showWithdraw = crossReview === "requested" && !!props.onWithdrawCrossReview
   const requestWhy =
     crossReview !== "none"
       ? "이미 교차 검증을 요청했습니다"
@@ -62,7 +65,11 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
         : reviewer === null
           ? "교차 검증자를 고르세요"
           : undefined
-  const reportWhy = crossReview === "done" ? undefined : "교차 검증이 끝나면 감정서로 넘길 수 있습니다"
+  const reportWhy = !props.onToReport
+    ? REPORT_NOT_READY
+    : crossReview === "done"
+      ? undefined
+      : "교차 검증이 끝나면 감정서로 넘길 수 있습니다"
   const nextLine =
     crossReview === "done"
       ? "교차 검증 끝 · 감정서로 넘길 수 있습니다"
@@ -73,7 +80,7 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
           : `판정 전 ${counts.pending}장`
 
   const judgeCell = (row: ConfirmRow) => {
-    const locked = !canJudge || lockedReason !== undefined
+    const locked = !canJudge || lockedReason !== undefined || busy
     return (
       <span role="group" aria-label={`_${row.no} 판정`} className="inline-flex items-center gap-[2px]">
         {OPTIONS.map((j) => {
@@ -111,7 +118,7 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
         <img src={shoe.image} alt="" className="size-9 shrink-0 rounded-[6px] border border-solid border-border bg-canvas object-contain" />
         <span className="grid min-w-0">
           <b className="truncate font-code text-[12.5px] font-bold text-foreground">{shoe.ftwrId}</b>
-          <span className="truncate text-[11px] text-muted-foreground">{candidate ? `1위 후보 · #${shoe.ranking}` : `확인대상 · #${shoe.ranking}${more}`}</span>
+          <span className="truncate text-[11px] text-muted-foreground">{candidate ? `1위 후보 · #${shoe.ranking ?? "—"}` : `확인대상 · #${shoe.ranking ?? "—"}${more}`}</span>
         </span>
       </span>
     )
@@ -147,7 +154,11 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
         {shown.map((row) => (
           <ListRow key={row.no} role="group" aria-label={`${row.imageNo} 판정`} className={cn(COLS, "h-[54px] cursor-default")}>
             <span className="flex min-w-0 items-center gap-2">
-              <img src={row.thumb} alt="" className="size-10 shrink-0 rounded-[6px] border border-solid border-border bg-canvas object-cover" />
+              {row.thumb ? (
+                <img src={row.thumb} alt="" className="size-10 shrink-0 rounded-[6px] border border-solid border-border bg-canvas object-cover" />
+              ) : (
+                <span aria-hidden="true" className="size-10 shrink-0 rounded-[6px] border border-solid border-border bg-canvas" />
+              )}
               <span className="grid min-w-0">
                 <b className="font-code text-[13px] font-bold text-foreground">_{row.no}</b>
                 {row.note ? (
@@ -283,7 +294,17 @@ export function ConfirmWindow(props: ConfirmWindowProps) {
       <div className="flex shrink-0 flex-wrap items-center gap-[8px] border-0 border-t border-solid border-border pt-[8px]">
         <span className="text-[11px] text-muted-foreground">{status === "ready" ? nextLine : ""}</span>
         <span className="ml-auto inline-flex items-center gap-[8px]">
-          {roles.crossReview ? (
+          {showWithdraw ? (
+            <WorkbenchButton
+              variant="soft"
+              icon={Undo2}
+              disabled={busy}
+              title="교차 검증 요청을 거두고 판정 단계로 되돌립니다"
+              onClick={props.onWithdrawCrossReview}
+            >
+              회수
+            </WorkbenchButton>
+          ) : roles.crossReview ? (
             <WorkbenchButton
               variant={crossReview === "none" ? "primary" : "soft"}
               icon={Send}

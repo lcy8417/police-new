@@ -192,8 +192,8 @@ export interface ConfirmRowShoe {
   image: string
   /** 유사도 퍼센트 0~100 — 모르면 null(「—」, 0 점과 구분) */
   score: number | null
-  /** 검색 순위(1부터) */
-  ranking: number
+  /** 검색 순위(1부터) — 순위 기록이 없으면 null(「#—」) */
+  ranking: number | null
   /**
    * 채택한 확인대상인가(검색 결과 ★ · 정밀 대조 「확인대상」 · 저장된 발견 판정). false 면 검색 1위 후보(참고만) —
    * 「발견」은 채택한 확인대상이 있을 때만 누를 수 있다(DB §5-C `examination_candidate`, 2회차 검수)
@@ -209,7 +209,7 @@ export interface ConfirmRow {
   imageNo: string
   /** 신발 · 타이어 */
   kind: string
-  /** 현장 이미지 썸네일 URL */
+  /** 현장 이미지 썸네일 URL — 볼 수 없으면 빈 문자열(빈 칸) */
   thumb: string
   /** 마지막 검색 번호 — 없으면 검색 안 함 */
   searchNo: string | null
@@ -253,6 +253,13 @@ export interface ConfirmWindowProps {
   onReviewerChange: (value: string) => void
   /** 「교차 검증 요청」 — 모든 이미지 판정 뒤 */
   onRequestCrossReview: (reviewer: string) => void
-  /** 「감정서로」 — 교차 검증이 끝난 뒤 */
-  onToReport: () => void
+  /**
+   * 「회수」 — 교차 검증 중(`requested`)일 때 요청 단추 자리에 보인다(요청자 본인 · 관리자 — 부르는 쪽이 판정).
+   * 없으면 그리지 않는다(검증자 화면이 없는 동안 사건이 교차 검증에 갇히지 않게 — 잠금 §4)
+   */
+  onWithdrawCrossReview?: () => void
+  /** 「감정서로」 — 교차 검증이 끝난 뒤. 없으면 「감정서 화면 준비 중」으로 잠긴다(잠금 §4) */
+  onToReport?: () => void
+  /** 저장 중(판정 · 교차 검증 요청 · 회수) — 단추를 잠근다 */
+  busy?: boolean
 }
