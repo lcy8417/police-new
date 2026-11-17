@@ -157,10 +157,11 @@ export function PatternWindow(props: PatternWindowProps) {
       <TabMark kind="count" count={n} />
     </span>
   )
+  // 검색 이력(searchRuns)을 주지 않으면 「검색 이력」 탭을 그리지 않는다 — 실제 앱은 이력 요약 API(D2)가 생길 때까지 숨김
   const sideTabs: [SideTab, React.ReactNode][] = [
     ["library", tabName("문양", "목록")],
     ["conditions", <>{tabName("검색", "조건")}{overrideCount > 0 ? countMark(overrideCount) : null}</>],
-    ["history", <>{tabName("검색", "이력")}{runs ? countMark(runs.length) : null}</>],
+    ...(runs ? [["history", <>{tabName("검색", "이력")}{countMark(runs.length)}</>] as [SideTab, React.ReactNode]] : []),
   ]
 
   const handleSearch = () => {

@@ -128,6 +128,11 @@ export interface UseImageEdit {
   applyThreshold: () => Promise<void>;
   /** 노이즈제거 서버 처리를 실행한다(history push + 툴 해제). */
   runDenoise: () => Promise<void>;
+  /**
+   * 바깥 도구(자르기 · 4점 보정 · 회전 — `features/crime-register` `useImageEditor` · `rotateArbitrary`)가 만든
+   * 결과 이미지를 편집 한 단계로 커밋한다(history push — 되돌리기 가능). 사건 창 이미지 편집 탭이 쓴다.
+   */
+  applyImage: (next: string) => void;
   /** 서버 처리 진행 중 여부(로딩 오버레이용). */
   isProcessing: boolean;
   /** 처리 중 오버레이 문구(툴별). */
@@ -381,6 +386,7 @@ export function useImageEdit({
     setThresholdMode,
     applyThreshold,
     runDenoise,
+    applyImage: commit,
     isProcessing,
     processingLabel,
     save,
