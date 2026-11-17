@@ -29,15 +29,6 @@ import type { CaseDetailFieldName, CaseDetailScreenProps, CaseImage } from "../m
 // S02 사건 상세·등록(SCAS 「사건관리」 팝업 자리). 왼쪽 족윤적 이미지 · 이미지 목록, 오른쪽 사건정보.
 // 값만 받아 그린다(서버 호출 · 전역 상태 없음). 입력값은 전부 제어형.
 
-function Band({ title, children }: { title: React.ReactNode; children?: React.ReactNode }) {
-  return (
-    <div className="flex min-h-[30px] items-center gap-[8px] border-l-[3px] border-solid border-l-brand-2 bg-brand-bg px-[10px] text-[12.5px] font-semibold">
-      {title}
-      {children ? <span className="ml-auto flex items-center gap-[6px] font-normal">{children}</span> : null}
-    </div>
-  )
-}
-
 const kb = (bytes: number) => `${Math.round(bytes / 1024).toLocaleString("ko-KR")} KB`
 
 export function CaseDetailScreen({
@@ -426,25 +417,13 @@ export function CaseDetailScreen({
           저장 후 다음 사건 연속 등록
         </label>
       ) : null}
-      {inWindow ? (
-        <>
-          <WorkbenchButton variant="ghost" icon={RotateCcw} onClick={onReset}>
-            초기화
-          </WorkbenchButton>
-          <WorkbenchButton variant="primary" icon={Save} disabled={saving} onClick={onSave}>
-            {saving ? "저장 중..." : "저장"}
-          </WorkbenchButton>
-        </>
-      ) : (
-        <>
-          <Button size="sm" onClick={onReset}>
-            초기화
-          </Button>
-          <Button size="sm" variant="pri" disabled={saving} onClick={onSave}>
-            {saving ? "저장 중..." : "저장"}
-          </Button>
-        </>
-      )}
+      {/* 사건 창 · 등록 창 모두 같은 도구형 단추(11/17 「취소 확인 저장 버튼이 아카데믹」) */}
+      <WorkbenchButton variant="ghost" icon={RotateCcw} onClick={onReset}>
+        초기화
+      </WorkbenchButton>
+      <WorkbenchButton variant="primary" icon={Save} disabled={saving} onClick={onSave}>
+        {saving ? "저장 중..." : "저장"}
+      </WorkbenchButton>
     </div>
   ) : null
   const errorLine = errorMessage ? (
@@ -458,7 +437,7 @@ export function CaseDetailScreen({
 
   // 사건 창 안: 왼쪽 족윤적 이미지(높이 꽉) | 오른쪽 「사건정보 | 현장 이미지 정보」 탭(표는 그 안에서 스크롤, 저장 줄은 바닥).
   // 두 칸 머리를 같은 높이 · 같은 밑선으로 맞추고, 소제목은 밑줄 탭 모양(13 굵게 · 고른 것 brand 밑줄 2px)으로 바꾼다
-  // (11/17 사용자 「오른쪽 정렬 안 맞는건?? … 저 소제목 디자인 바꿔」). 단독 진열(S02)은 SCAS 시안 그대로 Band.
+  // (11/17 사용자 「오른쪽 정렬 안 맞는건?? … 저 소제목 디자인 바꿔」). 등록 창 · 단독 진열(S02)도 같은 소제목 · 탭(아래 분기 — 이미지 목록 표가 있어 배치만 다르다).
   if (inWindow && status === "ready") {
     return (
       <div data-slot="case-detail-window" className="grid h-full min-h-0 grid-cols-[300px_minmax(0,1fr)] gap-[14px] p-[12px]">
@@ -551,7 +530,8 @@ export function CaseDetailScreen({
         <div className="grid gap-[12px] p-[12px] lg:grid-cols-[300px_minmax(0,1fr)]">
           {/* 왼쪽: 족윤적 이미지 + 이미지 목록(SCAS 자리 그대로) */}
           <div className="grid content-start gap-[8px]">
-            <Band title="족윤적 이미지" />
+            {/* 소제목 = 사건 창과 같은 밑줄 머리(PaneHead — 11/17 사용자 「소제목 디자인 바꿔」, 등록 창에도) */}
+            <PaneHead title="족윤적 이미지" end={imageChip} />
             <div className={cn("mx-auto w-full", extra ? "max-w-none" : "max-w-[200px]")}>
               {selected && extra ? (
                 <EvidenceWithAi
@@ -579,27 +559,35 @@ export function CaseDetailScreen({
                   {extra?.flipNote}
                 </Chip>
               ) : null}
-              <Button size="sm" disabled={!selected} onClick={() => selected && onOpenImageEdit(selected.id)}>
-                이미지 커팅 열기
-              </Button>
+              {/* 등록 창에서는 아직 서버에 없는 사진이라 편집할 곳이 없다 — 등록 뒤 사건 창 「이미지 편집」 탭에서 */}
+              {mode === "register" ? null : (
+                <WorkbenchButton icon={Scissors} className="ml-auto" disabled={!selected} onClick={() => selected && onOpenImageEdit(selected.id)}>
+                  이미지 커팅 열기
+                </WorkbenchButton>
+              )}
             </div>
 
             {/* 사건 창 안에서는 이미지 목록 표 · 끌어 놓기 · AI 점검 카드를 그리지 않는다 — 창 왼쪽 목록 · 맨 아래 사진 추가 · 할 일 상자가 같은 일을 한다 */}
             {inWindow ? null : (
             <>
-            <Band title="이미지 목록">
-              <span className="font-code text-[11px] tabular-nums text-dim">{sorted.length}장 · 1→{sorted.length}순</span>
-              {canEdit ? (
+            <PaneHead
+              title="이미지 목록"
+              end={
                 <>
-                  <Button size="sm" onClick={() => fileInput.current?.click()}>
-                    추가
-                  </Button>
-                  <Button size="sm" disabled={checkedImageIds.length === 0} onClick={onDeleteChecked}>
-                    삭제
-                  </Button>
+                  <span className="font-code text-[11px] tabular-nums text-dim">{sorted.length}장 · 1→{sorted.length}순</span>
+                  {canEdit ? (
+                    <>
+                      <WorkbenchButton size="sm" onClick={() => fileInput.current?.click()}>
+                        추가
+                      </WorkbenchButton>
+                      <WorkbenchButton size="sm" disabled={checkedImageIds.length === 0} onClick={onDeleteChecked}>
+                        삭제
+                      </WorkbenchButton>
+                    </>
+                  ) : null}
                 </>
-              ) : null}
-            </Band>
+              }
+            />
             {onImageQueryChange ? (
               <div className="px-[6px] py-[6px]">
                 <FilterBar
@@ -646,29 +634,41 @@ export function CaseDetailScreen({
             {extra && analystView && !inWindow ? <AiCheckCard plus={extra} onMockAction={onMockAction} /> : null}
           </div>
 
-          {/* 오른쪽: 사건정보(지금 앱 입력 7칸) */}
-          <div className="grid min-w-0 content-start gap-[8px]">
-            {extra && !inWindow ? <SourceLine plus={extra} /> : null}
-            <Band title="사건정보">
-              {extra ? (
-                <span data-plus className="text-[11px] text-dim">
-                  {inWindow ? "대부분 공문 그대로 · 수정은 창 머리 ⋯ 메뉴로" : "대부분 공문 그대로 · 수정은 「수정」으로"}
-                </span>
-              ) : null}
-            </Band>
-            {errorLine}
-            <SearchForm columns={2} rows={caseRows} />
-            <Band
-              title={
-                <>
-                  현장 이미지 정보
-                  {imageChip}
-                </>
+          {/* 오른쪽: 「사건정보 | 현장 이미지 정보」 탭 — 사건 창과 같은 모양(11/17 사용자 「탭으로 좌우 이동」, 등록 창에도) */}
+          <div className="@container grid min-w-0 content-start gap-[8px]">
+            {extra ? <SourceLine plus={extra} /> : null}
+            <UnderlineTabs
+              label="정보"
+              tabs={[
+                ["case", "사건정보"],
+                [
+                  "image",
+                  <span key="image" className="inline-flex items-center gap-1.5">
+                    현장 이미지 정보 {imageChip}
+                  </span>,
+                ],
+              ]}
+              value={formTab}
+              onChange={setFormTab}
+              idPrefix={formTabsId}
+              end={
+                formTab === "image" ? (
+                  scopeTools
+                ) : extra ? (
+                  <span data-plus className="text-[11px] text-dim @max-[560px]:hidden">
+                    대부분 공문 그대로 · 수정은 「수정」으로
+                  </span>
+                ) : null
               }
+            />
+            <div
+              role="tabpanel"
+              aria-labelledby={`${formTabsId}-${formTab}`}
+              className="grid gap-[8px] [&_[data-part=SearchForm]>div]:grid-cols-[118px_minmax(0,1fr)_118px_minmax(0,1fr)] [&_[data-part=SearchForm]>div>div:nth-child(odd)]:px-[8px] [&_[data-part=SearchForm]>div>div:nth-child(odd)]:whitespace-nowrap"
             >
-              {scopeTools}
-            </Band>
-            <SearchForm columns={2} rows={imageRows} />
+              {errorLine}
+              <SearchForm columns={2} rows={formTab === "case" ? caseRows : imageRows} />
+            </div>
             {saveBar}
           </div>
         </div>

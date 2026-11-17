@@ -25,6 +25,9 @@ function renderAt(url: string) {
 
 const DETAIL = "/dev/s02?id=00001-25-0649&case=ready"
 
+/** 오른쪽 「사건정보 | 현장 이미지 정보」 탭(11/17 — 사건 창과 같은 모양)에서 현장 이미지 쪽을 연다 */
+const openImageTab = () => fireEvent.click(screen.getByRole("tab", { name: /현장 이미지 정보/ }))
+
 describe("S02DevPage 사건 상세·등록", () => {
   it("+α 를 끄면 「이전」 · 「다음」 은 1차처럼 잠기고 「준비 중」 안내가 붙는다", () => {
     renderAt(`${DETAIL}&plus=0`)
@@ -53,6 +56,7 @@ describe("S02DevPage 사건 상세·등록", () => {
       expect(screen.getByText("자 인식 · 1px=0.12mm")).toBeInTheDocument()
       expect(screen.getByText("올리자마자 AI가 중복·전사판·화질·자를 점검합니다")).toBeInTheDocument()
       expect(screen.getByText("중복? _4")).toBeInTheDocument()
+      openImageTab()
       expect(screen.getByText("전사판채취법")).toBeInTheDocument()
       expect(screen.getByText("근거: 전사지 경계 · 뒤집힌 글자 · 신뢰 0.91")).toBeInTheDocument()
     })
@@ -98,6 +102,7 @@ describe("S02DevPage 사건 상세·등록", () => {
 
     it("채취 방법 AI 제안 「적용」은 발견 방법 칸에 값을 넣고 제안이 사라진다", () => {
       renderAt(`${DETAIL}&as=analyst`)
+      openImageTab()
       expect(screen.getByLabelText("발견 방법")).toHaveValue("기타")
       fireEvent.click(screen.getByRole("button", { name: "적용" }))
       expect(screen.getByLabelText("발견 방법")).toHaveValue("전사판채취법")
@@ -125,23 +130,19 @@ describe("S02DevPage 사건 상세·등록", () => {
 
   it("ready 케이스에 사건정보 7칸을 그리고 사건등록번호는 필수로 표시한다", () => {
     const { container } = renderAt(DETAIL)
-    const labels = Array.from(container.querySelectorAll('[data-part="SearchForm"] > div > div:nth-child(odd)')).map(
-      (el) => el.textContent?.replace(/\s*\*$/, "").trim()
-    )
-    // 시안 순서: 사건정보 16칸 + 현장 이미지 정보 13칸(이미지 번호 · 채취 일시 · 채취 장소 · 발견 방법은 아래쪽)
-    expect(labels.slice(0, 16)).toEqual([
+    const labels = () =>
+      Array.from(container.querySelectorAll('[data-part="SearchForm"] > div > div:nth-child(odd)')).map((el) =>
+        el.textContent?.replace(/\s*\*$/, "").trim()
+      )
+    // 시안 순서: 「사건정보」 탭 16칸 · 「현장 이미지 정보」 탭 13칸
+    expect(labels()).toEqual([
       "사건등록번호", "문서번호", "SCAS사건번호", "피해자 성명", "의뢰관서", "출생년도", "사건 이름", "용의자 유무",
       "사건일시", "사건장소", "발생관서", "검거여부", "사건주소", "감정의뢰 담당자", "사건개요", "비고",
     ])
-    expect(labels.slice(16)).toEqual([
-      "구분", "이미지 번호", "채취 일시", "채취자 계급", "채취 장소", "채취자 이름", "발견 방법", "감정물 종류",
-      "제조사", "족적 구분", "상표", "굽 유무", "화종",
-    ])
-    // 동작하는 7칸은 고칠 수 있고, 나머지는 「준비 중」으로 잠긴다
-    const WORKING = ["사건등록번호", "이미지 번호", "사건 이름", "채취 일시", "채취 장소", "발견 방법"]
-    for (const l of WORKING) expect(screen.getByLabelText(l)).toBeEnabled()
+    // 동작하는 칸은 고칠 수 있고, 나머지는 「준비 중」으로 잠긴다
+    for (const l of ["사건등록번호", "사건 이름"]) expect(screen.getByLabelText(l)).toBeEnabled()
     expect(screen.getByRole("combobox")).toBeEnabled()
-    for (const l of ["문서번호", "SCAS사건번호", "피해자 성명", "출생년도", "사건장소", "검거여부", "제조사", "상표", "사건개요"]) {
+    for (const l of ["문서번호", "SCAS사건번호", "피해자 성명", "출생년도", "사건장소", "검거여부", "사건개요"]) {
       const el = screen.getByLabelText(l)
       expect(el).toBeDisabled()
       expect(el.getAttribute("title") ?? "").toBe("준비 중")
@@ -153,6 +154,18 @@ describe("S02DevPage 사건 상세·등록", () => {
     expect(required[0].textContent).toBe("사건등록번호")
     expect(screen.getByLabelText("사건등록번호")).toHaveAttribute("aria-required", "true")
     expect(screen.getByLabelText("사건등록번호")).toHaveValue("00001-25-0649")
+
+    openImageTab()
+    expect(labels()).toEqual([
+      "구분", "이미지 번호", "채취 일시", "채취자 계급", "채취 장소", "채취자 이름", "발견 방법", "감정물 종류",
+      "제조사", "족적 구분", "상표", "굽 유무", "화종",
+    ])
+    for (const l of ["이미지 번호", "채취 일시", "채취 장소", "발견 방법"]) expect(screen.getByLabelText(l)).toBeEnabled()
+    for (const l of ["제조사", "상표"]) {
+      const el = screen.getByLabelText(l)
+      expect(el).toBeDisabled()
+      expect(el.getAttribute("title") ?? "").toBe("준비 중")
+    }
   })
 
   it("의뢰관서는 Combobox(검색해서 한 칸으로 고르기)", () => {
