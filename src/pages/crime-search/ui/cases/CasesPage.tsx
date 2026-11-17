@@ -460,7 +460,7 @@ export function CasesPage() {
       ],
     },
     { key: "mine", label: "담당", value: quickValues.mine, options: [{ value: "mine", label: "내 담당만" }] },
-    // 기본(아무것도 안 고름) = 새 사건 · 최근 한 달. 과거 SCAS 사건은 출처 「과거 SCAS」 + 기간으로 본다
+    // 기본(아무것도 안 고름) = 새 사건 + 과거 SCAS · 최근 한 달. 오래된 과거 사건은 「기간」으로 넓혀 본다
     { key: "src", label: "출처", value: quickValues.src, options: SOURCE_OPTIONS },
     { key: "period", label: "기간", value: quickValues.period, options: PERIOD_OPTIONS },
   ]

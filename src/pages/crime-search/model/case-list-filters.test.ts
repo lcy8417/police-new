@@ -8,8 +8,8 @@ import { ALL_PERIOD_FROM, periodFrom, sourceParam } from "./case-list-filters"
 const NOW = Date.UTC(2026, 10, 17, 3, 0, 0)
 
 describe("사건 목록 출처 · 기간 칩", () => {
-  it("출처: 없음 = 서버 기본, 과거만 = SCAS, 둘 다 = ALL", () => {
-    expect(sourceParam([])).toBeUndefined()
+  it("출처: 안 고름 · 둘 다 = ALL, 과거만 = SCAS, 새 사건만 = APP", () => {
+    expect(sourceParam([])).toBe("ALL")
     expect(sourceParam(["SCAS"])).toBe("SCAS")
     expect(sourceParam(["APP"])).toBe("APP")
     expect(sourceParam(["APP", "SCAS"])).toBe("ALL")
