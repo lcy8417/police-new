@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
+    "postbuild": "node scripts/ui/check-no-external.mjs --dist",
+    "check:airgap": "node scripts/ui/check-no-external.mjs --dist",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -14,7 +16,7 @@
     "coverage": "vitest run --coverage",
     "preview": "vite preview",
     "check:ui": "npm run check:ui:static && npm run check:ui:visual",
-    "check:ui:static": "node scripts/ui/count-hex.mjs && node scripts/ui/check-parts-catalog.mjs",
+    "check:ui:static": "node scripts/ui/count-hex.mjs && node scripts/ui/check-parts-catalog.mjs && node scripts/ui/check-no-external.mjs",
     "check:ui:visual": "playwright test -c playwright.ui.config.ts",
     "check:ui:baseline": "node scripts/ui/count-hex.mjs --write"
   },

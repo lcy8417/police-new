@@ -165,8 +165,8 @@ description: 족적 감정 플랫폼 화면 디자인 정본 — 토큰 · 부�
 | 명령 | 무엇을 보나 | 돌릴 수 있는 곳 |
 |---|---|---|
 | `npm run check:ui` | 아래 두 줄을 차례로(static → visual) | macOS |
-| `npm run check:ui:static` | ① hex 검사(`scripts/ui/count-hex.mjs`) ② 부품 목록 검사(`scripts/ui/check-parts-catalog.mjs` — 구현됨 · 검증됨 파일 있음, 출입구 export가 모두 목록에 있음, 부품표 관문) | 어디서나(Node + python3, 네트워크 불필요) — **Codex는 이것** |
-| `npm run check:ui:visual` | Playwright UI 검사 전체(토큰 회귀 · 시안 스냅샷 · 부품 대조 · 반응형). 검사 전용 개발 서버를 5180 포트로 띄운다(개발용 5173과 같이 띄워도 됨) | **macOS + Chromium + 네트워크**(기준 스크린샷이 macOS 글자 그림이고, 부품 대조는 Google Fonts에서 IBM Plex Sans KR · JetBrains Mono를 받아야 한다 — 못 받으면 「글꼴 미로딩: …」 한 줄로 실패) |
+| `npm run check:ui:static` | ① hex 검사(`scripts/ui/count-hex.mjs`) ② 부품 목록 검사(`scripts/ui/check-parts-catalog.mjs` — 구현됨 · 검증됨 파일 있음, 출입구 export가 모두 목록에 있음, 부품표 관문) ③ 외부 주소 검사(`scripts/ui/check-no-external.mjs` — `index.html` · `public/` · `src/`에 외부 http(s) 주소가 있으면 실패. 운영은 인터넷 없는 내부망. `npm run build` 뒤에는 postbuild 가 `dist/`까지 본다) | 어디서나(Node + python3, 네트워크 불필요) — **Codex는 이것** |
+| `npm run check:ui:visual` | Playwright UI 검사 전체(토큰 회귀 · 시안 스냅샷 · 부품 대조 · 반응형). 검사 전용 개발 서버를 5180 포트로 띄운다(개발용 5173과 같이 띄워도 됨) | **macOS + Chromium + 네트워크**(기준 스크린샷이 macOS 글자 그림이고, 부품 대조의 시안 쪽은 Google Fonts에서 IBM Plex Sans KR · JetBrains Mono를 받아야 한다(앱 쪽은 저장소 글꼴 파일) — 못 받으면 「글꼴 미로딩: …」 한 줄로 실패) |
 | `node scripts/ui/count-part-usage.mjs` | 목록 행마다 시안에서 쓰는 화면 | 어디서나 |
 | `npx tsc --noEmit` · `npx vitest run` · `npm run build` · 변경 파일 `npx eslint` | 이 저장소의 완료 규약(`CLAUDE.md`) | 어디서나 |
 

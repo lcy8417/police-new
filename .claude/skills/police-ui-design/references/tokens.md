@@ -100,7 +100,7 @@
 
 - **부품 · 새 코드는 `font-code` · `font-ui`를 쓴다. `font-mono` · `font-sans`는 쓰지 않는다.** 이 두 이름은 Tailwind 기본 글꼴(`ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, …` · `ui-sans-serif, system-ui, …`)이고 기존 화면(`src/`의 39개 파일, 2026-11-13 셈)이 그대로 쓰고 있다. `@theme`에서 `--font-mono` · `--font-sans` · `--font-serif`를 다시 정의하면 기존 화면 글꼴이 모두 바뀌므로 금지(최종 검토 C1 · 판정 R33).
 - 지키는 검사: `src/shared/ui/token-map.test.ts`(`@theme`에 세 이름이 없음, `--font-ui` · `--font-code`가 시안 목록과 글자까지 같음) · `tests/ui/token-regression.spec.ts`(로그인 화면에서 `font-mono` · `font-sans` · 기본 글꼴 계산값이 브랜치 이전 값과 같음).
-- `:root` 목록의 글꼴 파일은 `index.html`의 Google Fonts 링크로 받는다(오프라인이면 목록의 다음 글꼴). 시안 화면 범위 글꼴 6종은 저장소에 넣었다(self-host, 2026-11-16 사용자 결정 「여러 개 받아서 선택할 수 있게」) — 아래 「팔레트 · 글꼴 범위」.
+- `:root` 목록의 글꼴 파일(IBM Plex Sans KR 400·500·600·700 · JetBrains Mono 400·600·700)도 저장소에 넣었다(`src/assets/fonts/`, `src/index.css` 「기본 글꼴」 `@font-face`) — 운영 환경이 인터넷 없는 내부망이라 Google Fonts 링크를 지웠다(2026-11-17, `police-server/docs/operations/airgap-audit.md`). Google Fonts 와 같은 판 · 같은 글자 범위(unicode-range)라 글자 모양은 예전과 같다. **외부 주소(글꼴 · CDN)를 다시 넣으면 `check:ui:static` · `npm run build`(postbuild)가 실패한다**(`scripts/ui/check-no-external.mjs`). 시안 화면 범위 글꼴 6종은 저장소에 넣었다(self-host, 2026-11-16 사용자 결정 「여러 개 받아서 선택할 수 있게」) — 아래 「팔레트 · 글꼴 범위」.
 
 ### 글자 크기 단계 (R6, 2026-11-17 — 창 모드 화면)
 
@@ -151,7 +151,7 @@
 - **내려받는 양 · 운영 전 할 일**: 한 글꼴을 고르면 보통 + 굵게 두 파일(D2Coding · 나눔바른고딕은 약 3 MB, 나머지 0.4–1.1 MB)을 처음 한 번 받는다. `@font-face`가 `src/index.css`에 있어 운영 빌드 `dist/`에도 12개 파일이 복사된다(쓰지 않으면 받지는 않음). 운영 연결 전에 `@font-face` 묶음을 진열 전용 CSS(개발 실행에서만 가져오는 파일)로 옮기거나, 운영에서 쓸 글꼴만 남긴다.
 
 - **서브셋은 예약 이름(RFN)이 없는 글꼴 · 제작자 공식 서브셋만**: OFL FAQ 2.6–2.8 — 글자를 빼면 「수정본」이라 예약 이름(D2Coding · Nanum · Plex)을 쓸 수 없다. 그래서 예약 이름이 걸린 글꼴은 글자를 빼지 않고 압축 형식(woff2)만 바꿨다(기능 동등). 더 줄이려면 이름을 바꾼 서브셋을 만들어야 한다.
-- `@font-face` 이름은 `"Scas D2Coding"`처럼 앞에 `Scas`를 붙였다 — PC에 깔린 같은 이름 글꼴이나 Google Fonts 와 섞이면 `:root` 목록(`"D2Coding"` · `"IBM Plex Sans KR"`)의 계산 결과가 바뀌기 때문.
+- `@font-face` 이름은 `"Scas D2Coding"`처럼 앞에 `Scas`를 붙였다 — PC에 깔린 같은 이름 글꼴이나 기본 글꼴 `@font-face`(같은 이름 "IBM Plex Sans KR")와 섞이면 `:root` 목록(`"D2Coding"` · `"IBM Plex Sans KR"`)의 계산 결과가 바뀌기 때문.
 - 범위 안 `font-code`는 어느 글꼴을 골라도 `"Scas D2Coding"`(고정폭) — 숫자 · 번호 자리 폭이 흔들리지 않게(설계서 §14-3).
 - **글자 크기** `data-scale` `md`(보통) · `lg`(크게, `zoom: 1.125`) · `xl`(아주 크게, `zoom: 1.25`): 부품 글자가 px 고정이라 범위 전체 배율로 키운다. 범위가 겹치면 바깥 한 번만(`[data-scale] [data-scale] { zoom: 1 }`). 진열 틀은 화면 높이 상자 + 스크롤(`h-full overflow-auto`).
   - **설계서와 다른 점(판정 R3-5, 2026-11-16)**: 설계서 §14-4는 「루트 글자 배율」이었으나 시안(가짜 데이터)에서는 `zoom`을 유지한다.

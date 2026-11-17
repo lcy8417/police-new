@@ -102,7 +102,8 @@ test("진열 화면이 백엔드 없이 열린다", async ({ page }) => {
 });
 
 test("진열 화면도 글꼴이 없으면 한 줄로 실패", async ({ page }) => {
-  await page.route("**/fonts.g*/**", (r) => r.abort());
+  // 앱 글꼴은 저장소 파일(src/assets/fonts/ibm-plex-sans-kr/, 내부망 대응)이라 그 파일 요청을 막는다.
+  await page.route(/\/IBMPlexSansKR-[^/]*\.woff2(\?|$)/, (r) => r.abort());
   await openGallery(page);
   await expect(assertFonts(page)).rejects.toThrow(new Error("글꼴 미로딩: IBM Plex Sans KR"));
 });
