@@ -76,7 +76,8 @@ export function EvidenceImage({
       )}
       {...props}
     >
-      <img src={src} alt={alt} className={cn("block size-full object-cover", LOOK_CLASS[look])} />
+      {/* 빈 src(볼 권한 없음 · 그림 없음)는 그리지 않는다 — 빈 src 는 페이지를 다시 받으려 하고 React 가 경고한다 */}
+      {src ? <img src={src} alt={alt} className={cn("block size-full object-cover", LOOK_CLASS[look])} /> : null}
       {ruler ? <Ruler /> : null}
       {children ? <div className="pointer-events-none absolute inset-0">{children}</div> : null}
       {tag ? (

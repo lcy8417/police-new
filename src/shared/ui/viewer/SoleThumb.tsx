@@ -38,7 +38,8 @@ export function SoleThumb({ src, alt, size = "md", selected = false, partId, cla
       )}
       {...props}
     >
-      <img src={src} alt={alt} className="block size-full object-contain" />
+      {/* 볼 권한이 없거나 그림이 없으면 src 가 빈 글자 — 빈 src 는 페이지를 다시 받으려 하고 React 가 경고하므로 그리지 않는다 */}
+      {src ? <img src={src} alt={alt} className="block size-full object-contain" /> : null}
     </button>
   )
 }
