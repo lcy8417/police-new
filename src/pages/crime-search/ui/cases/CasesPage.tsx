@@ -32,6 +32,7 @@ import {
   toWindowStages,
   windowTabMarks,
 } from "../../model/case-rows"
+import { PERIOD_OPTIONS, SOURCE_OPTIONS, periodFrom, sourceParam } from "../../model/case-list-filters"
 import {
   MAX_OPEN_CASES,
   OPEN_CASES_FULL,
@@ -73,8 +74,12 @@ interface QuickValues {
   flow: string[]
   progress: string[]
   mine: string[]
+  /** 출처 칩(APP · SCAS) — case-list-filters.ts */
+  src: string[]
+  /** 기간 칩(3m · 1y · all) */
+  period: string[]
 }
-const EMPTY_QUICK: QuickValues = { flow: [], progress: [], mine: [] }
+const EMPTY_QUICK: QuickValues = { flow: [], progress: [], mine: [], src: [], period: [] }
 
 /** 조회 실패를 확인한 시각 「시:분」(KST) */
 function kstClock(ms: number): string {
@@ -106,6 +111,9 @@ export function CasesPage() {
       unsearched: quickValues.progress.includes("unsearched"),
       awaiting: quickValues.progress.includes("awaiting"),
       mine: quickValues.mine.length > 0,
+      src: sourceParam(quickValues.src),
+      // 날짜는 칩을 고른 그 날 기준(자정을 넘겨도 쿼리 키가 렌더마다 바뀌지 않게 quickValues 에만 묶음)
+      from: periodFrom(quickValues.period, Date.now()),
       limit: SERVER_LIMIT,
     }),
     [debouncedQuery, quickValues]
@@ -138,7 +146,13 @@ export function CasesPage() {
   }
 
   const filtered =
-    debouncedQuery !== "" || quickValues.flow.length + quickValues.progress.length + quickValues.mine.length > 0
+    debouncedQuery !== "" ||
+    quickValues.flow.length +
+      quickValues.progress.length +
+      quickValues.mine.length +
+      quickValues.src.length +
+      quickValues.period.length >
+      0
   const status: ScreenStatus = listQuery.isPending
     ? "loading"
     : listQuery.isError
@@ -446,6 +460,9 @@ export function CasesPage() {
       ],
     },
     { key: "mine", label: "담당", value: quickValues.mine, options: [{ value: "mine", label: "내 담당만" }] },
+    // 기본(아무것도 안 고름) = 새 사건 · 최근 한 달. 과거 SCAS 사건은 출처 「과거 SCAS」 + 기간으로 본다
+    { key: "src", label: "출처", value: quickValues.src, options: SOURCE_OPTIONS },
+    { key: "period", label: "기간", value: quickValues.period, options: PERIOD_OPTIONS },
   ]
 
   return (

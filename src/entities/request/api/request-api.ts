@@ -60,6 +60,12 @@ export interface RequestListFilters {
   limit?: number
   /** 감정물 번호 정확히(그 감정물의 의뢰 1행 — 옛 주소 넘겨주기, 기간 무시) */
   aprthng?: string
+  /** 출처 — 비우면 서버 기본 APP(새 사건만). SCAS = 과거 사건만, ALL = 둘 다 */
+  src?: "APP" | "SCAS" | "ALL"
+  /** 시작 날짜(한국, YYYY-MM-DD) — 비우면 서버 기본(한 달 전) */
+  from?: string
+  /** 끝 날짜(한국, YYYY-MM-DD, 포함) — 비우면 오늘 */
+  to?: string
 }
 
 export interface RequestListPage {
@@ -181,6 +187,9 @@ export function requestListPath(filters: RequestListFilters, cursor: string | nu
   if (filters.mine) p.set("mine", "1")
   if (filters.limit) p.set("limit", String(filters.limit))
   if (filters.aprthng) p.set("aprthng", filters.aprthng)
+  if (filters.src) p.set("src", filters.src)
+  if (filters.from) p.set("from", filters.from)
+  if (filters.to) p.set("to", filters.to)
   if (cursor) p.set("cursor", cursor)
   const qs = p.toString()
   return qs ? `/requests?${qs}` : "/requests"
