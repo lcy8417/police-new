@@ -1,7 +1,7 @@
 import { Footprints, Settings2 } from "lucide-react"
 
 import { FEATURES, type SessionUser } from "@/entities/session"
-import { hasFeature, isAdmin } from "@/features/auth"
+import { CASE_VIEW_FEATURES, hasAnyFeature, hasFeature, isAdmin } from "@/features/auth"
 import type { ScasBarItem } from "@/shared/ui/panel"
 
 // 새 앱 틀(`ScasAppShell`, 결정 기록 §1): 왼쪽 사이드바 없이 남색 위 막대 한 줄 —
@@ -20,9 +20,9 @@ export function barTitleOf(pathname: string): string {
   return "족적 감정"
 }
 
-/** 사건관리 목록을 볼 수 있나(사건 조회 권한 — 목록 API `GET /crime/` 가 이 권한) */
+/** 사건관리 목록을 볼 수 있나 — `/cases` 입구와 같은 권한 셋(`CASE_VIEW_FEATURES` — A1 목록 권한, [검수] 예전엔 CRIME_SEARCH 만) */
 export function canSeeCases(user: SessionUser): boolean {
-  return hasFeature(user, FEATURES.CRIME_SEARCH)
+  return hasAnyFeature(user, CASE_VIEW_FEATURES)
 }
 
 /**
