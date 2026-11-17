@@ -243,6 +243,25 @@ describe("CasesPage — 새 사건관리 목록(서버 A1 · A2)", () => {
     expect(screen.getByTestId("tab-body")).toHaveTextContent("05019-24-0017|05019-24-0017_2|compare")
   })
 
+  it("[검수] 목록 밖 사건 주소로 열 때 감정번호 조회(A1 no=)가 실패하면 「불러오는 중」 대신 오류 · 다시 시도", async () => {
+    let fail = true
+    mswServer.use(
+      http.get("*/requests", ({ request }) => {
+        const no = new URL(request.url).searchParams.get("no")
+        if (no === "05019-24-9999") {
+          if (fail) return HttpResponse.json({ detail: "잠시 후 다시" }, { status: 503 })
+          return HttpResponse.json({ items: [], next_cursor: null })
+        }
+        return HttpResponse.json({ items: ITEMS, next_cursor: null })
+      })
+    )
+    renderAt("/cases?open=05019-24-9999&tab=info")
+    expect(await screen.findByText("사건을 확인하지 못했습니다")).toBeInTheDocument()
+    fail = false
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }))
+    expect(await screen.findByText("사건을 찾을 수 없습니다")).toBeInTheDocument()
+  })
+
   it("주소로 바로 열어도 같은 창(문양 코드 탭)", async () => {
     renderAt("/cases?open=05019-24-0021&img=1&tab=pattern")
     expect(await screen.findByTestId("tab-body")).toHaveTextContent("05019-24-0021|05019-24-0021_1|pattern")

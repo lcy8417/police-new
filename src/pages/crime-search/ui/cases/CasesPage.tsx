@@ -17,7 +17,7 @@ import { useReceiveRequest } from "@/features/case-info"
 import { ApiError, backendMediaUrl } from "@/shared/api"
 import { useDebouncedValue } from "@/shared/lib"
 import type { ScreenStatus } from "@/shared/lib/screen-status"
-import { BoardFrame, ListNote, type FilterGroup } from "@/shared/ui/kit"
+import { BoardFrame, ListNote, WorkbenchButton, type FilterGroup } from "@/shared/ui/kit"
 import { CaseWindowFrame, WindowHead, WorkTabAdd } from "@/shared/ui/panel"
 import { usePageHeader } from "@/widgets/app-shell"
 import { CaseListScreen, type CaseListRowHeight } from "@/widgets/case-list"
@@ -302,7 +302,21 @@ export function CasesPage() {
 
     // 탭 본문 — 상세를 읽는 동안 · 못 찾음 · 실패
     const missing = (listedId === undefined && idQuery.isSuccess && idQuery.data === null) || detailQuery.isError
-    const body = missing ? (
+    // 목록 밖 사건 주소의 감정번호 조회(A1 no=) 실패 — 「불러오는 중」에 머물지 않고 오류 · 다시 시도([검수])
+    const idFailed = listedId === undefined && idQuery.isError
+    const body = idFailed ? (
+      <ListNote
+        role="alert"
+        className="justify-center"
+        action={
+          <WorkbenchButton size="sm" variant="ghost" onClick={() => void idQuery.refetch()}>
+            다시 시도
+          </WorkbenchButton>
+        }
+      >
+        사건을 확인하지 못했습니다
+      </ListNote>
+    ) : missing ? (
       <ListNote className="text-center">사건을 찾을 수 없습니다</ListNote>
     ) : !detail ? (
       <ListNote role="status" className="text-center">
