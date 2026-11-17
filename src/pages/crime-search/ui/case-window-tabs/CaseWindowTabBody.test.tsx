@@ -9,6 +9,7 @@ import { useSessionStore } from "@/features/auth"
 import { mswServer } from "@/test/msw-server"
 
 import { CaseWindowTabBody, type CaseWindowTabKey } from "./index"
+import { useTabSessionStore } from "./model/tab-session"
 
 // 이미지 처리(services/api — 무변환 계층)만 목. 나머지는 서버 B 단계 API 를 MSW 로(A1 no= · A2 · B3 · C1 · D2 · G1 · A3 · A8)
 const api = vi.hoisted(() => ({
@@ -162,6 +163,7 @@ describe("CaseWindowTabBody — 사건 창 탭 본문(의뢰 상세 A2 · 전역
   beforeEach(() => {
     login(["CRIME_SEARCH", "CRIME_REGISTER", "EXAM_DECIDE"])
     vi.clearAllMocks()
+    useTabSessionStore.setState({ byImage: {} })
   })
 
   it("옛 전역 store 가 비어 있어도 A2 로 그린다 — 읽는 동안은 불러오는 중", async () => {
@@ -232,10 +234,27 @@ describe("CaseWindowTabBody — 사건 창 탭 본문(의뢰 상세 A2 · 전역
     expect(screen.getByRole("region", { name: "이미지 편집" })).toHaveAttribute("data-slot", "image-edit-window")
   })
 
-  it("정밀 대조: 검색 결과에서 신발을 고르기 전이면 안내", async () => {
+  it("정밀 대조: 검색 결과에서 신발을 고르기 전이면 안내(두 번 누름) · 「검색 결과로」", async () => {
     serve()
-    renderTab("compare")
-    expect(await screen.findByText("검색 결과 탭에서 대조할 신발을 고르세요.")).toBeInTheDocument()
+    const { onSelectTab } = renderTab("compare")
+    expect(await screen.findByText(/검색 결과 탭에서 대조할 신발을 고르세요 — 카드를 두 번 누르면/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "검색 결과로" }))
+    expect(onSelectTab).toHaveBeenCalledWith("search")
+  })
+
+  it("검색 결과 카드를 두 번 누르면 그 신발로 정밀 대조 탭(대조 신발 · 후보 목록을 함께 넘김)", async () => {
+    serve()
+    mswServer.use(http.get("*/crime/:no", () => HttpResponse.json([])))
+    const { onSelectTab } = renderTab("search")
+    await screen.findByAltText("신발 01234 밑창")
+    const card = document.querySelector('[data-result-card][data-rank="2"]') as HTMLElement
+    fireEvent.click(card, { detail: 1 })
+    fireEvent.click(card, { detail: 2 })
+    fireEvent.doubleClick(card)
+    expect(onSelectTab).toHaveBeenCalledWith("compare")
+    const session = useTabSessionStore.getState().byImage[`${CASE_NO}_2`]
+    expect(session.compare).toMatchObject({ ftwrId: "01234", rank: 2 })
+    expect(session.candidates.map((c) => c.ftwrId)).toEqual(["00758", "01234"])
   })
 
   it("결과 확인: 줄 끝 「열기」가 그 이미지 · 탭(판정 전 = 검색 결과)으로", async () => {

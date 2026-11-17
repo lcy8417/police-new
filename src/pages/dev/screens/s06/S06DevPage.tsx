@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import { useLocation } from "react-router-dom"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import type { Alignment } from "@/entities/alignment"
 import { insertPatternPath, type PatternZone } from "@/entities/pattern"
+import { alignEditControl, AlignmentDrawSurface, useAlignment, type UseAlignment } from "@/features/crime-align"
 import {
   MatchCompareScreen,
   type CompareAutoMode,
@@ -67,6 +69,22 @@ import {
 
 const info = devScreen("s06")
 const ZONES: ZoneTriple = ["herring", "grid", "tri"]
+
+// 사건 창 판 안 정렬 지정(진열): 운영 정렬 훅(useAlignment)을 서버 없이 화면 상태로만 쓴다 — 감정물 번호를 비워
+// 조회 · 직전 정렬 이어받기가 꺼지고, 저장은 진열 값으로만(훅의 save 는 부르지 않음). 진열 화면엔 서버 캐시가 없어 이 칸만 빈 캐시를 둔다
+function DevAlign({ children }: { children: (align: UseAlignment) => ReactNode }) {
+  const align = useAlignment({ aprthngNo: "", ftwrId: "", canPersist: false })
+  return <>{children(align)}</>
+}
+
+function DevAlignScope({ children }: { children: (align: UseAlignment) => ReactNode }) {
+  const [client] = useState(() => new QueryClient())
+  return (
+    <QueryClientProvider client={client}>
+      <DevAlign>{children}</DevAlign>
+    </QueryClientProvider>
+  )
+}
 const COMPARE_VALUES: readonly CompareCount[] = ["1:1", "1:3", "1:5"]
 
 // 후보 밑창 무늬(첫 칸은 2차 발견 이미지 무늬 그대로)
@@ -161,7 +179,9 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
   const viewer = useDevViewer()
   const showPlus = useDevPlus()
   const [savedAlignment, setSavedAlignment] = useState<Alignment | null>(null)
-  const alignment = activeCase === "no-alignment" ? savedAlignment : FAKE_ALIGNMENT
+  // 정렬 없음: no-alignment 케이스 · 사건 창 주소 `?align=none`(판 안 지정 진열). 저장하면 그 값
+  const noAlign = activeCase === "no-alignment" || params.get("align") === "none"
+  const alignment = savedAlignment ?? (noAlign ? null : FAKE_ALIGNMENT)
 
   // r3 후보 넘기기: 검색 결과 1쪽(S05 가짜 값)을 후보 목록으로. 주소의 신발이 목록에 없으면 맨 앞에 넣는다.
   // 지금 후보는 여기서 든다(자동 넘김마다 주소를 쌓지 않게) — 처음 값만 주소(?ftwr · ?rank)에서.
@@ -220,8 +240,12 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
   // 현장 쪽은 검색에 쓰는 문양만(확인 전 AI 제안 빼고 — 가중치 스펙 §4 Q, 2회차 검수)
   const crimePatterns = useMemo(() => {
     if (!workZones) return CRIME_PATTERNS
-    const used = (z: PatternZone) => workZones[z].map(([n]) => n).filter((n) => workMeta?.[z]?.[n]?.status !== "suggested")
-    return zonePatternsOf({ top: used("top"), mid: used("mid"), bottom: used("bottom"), outline: used("outline") })
+    // 필수(검색에 쓴) 표시는 1:1 부위 문양 줄이 쓴다 — 문양 표현은 [이름, 필수] 튜플(참/거짓으로만 읽음)
+    const used = (z: PatternZone) =>
+      workZones[z]
+        .filter(([n]) => workMeta?.[z]?.[n]?.status !== "suggested")
+        .map(([n, flag]) => ({ ...patternIcon(n), ...(flag ? { essential: true } : {}) }))
+    return { top: used("top"), mid: used("mid"), bottom: used("bottom"), outline: used("outline") }
   }, [workZones, workMeta])
   const shoePatterns = useMemo(() => {
     const shoe = fakeShoePatterns(ftwrId)
@@ -242,7 +266,21 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
   )
 
 
-  return (
+  /** 판 안 정렬 지정 저장(진열) — 그린 영역 · 방향을 진열 정렬 값으로 */
+  const saveDrawn = (align: UseAlignment) => {
+    if (!align.canSave) {
+      toast("관심영역(3점 이상)과 앞굽 · 뒤꿈치를 모두 지정한 뒤 저장하세요.")
+      return
+    }
+    setSavedAlignment({
+      polygon: align.polygon.map(([x, y]) => [x, y]),
+      arrow: align.arrow.map(([x, y]) => [x, y]),
+      flipHorizontal: align.flipHorizontal,
+    })
+    toast.success("정렬을 저장했습니다(진열용)")
+  }
+
+  const screen = (align: UseAlignment | null) => (
     <MatchCompareScreen
       status={activeCase === "no-alignment" ? "ready" : activeCase}
       errorAt={S06_ERROR_AT}
@@ -261,8 +299,20 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
       shoeInfo={shoeInfoFor(ftwrId)}
       crimePatterns={crimePatterns}
       shoePatterns={shoePatterns}
-      alignmentSlot={<AlignmentDecor alignment={FAKE_ALIGNMENT} src={hasSamplePhotos ? crimeImage.rgb : undefined} />}
+      // 사건 창 = 판 안 정렬 지정(운영 캔버스 그대로 — 그림만 표본), 단독 진열 = 대화 상자 속 고정 장식(예전 그대로)
+      alignmentSlot={
+        align ? (
+          <AlignmentDrawSurface src={crimeImage.rgb} align={align} alt="정렬용 현장 이미지(진열)" />
+        ) : (
+          <AlignmentDecor alignment={FAKE_ALIGNMENT} src={hasSamplePhotos ? crimeImage.rgb : undefined} />
+        )
+      }
+      alignEdit={align ? alignEditControl(align) : undefined}
       onSaveAlignment={() => {
+        if (align) {
+          saveDrawn(align)
+          return
+        }
         setSavedAlignment(FAKE_ALIGNMENT)
         toast.success("정렬을 저장했습니다(진열용)")
       }}
@@ -300,4 +350,5 @@ export function S06Content({ devCase: activeCase, imageNo, go, inWindow }: S06Co
       onPlayingChange={setPlaying}
     />
   )
+  return inWindow ? <DevAlignScope>{(align) => screen(align)}</DevAlignScope> : screen(null)
 }

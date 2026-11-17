@@ -137,6 +137,7 @@
 | S01 문양 코드 탭 오른쪽 판(문양 목록 · 검색 이력 두 탭 · 탭 줄 끝 접기 · 접힘 세로 띠 펼치기) · 4부위 막대 「직접 가중치 n개 되돌리기」 | UnderlineTabs · WorkbenchButton | 그대로 | 「검색 조건」 탭 뺌(11/17 사용자 「검색 조건 없애기」 — 매칭 조건은 모두 준비 중) |
 | B단계 통합 S01 검색 결과 탭 본 것 · 확인대상(「여기까지 봤음」 줄 · 본 것 거르기 · 본 위치 · 확인대상 칸 — +α 묶음에서 뗌) | Segmented · WorkbenchButton | 그대로 | 위젯 선택 prop seen(결정 기록 「본 것 안 본 것은 좋네」) |
 | B단계 통합 S01 정밀 대조 탭 AI 대조 칸(종합 = 이미지 유사도 · 대조 기록 — 부위 · 한 줄 의견 · 지표 줄은 값이 있을 때만) | AiTag · ConfidenceBar | 그대로 | 위젯 선택 prop verdict(MatchVerdict) |
+| S01 사건 창 정밀 대조 탭 1:1 상 · 중 · 하 부위 문양 줄(두 그림 사이 — 현장 ↔ 신발 · 같은 이름 일치 · 필수 표시) · 윤곽 한 줄 · 판 안 정렬 지정(정렬 없을 때 · 「정렬 설정」 누름 — 밑창 틀 · 사각형 · 점 찍기 막대 · 단계 · 안내 한 줄) | PatternIcon · Segmented · WorkbenchButton · StepNum · PaneHead | 그대로 | 위젯 선택 prop alignEdit. 진열은 운영 캔버스(features/crime-align AlignmentDrawSurface)에 표본 사진 · 서버 없는 정렬 훅, 주소 align=none 이면 정렬 없음으로 시작(11/17 사용자 「각각 상 중 하 위치에 각각 좌 우 매칭」 · 「영역만 여기서 바로」 · 「정렬 설정 누르면 저기서 바로」) |
 | B단계 통합 S01 결과 확인 탭 판정 메모 칸(판정한 줄만 고침) | Field · ListHeadRow · ListRow | 그대로 | 위젯 선택 prop onOpinionCommit — 메모 칸이 있으면 표 열 하나 더(COLS_MEMO) |
 | B단계 통합 S01 결과 확인 탭 바닥 줄 「회수」(요청 단추 자리) · 「감정서로」 준비 중 잠금 · 썸네일 빈 칸 | WorkbenchButton · StatePill | 그대로 | 묶음 ② — onWithdrawCrossReview · onToReport 선택 · busy |
 | B단계 통합 S01 문양 코드 · 이미지 편집 「다시 판정 상태가 됩니다」 확인 창 | DialogShell · Button · ButtonBar | 그대로 | 기존 확인 창 부품 재사용(사용자 관리 대화 상자와 같은 결) |

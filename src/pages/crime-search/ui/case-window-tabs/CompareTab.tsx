@@ -6,9 +6,10 @@ import { alignmentKeys, fetchAlignment } from "@/entities/alignment"
 import { useComparisons, useCrimePatterns, type Crime } from "@/entities/crime"
 import { FEATURES } from "@/entities/session"
 import { fetchShoeDetail, shoeImageUrl, shoeKeys, type Shoe } from "@/entities/shoe"
-import { AlignmentCaptureCanvas, sceneImageUrl, useAlignment } from "@/features/crime-align"
+import { alignEditControl, AlignmentDrawCanvas, sceneImageUrl, useAlignment } from "@/features/crime-align"
 import { useRecordComparison } from "@/features/crime-search"
 import { MATCH_GATE_MESSAGES, MATCH_GENERIC_ERROR_MESSAGE, useMatchTop10 } from "@/features/match-top10"
+import { WorkbenchButton } from "@/shared/ui/kit"
 import {
   MatchCompareScreen,
   type CompareAutoMode,
@@ -43,7 +44,7 @@ export interface CompareTabProps {
 
 /**
  * 「정밀 대조」 탭 — 검색 결과 탭에서 고른 신발과 현장 이미지를 지금 앱 기능으로 맞대어 본다:
- *   정렬(관심영역 + 방향) = `features/crime-align` `useAlignment` · `AlignmentCaptureCanvas`(좌표 수학은 그쪽 소유) · `fetchAlignment`
+ *   정렬(관심영역 + 방향) = `features/crime-align` `useAlignment` · `AlignmentDrawCanvas`(판 안 지정 — 좌표 수학은 그쪽 소유) · `fetchAlignment`
  *   Top-10 대응점 = `features/match-top10` `useMatchTop10`(정렬이 설정됐을 때만 — GPU 추론)
  *   신발 정보 · 문양 = `fetchShoeDetail`, 그림 = `shoeImageUrl`(B 밑창 · Shoerinsics 이진), 현장 = 저장 원본 `sceneImageUrl`
  *   현장 문양 = C1, AI 대조 칸 = 종합(검색 이미지 유사도) + 대조 기록(F1 record 한 번 · F2 — 대응점 수 · 기록 횟수 · 시각).
@@ -59,10 +60,16 @@ export function CompareTab({ viewer, image, onConfirmTarget, onBackToSearch }: C
   const [intervalMs, setIntervalMs] = React.useState(3000)
   const view: CompareView = { compareCount, setCompareCount, autoMode, setAutoMode, playing, setPlaying, intervalMs, setIntervalMs }
   if (!compare) {
+    // 고른 신발이 없을 때 — 검색 결과 카드를 두 번 누르면 바로 여기로 온다(11/17 사용자 「검색결과 더블 클릭하면 바로 정밀 대조」)
     return (
-      <p className="m-0 grid h-full place-items-center p-[24px] text-center text-[12.5px] text-muted-foreground">
-        검색 결과 탭에서 대조할 신발을 고르세요.
-      </p>
+      <div className="grid h-full place-content-center justify-items-center gap-[10px] p-[24px] text-center">
+        <p className="m-0 text-[12.5px] text-muted-foreground">
+          검색 결과 탭에서 대조할 신발을 고르세요 — 카드를 두 번 누르면(또는 Enter) 그 신발로 바로 정밀 대조가 열립니다.
+        </p>
+        <WorkbenchButton variant="soft" onClick={onBackToSearch}>
+          검색 결과로
+        </WorkbenchButton>
+      </div>
     )
   }
   return (
@@ -190,9 +197,8 @@ function CompareBody({ viewer, image, target, candidates, view, onConfirmTarget,
     }
     try {
       await align.save()
-      toast.success("정렬을 저장했습니다.")
     } catch {
-      toast.error("정렬 저장에 실패했습니다.")
+      // 성공 · 실패 알림은 훅(useAlignment)이 한 번 띄운다 — 여기서 또 띄우면 두 번 떴다
     }
   }
 
@@ -230,25 +236,10 @@ function CompareBody({ viewer, image, target, candidates, view, onConfirmTarget,
       }}
       crimePatterns={crimePatterns}
       shoePatterns={shoePatterns}
-      alignmentSlot={
-        align.isLoading ? null : (
-          <AlignmentCaptureCanvas
-            aprthngNo={aprthngNo}
-            polygon={align.polygon}
-            arrow={align.arrow}
-            phase={align.phase}
-            drawMode={align.drawMode}
-            arrowStep={align.arrowStep}
-            flipHorizontal={align.flipHorizontal}
-            onImageNaturalSize={align.seedTemplate}
-            onAddPoint={align.addPoint}
-            onClosePolygon={align.closePolygon}
-            onMoveWholeShape={align.moveWholeShape}
-            onMoveVertex={align.moveVertexAt}
-            onPickArrowPoint={align.pickArrowPoint}
-          />
-        )
-      }
+      // 판 안 정렬 지정(11/17 사용자 「영역만 여기서 바로 … 폴리곤 치기 좀 쉽게」 · 「정렬 설정 누르면 저기서 바로」) —
+      // 정렬이 없거나 「정렬 설정」을 누르면 대조 판 유류 칸에 이 캔버스(저장 원본 고정), 막대는 위젯이 alignEdit 로 그린다
+      alignmentSlot={align.isLoading ? null : <AlignmentDrawCanvas aprthngNo={aprthngNo} align={align} />}
+      alignEdit={alignEditControl(align)}
       onSaveAlignment={() => void handleSaveAlignment()}
       onConfirmTarget={() => void handleConfirmTarget()}
       onClose={onBackToSearch}

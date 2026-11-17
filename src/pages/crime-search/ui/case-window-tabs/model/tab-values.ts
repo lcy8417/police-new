@@ -44,11 +44,15 @@ export function zonesOf(crime: Crime): CrimeZones {
   }
 }
 
-/** 문양 한 칸 → 아이콘(이름 + 그림 경로). crime 튜플 · shoe 문자열 둘 다 — 이름만 뽑아 경로를 한 번 붙인다 */
+/**
+ * 문양 한 칸 → 아이콘(이름 + 그림 경로 + 필수). crime 튜플 · shoe 문자열 둘 다 — 이름만 뽑아 경로를 표시 직전 한 번 붙인다.
+ * 필수 플래그는 crime 튜플의 [1](서버 0/1 정수 · 화면 boolean — 참/거짓으로만 읽는다), shoe 문자열은 없음
+ */
 function iconOf(entry: PatternEntry): PatternIconItem {
   const stripped = stripPatternPath(entry)
   const name = typeof stripped === "string" ? stripped : stripped[0]
-  return { name, src: insertPatternPath(name) as string }
+  const essential = typeof entry !== "string" && Boolean(entry[1])
+  return { name, src: insertPatternPath(name) as string, ...(essential ? { essential } : {}) }
 }
 
 /** 4부위 문양 → 정밀 대조 아이콘 묶음 */

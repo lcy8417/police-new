@@ -5,6 +5,7 @@ import type { Crime } from "@/entities/crime"
 import type { MatchCorrespondence } from "@/entities/match"
 import type { FeatureCode } from "@/entities/session"
 import type { Shoe } from "@/entities/shoe"
+import type { AlignEditControl } from "@/features/crime-align"
 import type { ScreenStatus } from "@/shared/lib/screen-status"
 
 /** 대조 그림 한 장 — 보기 방식 두 가지 이미지와, 대응점 좌표가 속한 이미지 좌표계 크기 */
@@ -31,6 +32,8 @@ export interface PatternIconItem {
   name: string
   /** 아이콘 이미지 경로 */
   src: string
+  /** 필수(검색에 쓴) 문양 — 현장 문양만. 정밀 대조 1:1 부위 줄에 「필수」 표시 */
+  essential?: boolean
 }
 
 /** 부위별 문양(상 · 중 · 하 · 윤곽) */
@@ -205,8 +208,17 @@ export interface MatchCompareScreenProps {
   crimePatterns: ZonePatterns
   /** 발견 이미지 문양 */
   shoePatterns: ZonePatterns
-  /** 정렬 설정 캔버스 자리(운영은 AlignmentCaptureCanvas — 좌표 수학은 그쪽이 소유) */
+  /**
+   * 정렬 설정 캔버스 자리(좌표 수학은 그쪽이 소유). 단독 진열은 대화 상자 안, 사건 창(`inWindow`)에 `alignEdit` 를 함께 주면
+   * 대조 판 유류 칸에 바로 놓는다(운영 = `AlignmentDrawCanvas`)
+   */
   alignmentSlot: React.ReactNode
+  /**
+   * 사건 창 판 안 정렬 지정(11/17 사용자 「영역만 여기서 바로 … 지정 · 폴리곤 치기 좀 쉽게」 · 「정렬 설정 누르면 저기서 바로 설정」).
+   * 주면 정렬이 없을 때 · 「정렬 설정」을 누를 때 대화 상자 대신 대조 판(유류 칸 = `alignmentSlot` · 발견 칸 = 참고 그림)에서
+   * 영역 · 방향을 정하고 막대의 「정렬 저장」(= `onSaveAlignment`) · 「취소」. 없으면 예전 대화 상자
+   */
+  alignEdit?: AlignEditControl
   /** 「정렬 저장」 — 다각형 · 화살표 값은 슬롯 주인이 들고 있다 */
   onSaveAlignment: () => void
   /** 「확인대상」 — 검색결과 확인(판정)으로 */

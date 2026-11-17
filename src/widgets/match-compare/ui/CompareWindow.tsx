@@ -1,26 +1,54 @@
 import * as React from "react"
-import { BadgeCheck, ChevronLeft, ChevronRight, Crosshair, FolderPlus, Info, Link2, Paperclip, Rows3, Save, Search, Settings2, SquareDashed, X } from "lucide-react"
+import {
+  BadgeCheck,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Crosshair,
+  FlipHorizontal2,
+  FolderPlus,
+  Info,
+  Link2,
+  Navigation2,
+  Paperclip,
+  RotateCcw,
+  Rows3,
+  Save,
+  Search,
+  Settings2,
+  SquareDashed,
+  Undo2,
+  X,
+} from "lucide-react"
 
+import type { AlignEditControl } from "@/features/crime-align"
 import { shouldHandleShortcut } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
 import { DialogShell, InlineError, Segmented, ViewCountSwitch, WorkbenchButton } from "@/shared/ui/kit"
-import { PaneHead } from "@/shared/ui/panel"
+import { PaneHead, StepNum } from "@/shared/ui/panel"
 import { DEFAULT_LENS, DEFAULT_VIEW_TUNE, LENS_ZOOMS, stepLens, type LensSettings, type ViewTune } from "@/shared/ui/viewer"
 
 import { viewerRoles } from "../model/roles"
-import type { CompareCount, MatchCompareScreenProps } from "../model/types"
+import type { CompareCount, MatchCompareScreenProps, MatchImage, ZoneLines } from "../model/types"
 import { linkPoint, type LinkFrame, type RatioPoint } from "../model/zoom-link"
 import { AiVerdict } from "./AiVerdict"
 import { ComparePane } from "./ComparePane"
 import { MultiStage } from "./MultiStage"
 import { ZoneCompareStrip } from "./ZoneCompareStrip"
+import { ZoneLine, ZoneRail, type ZoneStops } from "./ZoneRail"
 
 // 사건 창 「정밀 대조」 탭(11/17 사용자 「자동 수동이 왜 있어 … 서로의 선택한 문양이랑 그런 것도 같이 비교 … 대비 반전 회전 이진화 그리고
 // 확대 찍어서, 중지하고, 거기랑 옆에 신발 어느 부위를 같이 확대 클릭해서 비교 … AI 대조 … 컴팩트하고 딱 일목요연하게 … 대응 목록 빼. 정보도 …
 // 발견 이미지에 상세 보기 … 딱 상중하 나뉘어서 서로 선택한 문양 비교」).
 //   머리(밝은 바탕) — 칸 이름 · 신발 번호 · 이전/다음 후보 · 비교 1:1 · 1:3 · 1:5(작게)
 //   먹색 작업판(`data-theme="dark"`): 도구 막대(확대 찍기 · 확대경 · 연동 · 배율 · 대응 박스 · 구역 선 · 원본/스케치 · 정렬 설정)
-//     | 유류 | 발견 두 칸(칸마다 보기 조정 — 대비 · 반전 · 이진화 · 회전) | 상 · 중 · 하 문양 비교 띠
+//     | 1:1 = 유류 | 상 · 중 · 하 부위 문양 | 발견(칸마다 보기 조정 — 대비 · 반전 · 이진화 · 회전) + 아래 윤곽 한 줄
+//       (11/17 사용자 「각각 상 중 하 위치에 각각 좌 우 매칭 및 선택한 문양 보여주게. 1:1 일때만 가능. 1:3, 1:5는 힘들 듯」)
+//     | 1:3 · 1:5 = 현장 1장 대 후보 n장 + 상 · 중 · 하 문양 비교 띠
+//   판 안 정렬 지정(`alignEdit` — 11/17 사용자 「영역만 여기서 바로 이미지가 뜨고 지정해주면 · 폴리곤 치기 좀 쉽게」 ·
+//     「정렬 설정 누르면 저기서 바로 설정할 수 있게」): 정렬이 없거나 「정렬 설정」을 누르면 같은 판의 유류 칸에 정렬 캔버스(slot),
+//     발견 칸에 참고 그림, 막대 = 그리기 방식(밑창 틀 · 사각형 · 점 찍기) · 닫기 · 마지막 점 · 다시 그리기 · 방향 다시 · 좌우 반전 | 취소 · 정렬 저장,
+//     막대 아래 단계(영역 → 방향 → 저장) + 안내 한 줄. 대화 상자는 `alignEdit` 가 없을 때만(예전 그대로).
 //   오른쪽 보조 칸(밝은 바탕 · 왼쪽 가는 선) — AI 대조 한눈에
 //   바닥 단추 줄 — 그룹등록 · 감정서 첨부 | 확인대상
 // 자동/수동 후보 넘기기 · 대응 목록 · 정보 탭 · 확인 물음 막대는 그리지 않는다(단독 진열 `/dev/s06` 은 그대로). 보기 상태는 저장하지 않는다.
@@ -32,16 +60,54 @@ const LOOK_ITEMS = [
   { value: "rgb", label: "원본" },
   { value: "sketch", label: "스케치" },
 ]
+const DRAW_ITEMS = [
+  { value: "template", label: "밑창 틀" },
+  { value: "rect", label: "사각형" },
+  { value: "scratch", label: "점 찍기" },
+]
 const COMPARE_OPTIONS: readonly CompareCount[] = ["1:1", "1:3", "1:5"]
 const NO_ALIGNMENT = "정렬(ROI + 방향)이 아직 없습니다"
 const NOT_READY = "준비 중"
+const ALIGN_STEPS = ["영역", "방향", "저장"] as const
 
 /** 작업판 막대(한 단 밝은 판 + 가는 선 — 문양 코드 탭 작업판과 같은 결) */
 const BAR = "flex shrink-0 flex-wrap items-center gap-x-[6px] gap-y-[4px] bg-panel px-[10px] py-[5px]"
 const SEP = <span aria-hidden="true" className="mx-[2px] h-[16px] w-px bg-line-3" />
+/** 작업판 막대 안 분할 단추를 단추 sm 높이로 */
+const SEG = "p-[2px] [&_button]:px-[7px] [&_button]:py-[1px] [&_button]:text-[11px]"
+const LABEL = "shrink-0 text-[10px] font-semibold text-muted-foreground"
 /** 머리 줄 안 분할 단추를 24 높이로 */
 const COMPACT_SEGMENTS =
   "[&_[data-part=Segmented]]:p-[2px] [&_[data-part=Segmented]_button]:px-[7px] [&_[data-part=Segmented]_button]:py-[1px] [&_[data-part=Segmented]_button]:text-[11px] [&_[data-part=ViewCountSwitch]>span]:text-[11px]"
+
+/** 구역 눈금이 없을 때 그림을 3등분한 상 · 중 · 하 선(그 그림 좌표계) */
+function thirdsOf(image: MatchImage): ZoneLines {
+  return { x: [0, image.width], top: 0, bounds: [image.height / 3, (image.height * 2) / 3], bottom: image.height }
+}
+
+/** 구역 선 → 그림 높이 비율 눈금 */
+function stopsOf(zones: ZoneLines, height: number): ZoneStops {
+  const h = height > 0 ? height : 1
+  return [zones.top / h, zones.bounds[0] / h, zones.bounds[1] / h, zones.bottom / h]
+}
+
+/** 판 안 정렬 지정 안내 한 줄 */
+function alignGuide(edit: AlignEditControl): string {
+  if (edit.flip) return "좌우 반전 미리보기 중 — 영역 · 방향을 고치려면 반전을 끄세요"
+  if (edit.phase === "polygon") {
+    if (edit.drawMode === "scratch") {
+      if (edit.pointCount === 0) return "현장 그림을 눌러 영역의 첫 점을 찍으세요 — 점은 끌어 옮길 수 있습니다"
+      if (edit.pointCount < 3) return `점 ${edit.pointCount}개 — 3개 이상 찍으세요 · Backspace 마지막 점 지우기`
+      return `점 ${edit.pointCount}개 — 첫 점(초록 고리)을 누르거나 두 번 누름 · Enter 로 영역을 닫으세요 · Backspace 마지막 점`
+    }
+    if (edit.drawMode === "rect" && edit.pointCount === 0) return "현장 그림 위를 끌어 네모 영역을 그리세요"
+    return "틀 안쪽을 끌어 옮기고 점을 끌어 모양을 맞추세요 — 다 되면 앞굽(발끝)을 누르세요"
+  }
+  if (edit.phase === "arrow") {
+    return edit.arrowStep === "heel" ? "방향 — 이제 뒤꿈치를 누르세요" : "방향 — 앞굽(발끝)을 누르세요"
+  }
+  return "영역 · 방향이 정해졌습니다 — 점 · 틀은 끌어 고칠 수 있고, 다 되면 「정렬 저장」"
+}
 
 export function CompareWindow(props: MatchCompareScreenProps) {
   const {
@@ -60,6 +126,7 @@ export function CompareWindow(props: MatchCompareScreenProps) {
     candidates = [],
     onCandidateChange,
     compareCount = "1:1",
+    alignEdit: edit,
   } = props
   const canWrite = isAdmin || features.includes("CRIME_SEARCH")
   const roles = viewerRoles(isAdmin, features)
@@ -87,12 +154,40 @@ export function CompareWindow(props: MatchCompareScreenProps) {
     return () => window.removeEventListener("keydown", onKey)
   }, [shoeOpen])
   const [alignOpen, setAlignOpen] = React.useState(false)
+  // 「정렬 설정」으로 연 판 안 고치기(정렬이 이미 있을 때). 저장 · 취소로 닫는다 — 정렬이 없으면 늘 판 안 지정
+  const [manualEdit, setManualEdit] = React.useState(false)
+
+  const multi = compareCount === "1:1" ? null : compareCount === "1:3" ? 3 : 5
+  const ready = status === "ready"
+  // 판 안 정렬 지정: 1:1 · 준비됨 · 막대 묶음이 있을 때 — 정렬이 없거나 「정렬 설정」을 눌렀을 때
+  const editing = ready && !multi && !!edit && (!aligned || manualEdit)
+  const openAlign = () => {
+    if (!edit) {
+      setAlignOpen(true)
+      return
+    }
+    // 판 안 지정은 1:1 판에서 — 1:3 · 1:5 면 1:1 로 돌린다
+    if (multi) props.onCompareCountChange?.("1:1")
+    setManualEdit(true)
+  }
+  const cancelEdit = () => {
+    edit?.onCancel()
+    setManualEdit(false)
+  }
+  const saveEdit = () => {
+    props.onSaveAlignment()
+    // 이미 있던 정렬을 고친 것이면 바로 대조 판으로(새 값은 다시 읽어 그린다). 처음 지정이면 정렬이 생길 때까지 그대로
+    if (aligned) setManualEdit(false)
+  }
 
   const crimeBoxes = React.useMemo(() => matches.map((m) => m.box), [matches])
   const shoeBoxes = React.useMemo(() => matches.map((m) => ({ cx: m.sx, cy: m.sy, size: m.box.size })), [matches])
+  // 상 · 중 · 하 구역: +α 눈금이 있으면 그것, 없으면 그림 3등분(1:1 부위 문양 줄 · 구역 선 · 함께 확대가 같이 쓴다)
+  const crimeZones = plus?.zoneLines.crime ?? thirdsOf(crimeImage)
+  const shoeZones = plus?.zoneLines.shoe ?? thirdsOf(shoeImage)
   const frames: Record<Side, LinkFrame> = {
-    crime: { width: crimeImage.width, height: crimeImage.height, zones: plus?.zoneLines.crime },
-    shoe: { width: shoeImage.width, height: shoeImage.height, zones: plus?.zoneLines.shoe },
+    crime: { width: crimeImage.width, height: crimeImage.height, zones: crimeZones },
+    shoe: { width: shoeImage.width, height: shoeImage.height, zones: shoeZones },
   }
   /** 이 칸의 핀 — 찍은 칸은 그 자리, 연동이면 반대 칸은 같은 상 · 중 · 하 위치 비율 자리 */
   const pinOf = (side: Side): RatioPoint | null => {
@@ -115,8 +210,8 @@ export function CompareWindow(props: MatchCompareScreenProps) {
   const keyRef = React.useRef<(e: KeyboardEvent) => void>(() => undefined)
   React.useEffect(() => {
     keyRef.current = (e: KeyboardEvent) => {
-      // Esc 는 창 닫기 몫이라 듣지 않는다(핀은 다시 누르면 풀림)
-      if (alignOpen || !shouldHandleShortcut(e)) return
+      // Esc 는 창 닫기 몫이라 듣지 않는다(핀은 다시 누르면 풀림). 정렬을 그리는 동안은 후보를 넘기지 않는다(그리던 것이 날아감)
+      if (alignOpen || editing || !shouldHandleShortcut(e)) return
       if (canStep && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
         e.preventDefault()
         step(e.key === "ArrowRight" ? 1 : -1)
@@ -129,7 +224,6 @@ export function CompareWindow(props: MatchCompareScreenProps) {
     return () => window.removeEventListener("keydown", onKey)
   }, [])
 
-  const multi = compareCount === "1:1" ? null : compareCount === "1:3" ? 3 : 5
   const lensStep = (by: 1 | -1) => setLens((l) => ({ ...l, size: stepLens(l.size, by) }))
   const togglePinMode = () => {
     setPinMode((v) => !v)
@@ -216,6 +310,35 @@ export function CompareWindow(props: MatchCompareScreenProps) {
     )
   }
 
+  /** 판 안 정렬 지정 칸 — 유류 = 정렬 캔버스(slot), 발견 = 참고 그림(원본 · 스케치) */
+  const editStage = (
+    <div data-align-board className="grid h-full min-h-0 grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <section aria-label="유류 이미지 — 영역 지정" className="flex min-h-0 min-w-0 flex-col border-0 border-r border-solid border-border">
+        <div className={cn(BAR, "border-0 border-b border-solid border-border py-[4px]")}>
+          <h3 className="m-0 text-[12.5px] font-bold whitespace-nowrap text-foreground">유류</h3>
+          <span className="min-w-0 truncate font-code text-[11px] text-muted-foreground">{caseInfo.aprthngNo ?? ""}</span>
+          <span className="ml-auto text-[10px] text-muted-foreground">저장 원본 위에 영역 · 방향</span>
+        </div>
+        <div className="relative min-h-0 flex-1 overflow-hidden bg-canvas p-[12px]">{props.alignmentSlot}</div>
+      </section>
+      <section aria-label="발견 이미지 — 참고" className="flex min-h-0 min-w-0 flex-col">
+        <div className={cn(BAR, "border-0 border-b border-solid border-border py-[4px]")}>
+          <h3 className="m-0 text-[12.5px] font-bold whitespace-nowrap text-foreground">발견</h3>
+          <span className="min-w-0 truncate font-code text-[11px] text-muted-foreground">{`${shoeInfo.ftwrId}${ranking != null ? ` · #${ranking}` : ""}`}</span>
+          <Segmented items={LOOK_ITEMS} value={look} onValueChange={(v) => setLook(v as Look)} aria-label="보기 방식" className={cn(SEG, "ml-auto")} />
+        </div>
+        <div className="grid min-h-0 flex-1 place-items-center bg-canvas p-[12px]">
+          <img
+            src={look === "rgb" ? shoeImage.rgb : shoeImage.sketch}
+            alt={`발견 이미지 ${shoeInfo.ftwrId}`}
+            draggable={false}
+            className="block max-h-full max-w-full object-contain select-none"
+          />
+        </div>
+      </section>
+    </div>
+  )
+
   let stage: React.ReactNode
   if (status === "loading") {
     stage = (
@@ -243,6 +366,8 @@ export function CompareWindow(props: MatchCompareScreenProps) {
         />
       </div>
     )
+  } else if (editing) {
+    stage = editStage
   } else if (!aligned) {
     stage = (
       <div className="grid h-full place-content-center justify-items-center gap-[10px] bg-canvas text-center">
@@ -253,21 +378,103 @@ export function CompareWindow(props: MatchCompareScreenProps) {
       </div>
     )
   } else {
+    // 1:1 — 유류 | 상 · 중 · 하 부위 문양 | 발견(줄 높이는 두 그림의 그 부위 높이)
     stage = (
-      <div className="grid h-full min-h-0 grid-cols-2">
+      <div
+        data-zone-stage
+        className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_156px_minmax(0,1fr)] @max-[920px]:grid-cols-[minmax(0,1fr)_132px_minmax(0,1fr)]"
+      >
         <div className="flex min-h-0 min-w-0 flex-col border-0 border-r border-solid border-border">{pane("crime")}</div>
+        <ZoneRail
+          crime={props.crimePatterns}
+          shoe={props.shoePatterns}
+          crimeStops={stopsOf(crimeZones, crimeImage.height)}
+          shoeStops={stopsOf(shoeZones, shoeImage.height)}
+          basis={plus?.basis}
+          className="border-0 border-r border-solid border-border"
+        />
         <div className="flex min-h-0 min-w-0 flex-col">{pane("shoe")}</div>
       </div>
     )
   }
 
-  const ready = status === "ready"
-  const sideBySide = ready && aligned && !multi
+  const sideBySide = ready && aligned && !multi && !editing
   const tool = (label: string, pressed: boolean, onClick: () => void, icon: typeof Search, title: string, disabled = false) => (
     <WorkbenchButton size="sm" variant="ghost" icon={icon} aria-pressed={pressed} title={title} disabled={disabled} onClick={onClick}>
       {label}
     </WorkbenchButton>
   )
+
+  // 판 안 정렬 지정 막대 · 단계 · 안내
+  const stepAt = edit ? (edit.phase === "polygon" ? 0 : edit.phase === "arrow" ? 1 : 2) : 0
+  const editBar = edit ? (
+    <>
+      <div role="toolbar" aria-label="정렬 도구" className={cn(BAR, "border-0 border-b border-solid border-border")}>
+        <span className={LABEL}>영역</span>
+        <Segmented
+          items={DRAW_ITEMS}
+          value={edit.drawMode}
+          onValueChange={(v) => {
+            if (v !== edit.drawMode) edit.onDrawMode(v as AlignEditControl["drawMode"])
+          }}
+          aria-label="영역 그리기 방식"
+          className={SEG}
+        />
+        {edit.drawMode === "scratch" && edit.phase === "polygon" ? (
+          <>
+            <WorkbenchButton size="sm" variant="soft" icon={Check} disabled={!edit.canClose || edit.flip} onClick={edit.onClose} title="첫 점을 누르거나 두 번 누름 · Enter">
+              영역 닫기
+            </WorkbenchButton>
+            <WorkbenchButton size="sm" variant="ghost" icon={Undo2} disabled={edit.pointCount === 0 || edit.flip} onClick={edit.onUndo} title="마지막 점 지우기 (Backspace)">
+              마지막 점
+            </WorkbenchButton>
+          </>
+        ) : null}
+        {SEP}
+        <WorkbenchButton size="sm" variant="ghost" icon={RotateCcw} onClick={edit.onRestart} title="지금 방식으로 영역 · 방향을 처음부터">
+          다시 그리기
+        </WorkbenchButton>
+        {edit.arrowStep !== "toe" ? (
+          <WorkbenchButton size="sm" variant="ghost" icon={Navigation2} onClick={edit.onRedoArrow} title="앞굽 · 뒤꿈치를 다시 누르기">
+            방향 다시
+          </WorkbenchButton>
+        ) : null}
+        <WorkbenchButton size="sm" variant="ghost" icon={FlipHorizontal2} aria-pressed={edit.flip} onClick={edit.onFlip} title="족적이 밑창과 좌우가 반대일 때(저장 값에 반전 여부만)">
+          좌우 반전
+        </WorkbenchButton>
+        <span className="ml-auto inline-flex items-center gap-[6px]">
+          {aligned ? (
+            <WorkbenchButton size="sm" variant="ghost" icon={X} onClick={cancelEdit} title="고친 것을 버리고 저장된 정렬로">
+              취소
+            </WorkbenchButton>
+          ) : null}
+          <WorkbenchButton
+            size="sm"
+            variant="primary"
+            icon={Save}
+            disabled={!canWrite || !edit.canSave || edit.saving}
+            title={canWrite ? undefined : "정렬 저장 권한이 없습니다"}
+            onClick={saveEdit}
+          >
+            {edit.saving ? "저장 중…" : "정렬 저장"}
+          </WorkbenchButton>
+        </span>
+      </div>
+      <div data-align-guide className="flex shrink-0 flex-wrap items-center gap-x-[12px] gap-y-[3px] border-0 border-b border-solid border-border bg-panel px-[10px] py-[4px] text-[11px]">
+        <ol aria-label="정렬 단계" className="m-0 flex list-none items-center gap-[8px] p-0">
+          {ALIGN_STEPS.map((label, i) => (
+            <li key={label} aria-current={i === stepAt ? "step" : undefined} className="inline-flex items-center gap-[4px]">
+              <StepNum state={i < stepAt ? "done" : "pending"} n={i + 1} size={16} now={i === stepAt} />
+              <span className={i === stepAt ? "font-bold text-foreground" : "text-muted-foreground"}>{label}</span>
+            </li>
+          ))}
+        </ol>
+        <span role="status" className="min-w-0 text-fg-2">
+          {alignGuide(edit)}
+        </span>
+      </div>
+    </>
+  ) : null
 
   return (
     <>
@@ -277,13 +484,13 @@ export function CompareWindow(props: MatchCompareScreenProps) {
             <PaneHead
               title="유류 · 발견 대조"
               sub={<span className="font-code">{`No. ${shoeInfo.ftwrId}${ranking != null ? ` · #${ranking}` : ""}`}</span>}
-              tip="확대 찍기: 한쪽을 누르면 그 자리와 반대쪽 같은 상 · 중 · 하 위치를 함께 키워 멈춥니다(다시 누르면 풀림). 확대경 지름은 Shift + 휠 또는 [ ] 키, ← → 후보."
+              tip="확대 찍기: 한쪽을 누르면 그 자리와 반대쪽 같은 상 · 중 · 하 위치를 함께 키워 멈춥니다(다시 누르면 풀림). 확대경 지름은 Shift + 휠 또는 [ ] 키, ← → 후보. 1:1 은 두 그림 사이에 상 · 중 · 하 부위별 현장 · 신발 문양(같은 이름 = 일치)."
               end={
                 ready ? (
                   <span className={cn("inline-flex items-center gap-[6px] pb-[3px]", COMPACT_SEGMENTS)}>
                     {canStep ? (
                       <span role="group" aria-label="후보" className="inline-flex items-center gap-[2px]">
-                        <WorkbenchButton size="sm" variant="ghost" icon={ChevronLeft} iconOnly aria-label="이전" disabled={currentIndex <= 0} onClick={() => step(-1)} />
+                        <WorkbenchButton size="sm" variant="ghost" icon={ChevronLeft} iconOnly aria-label="이전" disabled={currentIndex <= 0 || editing} onClick={() => step(-1)} />
                         <span className="font-code text-[11px] text-muted-foreground tabular-nums">{`${currentIndex + 1}/${candidates.length}`}</span>
                         <WorkbenchButton
                           size="sm"
@@ -291,7 +498,7 @@ export function CompareWindow(props: MatchCompareScreenProps) {
                           icon={ChevronRight}
                           iconOnly
                           aria-label="다음"
-                          disabled={currentIndex >= candidates.length - 1}
+                          disabled={currentIndex >= candidates.length - 1 || editing}
                           onClick={() => step(1)}
                         />
                       </span>
@@ -308,7 +515,8 @@ export function CompareWindow(props: MatchCompareScreenProps) {
               data-slot="compare-workbench"
               className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[12px] border border-solid border-border bg-panel text-foreground [box-shadow:0_6px_18px_var(--t-panel-drop)]"
             >
-              {ready ? (
+              {ready && editing ? editBar : null}
+              {ready && !editing ? (
                 <div role="toolbar" aria-label="대조 도구" className={cn(BAR, "border-0 border-b border-solid border-border")}>
                   {sideBySide ? (
                     <>
@@ -332,7 +540,7 @@ export function CompareWindow(props: MatchCompareScreenProps) {
                       </span>
                       {SEP}
                       {tool("대응 박스", showBoxes, () => setShowBoxes((v) => !v), SquareDashed, `Top-${matches.length} 대응 박스 — 번호가 같은 박스끼리 짝`)}
-                      {plus ? tool("구역 선", showZones, () => setShowZones((v) => !v), Rows3, "상 · 중 · 하 구역 선") : null}
+                      {tool("구역 선", showZones, () => setShowZones((v) => !v), Rows3, plus ? "상 · 중 · 하 구역 선" : "상 · 중 · 하 구역 선(그림 3등분 — 가운데 부위 문양 줄과 같은 높이)")}
                       {SEP}
                     </>
                   ) : null}
@@ -343,17 +551,22 @@ export function CompareWindow(props: MatchCompareScreenProps) {
                     aria-label="보기 방식"
                     className="p-[2px] [&_button]:px-[7px] [&_button]:py-[1px] [&_button]:text-[11px]"
                   />
-                  <WorkbenchButton size="sm" variant="ghost" icon={Settings2} className="ml-auto" onClick={() => setAlignOpen(true)}>
+                  <WorkbenchButton size="sm" variant="ghost" icon={Settings2} className="ml-auto" onClick={openAlign}>
                     정렬 설정
                   </WorkbenchButton>
                 </div>
               ) : null}
-              <div data-compare-area className="min-h-0 flex-1">
+              <div data-compare-area data-align-editing={editing ? "true" : undefined} className="min-h-0 flex-1">
                 {stage}
               </div>
-              {ready ? (
+              {ready && multi ? (
                 <div className="shrink-0 border-0 border-t border-solid border-border bg-panel">
                   <ZoneCompareStrip crime={props.crimePatterns} shoe={props.shoePatterns} basis={plus?.basis} />
+                </div>
+              ) : null}
+              {sideBySide ? (
+                <div className="shrink-0 border-0 border-t border-solid border-border bg-panel">
+                  <ZoneLine crime={props.crimePatterns} shoe={props.shoePatterns} />
                 </div>
               ) : null}
             </div>
@@ -394,30 +607,33 @@ export function CompareWindow(props: MatchCompareScreenProps) {
         </div>
       </section>
 
-      <DialogShell
-        open={alignOpen}
-        onOpenChange={setAlignOpen}
-        title="정렬 설정"
-        size="large"
-        actions={
-          <WorkbenchButton
-            variant="primary"
-            icon={Save}
-            disabled={!canWrite}
-            onClick={() => {
-              props.onSaveAlignment()
-              setAlignOpen(false)
-            }}
-          >
-            정렬 저장
-          </WorkbenchButton>
-        }
-      >
-        <div className="grid gap-[8px] p-[12px_14px_14px]">
-          <span className="text-[12.5px] text-muted-foreground">관심영역(ROI)을 다각형으로 두르고 앞코 방향 화살표를 그린 뒤 저장합니다.</span>
-          <div className="relative h-[460px] overflow-hidden rounded-[10px] border border-solid border-border bg-canvas">{props.alignmentSlot}</div>
-        </div>
-      </DialogShell>
+      {/* 판 안 정렬 지정 묶음(alignEdit)이 없을 때만 — 예전 대화 상자 */}
+      {edit ? null : (
+        <DialogShell
+          open={alignOpen}
+          onOpenChange={setAlignOpen}
+          title="정렬 설정"
+          size="large"
+          actions={
+            <WorkbenchButton
+              variant="primary"
+              icon={Save}
+              disabled={!canWrite}
+              onClick={() => {
+                props.onSaveAlignment()
+                setAlignOpen(false)
+              }}
+            >
+              정렬 저장
+            </WorkbenchButton>
+          }
+        >
+          <div className="grid gap-[8px] p-[12px_14px_14px]">
+            <span className="text-[12.5px] text-muted-foreground">관심영역(ROI)을 다각형으로 두르고 앞코 방향 화살표를 그린 뒤 저장합니다.</span>
+            <div className="relative h-[460px] overflow-hidden rounded-[10px] border border-solid border-border bg-canvas">{props.alignmentSlot}</div>
+          </div>
+        </DialogShell>
+      )}
     </>
   )
 }
