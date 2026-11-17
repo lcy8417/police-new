@@ -2,7 +2,7 @@
 //
 // 전제: 스모크 전용 DB(footprint_smoke)를 심고(police-server/scripts/smoke_seed.py) 그 DB 로 띄운 서버 · 이 저장소 개발 서버.
 //   서버: cd <스모크 폴더> && DATABASE_CONN=postgresql+psycopg://footprint_app@localhost:5432/footprint_smoke \
-//         EVIDENCE_DIR=<스모크 폴더>/data/evidence ALLOWED_ORIGINS=http://localhost:5212 \
+//         POLICE_DATA_ROOT=<스모크 폴더> EVIDENCE_DIR=<스모크 폴더>/data/evidence ALLOWED_ORIGINS=http://localhost:5212 \
 //         uvicorn main:app --app-dir <police-server> --host 127.0.0.1 --port 8010
 //   화면: VITE_PROXY_TARGET=http://127.0.0.1:8010 npx vite --port 5212 --strictPort
 //
