@@ -53,6 +53,9 @@
 | `GET·POST /admin/users`, `PUT /admin/users/{id}`, `PUT …/features`, `POST …/password-reset`·`…/unlock` | 사용자 목록·추가·수정(`{userNm, userSe, useAt}`)·권한 교체(`{features}`)·임시 비밀번호(`{tempPassword}`)·잠금 해제 | `fetchUsers`·`createUser`·`updateUser`·`replaceUserFeatures`·`resetPassword`·`unlockUser` (`entities/admin`) |
 | `GET /admin/sessions?user_id&from&to&page`, `GET /admin/sessions/{id}/events`, `GET /admin/events?user_id&result&action_code&from&to&page` | 로그인 기록·기능 기록(50개씩 최신순, `page`는 0부터, 전체 개수 없음 — 50개 미만이면 마지막). 날짜는 KST `YYYY-MM-DD`(끝 날짜 포함) | `fetchSessions`·`fetchSessionEvents`·`fetchEvents` |
 | `GET /admin/features` · `GET /admin/actions` | 기능 목록 · 기능 이름표(사용 기록 "기능" 필터) | `fetchFeatures`·`fetchActions` |
+| K1 `GET /admin/events?…&target_id` | 대상 번호 거르기(감정물 번호 · 신발 ID 앞부분, 감정번호와 정확히 같으면 그 의뢰의 숫자 번호들까지) | `fetchEvents`(`target_id` 거르기) |
+| K2 `GET /admin/audit-events?event_se&actor_id&target_id&target_se&from&to&page` | 중요 행위(감사) 50개씩 최신순 — `event_se` 여러 번 = 그중 하나, 응답에 사슬 지문 `row_hash` | `fetchAuditEvents` · `useAuditEventsQuery`(`entities/admin`) |
+| K3 `GET /admin/audit-events/verify?from_id&to_id` | 감사 사슬 구간 검증 `{ checked, broken_at, last_hash }` | `verifyAuditChain` · `useAuditVerifyQuery` |
 
 - 관리자 화면 주소는 `/manage/users`·`/manage/logs`(API `/admin/*`와 겹치지 않게). 서버 거절 문구(예 400 `"관리자는 최소 1명 있어야 합니다"`, 409 `"이미 등록된 아이디입니다"`)는 `ApiError.detail` 그대로 폼·패널 안에 보인다(전역 토스트는 `mutation.meta.inlineError`로 끔).
 
@@ -113,6 +116,28 @@
 - `imageSearch` 응답 `similarity`는 **퍼센트(0~100)**(예 69.99). UI는 0~1을 가정하므로 소비 측에서 `>1이면 /100` 정규화(`RetrievalResultsGrid`).
 
 ---
+
+## 2-1. B 단계 API(A~K) — 어느 계층 · 어느 함수
+
+정본: `police-server/docs/superpowers/specs/2026-11-17-pilot-b-stage-api-design.md` §4(번호 A1 · D1 …). 경로 앞부분 `/requests` · `/codes` · `/review-steps` · `/report-versions`도 개발 중계(`BACKEND_PROXY_PATTERN`)에 들어 있다. **계층 표시**: (A) = CRUD 계층(응답 snake → `convertKeysToCamelCase`, 요청 본문 camel), (B) = 이미지 처리 계층(무변환). 쓰기는 **기대 판 번호 `rowVersion`**(또는 판정 `expectedExamId`)을 싣고, 409(「다른 사람이 먼저 고쳤습니다」 · 「접수 먼저 하세요」 …)는 서버 문구 그대로 보이고 다시 읽는다.
+
+| 묶음 | 경로 | 계층 | 프론트(배럴) |
+|---|---|---|---|
+| A 사건 | A1 `GET /requests`(키셋 — `q · no · aprthng · flow · result · awaiting · unsearched · mine · src · cursor · limit`, 전체 건수 없음) · A2 `GET /requests/{id}` · A3 `PUT /requests/{id}` · A4 `POST /requests/{id}/receive` · A6 `POST /crime/register` · A7 `GET /codes/{group}`(`ORG` = 관서) · A8 `PUT /crime/{no}/info` | (A) | `useRequestList` · `useRequestDetail`(`@/entities/request`), `useSaveCaseInfo`(A3 → A8 순서) · `useReceiveRequest`(`@/features/case-info`), `registerCrime`(`@/entities/crime`), `useCodes`(`@/entities/code`) |
+| B 이미지 | B1 `POST /files/original`(multipart) · B2 `GET /files/{id}` · B3 `GET /crime/{no}/edits` · B4 `POST …/edits` · B5 `POST …/edits/revert` | (A) — B1 은 응답이 이미 camel | `uploadOriginal` · `useEditHistory` · `editFileUrl`(`@/entities/crime`), `useSaveEditStep` · `useRevertEdit`(`@/features/crime-edit`) |
+| C 문양 | C1 `GET /crime/{no}/patterns` · C2 `PUT /crime/{no}`(`meta` · `soleText` · `rowVersion`) · C4 `GET /codes/pattern-kinds`(키 = 문양 이름이라 무변환) | (A) | `useCrimePatterns`(`@/entities/crime`), `useSavePatterns`(`@/features/patterns-extract`), `usePatternKinds`(`@/entities/code`) |
+| C3 추출 | `POST /crime/{no}/patterns_extract`(좌표 계약 §4 그대로, 응답 머리 실행 번호) | (B) | `extractCrimeWithRun` · `extractShoeWithRun`(`@/features/patterns-extract`) |
+| D 검색 | D1 `POST /crime/{no}/search`(`query · pending · record · inputFileId` …) · D2 `GET /crime/{no}` · D3 `GET /crime/history/{search_no}` · D4 `GET …/results?page&size` | D1 (B), D2~D4 (A) | `useRunSearch`(`@/features/crime-search`), `useSearchHistory` · `fetchSearchResultsPage`(`@/entities/crime`) |
+| E 본 위치 · 확인대상 | E1 `PUT /crime/history/{search_no}/seen` · E2 `GET /crime/{no}/targets` · E3 `POST …/targets` · E4 `DELETE …/targets/{search_no}/{ftwr_id}` | (A) | `useSaveSeen`(`@/features/crime-search`), `useTargets`(`@/entities/crime`), `useToggleTarget`(`@/features/targets`) |
+| F 대조 | F1 `POST /crime/{no}/similarity?ftwr_id=&record=true` · F2 `GET /crime/{no}/comparisons?ftwr_id=` | F1 (B), F2 (A) | `useRecordComparison`(`@/features/crime-search`), `useComparisons`(`@/entities/crime`) |
+| G 판정 | G1 `GET /requests/{id}/confirm` · G2 `PUT /crime/{no}/examination`(`result · opinionCn · expectedExamId · rowVersion`) · G3 `GET /crime/{no}/examinations` · G4 `POST /requests/{id}/reopen` | (A) | `useConfirmView`(`@/entities/request`), `useSaveJudgement`(`@/features/judgement`), `useExamHistory`(`@/entities/crime`). G4 화면은 범위 밖 |
+| H 교차 검증 | H1 `GET /requests/{id}/reviewers` · H2 `POST /requests/{id}/cross-review` · H3 `GET /review-steps` · H4 `POST /review-steps/{id}/decision` · H5 `POST /review-steps/{id}/withdraw` | (A) | `useReviewers`(`@/entities/request`), `useRequestCrossReview` · `useWithdrawCrossReview`(`@/features/cross-review`). H3 · H4 화면은 범위 밖 |
+| I 감정서 | I1 `GET /requests/{id}/report` · I2 `POST …/report/versions` · I3 `PUT /report-versions/{id}` · I4 `POST /report-versions/{id}/send` · I5 `POST /requests/{id}/report/correct` | (A) | 화면 범위 밖(API · 서버 테스트만) |
+| J 신발 | J1 `GET /shoes/?…`(거르기 `ftwr_id · makr_code · brand_code · sex · regist_org · approval · pattern_input · group_nm · stage` …) · J2 `GET /shoes/count` · J4 · J5 그대로 · J6 `PUT /shoes/{id}/patterns` · J7 `POST /shoes/{id}/approve` · J8 `GET /shoes/stages` | (A) | `fetchShoesList` · `shoeFilterQuery` · `fetchShoeStages`(`@/entities/shoe`), `saveShoePatterns` · `approveShoe`(`@/features/shoe-repository`) |
+| K 기록 | K1 `GET /admin/events?target_id=` · K2 `GET /admin/audit-events` · K3 `GET /admin/audit-events/verify` | (A) | `fetchAuditEvents` · `verifyAuditChain` · `useAuditEventsQuery` · `useAuditVerifyQuery`(`@/entities/admin`) |
+
+- `/cases`(새 사건관리)는 전역 사건 store(`GET /crime/` 전체)를 쓰지 않는다 — 목록 A1 · 창 A2 · 탭마다 위 쿼리. 전체 목록 자동 조회는 옛 화면 주소에서만(`SessionProvider`).
+- 쿼리 키: 의뢰 쪽은 모두 `["request", …]` 아래 — 판정 · 접수 · 사건 정보 · 문양 · 편집 · 검색 기록 저장 뒤 `["request"]` 를 무효화해 목록 · 창 · 결과 확인이 함께 새로 읽는다.
 
 ## 3. 이미지 파이프라인 (base64 + canvas)
 

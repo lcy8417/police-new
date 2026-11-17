@@ -125,6 +125,17 @@
 | S01 사건 창 결과 확인 탭 이미지별 판정 표(먹색 작업판 — 썸네일 · 번호 · 검색 여부 · 판정 발견/불발견/감정불능 · 확인대상 신발 · 점수, R6) | ListHeadRow · ListRow · StatePill · WorkbenchButton · PaneHead | 그대로 | 그 사건 값(목록 행 · 이미지 목록)으로 줄을 만든다. 판정 = WorkbenchButton sm aria-pressed 세 개 |
 | S01 사건 창 결과 확인 탭 오른쪽 칸(사건 결론 · 교차 검증자 · 감정서) · 바닥 단추 줄(교차 검증 요청 · 감정서로) | PaneHead · WorkbenchButton · StatePill | 그대로 | 결재 단계 없음(11/16 사용자 「결재는 없어」) |
 | S01 사건 창 사건 정보 탭 「이미지 커팅 열기」 · 초기화 · 저장 · 적용 범위 「수정」(R6 단추 통일) | WorkbenchButton | 그대로 | 창 모드만 — 단독 진열 `/dev/s02` 는 SCAS kit Button 그대로 |
+| B단계 통합 S01 사건관리 목록 사건 진행 칸(서버 흐름 단계 — 접수 대기 · 1차 작업 · 검색·판정 · 교차 검증 · 감정서 · 완료, 과거 사건) · 행 끝 「접수」 · 「검증요청」 · 키셋 「다음」 | StatePill · WorkbenchButton · Pagination | 그대로 | 위젯 선택 prop flowStage · stageColumn · onReceive · receivingCase · hasNext(+α 없이 단계 칸) |
+| B단계 통합 S01 사건 창 사건 정보 탭 칸별 수정(SCAS 글자 칸 잠금 풀기 — 코드 칸은 값만) | Field · RadioRow · Combobox | 그대로 | 위젯 선택 prop editableLabels · onPendingChange |
+| B단계 통합 S01 새 사건 등록 창(?new=1 — S02 등록 화면을 창 틀에, 원본 올리기 → 등록) | CaseWindowFrame · Field · Combobox · DataGrid | 그대로 | 진열 S02 등록 모드 그대로 |
+| B단계 통합 S01 검색 결과 탭 본 것 · 확인대상(「여기까지 봤음」 줄 · 본 것 거르기 · 본 위치 · 확인대상 칸 — +α 묶음에서 뗌) | Segmented · WorkbenchButton | 그대로 | 위젯 선택 prop seen(결정 기록 「본 것 안 본 것은 좋네」) |
+| B단계 통합 S01 정밀 대조 탭 AI 대조 칸(종합 = 이미지 유사도 · 대조 기록 — 부위 · 한 줄 의견 · 지표 줄은 값이 있을 때만) | AiTag · ConfidenceBar | 그대로 | 위젯 선택 prop verdict(MatchVerdict) |
+| B단계 통합 S01 결과 확인 탭 판정 메모 칸(판정한 줄만 고침) | Field · ListHeadRow · ListRow | 그대로 | 위젯 선택 prop onOpinionCommit — 메모 칸이 있으면 표 열 하나 더(COLS_MEMO) |
+| B단계 통합 S01 결과 확인 탭 바닥 줄 「회수」(요청 단추 자리) · 「감정서로」 준비 중 잠금 · 썸네일 빈 칸 | WorkbenchButton · StatePill | 그대로 | 묶음 ② — onWithdrawCrossReview · onToReport 선택 · busy |
+| B단계 통합 S01 문양 코드 · 이미지 편집 「다시 판정 상태가 됩니다」 확인 창 | DialogShell · Button · ButtonBar | 그대로 | 기존 확인 창 부품 재사용(사용자 관리 대화 상자와 같은 결) |
+| B단계 통합 S01 신발 DB 편집 판 머리 꼬리표(승인됨 · 문양 잠김, 검색 후보 아님(배치 반영 전)) | ShoeEditor | 확장 | 묶음 ④ — 기존 작업 상태 꼬리표와 같은 모양(위젯 안 글자 꼬리표) |
+| B단계 통합 S14 기록 무결성 칸 상태 3종(확인 중 · 실패 · 결과) · 어긋남 빨간 알약 | AdminLogsScreen · InlineError | 확장 | 묶음 ⑤ — 위젯 안 KindChip 알약(온전 「✓ 변조 없음」 · 어긋남 「! 사슬 어긋남 #n」 빨강) |
+| B단계 통합 S13 관리자 변경 이력 칸 상태 3종(불러오는 중 · 실패 · 없음) | AdminUsersScreen · ListNote · InlineError | 확장 | 묶음 ⑤ — 선택 prop plusParts |
 | S00 로그인 · S13 사용자 관리 · S14 사용 기록 안쪽 정리(R6 — 큰 KPI 카드 · 설명 · 색 띠 줄임) | BoardFrame · BoardLid · LidChip · LidChipGroup · LidSearch · LidSeparator · LidResetLink · ListHeadRow · ListRow · ListNameCell · ListFoot · ListNote · StatePill · WorkbenchButton · PaneHead | 그대로 | 표는 사건관리 목록과 같은 로망 목록 표 부품. 기능(거르기 · 잠금 해제 · 비밀번호 초기화 · 권한 바꾸기 · 기록 거르기 · 세션 펼치기) 그대로 |
 
 ## 승인 (spec §8 「만들 부품」 표 = 사용자 승인)
@@ -196,3 +207,8 @@
 승인: 11/17 사용자 — WorkbenchButton
 승인: 11/17 사용자 — ScasShell(topbar), WindowHead(noNav), ThemeSettings(compact)
 승인: 11/17 사용자 — PatternZoneBoard, PatternLibrary, PatternPeek, LensView, LensBox(onLensMove · 지름 48), WorkTabAdd
+승인: 11/17 사용자 — ShoeEditor(머리 꼬리표 2 — 승인됨 · 문양 잠김 · 검색 후보 아님)
+승인: 11/17 사용자 — AdminLogsScreen(기록 무결성 칸 상태 3종 · 어긋남 빨간 알약)
+승인: 11/17 사용자 — AdminUsersScreen(관리자 변경 이력 칸 상태 3종)
+승인: 11/17 사용자 — 판정 메모 칸(결정 기록 B15 「둔다」 — Field 그대로)
+승인: 11/17 사용자 — 본 것 · 확인대상 · AI 대조 칸을 +α 묶음에서 떼어 기본 화면에(결정 기록 — 생김새 그대로)

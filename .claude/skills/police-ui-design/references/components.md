@@ -177,6 +177,22 @@ r4(2026-11-16 사용자 「현재 작업 플로우가 어디까지 온지를 로
 | PatternLibrary | entities | `src/entities/pattern/ui/PatternLibrary.tsx` | (사건 창 문양 코드 탭 문양 목록을 옮김) | S01 사건 창 문양 코드 탭 · 살펴보기 판 · 신발 편집 | [새로] 종류 = 알약 탭 한 줄(높이 24 · 고른 탭 `bg-brand-3` · 개수 mono 10, AI 탭 ai 색) + 4칸(살펴보기 5칸) 흰 카드 격자(`bg-picon` · 모서리 9 · 넣은 문양 `border-brand` 2겹 + ✓ 16). 끌어 놓기 · `onHoverItem`(확대 보기 칸) | 구현됨 |
 | PatternPeek | entities | `src/entities/pattern/ui/PatternPeek.tsx` | (시안 짝 없음) | S01 사건 창 문양 코드 탭 · 신발 편집 | [새로] 문양 목록 위 확대 보기 칸 — 확대경 켬 = 「확대 보기 · 고정(WorkbenchButton sm)」 머리 + 두 정사각 칸(왼쪽 먹색 LensView · 오른쪽 마우스 올린 문양 크게) + 이름 줄, 꺼짐 = 문양 미리보기 한 줄(64 칸) | 구현됨 |
 
+## 위젯에 더한 선택 prop · 상태 칸 · 꼬리표(B 단계 통합 — 11/17)
+
+생김새는 그대로(위 부품만 씀), 실제 값이 있을 때 **보이는 조건만** 더했다. 진열(`/dev/s01` …)은 이 prop 을 넘기지 않아 예전 그대로다. 부품표 줄 · 승인 줄은 `src/pages/dev/parts/parts-plan.md` 「B단계 통합」.
+
+| 위젯 | 더한 것 | 쓰는 kit · panel 이름 |
+|---|---|---|
+| `widgets/case-list` CaseListScreen | 행 `flowStage`(서버 흐름 0~5 · 과거 사건 null — 알약 「접수 대기 · 1차 작업 · 검색·판정 · 교차 검증 · 감정서 · 완료 · 과거 사건」, 완료만 done 색) · `stageColumn`(+α 없이 사건 진행 칸) · `onReceive` · `receivingCase`(「접수」 단추) · `hasNext`(키셋 「다음」) · 빠른 찾기 `total: null` 이면 「n / 전체 m」 숨김 | StatePill · WorkbenchButton · Pagination |
+| `widgets/case-detail` CaseDetailScreen | `editableLabels`(칸별 수정 — 목록 밖 폼 칸은 읽기 전용, 목록 안 「준비 중」 SCAS 칸은 잠금 풀기) · `onPendingChange` | Field · RadioRow · Combobox |
+| `widgets/search-result` SearchWindow | `seen`(본 위치 — 「여기까지 봤음」 줄 · 본 것 거르기 · 지나간 카드 · 본 위치 · 확인대상 칸을 +α 없이) | Segmented · WorkbenchButton |
+| `widgets/match-compare` CompareWindow · AiVerdict | `verdict`(MatchVerdict — AI 대조 칸 실제 값). 부위 점수 · 한 줄 의견 · 「자세히」 지표 · 대응점 수는 값이 있을 때만 그 줄을 그림. 실제 값이면 `data-plus` 없음 | AiTag · ConfidenceBar |
+| `widgets/result-confirm` ConfirmWindow | `onOpinionCommit`(「메모」 열 — 판정한 줄만 고침, 떠날 때 · Enter 저장) · 줄 `opinion`. 묶음 ② 의 `onWithdrawCrossReview`(요청 단추 자리 「회수」) · `onToReport` 선택(없으면 「감정서 화면 준비 중」 잠금) · `busy` · 썸네일 빈 칸 | Field · ListRow · WorkbenchButton |
+| `widgets/shoe-db` ShoeEditor | 머리 꼬리표 2 — 「승인됨 · 문양 잠김」 · 「검색 후보 아님(배치 반영 전)」(기존 작업 상태 꼬리표와 같은 모양) · 선택 prop `live` · `duty` | WorkbenchButton |
+| `widgets/admin-logs-screen` | 기록 무결성 칸 상태 3종(확인 중 · 실패 · 결과) · 어긋남 빨간 알약 「! 사슬 어긋남 #n」(온전 「✓ 변조 없음」, 확인 중 · 실패엔 알약 없음) · 선택 prop `plusParts` | InlineError · ListNote |
+| `widgets/admin-users-screen` | 관리자 변경 이력 칸 상태 3종(불러오는 중 · 실패 · 없음) · 선택 prop `plusParts` | ListNote · InlineError |
+| 사건 창 「다시 판정」 확인(`pages/crime-search/ui/case-window-tabs/RejudgeConfirm.tsx`) | 판정 확정 장의 문양 · 편집 저장 전 확인 창 | DialogShell · Button · ButtonBar |
+
 ## 같은 부품인데 값이 다른 자리 · 확인 못 한 것
 
 **결론: 시안 안의 작은 차이는 변형으로 보존했다(설계서 §14-2). 사용자가 통일을 원하면 아래 목록으로 한 번에 정한다. 대조하지 못한 자리는 이유와 함께 남긴다.** 변형별 실제 값은 `visual-spec.md`.

@@ -27,7 +27,7 @@
 ## 2. 전역 상태 — Zustand 단일 store + refetch 기반
 
 - **정본**: `entities/crime/model/crime-store.ts`의 `useCrimeStore`. 전체 `crimeData` 배열을 담는 단일 출처(레거시 Context 브리지는 제거 완료).
-- **재조회 패턴**: 서버 데이터를 바꾼 뒤에는 수동 재조회가 아니라 **`useCrimeStore.getState().refetch()`** (또는 셀렉터). 초기 로드는 `features/auth`의 `SessionProvider`가 "사건 조회 자격"(로그인 + 비밀번호 변경 완료 + `CRIME_SEARCH`)이 생길 때 1회 `refetch()`하고, 자격이 사라지면 `reset()`으로 비운다.
+- **재조회 패턴**: 서버 데이터를 바꾼 뒤에는 수동 재조회가 아니라 **`useCrimeStore.getState().refetch()`** (또는 셀렉터). 초기 로드는 `features/auth`의 `SessionProvider`가 "사건 조회 자격"(로그인 + 비밀번호 변경 완료 + `CRIME_SEARCH`)이 있고 **옛 화면 주소(`/cases` 밖)에 처음 들어갈 때** 1회 `refetch()`하고, 자격이 사라지면 `reset()`으로 비운다. 새 사건관리 `/cases`는 이 store를 쓰지 않는다(A1 · A2 · 탭별 TanStack 쿼리 — `@docs/api-communication.md` §2-1).
 - **낙관적 갱신 ↔ 서버 저장은 분리**: 컴포넌트는 `setCrimeData`로 로컬을 낙관적으로 바꾸는 **동시에** 서버에도 별도 저장한다. 이 둘은 자동 동기화되지 않는다 — 서버 반영이 필요하면 저장 후 `refetch()`.
 - feature 전용 상태(선택 부위·경계선 등)는 그 feature의 훅이 소유: 예 `features/patterns-extract/model/use-pattern-manager.ts`.
 
@@ -60,10 +60,10 @@ features/patterns-extract/
 
 - 정본은 아직 `src/App.jsx`의 `Routes`(FSD `app/`로 이행 대상). 렌더 순서는 `main.jsx`의 `AppProviders → BrowserRouter → SessionProvider → App`. `/` → 허용된 첫 화면(`firstAllowedPath`).
 - **권한 가드**(`features/auth`): 셸 전체 = `RequireAuth`(로그인·비밀번호 변경 강제), 화면 묶음마다 `RequireFeature code={FEATURES.…}`, `/manage/*` = `RequireAdmin`. `/login`·`/password`는 셸 밖.
-- **통합 커맨드센터**: `/search/:crimeNumber` = `pages/crime-search/ui/CrimeDetailPage`. 기존 "사건상세 + 패턴추출 + 인라인 신발검색"이 **한 화면으로 병합**됨(문양추출은 `?mode=search`로 인라인 검색모드 전환, 뒤로가기로 복귀). `/search/:crimeNumber/patternExtract`·`/shoesResult`는 이 URL로 **리다이렉트 스텁**.
+- **새 사건관리 `/cases`**(B 단계): 목록(A1) + 사건 창(A2 — 탭 정보 · 편집 · 문양 · 검색 · 대조 · 결과 확인) + 새 사건 등록 창(`?new=1`) + 신발 DB 패널(`?shoe=1`). 옛 통합 커맨드센터 주소 `/search` · `/search/:crimeNumber`(`/patternExtract` · `/shoesResult`) · `/edit/:crimeNumber`는 `LegacyCaseRedirect`(A1 `aprthng=`)가 사건 창으로, `/shoesRepository*` · `/shoesRegister` · `/shoesEdit/:id`는 `/cases?shoe=1`로 넘긴다(옛 `CrimeDetailPage`는 라우트에서 빠짐 — 파일은 남음).
 - **관리자 화면**: `/manage/users`(`pages/manage-users` + `features/admin-users` — 사용자·권한), `/manage/logs`(`pages/manage-logs` + `features/admin-logs` — 로그인·기능 기록). `/manage`와 없는 하위 주소는 `/manage/users`로. 사이드바 "ADMIN" 구역은 관리자에게만(`widgets/app-shell/model/nav-items.ts`의 `visibleNavItems`).
 - **신발 보기 전용**: `SHOE_EDIT`가 없으면 `ShoeRepositoryPage`가 `canEdit=false`를 `ShoeWorkbench`에 넘겨 등록 탭·추출·문양 편집·저장·편집 시트를 숨긴다(`?mode=new|edit`여도 보기 모드).
-- 그 외: `/search`(목록), `/search/:crimeNumber/shoesResult/detail/:modelNumber`(ResultDetail), `/shoesRepository/:modelNumber`(신발 조회), `/edit/:crimeNumber`·`/shoesEdit/:modelNumber`(레거시 편집), `/editormode`(독립 편집기).
+- 그 외(옛 틀에 남은 것): `/search/:crimeNumber/crimeHistory/:searchNo`(CrimeHistory), `/search/:crimeNumber/shoesResult/detail/:modelNumber`(ResultDetail), `/crimeRegister`(옛 등록), `/manage/*`, `/editormode`(독립 편집기).
 - `pages/crime-search/model/search-paths.ts` = 경로 빌더 순수 함수 모음(`searchDetailPath`·`resultDetailPath` 등). URL은 이 빌더로 조립.
 
 ---
