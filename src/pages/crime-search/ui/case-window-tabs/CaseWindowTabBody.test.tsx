@@ -217,6 +217,14 @@ describe("CaseWindowTabBody — 사건 창 탭 본문(의뢰 상세 A2 · 전역
     expect(screen.queryByRole("button", { name: "저장" })).toBeNull()
   })
 
+  it("[검수] 사건 정보: 사진 경로를 못 받는 수사관은 고른 장을 작업본 번호로(GET /files/{workingFileId}) 본다", async () => {
+    login(["CASE_STATUS_VIEW", "CRIME_REGISTER"], [])
+    serve({ images: [image(1, { thumb_url: null, working_file_id: 31 }), image(2, { thumb_url: null, working_file_id: 32 })] })
+    renderTab("info")
+    const img = await screen.findByRole("img", { name: `${CASE_NO}_2 미리보기` })
+    expect(img.getAttribute("src")).toMatch(/\/files\/32$/)
+  })
+
   it("이미지 편집: 창 모드 1차 편집 + 서버 편집 이력 칸(B3)", async () => {
     serve()
     renderTab("edit")

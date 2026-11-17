@@ -1,6 +1,7 @@
 import * as React from "react"
 import { toast } from "sonner"
 
+import { editFileUrl } from "@/entities/crime"
 import type { RequestDetail, RequestImage } from "@/entities/request"
 import { FEATURES, FEATURE_ORDER, type FeatureCode } from "@/entities/session"
 import { useSessionStore } from "@/features/auth"
@@ -115,9 +116,15 @@ export function InfoTab({ viewer, detail, image, onSelectImage, onOpenImageEdit,
         fileName: i.aprthngNo,
         // 파일 크기는 서버가 주지 않는다
         sizeBytes: 0,
-        src: i.thumbUrl ? backendMediaUrl(i.thumbUrl) : "",
+        // 사진 경로(thumb_url)를 못 받는 사람(수사관)은 고른 장만 작업본 번호로 연다(B2 `/files` — 설계서 §4-1 썸네일 규칙,
+        // 열 때마다 감사가 남으므로 고른 장 하나만 — [검수] 예전엔 빈 화면)
+        src: i.thumbUrl
+          ? backendMediaUrl(i.thumbUrl)
+          : i.aprthngNo === image.aprthngNo && i.workingFileId != null
+            ? editFileUrl(i.workingFileId)
+            : "",
       })),
-    [detail.images]
+    [detail.images, image.aprthngNo]
   )
 
   const onFieldChange = (name: CaseDetailFieldName, value: string) => {
