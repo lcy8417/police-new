@@ -30,7 +30,7 @@ import {
   nextScrollTop,
   passedRank,
 } from "../model/auto-scroll"
-import { useAheadRank } from "../lib/use-ahead-rank"
+import { aheadWatchKey, useAheadRank } from "../lib/use-ahead-rank"
 import { viewerRoles } from "../model/roles"
 import { parseSimilarity } from "../model/similarity"
 import type { AutoMode, AutoScrollMode, ImageMode, SearchResultScreenProps, SearchTarget } from "../model/types"
@@ -116,7 +116,8 @@ export function SearchWindow(props: SearchResultScreenProps) {
   const pendingScroll = React.useRef<number | null>(null)
   const loadAskedAt = React.useRef(-1)
   // 지금 화면 + 다음 한 화면의 카드 그림은 바로 받기(그 밖은 lazy — 자동 스크롤 · 빠른 비교가 쓸 그림을 미리)
-  const aheadRank = useAheadRank(listRef, `${status}|${results.length}|${per}|${seenFilter}`)
+  const resultIds = React.useMemo(() => results.map((r) => r.ftwrId), [results])
+  const aheadRank = useAheadRank(listRef, aheadWatchKey(status, resultIds, per, seenFilter))
 
   // 본 것 · 확인대상(결정 기록 — 기본 화면에서도): +α 값이 있으면 그것, 없으면 서버 본 위치(`seen`)
   const seen = plus ? { upTo: plus.seenUpTo, at: plus.seenAt } : (props.seen ?? null)

@@ -8,6 +8,14 @@ import * as React from "react"
  * `rootMargin` 아래쪽 100% = 스크롤 칸 높이 한 번(퍼센트는 기준 칸 크기 기준). IntersectionObserver 가 없으면(테스트 환경) 0.
  * `watchKey` 가 바뀌면(카드가 붙음 · 보기 바뀜) 새 카드까지 다시 지켜본다.
  */
+/**
+ * 다시 지켜볼 때를 정하는 값 — 결과 수뿐 아니라 첫 · 끝 카드 ID 도 넣는다([검수] — 조건을 바꿔 같은 개수의 다른 결과가 오면
+ * 새 카드 DOM 을 지켜보지 않아 미리 받기가 멈췄다).
+ */
+export function aheadWatchKey(status: string, ids: readonly string[], per: number, seenFilter: string): string {
+  return `${status}|${ids.length}|${ids[0] ?? ""}|${ids[ids.length - 1] ?? ""}|${per}|${seenFilter}`
+}
+
 export function useAheadRank(listRef: React.RefObject<HTMLElement | null>, watchKey: string): number {
   const [upTo, setUpTo] = React.useState(0)
   React.useEffect(() => {
