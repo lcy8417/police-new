@@ -45,7 +45,8 @@ export function ScasAppShell() {
         )}
         user={{
           name: user?.userNm ?? "",
-          org: user?.userId ?? "",
+          // 소속 관서 이름(서버 `/auth/me` `org_nm` — B 단계 0단계). 옛 서버라 없으면 아이디
+          org: user?.orgNm ?? user?.userId ?? "",
           roleLabel: user && isAdmin(user) ? "관리자" : "사용자",
         }}
         display={display}

@@ -49,7 +49,8 @@ export const DEV_VIEWERS: Record<DevViewer, DevViewerInfo> = {
     who: "최○○ 경감",
     org: "족윤적 기술책임자",
     isAdmin: false,
-    features: [F.CRIME_SEARCH, F.SHOE_VIEW, F.CASE_STATUS_VIEW, F.REPORT_VIEW, F.REPORT_APPROVE, F.REPORT_SEND],
+    // 결재(REPORT_APPROVE)는 서버 0013에서 삭제 — 기술책임자 = 보기 전용 EXAM_VIEW(+ 발송)
+    features: [F.CRIME_SEARCH, F.SHOE_VIEW, F.CASE_STATUS_VIEW, F.REPORT_VIEW, F.EXAM_VIEW, F.REPORT_SEND],
   },
   admin: {
     label: "관리자",

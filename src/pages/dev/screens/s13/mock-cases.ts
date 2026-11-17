@@ -12,7 +12,7 @@ export const MOCK_FEATURES: FeatureInfo[] = FEATURE_ORDER.map((featureCode, i) =
 }))
 
 // r2: 역할 이름 · 권한은 시안 역할 프리셋(s13 FEAT · spec §13-5)에 맞춤 — 수사관은 사건 조회 · 감정서가 「보기만」(◐),
-// 감정관은 임의 등록 포함, 기술책임자(옛 「검증자」)는 결재.
+// 감정관은 임의 등록 포함, 기술책임자(옛 「검증자」)는 보기 전용 EXAM_VIEW + 발송(결재는 서버 0013에서 삭제).
 export const MOCK_ROLES: RoleInfo[] = [
   { roleCode: "INVESTIGATOR", roleNm: "수사관", sortOrdr: 10, features: [FEATURES.CRIME_REGISTER, FEATURES.CASE_STATUS_VIEW, FEATURES.REPORT_VIEW] },
   {
@@ -25,7 +25,7 @@ export const MOCK_ROLES: RoleInfo[] = [
     roleCode: "REVIEWER",
     roleNm: "기술책임자",
     sortOrdr: 30,
-    features: [FEATURES.CRIME_SEARCH, FEATURES.SHOE_VIEW, FEATURES.REPORT_VIEW, FEATURES.REPORT_APPROVE, FEATURES.REPORT_SEND],
+    features: [FEATURES.CRIME_SEARCH, FEATURES.SHOE_VIEW, FEATURES.REPORT_VIEW, FEATURES.EXAM_VIEW, FEATURES.REPORT_SEND],
   },
 ]
 
@@ -45,7 +45,7 @@ const FIRST_USERS: AdminUser[] = [
   { ...base, userId: "kim0301", userNm: "김○○ 경위", userSe: "USER", roles: ["EXAMINER"], features: [FEATURES.CRIME_SEARCH], orgId: 1, orgNm: "경찰청 범죄분석과", lastLoginDt: "2026-11-15T16:20:00+09:00" },
   // r2: 시안 사용자 jang0105(신발 승인 담당)
   { ...base, userId: "jang0105", userNm: "장○○ 경위", userSe: "USER", roles: ["EXAMINER"], orgId: 1, orgNm: "경찰청 범죄분석과", lastLoginDt: "2026-11-15T15:40:00+09:00" },
-  { ...base, userId: "choi0115", userNm: "최○○ 경감", userSe: "USER", roles: ["REVIEWER"], features: [FEATURES.REPORT_APPROVE], orgId: 1, orgNm: "경찰청 범죄분석과", lastLoginDt: "2026-11-15T15:02:00+09:00" },
+  { ...base, userId: "choi0115", userNm: "최○○ 경감", userSe: "USER", roles: ["REVIEWER"], features: [FEATURES.EXAM_VIEW], orgId: 1, orgNm: "경찰청 범죄분석과", lastLoginDt: "2026-11-15T15:02:00+09:00" },
   { ...base, userId: "lee0508", userNm: "이○○ 경사", userSe: "USER", roles: ["INVESTIGATOR"], lockAt: "Y", features: [FEATURES.CRIME_REGISTER], orgId: 2, orgNm: "대구청 과학수사계", lastLoginDt: "2026-11-13T18:03:00+09:00" },
   // 시안 핀 14 의 예외 예시: 수사관인데 신발 조회를 따로 켬(역할 프리셋과 다른 칸)
   { ...base, userId: "han0911", userNm: "한○○ 경사", userSe: "USER", roles: ["INVESTIGATOR"], features: [FEATURES.SHOE_VIEW], orgId: 3, orgNm: "경북청 과학수사계", lastLoginDt: "2026-11-12T09:12:00+09:00" },

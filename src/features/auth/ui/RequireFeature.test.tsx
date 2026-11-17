@@ -41,6 +41,14 @@ function renderAt(path: string) {
             </RequireFeature>
           }
         />
+        <Route
+          path="/cases"
+          element={
+            <RequireFeature anyOf={[FEATURES.CASE_STATUS_VIEW, FEATURES.CRIME_SEARCH, FEATURES.EXAM_VIEW, FEATURES.SHOE_VIEW]}>
+              <p>사건관리 화면</p>
+            </RequireFeature>
+          }
+        />
       </Routes>
       <LocationProbe />
     </MemoryRouter>
@@ -65,6 +73,19 @@ describe("RequireFeature — 기능 권한 가드", () => {
     expect(screen.getByTestId("location")).toHaveTextContent(/^\/crimeRegister$/);
     expect(screen.queryByText("사건 조회 화면")).not.toBeInTheDocument();
     expect(toast.error).toHaveBeenCalledWith("접근 권한이 없습니다", expect.anything());
+  });
+
+  it("anyOf — 여러 권한 중 하나만 있어도 들어간다(신발 분업 담당 · 보기 전용 검증자)", () => {
+    useSessionStore.getState().setUser(user([FEATURES.SHOE_VIEW, FEATURES.SHOE_PATTERN]));
+    renderAt("/cases?shoe=1");
+    expect(screen.getByText("사건관리 화면")).toBeInTheDocument();
+  });
+
+  it("anyOf — 하나도 없으면 허용된 첫 화면으로", async () => {
+    useSessionStore.getState().setUser(user([FEATURES.CRIME_REGISTER]));
+    renderAt("/cases");
+    expect(await screen.findByText("사건 등록 화면")).toBeInTheDocument();
+    expect(screen.queryByText("사건관리 화면")).not.toBeInTheDocument();
   });
 
   it("no-feature user sees notice", () => {

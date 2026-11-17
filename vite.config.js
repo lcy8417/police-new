@@ -11,8 +11,11 @@ import process from 'node:process'
  * (설계서 §3-1). 관리자 화면은 `/manage/*`라 `/admin/*` API와 겹치지 않는다.
  * `/files/*`는 증거 파일 API(원본 올리기 `POST /files/original`, 열람 `GET /files/{id}` —
  * 실증 확장 설계서 §5-E · §6-3). 빠지면 POST가 Vite 화면 서버로 가서 404가 된다.
+ * B 단계 API 앞부분(서버 설계서 2026-11-17 §4-3 끝): `/requests`(의뢰 — A 단계부터 있었으나 빠져 있었음) ·
+ * `/codes`(코드표) · `/review-steps`(교차 검증) · `/report-versions`(감정서 판본). 화면 주소 `/cases`와 겹치지 않는다.
  */
-export const BACKEND_PROXY_PATTERN = '^/(crime|shoes|auth|admin|files)(/|$|\\?)'
+export const BACKEND_PROXY_PATTERN =
+  '^/(crime|shoes|auth|admin|files|requests|codes|review-steps|report-versions)(/|$|\\?)'
 
 /** 백엔드 정적 이미지 폴더(로그인 쿠키로 보호됨) — 앞부분이 같으면 중계한다. */
 export const BACKEND_STATIC_PREFIXES = [

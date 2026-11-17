@@ -3,6 +3,7 @@ import * as React from "react"
 import { useCrimeStore } from "@/entities/crime"
 
 import { CompareTab } from "./CompareTab"
+import { ConfirmTab } from "./ConfirmTab"
 import { EditTab } from "./EditTab"
 import { InfoTab } from "./InfoTab"
 import { caseImagesOf, pickImage } from "./model/resolve-image"
@@ -41,8 +42,8 @@ export function CaseWindowTabBody({ aprthngNo, imageNo, tab, onSelectTab, onSele
   const image = pickImage(images, aprthngNo, imageNo)
 
   if (tab === "confirm") {
-    // 판정 저장(G2) · 결과 확인 읽기(G1) API 가 아직 없다
-    return <Note>결과 확인(판정)은 준비 중입니다.</Note>
+    // 결과 확인 탭 자리(0단계) — 묶음 ②가 G1 · G2 · H1 · H2 · H5로 채운다(ConfirmTab.tsx)
+    return <ConfirmTab aprthngNo={aprthngNo} />
   }
   if (!image) {
     return <Note>{crimeData.length === 0 ? "사건을 불러오는 중…" : "이 사건의 이미지를 찾지 못했습니다."}</Note>

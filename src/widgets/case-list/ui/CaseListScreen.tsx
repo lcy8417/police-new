@@ -154,7 +154,8 @@ export function CaseListScreen({
   const canRegister = isAdmin || features.includes(FEATURES.CRIME_REGISTER)
   const canSearch = isAdmin || features.includes(FEATURES.CRIME_SEARCH)
   // 시안 data-role「analyst admin」: 기술책임자(감정서만 보는 사람)에게는 행 끝 단추를 숨긴다
-  const verifierOnly = !isAdmin && features.includes(FEATURES.REPORT_APPROVE) && !features.includes(FEATURES.EXAM_DECIDE)
+  // 기술책임자 = 보기 전용 EXAM_VIEW(결재 권한은 서버 0013에서 삭제)
+  const verifierOnly = !isAdmin && features.includes(FEATURES.EXAM_VIEW) && !features.includes(FEATURES.EXAM_DECIDE)
   const canAct = canSearch && !(showPlus && verifierOnly)
 
   // 그 단계에서 할 단추 하나 — 검색 안 한 장 → 검색, 확인 대기 → 확인, (+α) 교차 검증 → 검증, 검증요청 전 → 검증요청

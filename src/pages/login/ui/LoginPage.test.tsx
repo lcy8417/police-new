@@ -48,6 +48,15 @@ function renderLogin(path = "/login") {
               </RequireAuth>
             }
           />
+          {/* 허용된 첫 화면 = 사건관리 /cases(B 단계 0단계 — feature-routes) */}
+          <Route
+            path="/cases"
+            element={
+              <RequireAuth>
+                <p>사건 조회 화면</p>
+              </RequireAuth>
+            }
+          />
         </Routes>
       </SessionProvider>
       <LocationProbe />
@@ -104,7 +113,7 @@ describe("LoginPage", () => {
     await fillAndSubmit("kim01", "pass1234!")
 
     expect(await screen.findByText("사건 조회 화면")).toBeInTheDocument()
-    expect(location()).toBe("/search")
+    expect(location()).toBe("/cases")
     expect(bodies).toEqual([{ userId: "kim01", password: "pass1234!" }])
     expect(useSessionStore.getState().user?.userId).toBe("kim01")
   })
@@ -220,6 +229,6 @@ describe("LoginPage", () => {
     mockLogin(() => HttpResponse.json(userDto()))
     renderLogin("/login?from=%2F%2Fevil.example")
     await fillAndSubmit("kim01", "pass1234!")
-    await waitFor(() => expect(location()).toBe("/search"))
+    await waitFor(() => expect(location()).toBe("/cases"))
   })
 })

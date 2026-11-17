@@ -44,6 +44,11 @@ export function hasFeature(user: SessionUser | null | undefined, code: FeatureCo
   return user.features.includes(code);
 }
 
+/** 기능 중 하나라도 있는가(관리자는 항상 true) — `/cases`처럼 여러 권한 중 하나로 들어가는 화면. 빈 목록이면 false. */
+export function hasAnyFeature(user: SessionUser | null | undefined, codes: readonly FeatureCode[]): boolean {
+  return codes.some((code) => hasFeature(user, code));
+}
+
 /** 관리자인가(`/manage/*` 화면·관리 메뉴). */
 export function isAdmin(user: SessionUser | null | undefined): boolean {
   return user?.userSe === "ADMIN";

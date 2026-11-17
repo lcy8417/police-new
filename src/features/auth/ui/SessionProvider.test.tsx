@@ -67,6 +67,17 @@ function renderApp(path: string) {
               </RequireAuth>
             }
           />
+          {/* 허용된 첫 화면 = 사건관리 /cases(B 단계 0단계 — feature-routes) */}
+          <Route
+            path="/cases"
+            element={
+              <RequireAuth>
+                <RequireFeature code={FEATURES.CRIME_SEARCH}>
+                  <p>사건 조회 화면</p>
+                </RequireFeature>
+              </RequireAuth>
+            }
+          />
         </Routes>
       </SessionProvider>
       <LocationProbe />
@@ -122,7 +133,7 @@ describe("SessionProvider — 세션 복원", () => {
     fetchMeMock.mockResolvedValue(user([FEATURES.CRIME_SEARCH]));
     renderApp("/login");
     expect(await screen.findByText("사건 조회 화면")).toBeInTheDocument();
-    expect(location()).toBe("/search");
+    expect(location()).toBe("/cases");
   });
 });
 

@@ -7,6 +7,12 @@ import type { FeatureCode } from "./features";
 /** 계정 구분 — 관리자 / 사용자. */
 export type UserSe = "ADMIN" | "USER";
 
+/**
+ * 역할 코드(서버 `app.role` — 0005). 관리자는 역할이 아니라 `userSe="ADMIN"`.
+ * 감정관 · 검증자 = 직원(전체 관서), 수사관 = 자기 관서만. 검증자 = 화면 「기술책임자」(보기 전용 `EXAM_VIEW` + 발송).
+ */
+export type RoleCode = "INVESTIGATOR" | "EXAMINER" | "REVIEWER";
+
 /** `/auth/login`·`/auth/me` 200 응답(snake). */
 export interface SessionUserDto {
   /** 로그인 ID(영문·숫자·`_`, 4~20자). */
@@ -19,6 +25,12 @@ export interface SessionUserDto {
   features: FeatureCode[];
   /** true면 로그인 직후 비밀번호 변경 화면으로 강제 이동. */
   password_change_required: boolean;
+  /** 역할(서버 0005부터 늘 줌 — 옛 서버 · 옛 테스트 고정값 호환으로 선택). */
+  roles?: RoleCode[];
+  /** 현재 소속 관서 번호(0005부터). */
+  org_id?: number | null;
+  /** 현재 소속 관서 이름(B 단계 0단계 — 위 막대 표시). */
+  org_nm?: string | null;
 }
 
 /** 로그인한 사용자(camel). */
@@ -33,6 +45,12 @@ export interface SessionUser {
   features: FeatureCode[];
   /** true면 비밀번호 변경 전까지 다른 화면 사용 불가. */
   passwordChangeRequired: boolean;
+  /** 역할(없으면 빈 배열로 읽는다 — `rolesOf`). 화면 잠금은 편의일 뿐, 최종 판단은 서버(403). */
+  roles?: RoleCode[];
+  /** 현재 소속 관서 번호. */
+  orgId?: number | null;
+  /** 현재 소속 관서 이름(위 막대). 모르면 `null` → 표시 안 함. */
+  orgNm?: string | null;
 }
 
 /** `POST /auth/login` 본문. */

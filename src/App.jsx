@@ -19,6 +19,7 @@ import { ManageLogsPage } from "@/pages/manage-logs";
 import EditorMode from "./pages/EditorMode";
 import { FEATURES } from "@/entities/session";
 import {
+  CASES_ROUTE_FEATURES,
   FirstAllowedRedirect,
   RequireAdmin,
   RequireAuth,
@@ -146,10 +147,12 @@ function App() {
           </RequireAuth>
         }
       >
+        {/* /cases = 사건 보기 권한(진행 상태 · 사건 조회 · 보기 전용) 또는 신발 보기 — 신발 분업 담당이
+            `/cases?shoe=1` 신발 DB 패널로 들어오게(화면 이식 계획 §1 r2 · 잠금 §2). 사건 목록 · 창을 그릴지는 셸 안에서. */}
         <Route
           path="/cases"
           element={
-            <RequireFeature code={FEATURES.CRIME_SEARCH}>
+            <RequireFeature anyOf={CASES_ROUTE_FEATURES}>
               <CasesPage />
             </RequireFeature>
           }

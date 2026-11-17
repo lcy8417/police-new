@@ -22,6 +22,27 @@ describe("vite.config.js 중계(proxy) 규칙 — 같은 주소(same-origin)", (
     expect(matchesApi("/filesView")).toBe(false);
   });
 
+  it("B 단계 API 앞부분(의뢰 · 코드표 · 교차 검증 · 감정서 판본)도 넘긴다 — 서버 라우터 앞부분 목록과 같다", () => {
+    for (const path of [
+      "/requests",
+      "/requests?from=2026-11-01",
+      "/requests/12",
+      "/requests/12/confirm",
+      "/codes/FT011",
+      "/codes/pattern-kinds",
+      "/review-steps?mine=1",
+      "/review-steps/3/withdraw",
+      "/report-versions/5/send",
+    ]) {
+      expect(matchesApi(path), path).toBe(true);
+    }
+    // 같은 글자로 시작하는 화면 주소 · 새 화면 주소는 넘기지 않는다
+    expect(matchesApi("/requestsView")).toBe(false);
+    expect(matchesApi("/codesList")).toBe(false);
+    expect(matchesApi("/cases")).toBe(false);
+    expect(matchesApi("/cases?open=00089-26-0080")).toBe(false);
+  });
+
   it("화면 주소는 넘기지 않는다", () => {
     expect(matchesApi("/crimeRegister")).toBe(false);
     expect(matchesApi("/search/abc")).toBe(false);

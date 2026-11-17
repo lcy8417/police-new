@@ -5,7 +5,8 @@ import { FEATURES, FEATURE_LABELS, FEATURE_ORDER } from "./features";
 /**
  * 서버 기능 권한 목록과 어긋나지 않게 지키는 검사.
  * 정본: police-server `auth/entities.py` FEATURE_ORDER(= `app.feature` 초기 행, sort_ordr 순) —
- * `sql/postgres/04_auth.sql` 4개(10~40) + `sql/postgres/migrations/0005_org_role.sql` 8개(50~120).
+ * `sql/postgres/04_auth.sql` 4개(10~40) + `0005_org_role.sql` 8개(50~120) — `0013_no_approval.sql`이 결재(100)를 지우고
+ * 「감정서 작성」으로 이름을 바꾸고 EXAM_VIEW(130)를, `0017_shoe_duty.sql`이 SHOE_PATTERN · SHOE_APPROVE(140 · 150)를 더함.
  * 서버에 기능이 늘면 이 표를 먼저 고치고(실패 확인) 그다음 `features.ts`를 고친다.
  */
 const SERVER_FEATURES: ReadonlyArray<readonly [string, string]> = [
@@ -17,14 +18,16 @@ const SERVER_FEATURES: ReadonlyArray<readonly [string, string]> = [
   ["REPORT_VIEW", "발송된 감정서 조회"],
   ["EXAM_DECIDE", "판정 확정"],
   ["CROSS_REVIEW", "교차 검증"],
-  ["REPORT_WRITE", "감정서 작성·제출"],
-  ["REPORT_APPROVE", "결재·반려"],
+  ["REPORT_WRITE", "감정서 작성"],
   ["REPORT_SEND", "발송"],
   ["SHOE_COLLECT_REVIEW", "신발 수집 검수"],
+  ["EXAM_VIEW", "감정 기록 보기"],
+  ["SHOE_PATTERN", "신발 문양 입력"],
+  ["SHOE_APPROVE", "신발 승인"],
 ];
 
 describe("features — 서버 기능 권한 목록과 같다", () => {
-  it("FEATURE_ORDER는 서버 12개 코드와 같은 순서", () => {
+  it("FEATURE_ORDER는 서버 14개 코드와 같은 순서(결재 없음)", () => {
     expect(FEATURE_ORDER).toEqual(SERVER_FEATURES.map(([code]) => code));
   });
 

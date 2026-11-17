@@ -44,6 +44,15 @@ function renderPage() {
               </RequireAuth>
             }
           />
+          {/* 허용된 첫 화면 = 사건관리 /cases(B 단계 0단계 — feature-routes) */}
+          <Route
+            path="/cases"
+            element={
+              <RequireAuth>
+                <p>사건 조회 화면</p>
+              </RequireAuth>
+            }
+          />
         </Routes>
       </SessionProvider>
       <LocationProbe />
@@ -115,7 +124,7 @@ describe("PasswordChangePage", () => {
     await fill("temp1234!", "newpass123", "newpass123")
 
     expect(await screen.findByText("사건 조회 화면")).toBeInTheDocument()
-    expect(screen.getByTestId("location")).toHaveTextContent("/search")
+    expect(screen.getByTestId("location")).toHaveTextContent("/cases")
     expect(changeBodies).toEqual([{ currentPassword: "temp1234!", newPassword: "newpass123" }])
     expect(useSessionStore.getState().user?.passwordChangeRequired).toBe(false)
   })

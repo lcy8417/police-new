@@ -11,6 +11,7 @@ export {
 export type {
   ChangePasswordInput,
   LoginInput,
+  RoleCode,
   SessionUser,
   SessionUserDto,
   UserSe,

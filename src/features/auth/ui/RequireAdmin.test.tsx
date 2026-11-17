@@ -26,6 +26,7 @@ function renderAt(path: string) {
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/search" element={<p>사건 조회 화면</p>} />
+        <Route path="/cases" element={<p>사건 조회 화면</p>} />
         <Route
           path="/manage/*"
           element={
@@ -54,7 +55,7 @@ describe("RequireAdmin — 관리자 전용 가드", () => {
     renderAt("/manage/users");
 
     expect(await screen.findByText("사건 조회 화면")).toBeInTheDocument();
-    expect(screen.getByTestId("location")).toHaveTextContent("/search");
+    expect(screen.getByTestId("location")).toHaveTextContent("/cases"); // 허용된 첫 화면 = 사건관리(B 단계 0단계)
     expect(screen.queryByText("사용자 관리 화면")).not.toBeInTheDocument();
   });
 });

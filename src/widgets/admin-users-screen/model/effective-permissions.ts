@@ -60,7 +60,8 @@ export const ROLE_COLUMNS: readonly RoleColumn[] = [
     memo: "수사관은 발급본 열람",
     isNew: true,
   },
-  { kind: "role", key: "sign", name: "감정서 검토", short: ["감정서", "검토"], on: FEATURES.REPORT_APPROVE, memo: "서명란 감정관·감정관·기술책임자", isNew: true },
+  // 결재(감정서 검토 · REPORT_APPROVE)는 서버 0013에서 없앴다 — 그 자리는 기술책임자의 보기 전용 권한(EXAM_VIEW)
+  { kind: "role", key: "exam-view", name: "감정 기록 보기", short: ["기록", "보기"], on: FEATURES.EXAM_VIEW, memo: "기술책임자 · 보기만(쓰기 없음)", isNew: true },
   { kind: "role", key: "shoe-view", name: "신발 조회", short: ["신발", "조회"], on: FEATURES.SHOE_VIEW, memo: "" },
 ]
 
@@ -106,7 +107,10 @@ export interface EffectiveRow {
 export function effectiveRow(user: AdminUser, roles: readonly RoleInfo[], assigned: readonly ShoeDuty[]): EffectiveRow {
   const preset = presetFeatures(user.roles, roles)
   const personal = new Set<FeatureCode>(user.features)
-  if (personal.has(FEATURES.SHOE_EDIT)) personal.add(FEATURES.SHOE_VIEW)
+  // 서버 auth/entities.effective_features와 같은 규칙 — 신발 등록 · 문양 입력 · 승인 담당은 신발 조회를 함께(B 단계 §3-1)
+  if ([FEATURES.SHOE_EDIT, FEATURES.SHOE_PATTERN, FEATURES.SHOE_APPROVE].some((c) => personal.has(c))) {
+    personal.add(FEATURES.SHOE_VIEW)
+  }
   const isAdmin = user.userSe === "ADMIN"
   const stopped = user.useAt === "N"
   const duties = dutiesOf(user, assigned)

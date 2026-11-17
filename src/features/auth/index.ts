@@ -1,6 +1,8 @@
 // features/auth — 로그인 세션 상태·세션 재확인·라우트 가드(설계서 §2·§7).
-export { useSessionStore, hasFeature, isAdmin, type SessionStatus } from "./model/session-store";
+export { useSessionStore, hasFeature, hasAnyFeature, isAdmin, type SessionStatus } from "./model/session-store";
 export {
+  CASES_ROUTE_FEATURES,
+  CASE_VIEW_FEATURES,
   FEATURE_ROUTES,
   LOGIN_PATH,
   PASSWORD_PATH,

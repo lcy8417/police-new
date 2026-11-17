@@ -4,7 +4,7 @@ import { FEATURES, type FeatureCode } from "@/entities/session"
 export interface PatternCodeAccess {
   /** 문양 편집 · 추출 · 검색 — 1차: 사건 조회. 실증 보기면 시안 `data-lock="analyst admin"`(판정 확정 = 감정관)까지 */
   canEdit: boolean
-  /** 「기술책임자 · 보기만」 칩 — 시안 `data-role="verifier"`(결재 권한 = 기술책임자) */
+  /** 「기술책임자 · 보기만」 칩 — 시안 `data-role="verifier"`(보기 전용 EXAM_VIEW = 기술책임자 — 결재 권한은 서버 0013에서 삭제) */
   showVerifierChip: boolean
   /** 「수사관 · 볼 수 없음」 칩 — 시안 `data-role="investigator"`(사건 등록만 있고 조회 없음 = 수사관) */
   showInvestigatorChip: boolean
@@ -18,7 +18,7 @@ export function patternCodeAccess(isAdmin: boolean, features: readonly FeatureCo
   const has = (code: FeatureCode) => isAdmin || features.includes(code)
   return {
     canEdit: has(FEATURES.CRIME_SEARCH) && (!showPlus || has(FEATURES.EXAM_DECIDE)),
-    showVerifierChip: has(FEATURES.REPORT_APPROVE),
+    showVerifierChip: has(FEATURES.EXAM_VIEW),
     showInvestigatorChip: isAdmin || (features.includes(FEATURES.CRIME_REGISTER) && !features.includes(FEATURES.CRIME_SEARCH)),
   }
 }

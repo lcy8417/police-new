@@ -39,13 +39,14 @@ describe("S13 사용자 관리 진열 페이지", () => {
     expect(within(grid).getAllByText("중지").length).toBeGreaterThan(0)
   })
 
-  it("권한 스위치가 서버 기능 목록 12종 그대로 나온다", () => {
+  // 서버 기능 14종(B 단계 0013 결재 삭제 · EXAM_VIEW, 0017 분업 2종). 분업 스위치와 기능 스위치 합치기는 묶음 ⑤
+  it("권한 스위치가 서버 기능 목록 14종 그대로 나온다", () => {
     admin("ready")
-    expect(MOCK_FEATURES).toHaveLength(12)
+    expect(MOCK_FEATURES).toHaveLength(14)
     const detail = screen.getByRole("region", { name: "사용자 상세" })
     // r2: 신발 DB 분업 스위치 3개가 따로 있어 「기능 권한」 칸 안에서 센다
     const switches = within(within(detail).getByRole("region", { name: "기능 권한" })).getAllByRole("switch")
-    expect(switches).toHaveLength(12)
+    expect(switches).toHaveLength(14)
     expect(within(detail).getByText("신발 수집 검수")).toBeInTheDocument()
     expect(within(detail).getByText("CRIME_REGISTER")).toBeInTheDocument()
   })
@@ -73,7 +74,7 @@ describe("S13 사용자 관리 진열 페이지", () => {
     const detail = screen.getByRole("region", { name: "사용자 상세" })
     const save = within(detail).getByRole("button", { name: "권한 저장" })
     expect(save).toBeDisabled()
-    const sw = within(detail).getByRole("switch", { name: /결재·반려/ })
+    const sw = within(detail).getByRole("switch", { name: /감정 기록 보기/ })
     expect(sw).toHaveAttribute("aria-checked", "false")
     fireEvent.click(sw)
     expect(sw).toHaveAttribute("aria-checked", "true")
@@ -118,7 +119,7 @@ describe("S13 사용자 관리 진열 페이지", () => {
     fireEvent.click(screen.getByRole("button", { name: "사용자 추가" }))
     const dlg = screen.getByRole("dialog")
     expect(within(dlg).getByText("새 사용자는 본청 소속 — 관서를 지정하세요")).toBeInTheDocument()
-    expect(within(dlg).getAllByRole("checkbox")).toHaveLength(12)
+    expect(within(dlg).getAllByRole("checkbox")).toHaveLength(14)
     expect(within(dlg).queryByText("전국 사건 사진을 볼 수 있게 됩니다")).toBeNull()
     fireEvent.click(within(dlg).getByRole("checkbox", { name: "사건 조회" }))
     expect(within(dlg).getByText("전국 사건 사진을 볼 수 있게 됩니다")).toBeInTheDocument()

@@ -52,7 +52,7 @@ describe("useDevViewer", () => {
       "EXAM_DECIDE", "CROSS_REVIEW", "REPORT_WRITE", "SHOE_COLLECT_REVIEW",
     ])
     expect(DEV_VIEWERS.verifier.features).toEqual([
-      "CRIME_SEARCH", "SHOE_VIEW", "CASE_STATUS_VIEW", "REPORT_VIEW", "REPORT_APPROVE", "REPORT_SEND",
+      "CRIME_SEARCH", "SHOE_VIEW", "CASE_STATUS_VIEW", "REPORT_VIEW", "EXAM_VIEW", "REPORT_SEND", // 결재 → 보기 전용(0013)
     ])
     expect(DEV_VIEWERS.analyst.label).toBe("감정관")
     expect(DEV_VIEWERS.verifier.who).toBe("최○○ 경감")

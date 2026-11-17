@@ -85,7 +85,7 @@ export function CaseDetailScreen({
   const canSearch = isAdmin || features.includes(FEATURES.CRIME_SEARCH)
   const has = (code: FeatureCode) => isAdmin || features.includes(code)
   // 시안 data-role: 「검색」은 감정관 · 관리자, 기술책임자는 읽기 전용 칩, 수사관은 「의뢰한 사건만」 칩
-  const verifierView = showPlus && !isAdmin && !canEdit && has(FEATURES.REPORT_APPROVE)
+  const verifierView = showPlus && !isAdmin && !canEdit && has(FEATURES.EXAM_VIEW) // 기술책임자 = 보기 전용(결재 삭제 — 서버 0013)
   const investigatorView = showPlus && !isAdmin && canEdit && !canSearch
   const canGoSearch = canSearch && !verifierView
   const analystView = has(FEATURES.EXAM_DECIDE)

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { FEATURES, type SessionUser } from "@/entities/session";
-import { FEATURE_ROUTES, firstAllowedPath, postLoginPath, safeInternalPath } from "./feature-routes";
+import {
+  CASES_ROUTE_FEATURES,
+  CASE_VIEW_FEATURES,
+  FEATURE_ROUTES,
+  firstAllowedPath,
+  postLoginPath,
+  safeInternalPath,
+} from "./feature-routes";
 
 const user = (features: SessionUser["features"], extra: Partial<SessionUser> = {}): SessionUser => ({
   userId: "kim01",
@@ -12,17 +19,31 @@ const user = (features: SessionUser["features"], extra: Partial<SessionUser> = {
 });
 
 describe("FEATURE_ROUTES · firstAllowedPath", () => {
-  it("메뉴 순서는 사건 등록 → 사건 조회 → 신발", () => {
-    expect(FEATURE_ROUTES.map((r) => r.path)).toEqual(["/crimeRegister", "/search", "/shoesRepository"]);
+  it("순서는 사건관리(/cases) → 사건 등록 → 사건 조회(옛) → 신발 DB 패널(r2 — /cases 맨 앞)", () => {
+    expect(FEATURE_ROUTES.map((r) => r.path)).toEqual(["/cases", "/crimeRegister", "/search", "/cases?shoe=1"]);
+    expect(FEATURE_ROUTES[0].codes).toEqual(CASE_VIEW_FEATURES);
   });
 
-  it("허용된 첫 화면을 고른다", () => {
-    expect(firstAllowedPath(user([FEATURES.CRIME_SEARCH, FEATURES.SHOE_VIEW]))).toBe("/search");
-    expect(firstAllowedPath(user([FEATURES.SHOE_VIEW, FEATURES.SHOE_EDIT]))).toBe("/shoesRepository");
+  it("사건 보기 권한(진행 상태 · 사건 조회 · 보기 전용) 중 하나면 /cases", () => {
+    expect(firstAllowedPath(user([FEATURES.CRIME_SEARCH, FEATURES.SHOE_VIEW]))).toBe("/cases");
+    // 수사관(역할 기본 = 사건 등록 + 진행 상태 조회)도 등록 화면이 아니라 /cases
+    expect(firstAllowedPath(user([FEATURES.CRIME_REGISTER, FEATURES.CASE_STATUS_VIEW]))).toBe("/cases");
+    // 검증자(보기 전용)
+    expect(firstAllowedPath(user([FEATURES.EXAM_VIEW]))).toBe("/cases");
+  });
+
+  it("사건 등록만 있으면 옛 등록 화면, 신발 권한만 있으면(분업 담당) /cases?shoe=1", () => {
+    expect(firstAllowedPath(user([FEATURES.CRIME_REGISTER]))).toBe("/crimeRegister");
+    expect(firstAllowedPath(user([FEATURES.SHOE_VIEW, FEATURES.SHOE_EDIT]))).toBe("/cases?shoe=1");
+    expect(firstAllowedPath(user([FEATURES.SHOE_VIEW, FEATURES.SHOE_PATTERN]))).toBe("/cases?shoe=1");
   });
 
   it("관리자는 첫 메뉴", () => {
-    expect(firstAllowedPath(user([], { userSe: "ADMIN" }))).toBe("/crimeRegister");
+    expect(firstAllowedPath(user([], { userSe: "ADMIN" }))).toBe("/cases");
+  });
+
+  it("/cases 가드는 사건 보기 권한 + 신발 보기", () => {
+    expect(CASES_ROUTE_FEATURES).toEqual([...CASE_VIEW_FEATURES, FEATURES.SHOE_VIEW]);
   });
 
   it("허용된 화면이 없거나 로그인 전이면 null", () => {
@@ -51,8 +72,8 @@ describe("postLoginPath", () => {
   it("from이 있으면 그 주소, 없으면 허용된 첫 화면", () => {
     const u = user([FEATURES.CRIME_SEARCH]);
     expect(postLoginPath(u, "?from=%2Fsearch%2Fabc")).toBe("/search/abc");
-    expect(postLoginPath(u, "")).toBe("/search");
-    expect(postLoginPath(u, "?from=%2F%2Fevil.example")).toBe("/search");
+    expect(postLoginPath(u, "")).toBe("/cases");
+    expect(postLoginPath(u, "?from=%2F%2Fevil.example")).toBe("/cases");
   });
 
   it("비밀번호 변경이 필요하면 /password", () => {

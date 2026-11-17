@@ -1,7 +1,7 @@
 /**
  * 기능 권한 코드 — 설계서 §2 + 실증 확장 설계서 §5-A. 기능 코드 문자열은 이 상수만 쓴다(문자열 직접 입력 금지).
  *
- * 서버 목록(police-server `auth/entities.py` FEATURE_ORDER = `app.feature` 초기 행 12개)과 같은
+ * 서버 목록(police-server `auth/entities.py` FEATURE_ORDER = `app.feature` 행 14개 — B 단계 0013 · 0017 반영)과 같은
  * 코드 · 이름 · 순서다. 어긋나지 않게 `features.test.ts`가 서버 목록을 그대로 적어 두고 비교한다.
  *
  * 서버가 주는 `features`는 이미 실효 권한(역할 권한 ∪ 개인 권한, `SHOE_EDIT`가 있으면 `SHOE_VIEW` 포함)이라
@@ -24,14 +24,18 @@ export const FEATURES = {
   EXAM_DECIDE: "EXAM_DECIDE",
   /** 교차 검증 */
   CROSS_REVIEW: "CROSS_REVIEW",
-  /** 감정서 작성·제출 */
+  /** 감정서 작성(결재 없음 — B 단계 0013) */
   REPORT_WRITE: "REPORT_WRITE",
-  /** 결재·반려 */
-  REPORT_APPROVE: "REPORT_APPROVE",
   /** 발송 */
   REPORT_SEND: "REPORT_SEND",
   /** 신발 수집 검수 */
   SHOE_COLLECT_REVIEW: "SHOE_COLLECT_REVIEW",
+  /** 감정 기록 보기(보기 전용 — 검증자 · 기술책임자, B 단계 0013). 쓰기 라우트는 서버가 403 */
+  EXAM_VIEW: "EXAM_VIEW",
+  /** 신발 문양 입력(분업 — 사람마다, B 단계 0017). 서버가 SHOE_VIEW를 함께 준다 */
+  SHOE_PATTERN: "SHOE_PATTERN",
+  /** 신발 승인(분업 — 사람마다, B 단계 0017). 서버가 SHOE_VIEW를 함께 준다 */
+  SHOE_APPROVE: "SHOE_APPROVE",
 } as const;
 
 export type FeatureCode = (typeof FEATURES)[keyof typeof FEATURES];
@@ -46,13 +50,15 @@ export const FEATURE_LABELS: Record<FeatureCode, string> = {
   REPORT_VIEW: "발송된 감정서 조회",
   EXAM_DECIDE: "판정 확정",
   CROSS_REVIEW: "교차 검증",
-  REPORT_WRITE: "감정서 작성·제출",
-  REPORT_APPROVE: "결재·반려",
+  REPORT_WRITE: "감정서 작성",
   REPORT_SEND: "발송",
   SHOE_COLLECT_REVIEW: "신발 수집 검수",
+  EXAM_VIEW: "감정 기록 보기",
+  SHOE_PATTERN: "신발 문양 입력",
+  SHOE_APPROVE: "신발 승인",
 };
 
-/** 화면 표시 순서(서버 `app.feature.sort_ordr`와 같은 순서 — 10, 20, … 120). */
+/** 화면 표시 순서(서버 `app.feature.sort_ordr`와 같은 순서 — 10 … 120(결재 100 삭제) · 130 · 140 · 150). */
 export const FEATURE_ORDER: readonly FeatureCode[] = [
   FEATURES.CRIME_REGISTER,
   FEATURES.CRIME_SEARCH,
@@ -63,7 +69,9 @@ export const FEATURE_ORDER: readonly FeatureCode[] = [
   FEATURES.EXAM_DECIDE,
   FEATURES.CROSS_REVIEW,
   FEATURES.REPORT_WRITE,
-  FEATURES.REPORT_APPROVE,
   FEATURES.REPORT_SEND,
   FEATURES.SHOE_COLLECT_REVIEW,
+  FEATURES.EXAM_VIEW,
+  FEATURES.SHOE_PATTERN,
+  FEATURES.SHOE_APPROVE,
 ];

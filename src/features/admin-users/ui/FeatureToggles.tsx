@@ -23,10 +23,12 @@ const FEATURE_HINTS: Record<FeatureCode, string> = {
   REPORT_VIEW: "발송된 감정서를 봅니다",
   EXAM_DECIDE: "감정 판정을 확정합니다(결과확인완료)",
   CROSS_REVIEW: "다른 감정관의 판정을 교차 검증합니다",
-  REPORT_WRITE: "감정서를 작성해 제출합니다",
-  REPORT_APPROVE: "제출된 감정서를 검토해 확정하거나 반려합니다",
-  REPORT_SEND: "확정된 감정서를 발송합니다",
+  REPORT_WRITE: "감정서를 작성합니다(결재 없음)",
+  REPORT_SEND: "작성된 감정서를 발송합니다",
   SHOE_COLLECT_REVIEW: "수집된 신발 자료를 검수합니다",
+  EXAM_VIEW: "감정 기록(이력·문양·검색 결과·판정)을 보기만 합니다 — 기술책임자",
+  SHOE_PATTERN: "신발 문양을 입력합니다(분업 — 신발 조회 포함)",
+  SHOE_APPROVE: "문양이 입력된 신발을 승인합니다(분업 — 신발 조회 포함)",
 }
 
 export interface FeatureTogglesProps {
