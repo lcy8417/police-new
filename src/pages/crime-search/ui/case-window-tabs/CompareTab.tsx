@@ -19,6 +19,7 @@ import {
 
 import { toPercentList } from "./model/similarity-scale"
 import { useImageSession, useTabSessionStore, type TabCompareCandidate } from "./model/tab-session"
+import { useCompareTarget } from "./model/use-compare-target"
 import { zonePatternsOf } from "./model/tab-values"
 import { useNaturalSize } from "./model/use-natural-size"
 import type { TabViewer } from "./model/use-viewer"
@@ -171,6 +172,15 @@ function CompareBody({ viewer, image, target, candidates, view, onConfirmTarget,
   const shoePatterns = React.useMemo(() => zonePatternsOf(shoe), [shoe])
   const compareCandidates = React.useMemo(() => candidates.map(toCandidate), [candidates])
 
+  // 「확인대상」 = 이 신발을 그 검색의 확인대상으로 저장(E3 from compare) 뒤 결과 확인으로([검수])
+  const compareTarget = useCompareTarget(aprthngNo)
+  const handleConfirmTarget = async () => {
+    if (!compareTarget.canConfirm || compareTarget.pending) return
+    const res = await compareTarget.confirm(target)
+    if (res.ok) onConfirmTarget()
+    else toast.error(res.message)
+  }
+
   const handleSaveAlignment = async () => {
     if (!align.canSave) {
       toast("관심영역(3점 이상)과 앞굽 · 뒤꿈치를 모두 지정한 뒤 저장하세요.")
@@ -238,13 +248,16 @@ function CompareBody({ viewer, image, target, candidates, view, onConfirmTarget,
         )
       }
       onSaveAlignment={() => void handleSaveAlignment()}
-      onConfirmTarget={onConfirmTarget}
+      onConfirmTarget={() => void handleConfirmTarget()}
       onClose={onBackToSearch}
       showPlus={false}
       inWindow
       verdict={verdict}
       candidates={compareCandidates}
-      onCandidateChange={(c) => setCompare(aprthngNo, { ftwrId: c.ftwrId, rank: c.rank ?? 0, similarity: c.similarity })}
+      onCandidateChange={(c) =>
+        // 후보는 같은 검색 결과에서 왔다 — 검색 번호를 이어 준다(확인대상 저장용)
+        setCompare(aprthngNo, { ftwrId: c.ftwrId, rank: c.rank ?? 0, similarity: c.similarity, searchNo: target.searchNo })
+      }
       compareCount={view.compareCount}
       onCompareCountChange={view.setCompareCount}
       autoMode={view.autoMode}

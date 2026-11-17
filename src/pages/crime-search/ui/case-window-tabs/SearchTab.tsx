@@ -159,8 +159,10 @@ function RunResultsTab({ viewer, image, onOpenCompare, searchNo }: RunResultsTab
         : "ready"
 
   const openResult = (item: ImageSearchResultItem, ranking: number) => {
-    const candidates = results.map((r, i) => ({ ftwrId: r.ftwrId, rank: i + 1, similarity: r.similarity }))
-    setCompare(aprthngNo, { ftwrId: item.ftwrId, rank: ranking, similarity: item.similarity }, candidates)
+    // 검색 번호를 함께 — 정밀 대조 「확인대상」이 이 검색의 확인대상으로 저장한다(E3 — [검수])
+    const run = searchNo ?? undefined
+    const candidates = results.map((r, i) => ({ ftwrId: r.ftwrId, rank: i + 1, similarity: r.similarity, searchNo: run }))
+    setCompare(aprthngNo, { ftwrId: item.ftwrId, rank: ranking, similarity: item.similarity, searchNo: run }, candidates)
     onOpenCompare()
   }
 

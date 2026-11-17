@@ -385,8 +385,9 @@ export function CompareWindow(props: MatchCompareScreenProps) {
               감정서 첨부
             </WorkbenchButton>
           ) : null}
+          {/* 확인대상 저장(E3)은 판정 확정 권한(EXAM_DECIDE — 서버와 같음, [검수]) */}
           {showDecide ? (
-            <WorkbenchButton variant="primary" icon={BadgeCheck} disabled={!canWrite} onClick={props.onConfirmTarget} className="ml-auto">
+            <WorkbenchButton variant="primary" icon={BadgeCheck} disabled={!roles.analyst} onClick={props.onConfirmTarget} className="ml-auto">
               확인대상
             </WorkbenchButton>
           ) : null}
