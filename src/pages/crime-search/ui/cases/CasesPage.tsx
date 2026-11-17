@@ -319,6 +319,11 @@ export function CasesPage() {
           const hit = pickDetailImage(detail, no)
           if (hit) setWindow({ ...win, img: String(hit.no) })
         }}
+        // 이미지 + 탭을 한 번의 주소 갱신으로(두 번 부르면 같은 옛 주소에서 시작해 이미지가 덮였다 — [검수])
+        onOpenImageTab={(no, tab) => {
+          const hit = pickDetailImage(detail, no)
+          setWindow(hit ? { ...win, img: String(hit.no), tab } : { ...win, tab })
+        }}
       />
     )
     const statusOnly = !isAdmin(user ?? undefined) && !hasFeature(user, FEATURES.CRIME_SEARCH) && !hasFeature(user, FEATURES.EXAM_VIEW)

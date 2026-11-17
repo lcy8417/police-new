@@ -139,15 +139,23 @@ const openImageInfo = () => fireEvent.click(screen.getByRole("tab", { name: /현
 function renderTab(tab: CaseWindowTabKey, imageNo: string | null = `${CASE_NO}_2`) {
   const onSelectTab = vi.fn()
   const onSelectImage = vi.fn()
+  const onOpenImageTab = vi.fn()
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={qc}>
       <div className="h-[800px]">
-        <CaseWindowTabBody aprthngNo={CASE_NO} imageNo={imageNo} tab={tab} onSelectTab={onSelectTab} onSelectImage={onSelectImage} />
+        <CaseWindowTabBody
+          aprthngNo={CASE_NO}
+          imageNo={imageNo}
+          tab={tab}
+          onSelectTab={onSelectTab}
+          onSelectImage={onSelectImage}
+          onOpenImageTab={onOpenImageTab}
+        />
       </div>
     </QueryClientProvider>
   )
-  return { onSelectTab, onSelectImage }
+  return { onSelectTab, onSelectImage, onOpenImageTab }
 }
 
 describe("CaseWindowTabBody — 사건 창 탭 본문(의뢰 상세 A2 · 전역 store 안 씀)", () => {
@@ -255,10 +263,12 @@ describe("CaseWindowTabBody — 사건 창 탭 본문(의뢰 상세 A2 · 전역
       ),
       http.get("*/requests/:id/reviewers", () => HttpResponse.json([]))
     )
-    const { onSelectImage, onSelectTab } = renderTab("confirm")
+    const { onSelectImage, onSelectTab, onOpenImageTab } = renderTab("confirm")
     fireEvent.click(await screen.findByRole("button", { name: "_2 열기" }))
-    expect(onSelectImage).toHaveBeenCalledWith(`${CASE_NO}_2`)
-    expect(onSelectTab).toHaveBeenCalledWith("search")
+    // [검수] 이미지 + 탭은 한 번에(따로 두 번 부르면 주소 갱신이 서로 덮었다)
+    expect(onOpenImageTab).toHaveBeenCalledWith(`${CASE_NO}_2`, "search")
+    expect(onSelectImage).not.toHaveBeenCalled()
+    expect(onSelectTab).not.toHaveBeenCalled()
   })
 
   it("검색 결과(기록 없음): 서버 문양(C1)의 필수만 실어 한 번 검색하고, 0~1 유사도를 퍼센트로", async () => {

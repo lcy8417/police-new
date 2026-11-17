@@ -23,6 +23,11 @@ export interface CaseWindowTabBodyProps {
   onSelectTab: (tab: CaseWindowTabKey) => void
   /** 이미지 바꾸기 — 감정물 번호 전체를 넘긴다 */
   onSelectImage: (no: string) => void
+  /**
+   * 이미지와 탭을 함께 바꾸기(결과 확인 「열기」 · 사건 정보 「이미지 편집」) — 주소를 한 번에 고친다.
+   * `onSelectImage` 뒤 `onSelectTab` 을 잇달아 부르면 둘 다 같은 옛 주소에서 시작해 뒤의 것이 앞의 이미지를 덮었다([검수]).
+   */
+  onOpenImageTab: (no: string, tab: CaseWindowTabKey) => void
 }
 
 /** 탭 본문 자리 안내(불러오는 중 · 없음 · 준비 중) */
@@ -44,7 +49,7 @@ function pickImage(detail: RequestDetail, imageNo: string | null): RequestImage 
  * 사건 · 이미지 값은 의뢰 상세(A2 — 감정번호 → A1 `no=` 로 의뢰 번호)에서 찾는다. 옛 전역 store(`useCrimeStore`)는 읽지 않는다
  * (이식 계획 §5 R1 — `/cases` 는 `GET /crime/` 전체를 부르지 않는다). 탭마다 자기 서버 값(B3 · C1 · D2~D4 · E2 · F2 · G1)을 따로 읽는다.
  */
-export function CaseWindowTabBody({ aprthngNo, imageNo, tab, onSelectTab, onSelectImage }: CaseWindowTabBodyProps) {
+export function CaseWindowTabBody({ aprthngNo, imageNo, tab, onSelectTab, onSelectImage, onOpenImageTab }: CaseWindowTabBodyProps) {
   const viewer = useViewer()
   const idQuery = useRequestIdByNo(aprthngNo)
   const detailQuery = useRequestDetail(idQuery.data ?? null)
@@ -60,10 +65,7 @@ export function CaseWindowTabBody({ aprthngNo, imageNo, tab, onSelectTab, onSele
       <ConfirmTab
         aprthngNo={aprthngNo}
         // 줄 끝 「열기」 — 그 이미지의 검색 결과(판정 전) · 정밀 대조(발견) 탭으로
-        onOpenImage={(no, next) => {
-          onSelectImage(no)
-          onSelectTab(next)
-        }}
+        onOpenImage={(no, next) => onOpenImageTab(no, next)}
       />
     )
   }
@@ -75,8 +77,8 @@ export function CaseWindowTabBody({ aprthngNo, imageNo, tab, onSelectTab, onSele
 
   const judged = image.aprthngSttus === "CONFIRMED"
   const openEdit = (no: string) => {
-    if (no !== key) onSelectImage(no)
-    onSelectTab("edit")
+    if (no !== key) onOpenImageTab(no, "edit")
+    else onSelectTab("edit")
   }
 
   // 이미지가 바뀌면 탭 본문 상태(편집 스택 · 고른 부위 등)를 새로 시작한다

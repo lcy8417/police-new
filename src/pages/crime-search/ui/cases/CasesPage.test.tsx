@@ -13,11 +13,20 @@ import { CasesPage } from "./CasesPage"
 
 // 탭 본문은 계약 값만 확인한다 — 실제 탭 본문의 API 호출은 CaseWindowTabBody 테스트 몫
 vi.mock("./case-window-tab-body", () => ({
-  CaseWindowTabBody: (props: { aprthngNo: string; imageNo: string | null; tab: string; onSelectImage: (no: string) => void }) => (
+  CaseWindowTabBody: (props: {
+    aprthngNo: string
+    imageNo: string | null
+    tab: string
+    onSelectImage: (no: string) => void
+    onOpenImageTab: (no: string, tab: "search" | "compare" | "edit") => void
+  }) => (
     <div data-testid="tab-body">
       {props.aprthngNo}|{props.imageNo}|{props.tab}
       <button type="button" onClick={() => props.onSelectImage("05019-24-0017_2")}>
         둘째 장 고르기
+      </button>
+      <button type="button" onClick={() => props.onOpenImageTab("05019-24-0017_2", "compare")}>
+        둘째 장 정밀 대조 열기
       </button>
     </div>
   ),
@@ -223,6 +232,15 @@ describe("CasesPage — 새 사건관리 목록(서버 A1 · A2)", () => {
     fireEvent.click(within(body).getByRole("button", { name: "둘째 장 고르기" }))
     await waitFor(() => expect(location().searchParams.get("img")).toBe("2"))
     expect(screen.getByTestId("tab-body")).toHaveTextContent("05019-24-0017|05019-24-0017_2|info")
+  })
+
+  it("[검수] 이미지와 탭을 함께 바꾸면(결과 확인 「열기」) 한 번에 — 탭만 바뀌고 이미지가 그대로 남지 않는다", async () => {
+    renderAt("/cases?open=05019-24-0017&img=1&tab=confirm")
+    const body = await screen.findByTestId("tab-body")
+    fireEvent.click(within(body).getByRole("button", { name: "둘째 장 정밀 대조 열기" }))
+    await waitFor(() => expect(location().searchParams.get("tab")).toBe("compare"))
+    expect(location().searchParams.get("img")).toBe("2")
+    expect(screen.getByTestId("tab-body")).toHaveTextContent("05019-24-0017|05019-24-0017_2|compare")
   })
 
   it("주소로 바로 열어도 같은 창(문양 코드 탭)", async () => {
