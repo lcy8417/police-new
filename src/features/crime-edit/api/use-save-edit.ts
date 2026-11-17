@@ -77,9 +77,19 @@ export function useSaveEditStep(aprthngNo: string) {
     onSettled: () => {
       // 다시 판정 · 작업본 소급 등록이 의뢰 상세(A2)에도 보이게(기다리지 않음)
       void queryClient.invalidateQueries({ queryKey: ["request"] })
+      invalidateLiveSearch(queryClient, aprthngNo)
       return queryClient.invalidateQueries({ queryKey: editHistoryKeys.list(aprthngNo) })
     },
   })
+}
+
+/**
+ * 즉석 검색(검색 기록 없는 장의 검색 결과 탭)이 받아 둔 편집 그림(image_load) · 결과도 다시 읽게 — 편집본이 바뀌었으니
+ * 옛 편집본으로 검색 · 표시하지 않게([검수]). 키는 `SearchTab` `LiveSearchTab` 의 `["crimeSearch", "image" | "results", 번호, …]`.
+ */
+function invalidateLiveSearch(queryClient: ReturnType<typeof useQueryClient>, aprthngNo: string) {
+  void queryClient.invalidateQueries({ queryKey: ["crimeSearch", "image", aprthngNo] })
+  void queryClient.invalidateQueries({ queryKey: ["crimeSearch", "results", aprthngNo] })
 }
 
 /** 되돌리기(B5). 끝나면 편집 이력을 다시 읽는다 */
@@ -90,6 +100,7 @@ export function useRevertEdit(aprthngNo: string) {
     meta: { inlineError: true },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: ["request"] })
+      invalidateLiveSearch(queryClient, aprthngNo)
       return queryClient.invalidateQueries({ queryKey: editHistoryKeys.list(aprthngNo) })
     },
   })
