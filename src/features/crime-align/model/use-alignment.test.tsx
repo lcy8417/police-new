@@ -246,6 +246,22 @@ describe("useAlignment — 앞굽/뒤꿈치 명시 선택(REQ-ALIGN-019, AC-ALIG
     expect(result.current.phase).toBe("review");
   });
 
+  it("템플릿 틀(닫힌 다각형)에서는 「다음: 방향 지정」 없이 바로 앞굽 · 뒤꿈치를 찍어 review 로 간다(스모크 4단계 결함)", async () => {
+    mswServer.use(http.get("*/crime/A/alignment", () => HttpResponse.json(UNSET)));
+    const { result } = renderUseAlignment("A", "X");
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    act(() => result.current.seedTemplate(NATURAL_WIDTH, NATURAL_HEIGHT));
+    await waitFor(() => expect(result.current.drawMode).toBe("template"));
+    expect(result.current.phase).toBe("polygon");
+
+    act(() => result.current.pickArrowPoint("toe", 5, 5, RECT, NATURAL_WIDTH));
+    expect(result.current.toe).toEqual([10, 10]);
+    expect(result.current.phase).toBe("arrow");
+    act(() => result.current.pickArrowPoint("heel", 15, 15, RECT, NATURAL_WIDTH));
+    expect(result.current.phase).toBe("review");
+    expect(result.current.canSave).toBe(true);
+  });
+
   it("arrow 단계가 아니면 pickArrowPoint가 무시된다", async () => {
     mswServer.use(http.get("*/crime/A/alignment", () => HttpResponse.json(UNSET)));
     const { result } = renderUseAlignment("A", "X");

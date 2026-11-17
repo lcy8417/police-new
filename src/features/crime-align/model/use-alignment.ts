@@ -393,14 +393,18 @@ export function useAlignment({ aprthngNo, ftwrId }: UseAlignmentParams): UseAlig
       rect: RectLike,
       naturalWidth: number
     ) => {
-      if (phase !== "arrow") return;
+      // 템플릿 틀(닫힌 다각형)이면 「다음: 방향 지정」 단추 없이 바로 찍어도 방향 단계로 넘어간다 — 사건 창 정렬
+      // 대화 상자에는 그 단추가 없어 앞굽 · 뒤꿈치를 영영 못 찍던 결함(스모크 4단계)
+      const templateReady = phase === "polygon" && drawMode === "template" && isPolygonClosable(polygon);
+      if (phase !== "arrow" && !templateReady) return;
       const scale = computeScale(naturalWidth, rect.width);
       const display = toDisplayPoint(clientX, clientY, rect);
       const saved = clampSaved(toSavedPoint(display, scale));
       if (kind === "toe") setToe(saved);
       else setHeel(saved);
+      if (templateReady) setPhase("arrow");
     },
-    [phase, clampSaved]
+    [phase, drawMode, polygon, clampSaved]
   );
 
   const clearArrowPoint = useCallback((kind: "toe" | "heel") => {

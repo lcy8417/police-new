@@ -87,6 +87,8 @@ export function AlignmentCaptureCanvas({
   const [naturalWidth, setNaturalWidth] = useState(0)
   const load = useImageLoadState(sceneImageUrl(aprthngNo))
   const dragRef = useRef<DragState>(null)
+  /** 방금 틀을 끌었나 — 끌기를 마친 mouseup 뒤 따라오는 click 을 앞굽 찍기로 읽지 않게 */
+  const draggedRef = useRef(false)
 
   const recompute = useCallback(() => {
     const img = imgRef.current
@@ -145,6 +147,16 @@ export function AlignmentCaptureCanvas({
       return
     }
 
+    // 템플릿 틀은 이미 닫혀 있다 — 끌기가 아닌 클릭이면 곧바로 앞굽 → 뒤꿈치(훅이 방향 단계로 넘긴다)
+    if (phase === "polygon" && drawMode === "template") {
+      if (draggedRef.current) {
+        draggedRef.current = false
+        return
+      }
+      if (arrowStep !== "complete") onPickArrowPoint(arrowStep, e.clientX, e.clientY, r, img.naturalWidth)
+      return
+    }
+
     if (phase === "arrow" && arrowStep !== "complete") {
       onPickArrowPoint(arrowStep, e.clientX, e.clientY, r, img.naturalWidth)
     }
@@ -180,10 +192,12 @@ export function AlignmentCaptureCanvas({
         const dx = e.clientX - drag.lastClientX
         const dy = e.clientY - drag.lastClientY
         if (dx !== 0 || dy !== 0) {
+          draggedRef.current = true
           onMoveWholeShape(dx, dy, img.naturalWidth, r.width)
           dragRef.current = { kind: "shape", lastClientX: e.clientX, lastClientY: e.clientY }
         }
       } else {
+        draggedRef.current = true
         onMoveVertex(drag.index, e.clientX, e.clientY, r, img.naturalWidth)
       }
     }
