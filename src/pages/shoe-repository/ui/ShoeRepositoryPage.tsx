@@ -74,7 +74,8 @@ export function ShoeRepositoryPage() {
 
   const countQuery = useQuery({
     queryKey: shoeKeys.count(),
-    queryFn: fetchShoesCount,
+    // 거르기 인자(J2)를 받는 함수라 쿼리 문맥 객체가 들어가지 않게 감싼다
+    queryFn: () => fetchShoesCount(),
   })
   const total = countQuery.data ?? 0
   const totalPages = Math.max(1, Math.ceil(total / SHOES_PAGE_SIZE))

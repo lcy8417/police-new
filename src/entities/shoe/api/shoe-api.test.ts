@@ -4,9 +4,11 @@ import { mswServer } from "@/test/msw-server";
 import { PATTERNS_ROOT } from "@/entities/pattern";
 import {
   fetchShoeDetail,
+  fetchShoeStages,
   fetchShoesCount,
   fetchShoesList,
   registerShoe,
+  shoeFilterQuery,
   updateShoe,
 } from "./shoe-api";
 
@@ -125,6 +127,77 @@ describe("fetchShoesCount (GET /shoes/count)", () => {
     );
 
     expect(await fetchShoesCount()).toBe(123);
+  });
+});
+
+describe("B 단계 거르기 · 집계(J1 · J2 · J8)", () => {
+  it("거르기 → 쿼리(빈 값 · all 제외, 신발 ID 문자열 그대로)", () => {
+    expect(shoeFilterQuery()).toBe("");
+    expect(shoeFilterQuery({ approval: "all", patternInput: "all", ftwrId: "  " })).toBe("");
+    expect(
+      shoeFilterQuery({ ftwrId: "00758", approval: "no", registFrom: "2026-03-01", registOrg: "12", stage: "approve" })
+    ).toBe("&ftwr_id=00758&regist_org=12&regist_from=2026-03-01&approval=no&stage=approve");
+  });
+
+  it("목록 · 개수가 같은 거르기를 서버로", async () => {
+    const seen: string[] = [];
+    mswServer.use(
+      http.get("*/shoes/", ({ request }) => {
+        seen.push(new URL(request.url).search);
+        return HttpResponse.json([]);
+      }),
+      http.get("*/shoes/count", ({ request }) => {
+        seen.push(new URL(request.url).search);
+        return HttpResponse.json({ count: 0 });
+      })
+    );
+    expect(await fetchShoesList(1, { patternInput: "out" })).toEqual([]);
+    expect(await fetchShoesCount({ patternInput: "out" })).toBe(0);
+    expect(seen).toEqual(["?page=1&pattern_input=out", "?pattern_input=out"]);
+  });
+
+  it("J1 새 칸 camel 변환(승인 · 작업 상태 · 검색 후보 여부)", async () => {
+    mswServer.use(
+      http.get("*/shoes/", () =>
+        HttpResponse.json([
+          { ...SHOE_DTO, approved: true, confm_de: "20261117", work_status: ["측면 없음"], in_search_index: false, regist_org_nm: null },
+        ])
+      )
+    );
+    const [row] = await fetchShoesList(0);
+    expect(row).toMatchObject({ approved: true, confmDe: "20261117", workStatus: ["측면 없음"], inSearchIndex: false, registOrgNm: null });
+  });
+
+  it("GET /shoes/stages → camel", async () => {
+    mswServer.use(
+      http.get("*/shoes/stages", () =>
+        HttpResponse.json({
+          stages: [{ key: "pattern", count: 1 }],
+          backlog: { month: "2026-11", total: 1, parts: [{ key: "pattern", count: 1 }] },
+          today_approved: 3,
+        })
+      )
+    );
+    expect(await fetchShoeStages()).toEqual({
+      stages: [{ key: "pattern", count: 1 }],
+      backlog: { month: "2026-11", total: 1, parts: [{ key: "pattern", count: 1 }] },
+      todayApproved: 3,
+    });
+  });
+
+  it("updateShoe replaceImage → 접두어 뗀 image 를 함께(J5 선택), 없으면 image 키 없음", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    mswServer.use(
+      http.put("*/shoes/00758", async ({ request }) => {
+        bodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ message: "ok" });
+      })
+    );
+    const body = { ftwrId: "00758", top: [], mid: [], bottom: [], outline: [] };
+    await updateShoe({ ftwrId: "00758", body });
+    await updateShoe({ ftwrId: "00758", body, replaceImage: "data:image/png;base64,QUJD" });
+    expect("image" in bodies[0]).toBe(false);
+    expect(bodies[1].image).toBe("QUJD");
   });
 });
 

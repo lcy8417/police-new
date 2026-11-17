@@ -83,6 +83,27 @@ export interface ShoeDbPanelExtra {
   onNextShoe?: () => void
   /** 승인(승인 담당만) */
   onApprove: () => void
+  /**
+   * (B 단계) 실제 서버 값으로 켜는 신규 요소 — `showPlus`(진열 · 파일럿 가짜 요소)와 따로.
+   * 켜면 작업 단계 줄(J8) · 카드 작업 상태(J1 `work_status`) · 등록일자 · 승인 거르기 · (관서 목록이 있으면) 등록관서 거르기가 보인다.
+   * AI 표식 · 중복 의심 · 일괄 승인 같은 가짜 요소는 여전히 `showPlus` 만 본다
+   */
+  live?: boolean
+  /**
+   * (B 단계 분업 — 서버 0017) 등록 · 문양 입력 · 승인 권한을 나눠 준다. 없으면 예전처럼 `SHOE_EDIT` 하나(`canEdit`)로 전부,
+   * 승인은 관리자만.
+   */
+  duty?: ShoeDuty
+}
+
+/** 분업 권한(화면 이식 계획 §4 ④): 등록 = `SHOE_EDIT`, 문양 입력 = `SHOE_PATTERN` 또는 `SHOE_EDIT`, 승인 = `SHOE_APPROVE` */
+export interface ShoeDuty {
+  /** 새 신발 등록 · 기본정보 · 그림 바꾸기 */
+  canRegister: boolean
+  /** 4부위 문양 넣기 · 빼기 · AI 문양 추출 · 저장 */
+  canPattern: boolean
+  /** 승인 단추 */
+  canApprove: boolean
 }
 
 export interface ShoeOfficeItem {

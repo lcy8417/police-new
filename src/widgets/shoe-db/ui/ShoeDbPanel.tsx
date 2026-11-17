@@ -84,8 +84,12 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
   const { status, errorAt, onRetry, isAdmin, features, filters, onFiltersChange, officeItems, onSearch, onReset } = props
   const { view, onViewChange, shoes, total, page, pageSize, onPageChange, selectedId, onOpenShoe, onRegister, dialog } = props
   const { showPlus = true, onPlusAction, stageSummary, cardInfo, aiDetails, quick, cardSize = "보통", onCardSizeChange } = props
+  const { live = false, duty } = props
   const [filterOpen, setFilterOpen] = React.useState(false)
-  const canEdit = isAdmin || features.includes(FEATURES.SHOE_EDIT)
+  const canEdit = duty ? duty.canRegister : isAdmin || features.includes(FEATURES.SHOE_EDIT)
+  // 실제 서버 값(live) 또는 진열 신규 요소(showPlus) — 작업 단계 · 카드 상태 · 등록일자/승인 거르기
+  const plusOrLive = showPlus || live
+  const showOffice = showPlus || (live && officeItems.length > 0)
 
   if (dialog) {
     return (
@@ -95,9 +99,11 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
         key={dialog.mode === "new" ? "new" : `edit-${dialog.form.ftwrId}`}
         dialog={dialog}
         canEdit={canEdit}
+        canPattern={duty?.canPattern}
+        canApprove={duty?.canApprove}
         isAdmin={isAdmin}
         detail={showPlus ? aiDetails?.[dialog.form.ftwrId] : undefined}
-        workStatus={showPlus ? cardInfo?.[dialog.form.ftwrId]?.status : undefined}
+        workStatus={plusOrLive ? cardInfo?.[dialog.form.ftwrId]?.status : undefined}
         library={props.library}
         extractState={props.extractState}
         onExtract={props.onExtract}
@@ -142,9 +148,9 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
       {label("화류번호", <Field variant="mono" aria-label="화류번호" value={filters.ftwrId} onChange={(e) => set({ ftwrId: e.target.value })} />)}
       {label("상표", <Field aria-label="상표" value={filters.brandCode} onChange={(e) => set({ brandCode: e.target.value })} />)}
       {label("제조사", <Field aria-label="제조사" value={filters.makrCode} onChange={(e) => set({ makrCode: e.target.value })} />)}
-      {/* 등록관서 · 등록일자 · 승인은 서버 값이 생길 때(신발 검수 묶음)까지 실제 화면(showPlus=false)에서 숨긴다 — 화면 이식 계획 §4 ④ */}
-      {showPlus ? label("등록관서", <Combobox aria-label="등록관서" items={officeItems} value={filters.office} onValueChange={(office) => set({ office })} placeholder="전체" />) : null}
-      {showPlus ? label(
+      {/* 등록관서 · 등록일자 · 승인 = 진열(showPlus) 또는 서버 거르기(live, J1). 등록관서는 관서 목록이 있을 때만 — 화면 이식 계획 §4 ④ */}
+      {showOffice ? label("등록관서", <Combobox aria-label="등록관서" items={officeItems} value={filters.office} onValueChange={(office) => set({ office })} placeholder="전체" />) : null}
+      {plusOrLive ? label(
         "등록일자",
         <span className="flex min-w-0 items-center gap-[6px]">
           <Field variant="mono" aria-label="등록일자 시작일" value={filters.regFrom} onChange={(e) => set({ regFrom: e.target.value })} />
@@ -153,7 +159,7 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
         </span>,
         true,
       ) : null}
-      {showPlus ? label("승인", <RadioRow name="승인" options={APPROVAL_OPTIONS} value={filters.approval} onValueChange={(approval) => set({ approval })} />) : null}
+      {plusOrLive ? label("승인", <RadioRow name="승인" options={APPROVAL_OPTIONS} value={filters.approval} onValueChange={(approval) => set({ approval })} />) : null}
       {label("문양", <RadioRow name="문양 입력" options={PATTERN_INPUT_OPTIONS} value={filters.patternInput} onValueChange={(patternInput) => set({ patternInput })} />)}
       <span className="col-span-4 flex items-center justify-end gap-[6px]">
         <WorkbenchButton size="sm" variant="ghost" onClick={onReset}>
@@ -177,7 +183,7 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
     { key: "brand", header: "상표", render: (s) => s.brandCode ?? "" },
     { key: "makr", header: "제조사", render: (s) => s.makrCode ?? "" },
     { key: "year", header: "수집연도", render: (s) => s.colctYear ?? "" },
-    { key: "state", header: "상태", render: (s) => (showPlus ? cardInfo?.[s.ftwrId]?.status : null) ?? (hasPattern(s) ? "입력" : "미입력") },
+    { key: "state", header: "상태", render: (s) => (plusOrLive ? cardInfo?.[s.ftwrId]?.status : null) ?? (hasPattern(s) ? "입력" : "미입력") },
   ]
 
   let body: React.ReactNode
@@ -207,7 +213,7 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
             shoe={s}
             selected={s.ftwrId === selectedId}
             hasPattern={hasPattern(s)}
-            info={showPlus ? cardInfo?.[s.ftwrId] : undefined}
+            info={plusOrLive ? cardInfo?.[s.ftwrId] : undefined}
             onOpen={onOpenShoe}
             imageClass={size.image}
             quiet
@@ -263,7 +269,7 @@ export function ShoeDbPanel(props: ShoeDbPanelProps) {
       </BoardLid>
       {filterForm}
       <div className="flex shrink-0 flex-wrap items-center gap-x-[12px] gap-y-[6px] border-0 border-b border-solid border-border px-[16px] py-[7px]">
-        {showPlus && stageSummary ? (
+        {plusOrLive && stageSummary ? (
           <span data-plus="" className="min-w-0">
             <StageLine summary={stageSummary} />
           </span>

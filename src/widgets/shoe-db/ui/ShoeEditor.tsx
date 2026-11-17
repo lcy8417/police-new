@@ -74,7 +74,12 @@ function SoleZoneLines() {
 
 export interface ShoeEditorProps {
   dialog: ShoeDialogState
+  /** 기본정보 · 그림 · (분업 prop 이 없으면) 문양까지 고칠 수 있나 — 등록 담당(`SHOE_EDIT`) */
   canEdit: boolean
+  /** (분업) 문양 입력 담당 — 없으면 canEdit 를 따른다. 승인된 신발(form.approved)이면 문양은 잠긴다 */
+  canPattern?: boolean
+  /** (분업) 승인 담당 — 없으면 예전처럼 관리자만(승인 단추는 canEdit 일 때만 보임) */
+  canApprove?: boolean
   isAdmin: boolean
   detail?: ShoeAiDetail
   workStatus?: ShoeWorkStatus
@@ -110,6 +115,11 @@ export function ShoeEditor(props: ShoeEditorProps) {
   const { dialog, canEdit, isAdmin, detail, workStatus, library, extractState } = props
   const { form, mode, saveError } = dialog
   const isNew = mode === "new"
+  // 승인된 신발은 문양 잠김(서버 J5 · J6 409 — 설계서 §3-8). 분업 prop 이 없으면 예전처럼 canEdit 하나로
+  const approved = form.approved === true
+  const canPatternEdit = (props.canPattern ?? canEdit) && !approved
+  const showApprove = props.canApprove ?? canEdit
+  const showSave = canEdit || canPatternEdit
   const [zone, setZone] = React.useState<PatternZone>("top")
   const kinds = Object.keys(library)
   const [kind, setKind] = React.useState(kinds[0] ?? "")
@@ -149,11 +159,11 @@ export function ShoeEditor(props: ShoeEditorProps) {
   const setZoneNames = (key: PatternZone, names: string[]) => props.onFormChange({ ...form, [key]: names })
   // 이름 기준으로 넣고 빼기(같은 부위에 같은 이름 두 번 없음)
   const insertTo = (key: PatternZone, name: string) => {
-    if (!canEdit || form[key].includes(name)) return
+    if (!canPatternEdit || form[key].includes(name)) return
     setZoneNames(key, [...form[key], name])
   }
   const toggle = (item: PatternLibraryItem) => {
-    if (!canEdit) return
+    if (!canPatternEdit) return
     const list = form[zone]
     if (list.includes(item.name)) setZoneNames(zone, list.filter((n) => n !== item.name))
     else insertTo(zone, item.name)
@@ -193,18 +203,34 @@ export function ShoeEditor(props: ShoeEditorProps) {
       <h3 className="m-0 font-code text-[13px] font-bold text-foreground">{isNew ? "새 신발" : form.ftwrId}</h3>
       {form.modlNm ? <span className="max-w-[220px] truncate text-[12.5px] text-muted-foreground">{form.modlNm}</span> : null}
       {workStatus ? <span className="rounded-[5px] bg-strip px-[6px] py-px text-[11px] text-fg-2">{workStatus}</span> : null}
+      {approved ? (
+        <span title="승인된 신발의 문양은 고칠 수 없습니다" className="rounded-[5px] bg-strip px-[6px] py-px text-[11px] text-fg-2">
+          승인됨 · 문양 잠김
+        </span>
+      ) : null}
+      {!isNew && form.inSearchIndex === false ? (
+        <span className="rounded-[5px] bg-strip px-[6px] py-px text-[11px] text-muted-foreground">검색 후보 아님(배치 반영 전)</span>
+      ) : null}
       <span className="ml-auto inline-flex items-center gap-[4px]">
         <WorkbenchButton size="sm" variant="ghost" icon={ChevronLeft} iconOnly aria-label="이전 신발" disabled={!props.onPrev} onClick={props.onPrev} />
         <WorkbenchButton size="sm" variant="ghost" icon={ChevronRight} iconOnly aria-label="다음 신발" disabled={!props.onNext} onClick={props.onNext} />
-        {canEdit ? (
-          <>
-            <WorkbenchButton size="sm" variant="soft" icon={Check} disabled={!isAdmin || isNew} title="승인 담당만" onClick={props.onApprove}>
-              승인
-            </WorkbenchButton>
-            <WorkbenchButton size="sm" variant="primary" icon={Save} onClick={props.onSave}>
-              저장
-            </WorkbenchButton>
-          </>
+        {showApprove ? (
+          <WorkbenchButton
+            size="sm"
+            variant="soft"
+            icon={Check}
+            // 분업 승인 담당: 새 신발 · 이미 승인 · 문양 없음이면 꺼짐(서버 J7 409와 같은 조건). 분업 prop 이 없으면 예전처럼 관리자만
+            disabled={props.canApprove !== undefined ? !props.canApprove || isNew || approved || total === 0 : !isAdmin || isNew}
+            title={approved ? "이미 승인됨" : total === 0 ? "문양을 입력한 뒤 승인" : "승인 담당만"}
+            onClick={props.onApprove}
+          >
+            승인
+          </WorkbenchButton>
+        ) : null}
+        {showSave ? (
+          <WorkbenchButton size="sm" variant="primary" icon={Save} onClick={props.onSave}>
+            저장
+          </WorkbenchButton>
         ) : null}
       </span>
     </div>
@@ -298,7 +324,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
         <WorkbenchButton
           variant="soft"
           icon={Sparkles}
-          disabled={!canEdit || extracting || !form.image}
+          disabled={!canPatternEdit || extracting || !form.image}
           onClick={props.onExtract}
           title="AI 가 밑창에서 상 · 중 · 하 문양을 제안합니다 — 확인은 사람이"
           className="w-full justify-center border-ai-line text-ai hover:border-ai"
@@ -317,7 +343,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
         {suggestedCount > 0 ? (
           <span className="ml-auto inline-flex items-center gap-[6px]">
             <AiTag variant="done">{`AI 제안 ${suggestedCount}`}</AiTag>
-            <WorkbenchButton size="sm" variant="ghost" icon={Check} disabled={!canEdit} onClick={props.onConfirmAi}>
+            <WorkbenchButton size="sm" variant="ghost" icon={Check} disabled={!canPatternEdit} onClick={props.onConfirmAi}>
               모두 확인
             </WorkbenchButton>
           </span>
@@ -330,9 +356,11 @@ export function ShoeEditor(props: ShoeEditorProps) {
           selectedZone={zone}
           onSelectZone={setZone}
           onDropToZone={(z, src) => insertTo(z, nameOf(src))}
-          onRemove={(z, index) => setZoneNames(z, form[z].filter((_, i) => i !== index))}
-          onConfirm={props.onConfirmAiOne && canEdit ? (z, index) => props.onConfirmAiOne?.(z, form[z][index]) : undefined}
-          canEdit={canEdit}
+          onRemove={(z, index) => {
+            if (canPatternEdit) setZoneNames(z, form[z].filter((_, i) => i !== index))
+          }}
+          onConfirm={props.onConfirmAiOne && canPatternEdit ? (z, index) => props.onConfirmAiOne?.(z, form[z][index]) : undefined}
+          canEdit={canPatternEdit}
           zoneNote={zoneNote}
           emptyText="오른쪽 목록에서 눌러 넣기"
         />
@@ -370,7 +398,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
         zoneLabel={zoneLabel}
         onToggle={toggle}
         onHoverItem={(it) => (it ? setHovered(it) : undefined)}
-        canEdit={canEdit}
+        canEdit={canPatternEdit}
         className="min-h-0 flex-1"
       />
     </aside>

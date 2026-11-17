@@ -16,8 +16,8 @@ const ID_PATTERN = /^[0-9A-Za-z_-]+$/
 
 const MAX_FTWR_ID_LENGTH = 8
 
-/** `GET /shoes/count`와 겹쳐 신발 ID로 쓸 수 없는 이름(소문자 기준 비교). */
-const RESERVED_FTWR_IDS = new Set(["count"])
+/** `GET /shoes/count` · `GET /shoes/stages`와 겹쳐 신발 ID로 쓸 수 없는 이름(소문자 기준 비교 — 서버 `RESERVED_FTWR_IDS`와 같음). */
+const RESERVED_FTWR_IDS = new Set(["count", "stages"])
 
 const COLCT_YEAR_PATTERN = /^[0-9]{4}$/
 

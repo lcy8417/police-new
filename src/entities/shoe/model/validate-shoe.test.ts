@@ -28,6 +28,13 @@ describe("validateShoeForm — 새 등록(new)", () => {
     expect(validateShoeForm(shoe({ ftwrId: "COUNT" }), "new")).toBe(
       "'COUNT'은(는) 신발 ID로 쓸 수 없습니다"
     )
+    // B 단계 GET /shoes/stages(J8)와 겹침 — 서버 RESERVED_FTWR_IDS와 같다
+    expect(validateShoeForm(shoe({ ftwrId: "stages" }), "new")).toBe(
+      "'stages'은(는) 신발 ID로 쓸 수 없습니다"
+    )
+    expect(validateShoeForm(shoe({ ftwrId: "Stages" }), "new")).toBe(
+      "'Stages'은(는) 신발 ID로 쓸 수 없습니다"
+    )
     expect(validateShoeForm(shoe({ ftwrId: "a.b" }), "new")).toBe(MSG_BAD_CHARS)
     expect(validateShoeForm(shoe({ ftwrId: "a/b" }), "new")).toBe(MSG_BAD_CHARS)
     expect(validateShoeForm(shoe({ ftwrId: "a b" }), "new")).toBe(MSG_BAD_CHARS)
