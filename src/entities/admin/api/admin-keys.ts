@@ -2,7 +2,7 @@
  * 관리자 API 쿼리 키(TanStack Query) — 사용자·권한 관리와 사용 기록 화면이 같은 키를 쓴다
  * (예: 사용 기록의 "사용자" 필터는 사용자 표와 같은 캐시를 읽는다).
  */
-import type { EventFilters, SessionFilters } from "../model/types";
+import type { AuditEventFilters, EventFilters, SessionFilters } from "../model/types";
 
 export const adminQueryKeys = {
   /** GET /admin/users */
@@ -19,4 +19,10 @@ export const adminQueryKeys = {
   sessionEvents: (sessionId: string) => ["admin", "sessions", sessionId, "events"] as const,
   /** GET /admin/events */
   events: (filters: Omit<EventFilters, "page">) => ["admin", "events", filters] as const,
+  /** GET /admin/features */
+  features: ["admin", "features"] as const,
+  /** GET /admin/audit-events(K2) — 쪽 번호 포함(쪽 넘김 화면) */
+  auditEvents: (filters: AuditEventFilters) => ["admin", "audit-events", filters] as const,
+  /** GET /admin/audit-events/verify(K3) */
+  auditVerify: ["admin", "audit-events", "verify"] as const,
 };

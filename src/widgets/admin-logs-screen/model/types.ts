@@ -16,14 +16,14 @@ export interface LogFilters {
   result: ResultFilter
   /** 기능 이름표 코드(기능 기록 탭만) */
   actionCode: string
-  /** 대상 번호(감정번호 · 화류번호 등, 기능 기록 탭만) — 신규(+α) 칸, 지금 서버 API 에는 없음 */
+  /** 대상 번호(감정번호 · 화류번호 등, 기능 기록 탭만) — 신규(+α) 칸, 서버 K1 `target_id` */
   targetNo?: string
 }
 
 /** 탭 — `admin`(관리자 행위)은 신규(+α) 탭이라 `showPlus` 일 때만 보인다 */
 export type LogTab = "sessions" | "events" | "admin"
 
-/** 관리자 행위 탭 한 줄(시안 핀 5 — 서버 API 가 아직 없어 쓰는 쪽이 넘김) */
+/** 관리자 행위 탭 한 줄(시안 핀 5 — 실제 페이지는 감사 기록 K2 관리 4종을 글로 바꿔 넘김) */
 export interface AdminActionRow {
   /** 「MM-DD HH:mm」 */
   at: string
@@ -56,12 +56,27 @@ export interface LogAlert {
   badgeTone: "red" | "amber" | "default" | "none"
 }
 
+/** 기록 무결성 칸(시안 핀 12) — 실제 페이지는 감사 사슬 검증(K3) 결과를 넘긴다 */
+export interface LogIntegrity {
+  /** 해시 사슬 끝 5개(번호 · 지문 앞 4자) */
+  chain: { no: number; hash: string }[]
+  checks: { text: string; note: string }[]
+  /** 처음 어긋난 감사 번호 — 있으면 「변조 없음」 대신 빨간 알약. 없거나 null = 온전 */
+  brokenAt?: number | null
+  /** 검증 조회 상태(없으면 ready). loading · error 면 사슬 대신 「확인 중」 · 오류 줄 */
+  status?: ScreenStatus
+  /** error 일 때 확인을 시도한 시각 「시:분」 */
+  errorAt?: string
+  onRetry?: () => void
+}
+
 /**
  * S14 시안 r3 요약 칸 값(시간대별 사용량 · 이상 징후 · 기록 무결성 · 감사 항목 · 내려받기 제한 · 관리자 행위).
- * 지금 서버 API 에 없는 집계라 진열 페이지가 시안 예시 값을 넘긴다.
+ * 진열 페이지는 시안 예시 값을 전부 넘기고, 실제 페이지는 서버 값이 있는 칸만 넘긴다(없는 칸은 그리지 않음 —
+ * 이식 계획 「+α는 서버 값이 있는 것만」). 사용량 · 이상 징후가 없으면 무결성 칸은 오른쪽 칸 맨 위로 간다.
  */
 export interface AdminLogsInsights {
-  activity: {
+  activity?: {
     /** 0~23시 오늘 한 시간 기능 기록 수 */
     hourly: number[]
     /** 0~23시 최근 7일 평균 */
@@ -75,20 +90,24 @@ export interface AdminLogsInsights {
     offHours: number
     failures: number
   }
-  alerts: LogAlert[]
-  integrity: {
-    /** 해시 사슬 끝 5개(번호 · 지문 앞 4자) */
-    chain: { no: number; hash: string }[]
-    checks: { text: string; note: string }[]
-  }
-  auditKinds: { label: string; count: number; desc: string; tone: AuditKindTone }[]
-  exportRules: string[]
-  adminActs: { at: string; who: string; text: string }[]
+  alerts?: LogAlert[]
+  integrity?: LogIntegrity
+  auditKinds?: { label: string; count: number; desc: string; tone: AuditKindTone }[]
+  exportRules?: string[]
+  adminActs?: { at: string; who: string; text: string }[]
 }
+
+/**
+ * 신규(+α) 요소를 하나씩 켜는 이름(이식 계획 — 실제 페이지는 `showPlus` 대신 서버 값이 있는 것만).
+ * `plusParts` 를 주면 그 목록만 켜지고, 안 주면 `showPlus` 하나로 전부 켜고 끈다(진열).
+ */
+export type AdminLogsPlusPart = "insights" | "export" | "tabCounts" | "adminTab" | "targetFilter" | "loadMore" | "retention"
 
 export interface AdminLogsScreenProps {
   /** 신규(+α) 요소 보이기 — 요약 칸 · 보존 기간 · 엑셀 · 감사 항목 등 (기본 true) */
   showPlus?: boolean
+  /** 신규 요소를 하나씩 켜기(주면 `showPlus` 대신 이 목록만) */
+  plusParts?: AdminLogsPlusPart[]
   /** 시안 r3 요약 칸 값. 없으면 그 칸들을 그리지 않는다 */
   insights?: AdminLogsInsights | null
   /** 「엑셀 내보내기」(동작 없는 신규 버튼 — 진열은 「시안 — 기능 준비 중」) */

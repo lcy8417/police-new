@@ -13,16 +13,31 @@ export {
   fetchSessions,
   fetchSessionEvents,
   fetchEvents,
+  fetchAuditEvents,
+  verifyAuditChain,
   fetchFeatures,
   fetchActions,
 } from "./api/admin-api";
 export { adminQueryKeys } from "./api/admin-keys";
+export { useAuditEventsQuery, useAuditVerifyQuery } from "./api/audit-queries";
+export {
+  ADMIN_EVENT_SE,
+  AUDIT_EVENT_LABELS,
+  auditShortTime,
+  describeAuditEvent,
+  type AuditTextLabels,
+} from "./model/audit-text";
 export type {
   ActionInfo,
   ActivityResult,
   AdminEvent,
   AdminSession,
   AdminUser,
+  AuditEvent,
+  AuditEventFilters,
+  AuditEventSe,
+  AuditVerifyRange,
+  AuditVerifyResult,
   CreateOrgInput,
   CreateUserInput,
   EventFilters,

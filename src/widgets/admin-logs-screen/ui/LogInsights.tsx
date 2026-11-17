@@ -2,10 +2,10 @@ import type { ReactNode } from "react"
 
 import { cn } from "@/shared/lib/utils"
 import { CheckList } from "@/shared/ui/ai"
-import { BoardFrame, StatePill, StatusDot } from "@/shared/ui/kit"
+import { BoardFrame, InlineError, ListNote, StatePill, StatusDot } from "@/shared/ui/kit"
 import { PaneHead } from "@/shared/ui/panel"
 
-import type { AdminLogsInsights, AuditKindTone, LogAlert } from "../model/types"
+import type { AdminLogsInsights, AuditKindTone, LogAlert, LogIntegrity } from "../model/types"
 
 // S14 시안 r3 요약 칸(시간대별 사용량 · 이상 징후 · 기록 무결성)과 오른쪽 칸(감사 항목 · 내려받기 제한 · 관리자 행위).
 // 값은 props 그대로 그리고, 좌표는 시안 차트 그대로(viewBox 400×142).
@@ -48,7 +48,9 @@ const SC = 96 / 70
 const hx = (h: number) => X0 + h * BW
 const LABEL = "font-code text-[9px]"
 
-function ActivityChart({ hourly, weekAvg, nowHour }: AdminLogsInsights["activity"]) {
+type Activity = NonNullable<AdminLogsInsights["activity"]>
+
+function ActivityChart({ hourly, weekAvg, nowHour }: Activity) {
   const peak = hourly.reduce((best, v, h) => (v > hourly[best] ? h : best), 0)
   return (
     <svg viewBox="0 0 400 142" role="img" aria-label="시간대별 사용량" className="block w-full">
@@ -107,7 +109,7 @@ function ActivityChart({ hourly, weekAvg, nowHour }: AdminLogsInsights["activity
   )
 }
 
-function ActivityPanel({ activity }: { activity: AdminLogsInsights["activity"] }) {
+function ActivityPanel({ activity }: { activity: Activity }) {
   const peak = activity.hourly.reduce((best, v, h) => (v > activity.hourly[best] ? h : best), 0)
   return (
     <InsightBox
@@ -186,10 +188,34 @@ function AlertPanel({ alerts }: { alerts: LogAlert[] }) {
 
 /* 기록 무결성 — 해시 사슬(시안 핀 12) */
 
-function IntegrityPanel({ integrity }: { integrity: AdminLogsInsights["integrity"] }) {
+function IntegrityPanel({ integrity }: { integrity: LogIntegrity }) {
   const last = integrity.chain.length - 1
+  const status = integrity.status ?? "ready"
+  const broken = integrity.brokenAt ?? null
+  // 검증 결과가 있을 때만 알약 — 확인 중 · 실패에 「변조 없음」을 보이지 않는다
+  const chip =
+    status !== "ready" && status !== "empty" ? null : broken !== null ? (
+      <KindChip label={`! 사슬 어긋남 #${broken}`} tone="red" />
+    ) : (
+      <KindChip label="✓ 변조 없음" tone="default" />
+    )
+  if (status === "loading" || status === "error") {
+    return (
+      <InsightBox label="기록 무결성" title="기록 무결성" end={chip}>
+        {status === "loading" ? (
+          <ListNote role="status" className="text-center">
+            확인 중…
+          </ListNote>
+        ) : (
+          <div className="flex justify-center px-[14px] py-[10px]">
+            <InlineError message="사슬을 확인하지 못했습니다" at={integrity.errorAt} onRetry={integrity.onRetry} />
+          </div>
+        )}
+      </InsightBox>
+    )
+  }
   return (
-    <InsightBox label="기록 무결성" title="기록 무결성" end={<KindChip label="✓ 변조 없음" tone="default" />}>
+    <InsightBox label="기록 무결성" title="기록 무결성" end={chip}>
       <div className="grid gap-[6px] px-[14px] pt-[6px] pb-[10px]">
         <svg viewBox="0 0 270 40" role="img" aria-label="해시 사슬" className="block h-[40px] w-full">
           <title>기록마다 바로 앞 기록의 지문(해시)을 품고 저장 — 한 줄이라도 고치면 뒤 사슬이 모두 어긋남</title>
@@ -218,21 +244,23 @@ function IntegrityPanel({ integrity }: { integrity: AdminLogsInsights["integrity
   )
 }
 
-/** 표 위 요약 한 줄(사용량 · 이상 징후 · 무결성) */
+/** 표 위 요약 한 줄(사용량 · 이상 징후 · 무결성) — 값이 있는 칸만 */
 export function LogPulseRow({ insights }: { insights: AdminLogsInsights }) {
   return (
     <div data-plus className="grid items-start gap-[14px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_320px]">
-      <ActivityPanel activity={insights.activity} />
-      <AlertPanel alerts={insights.alerts} />
-      <IntegrityPanel integrity={insights.integrity} />
+      {insights.activity && <ActivityPanel activity={insights.activity} />}
+      {insights.alerts && <AlertPanel alerts={insights.alerts} />}
+      {insights.integrity && <IntegrityPanel integrity={insights.integrity} />}
     </div>
   )
 }
 
-/** 표 오른쪽 칸(감사 항목 · 내려받기 제한 · 관리자 행위) */
-export function LogSidePanels({ insights }: { insights: AdminLogsInsights }) {
+/** 표 오른쪽 칸(감사 항목 · 내려받기 제한 · 관리자 행위) — 값이 있는 칸만. `withIntegrity`: 요약 줄이 없을 때 무결성 칸을 맨 위에 */
+export function LogSidePanels({ insights, withIntegrity = false }: { insights: AdminLogsInsights; withIntegrity?: boolean }) {
   return (
     <div data-plus className="grid min-w-0 content-start gap-[14px]">
+      {withIntegrity && insights.integrity && <IntegrityPanel integrity={insights.integrity} />}
+      {insights.auditKinds && (
       <InsightBox label="감사 항목" title="감사 항목 · 오늘">
         <div className="grid gap-[6px] px-[14px] py-[10px]">
           {insights.auditKinds.map((k) => (
@@ -246,25 +274,34 @@ export function LogSidePanels({ insights }: { insights: AdminLogsInsights }) {
           ))}
         </div>
       </InsightBox>
-      <InsightBox label="다운로드·출력 제한" title="다운로드·출력 제한">
-        <ul className="m-0 grid list-none gap-[4px] px-[14px] py-[10px] text-[11px] leading-[1.5] text-fg-2">
-          {insights.exportRules.map((r) => (
-            <li key={r}>· {r}</li>
-          ))}
-        </ul>
-      </InsightBox>
-      <InsightBox label="관리자 행위" title="관리자 행위 · 최근">
-        <div className="grid gap-[6px] px-[14px] py-[10px]">
-          {insights.adminActs.map((a) => (
-            <div key={`${a.at}-${a.text}`} className="grid grid-cols-[76px_minmax(0,1fr)] gap-[8px] text-[11px] leading-[1.4]">
-              <span className="font-code text-dim">{a.at}</span>
-              <span className="text-fg-2">
-                <span className="font-code text-brand-3">{a.who}</span> {a.text}
-              </span>
-            </div>
-          ))}
-        </div>
-      </InsightBox>
+      )}
+      {insights.exportRules && (
+        <InsightBox label="다운로드·출력 제한" title="다운로드·출력 제한">
+          <ul className="m-0 grid list-none gap-[4px] px-[14px] py-[10px] text-[11px] leading-[1.5] text-fg-2">
+            {insights.exportRules.map((r) => (
+              <li key={r}>· {r}</li>
+            ))}
+          </ul>
+        </InsightBox>
+      )}
+      {insights.adminActs && (
+        <InsightBox label="관리자 행위" title="관리자 행위 · 최근">
+          <div className="grid gap-[6px] px-[14px] py-[10px]">
+            {insights.adminActs.length === 0 ? (
+              <span className="text-[11px] text-dim">결과 없음</span>
+            ) : (
+              insights.adminActs.map((a) => (
+                <div key={`${a.at}-${a.text}`} className="grid grid-cols-[76px_minmax(0,1fr)] gap-[8px] text-[11px] leading-[1.4]">
+                  <span className="font-code text-dim">{a.at}</span>
+                  <span className="text-fg-2">
+                    <span className="font-code text-brand-3">{a.who}</span> {a.text}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </InsightBox>
+      )}
     </div>
   )
 }

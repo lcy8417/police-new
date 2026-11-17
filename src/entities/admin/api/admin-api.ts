@@ -15,6 +15,12 @@ import type {
   AdminSessionDto,
   AdminUser,
   AdminUserDto,
+  AuditEvent,
+  AuditEventDto,
+  AuditEventFilters,
+  AuditVerifyDto,
+  AuditVerifyRange,
+  AuditVerifyResult,
   CreateOrgInput,
   CreateUserInput,
   EventFilters,
@@ -139,18 +145,48 @@ export async function fetchSessionEvents(sessionId: string): Promise<AdminEvent[
   return convertKeysToCamelCase<AdminEvent[]>(data);
 }
 
-/** GET /admin/events?user_id&result&action_code&from&to&page — 기능 이벤트 검색(50개씩 최신순). */
+/**
+ * GET /admin/events?user_id&result&action_code&target_id&from&to&page — 기능 이벤트 검색(50개씩 최신순).
+ * `targetId`(K1): 감정물 번호 · 신발 ID 앞부분 일치, 감정번호면 그 의뢰의 숫자 번호 기록까지.
+ */
 export async function fetchEvents(filters: EventFilters = {}): Promise<AdminEvent[]> {
   const query = toQuery({
     user_id: filters.userId,
     result: filters.result,
     action_code: filters.actionCode,
+    target_id: filters.targetId?.trim(),
     from: filters.from,
     to: filters.to,
     page: filters.page,
   });
   const data = await apiGet<AdminEventDto[]>(`/admin/events${query}`);
   return convertKeysToCamelCase<AdminEvent[]>(data);
+}
+
+/**
+ * GET /admin/audit-events?event_se&actor_id&target_se&target_id&from&to&page — 중요 행위 감사 기록(K2, 50개씩 최신순).
+ * 행위 구분이 여러 개면 `event_se`를 여러 번 보낸다(그중 하나).
+ */
+export async function fetchAuditEvents(filters: AuditEventFilters = {}): Promise<AuditEvent[]> {
+  const kinds = (filters.eventSe ?? []).map((kind) => `event_se=${encodeURIComponent(kind)}`);
+  const rest = toQuery({
+    actor_id: filters.actorId,
+    target_se: filters.targetSe,
+    target_id: filters.targetId?.trim(),
+    from: filters.from,
+    to: filters.to,
+    page: filters.page,
+  }).replace(/^\?/, "");
+  const query = [...kinds, ...(rest ? [rest] : [])].join("&");
+  const data = await apiGet<AuditEventDto[]>(`/admin/audit-events${query ? `?${query}` : ""}`);
+  return convertKeysToCamelCase<AuditEvent[]>(data);
+}
+
+/** GET /admin/audit-events/verify?from_id&to_id — 감사 해시 사슬 검증(K3, `audit_event`만 — 사용 기록에는 사슬 없음). */
+export async function verifyAuditChain(range: AuditVerifyRange = {}): Promise<AuditVerifyResult> {
+  const query = toQuery({ from_id: range.fromId, to_id: range.toId });
+  const data = await apiGet<AuditVerifyDto>(`/admin/audit-events/verify${query}`);
+  return convertKeysToCamelCase<AuditVerifyResult>(data);
 }
 
 /** GET /admin/features — 기능 권한 목록. */

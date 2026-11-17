@@ -1,23 +1,11 @@
-// features/admin-logs — 관리자 사용 기록(로그인 기록·기능 기록, 설계서 §6·§7-4). 화면 조립은 `pages/manage-logs`.
+// features/admin-logs — 관리자 사용 · 감사 기록 쿼리(설계서 §6·§7-4, B 단계 K1~K3). 화면 = `widgets/admin-logs-screen`, 조립 = `pages/manage-logs`.
+export { DEFAULT_RANGE_DAYS, LOG_PAGE_SIZE } from "./model/log-filters"
+export { useActionsQuery, useLogUsersQuery } from "./model/use-admin-logs"
 export {
-  DEFAULT_RANGE_DAYS,
-  LOG_PAGE_SIZE,
-  LOGOUT_REASON_LABELS,
-  defaultLogFilters,
-  toEventFilters,
-  toSessionFilters,
-  type LogFilters,
-  type ResultFilter,
-} from "./model/log-filters"
-export {
-  useActionsQuery,
-  useEventsQuery,
-  useLogUsersQuery,
-  useSessionEventsQuery,
-  useSessionsQuery,
-} from "./model/use-admin-logs"
-export { LogFilterBar } from "./ui/LogFilterBar"
-export { SessionTable } from "./ui/SessionTable"
-export { SessionEventTimeline } from "./ui/SessionEventTimeline"
-export { EventTable } from "./ui/EventTable"
-export { ResultChip } from "./ui/ResultChip"
+  fetchLogPage,
+  useAuditPageQuery,
+  useEventsPageQuery,
+  useSessionTimelines,
+  useSessionsPageQuery,
+  type TimelineState,
+} from "./model/use-log-pages"

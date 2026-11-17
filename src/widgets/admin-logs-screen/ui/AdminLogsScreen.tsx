@@ -16,7 +16,7 @@ import {
 } from "@/shared/ui/kit"
 
 import { EVENT_COLUMN_DEFS, LOG_PAGE_SIZES, SESSION_COLUMNS, quickFilterEvents, quickFilterSessions } from "../model/quick-search"
-import type { AdminActionRow, AdminLogsScreenProps, LogTab } from "../model/types"
+import type { AdminActionRow, AdminLogsPlusPart, AdminLogsScreenProps, LogTab } from "../model/types"
 import { LogFilterBar } from "./LogFilterBar"
 import { LogPulseRow, LogSidePanels } from "./LogInsights"
 import { LogListTable, type LogListColumn } from "./LogListTable"
@@ -76,12 +76,15 @@ const ADMIN_COLUMNS: LogListColumn<AdminActionRow>[] = [
  * R6(앱 틀 남색 위 막대와 같은 결): 관리자 안내 띠 · 쪽 제목 · 보존 기간 띠 · 아래 역할 띠를 빼고(보존 기간은 표 아래 한 줄),
  * 판은 로망 목록 판(BoardFrame), 기능 기록 · 관리자 행위 표는 로망 목록 표, 단추는 WorkbenchButton.
  * r2(시안 r3 +α, `showPlus`): 엑셀 내보내기 · 보존 기간 · 시간대별 사용량 · 이상 징후 · 기록 무결성 ·
- * 감사 항목 · 내려받기 제한 · 관리자 행위(최근). 관리자 행위 탭 · 「대상 번호」 필터(서버 API 없음)는 담지 않는다.
+ * 감사 항목 · 내려받기 제한 · 관리자 행위(최근) · 관리자 행위 탭 · 「대상 번호」 필터. 실제 페이지는 `plusParts`로
+ * 서버 값이 있는 것만 켠다(대상 번호 K1 · 관리자 행위 K2 · 기록 무결성 K3).
  */
 export function AdminLogsScreen(props: AdminLogsScreenProps) {
   const { status, errorAt, onRetry, isAdmin, showPlus = true } = props
+  // 신규 요소 하나씩: plusParts 를 주면 그 목록만(실제 페이지 — 서버 값이 있는 것만), 없으면 showPlus 하나로(진열)
+  const plusOn = (part: AdminLogsPlusPart) => (props.plusParts ? props.plusParts.includes(part) : showPlus)
   // 관리자 행위 탭은 신규 요소 — 신규를 끄면 로그인 기록으로 본다
-  const tab = !showPlus && props.tab === "admin" ? "sessions" : props.tab
+  const tab = !plusOn("adminTab") && props.tab === "admin" ? "sessions" : props.tab
 
   if (!isAdmin) {
     return (
@@ -110,7 +113,7 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
   const eventColumns = EVENT_COLUMNS.filter((c) => c.key === "user" || eventKeys.includes(c.key))
   const sessionKeys = props.sessionColumns ?? SESSION_COLUMNS.map((c) => c.key)
   const regionLabel = tab === "sessions" ? "로그인 기록" : tab === "events" ? "기능 기록" : "관리자 행위 기록"
-  const counts = showPlus ? (props.tabCounts ?? null) : null
+  const counts = plusOn("tabCounts") ? (props.tabCounts ?? null) : null
   const tabLabel = (label: string, count: number | undefined) => (
     <>
       {label}
@@ -127,7 +130,7 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
   const tabItems = [
     { value: "sessions", label: tabLabel("로그인 기록", counts?.sessions) },
     { value: "events", label: tabLabel("기능 기록", counts?.events) },
-    ...(showPlus ? [{ value: "admin", label: <span data-plus>{tabLabel("관리자 행위", counts?.admin)}</span> }] : []),
+    ...(plusOn("adminTab") ? [{ value: "admin", label: <span data-plus>{tabLabel("관리자 행위", counts?.admin)}</span> }] : []),
   ]
 
   const body = (() => {
@@ -184,7 +187,12 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
   })()
 
   // 요약 칸은 목록을 불러온 뒤에만(불러오는 중 · 실패에 숫자를 보이지 않는다)
-  const insights = showPlus && (status === "ready" || status === "empty") ? (props.insights ?? null) : null
+  const insights = plusOn("insights") && (status === "ready" || status === "empty") ? (props.insights ?? null) : null
+  // 사용량 · 이상 징후가 없으면(실제 페이지 — 집계 API 없음) 위 요약 줄을 그리지 않고 무결성 칸은 오른쪽 칸 맨 위로
+  const pulse = insights !== null && (insights.activity !== undefined || insights.alerts !== undefined)
+  const side =
+    insights !== null &&
+    (insights.auditKinds !== undefined || insights.exportRules !== undefined || insights.adminActs !== undefined || (!pulse && insights.integrity !== undefined))
 
   const table = (
     <section aria-label={regionLabel} className="min-w-0">
@@ -202,7 +210,7 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
           <ViewCountSwitch label="줄 수" options={LOG_PAGE_SIZES} value={pageSize as 50 | 100} onChange={(n) => props.onPageSizeChange?.(n)} />
           {tab === "sessions" && <ColumnPicker columns={SESSION_COLUMNS} visible={sessionKeys} onChange={(k) => props.onSessionColumnsChange?.(k)} />}
           {tab === "events" && <ColumnPicker columns={EVENT_COLUMN_DEFS} visible={eventKeys} onChange={(k) => props.onEventColumnsChange?.(k)} />}
-          {showPlus ? (
+          {plusOn("export") ? (
             <span data-plus className="inline-flex">
               <WorkbenchButton size="sm" icon={Download} onClick={props.onExport}>
                 엑셀 내보내기
@@ -226,7 +234,7 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
           </div>
         )}
         {body}
-        {showPlus && status === "ready" && (
+        {plusOn("loadMore") && status === "ready" && (
           <div data-plus className="flex justify-center px-[14px] pt-[8px]">
             <WorkbenchButton size="sm" variant="ghost" onClick={props.onLoadMore}>
               더 보기
@@ -236,7 +244,7 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
         {(status === "ready" || (status === "empty" && props.page > 1)) && (
           <Pagination page={props.page} pageSize={pageSize} total={total} hasNext={hasNext} onPageChange={props.onPageChange} />
         )}
-        {showPlus ? (
+        {plusOn("retention") ? (
           <ListFoot data-plus>
             보존 기간: 접속·사용 기록 <b className="text-fg-2">3년</b> · 관리자 행위 <b className="text-fg-2">5년</b>(예시 — 기관 규정 확인 필요) · 내보내기 · 조회도
             기록됨
@@ -255,16 +263,16 @@ export function AdminLogsScreen(props: AdminLogsScreenProps) {
           onReset={props.onResetFilters}
           users={props.users}
           actions={props.actions}
-          showPlus={showPlus}
+          showPlus={plusOn("targetFilter")}
         />
       </BoardFrame>
 
-      {insights && <LogPulseRow insights={insights} />}
+      {insights && pulse && <LogPulseRow insights={insights} />}
 
-      {insights ? (
+      {insights && side ? (
         <div className="grid items-start gap-[14px] xl:grid-cols-[minmax(0,1fr)_320px]">
           {table}
-          <LogSidePanels insights={insights} />
+          <LogSidePanels insights={insights} withIntegrity={!pulse} />
         </div>
       ) : (
         table

@@ -173,6 +173,112 @@ export interface EventFilters extends SessionFilters {
   result?: ActivityResult;
   /** 기능 이름표 코드(`GET /admin/actions` 목록). */
   actionCode?: string;
+  /**
+   * 대상 번호(K1 `target_id`) — 감정물 번호 · 신발 ID는 앞부분 일치(감정번호를 넣으면 그 사건 감정물까지),
+   * 그 밖은 정확 일치. 감정번호면 그 의뢰의 숫자 번호(의뢰 · 검색 · 파일 · 검증 · 판본) 기록도 함께 나온다.
+   */
+  targetId?: string;
+}
+
+/** 감사(중요 행위) 구분 — 서버 `audit_repo.EVENT_SE_VALUES`(B 단계 0013) 그대로. */
+export type AuditEventSe =
+  | "EXAM_CONFIRM"
+  | "EXAM_SUPERSEDE"
+  | "EXAM_REOPEN"
+  | "CROSS_REVIEW_REQUEST"
+  | "CROSS_REVIEW_DECIDE"
+  | "REPORT_SEND"
+  | "REPORT_CORRECT"
+  | "SHOE_APPROVE"
+  | "FILE_DOWNLOAD"
+  | "ROLE_CHANGE"
+  | "PERMISSION_CHANGE"
+  | "ORG_CHANGE"
+  | "USER_CHANGE";
+
+/** GET /admin/audit-events 필터(K2). 날짜는 `YYYY-MM-DD`(KST, 끝 날짜 포함). */
+export interface AuditEventFilters {
+  /** 행위 구분 — 여러 개면 그중 하나(관리자 행위 = 관리 4종). */
+  eventSe?: AuditEventSe[];
+  /** 행위자 ID. */
+  actorId?: string;
+  /** 대상 구분(`USER` · `ORG` · `EXAMINATION` …). */
+  targetSe?: string;
+  /** 대상 번호(정확 일치). */
+  targetId?: string;
+  /** 시작 날짜. */
+  from?: string;
+  /** 끝 날짜. */
+  to?: string;
+  /** 0부터 시작하는 페이지(50개씩, 최신순). */
+  page?: number;
+}
+
+/** 감사 기록 한 행(snake, K2). */
+export interface AuditEventDto {
+  event_id: number;
+  event_se: AuditEventSe;
+  actor_id: string;
+  actor_nm: string | null;
+  actor_org_nm: string | null;
+  target_se: string;
+  target_id: string;
+  target_version: string | null;
+  reason_cn: string | null;
+  detail: Record<string, unknown> | null;
+  occurred_dt: string;
+  row_hash: string;
+}
+
+/** 감사 기록 한 행(camel). `detail`의 키도 camel로 바뀐다(`convertKeysToCamelCase`가 깊이 바꿈). */
+export interface AuditEvent {
+  /** 감사 번호(사슬 순서). */
+  eventId: number;
+  /** 행위 구분. */
+  eventSe: AuditEventSe;
+  /** 행위자 ID. */
+  actorId: string;
+  /** 행위자 이름 — 지금 사용자 표에 없으면 null. */
+  actorNm: string | null;
+  /** 행위자 소속 관서 이름. */
+  actorOrgNm: string | null;
+  /** 대상 구분(`USER` · `ORG` · `EXAMINATION` …). */
+  targetSe: string;
+  /** 대상 번호(문자열). */
+  targetId: string;
+  /** 대상 판 번호. */
+  targetVersion: string | null;
+  /** 사유. */
+  reasonCn: string | null;
+  /** 세부 내용(관리 변경이면 `{ op?, before, after }`). */
+  detail: Record<string, unknown> | null;
+  /** 발생 시각(KST ISO). */
+  occurredDt: string;
+  /** 사슬 지문(sha256 16진수 64자). */
+  rowHash: string;
+}
+
+/** GET /admin/audit-events/verify 범위(K3) — 없으면 처음 · 끝까지. */
+export interface AuditVerifyRange {
+  fromId?: number;
+  toId?: number;
+}
+
+/** 사슬 검증 결과(snake, K3). */
+export interface AuditVerifyDto {
+  checked: number;
+  broken_at: number | null;
+  last_hash: string | null;
+}
+
+/** 사슬 검증 결과(camel). */
+export interface AuditVerifyResult {
+  /** 검사한 감사 기록 수. */
+  checked: number;
+  /** 처음 어긋난 감사 번호 — 온전하면 null. */
+  brokenAt: number | null;
+  /** 마지막으로 본 기록의 지문 — 본 기록이 없으면 null. */
+  lastHash: string | null;
 }
 
 /** 로그인 기록 한 행(snake). */
