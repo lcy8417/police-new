@@ -1,18 +1,11 @@
-import { useId, useRef, useState, type FormEvent } from "react"
+import { useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
-import { Lock, UserRound } from "lucide-react"
 
 import { login } from "@/entities/session"
-import {
-  AuthFormError,
-  AuthPasswordField,
-  AuthScreen,
-  AuthSubmitButton,
-  AuthTextField,
-  authErrorMessage,
-  postLoginPath,
-  useSessionStore,
-} from "@/features/auth"
+import { authErrorMessage, postLoginPath, useSessionStore } from "@/features/auth"
+import { LoginScreen } from "@/widgets/login-screen"
+import { ApiError } from "@/shared/api"
+import { formatKstDateTime } from "@/shared/lib"
 
 /** "아이디 저장" localStorage 키. 비밀번호는 절대 저장하지 않는다. */
 const REMEMBER_KEY = "police.rememberedUserId"
@@ -36,36 +29,34 @@ function writeRememberedUserId(userId: string | null): void {
   }
 }
 
+const nowHhmm = () => formatKstDateTime(new Date().toISOString()).slice(11, 16)
+
 /**
- * 로그인 화면 `/login`(설계서 §7) — 앱 셸 없이 전체 화면 카드 1장.
+ * 로그인 화면 `/login`(설계서 §7) — S00 로그인 위젯(`LoginScreen`, 1차 모양 — 시연 · 소개 등 신규 요소는 끔).
  * 성공하면 세션 store를 채우고 `from`(같은 사이트 내부 경로만) 또는 허용된 첫 화면으로 간다.
- * 비밀번호 변경이 필요한 계정은 `/password`로. 이미 로그인된 상태면 `SessionProvider`가
- * 이 화면을 열지 않고 첫 화면으로 보낸다(같은 문서에서 다른 계정 로그인 금지).
+ * 비밀번호 변경이 필요한 계정은 `/password`로. 서버 거절 문구(401 불일치 · 423 잠금 …)는 그대로,
+ * 서버에 닿지 못했으면 「다시」 줄. 남은 시도 · 지난 로그인은 서버가 주지 않아 그리지 않는다.
  */
 export function LoginPage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const [initialUserId] = useState(readRememberedUserId)
-  const [userId, setUserId] = useState(initialUserId)
+  const [userId, setUserId] = useState(readRememberedUserId)
   const [password, setPassword] = useState("")
-  const [remember, setRemember] = useState(initialUserId !== "")
-  const [error, setError] = useState<string | null>(null)
+  const [remember, setRemember] = useState(() => readRememberedUserId() !== "")
+  const [message, setMessage] = useState<string | null>(null)
+  const [unreachable, setUnreachable] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const passwordRef = useRef<HTMLInputElement>(null)
-  const errorId = useId()
-  const rememberId = useId()
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const submit = async () => {
     if (submitting) return
-
     const trimmedId = userId.trim()
     if (!trimmedId || !password) {
-      setError("아이디와 비밀번호를 입력하세요")
+      setUnreachable(null)
+      setMessage("아이디와 비밀번호를 입력하세요")
       return
     }
-
-    setError(null)
+    setMessage(null)
+    setUnreachable(null)
     setSubmitting(true)
     try {
       const user = await login({ userId: trimmedId, password })
@@ -73,65 +64,32 @@ export function LoginPage() {
       useSessionStore.getState().setUser(user)
       navigate(postLoginPath(user, location.search), { replace: true })
     } catch (err) {
-      setError(authErrorMessage(err))
-      setPassword("")
+      if (err instanceof ApiError) {
+        setMessage(authErrorMessage(err))
+        setPassword("")
+      } else {
+        // 서버에 닿지 못함 — 칸은 그대로 두고 「다시」(조회 실패를 거절로 보이지 않는다)
+        setUnreachable(nowHhmm())
+      }
       setSubmitting(false)
-      passwordRef.current?.focus()
     }
   }
 
-  const invalid = error !== null
-
   return (
-    <AuthScreen title="족적 감정 플랫폼" description="등록된 계정으로 로그인하세요.">
-      <form aria-label="로그인" noValidate onSubmit={handleSubmit} className="space-y-5">
-        <AuthTextField
-          id="login-user-id"
-          label="아이디"
-          icon={UserRound}
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-          autoComplete="username"
-          autoCapitalize="none"
-          spellCheck={false}
-          maxLength={20}
-          autoFocus={initialUserId === ""}
-          aria-invalid={invalid || undefined}
-          aria-describedby={invalid ? errorId : undefined}
-        />
-
-        <AuthPasswordField
-          ref={passwordRef}
-          id="login-password"
-          label="비밀번호"
-          icon={Lock}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          autoFocus={initialUserId !== ""}
-          aria-invalid={invalid || undefined}
-          aria-describedby={invalid ? errorId : undefined}
-        />
-
-        <label
-          htmlFor={rememberId}
-          className="flex w-fit cursor-pointer items-center gap-2 text-[12px] text-[#A9B3C4] select-none"
-        >
-          <input
-            id={rememberId}
-            type="checkbox"
-            checked={remember}
-            onChange={(e) => setRemember(e.target.checked)}
-            className="size-4 cursor-pointer rounded border-[#26334A] accent-[#3B82F6] outline-none focus-visible:ring-[3px] focus-visible:ring-[#3B82F6]/45"
-          />
-          아이디 저장
-        </label>
-
-        <div className="space-y-3 pt-1">
-          <AuthFormError id={errorId} message={error} />
-          <AuthSubmitButton label="로그인" busyLabel="로그인 중…" busy={submitting} />
-        </div>
-      </form>
-    </AuthScreen>
+    <LoginScreen
+      mode="login"
+      showPlus={false}
+      status={submitting ? "loading" : unreachable ? "error" : "ready"}
+      errorMessage={unreachable ? null : message}
+      errorAt={unreachable ?? undefined}
+      onRetry={() => void submit()}
+      onSubmit={() => void submit()}
+      userId={userId}
+      onUserIdChange={setUserId}
+      password={password}
+      onPasswordChange={setPassword}
+      remember={remember}
+      onRememberChange={setRemember}
+    />
   )
 }

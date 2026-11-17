@@ -151,6 +151,19 @@ describe("LoginPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("계정이 잠겼습니다. 관리자에게 문의하세요")
   })
 
+  it("서버에 닿지 못하면 거절이 아니라 「다시」 줄 — 누르면 같은 값으로 다시 보낸다", async () => {
+    let calls = 0
+    mockLogin(() => {
+      calls += 1
+      return calls === 1 ? HttpResponse.error() : HttpResponse.json(userDto())
+    })
+    renderLogin()
+    await fillAndSubmit("kim01", "pass1234!")
+    fireEvent.click(await screen.findByRole("button", { name: "다시" }))
+    await waitFor(() => expect(location()).not.toBe("/login"))
+    expect(calls).toBe(2)
+  })
+
   it("빈 칸이면 서버로 보내지 않는다", async () => {
     const bodies = mockLogin(() => HttpResponse.json(userDto()))
     renderLogin()
