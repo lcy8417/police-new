@@ -3,11 +3,14 @@ import { useQueries, useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import {
+  editFileUrl,
   fetchSearchResultsPage,
   SEARCH_RESULTS_PAGE_SIZE,
   searchHistoryKeys,
   useCrimePatterns,
+  useEditHistory,
   useSearchHistory,
+  useSearchRun,
   type Crime,
 } from "@/entities/crime"
 import { shoeImageUrl } from "@/entities/shoe"
@@ -75,11 +78,29 @@ interface RunResultsTabProps extends SearchTabProps {
   searchNo: number | null
 }
 
+/**
+ * 지난 검색의 현장 그림 — 그 검색에 쓴 파일([검수] 예전엔 지금 편집본 · 원본을 보여 순위와 그림이 어긋났다).
+ * 지금 작업본 · 편집본과 같은 파일이면 이미 받은 그림을 쓰고(감사 · 내려받기 줄임), 다르면 `/files/{id}`(B2).
+ * 파일 번호가 없는 옛 이력은 지금 고른 그림.
+ */
+function useRunSceneImage(aprthngNo: string, image: Crime, inputFileId: number | null, searchImage: string): string {
+  const history = useEditHistory(inputFileId !== null ? aprthngNo : "")
+  const fallback = (searchImage === "edited" ? image.editImage : image.image) ?? ""
+  if (inputFileId === null) return fallback
+  if (!history.isSuccess) return history.isError ? editFileUrl(inputFileId) : fallback
+  if (inputFileId === history.data.workingFileId && image.image) return image.image
+  if (inputFileId === history.data.currentFileId && image.editImage) return image.editImage
+  return editFileUrl(inputFileId)
+}
+
 /** 검색 기록 한 건의 결과 쪽(D4) — 1위부터 이어진 한 목록, 끝에 닿으면 다음 쪽 */
 function RunResultsTab({ viewer, image, onOpenCompare, searchNo }: RunResultsTabProps) {
   const aprthngNo = image.aprthngNo ?? ""
   const setCompare = useTabSessionStore((s) => s.setCompare)
   const { searchImage } = useImageSession(aprthngNo)
+  // 그 검색에 쓴 파일(D3 input_file_id) — 옛 이력 · 못 읽으면 null
+  const runQuery = useSearchRun(searchNo)
+  const sceneImage = useRunSceneImage(aprthngNo, image, runQuery.data?.inputFileId ?? null, searchImage)
   const [binary, setBinary] = React.useState<ImageMode>("이진화보기")
   const [columns, setColumns] = React.useState<ResultColumns>(4)
   const [thumbSize, setThumbSize] = React.useState<ThumbSize>("보통")
@@ -190,7 +211,7 @@ function RunResultsTab({ viewer, image, onOpenCompare, searchNo }: RunResultsTab
       isAdmin={viewer.isAdmin}
       features={viewer.features}
       imageNo={aprthngNo}
-      sceneImage={(searchImage === "edited" ? image.editImage : image.image) ?? ""}
+      sceneImage={sceneImage}
       results={results}
       totalCount={total}
       page={1}

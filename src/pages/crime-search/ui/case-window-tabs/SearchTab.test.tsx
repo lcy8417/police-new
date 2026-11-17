@@ -19,6 +19,10 @@ const historyRow = (searchNo: number) => ({
   search_no: searchNo, frst_regist_dt: "2026-11-17 14:03:00", ranking: 0, mtchg_id: null, result_count: 2, source: "original",
   method: null, essential_summary: { essential: 1, total: 1 }, top: [], has_cond: true, cond: null,
 })
+const RUN = {
+  edit_image: null, mtchg_id: null, top: [], mid: [], bottom: [], outline: [], cond: null, candidate_total: 1, model: null,
+  ref_index_ver: null, input_file_id: null, aprthng_no: NO, seen: null,
+}
 const row = (rank: number, ftwrId: string, similarity: number) => ({
   rank_no: rank, ftwr_id: ftwrId, similarity, pattern_score: 0.5, final_score: null, brand_code: "NK", top: [], mid: [], bottom: [], outline: [],
 })
@@ -71,6 +75,26 @@ describe("SearchTab — 검색 기록의 결과 쪽(D4)", () => {
     )
     renderTab()
     expect(await screen.findByText("옛 이력 — 순위 기록 없음")).toBeInTheDocument()
+  })
+
+  it("[검수] 지난 검색의 순위 옆에는 그 검색에 쓴 파일(inputFileId)을 보인다 — 지금 편집본 · 원본이 아님", async () => {
+    mswServer.use(
+      http.get("*/crime/history/:s/results", () =>
+        HttpResponse.json({ items: [row(1, "00758", 90)], total: 1, stored: 1, recomputed: false, basis_changed: false, legacy: false, seen: null })
+      ),
+      http.get("*/crime/:no/edits", () =>
+        HttpResponse.json({ original: null, working_file_id: 4, current_file_id: 9, legacy: false, items: [] })
+      ),
+      http.get("*/crime/history/:s", () => HttpResponse.json({ ...RUN, input_file_id: 7 })),
+      http.get("*/crime/:no", () => HttpResponse.json([historyRow(101)])),
+    )
+    renderTab()
+    await screen.findByText("90%")
+    await waitFor(() => {
+      const scenes = screen.getAllByRole("img", { name: "현장 족적" })
+      expect(scenes.length).toBeGreaterThan(0)
+      for (const s of scenes) expect(s.getAttribute("src")).toMatch(/\/files\/7$/)
+    })
   })
 
   it("검색 기록이 없으면 지금 앱 인라인 검색(필수 문양만)", async () => {
