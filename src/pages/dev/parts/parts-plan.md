@@ -128,6 +128,13 @@
 | B단계 통합 S01 사건관리 목록 사건 진행 칸(서버 흐름 단계 — 접수 대기 · 1차 작업 · 검색·판정 · 교차 검증 · 감정서 · 완료, 과거 사건) · 행 끝 「접수」 · 「검증요청」 · 키셋 「다음」 | StatePill · WorkbenchButton · Pagination | 그대로 | 위젯 선택 prop flowStage · stageColumn · onReceive · receivingCase · hasNext(+α 없이 단계 칸) |
 | B단계 통합 S01 사건 창 사건 정보 탭 칸별 수정(SCAS 글자 칸 잠금 풀기 — 코드 칸은 값만) | Field · RadioRow · Combobox | 그대로 | 위젯 선택 prop editableLabels · onPendingChange |
 | B단계 통합 S01 새 사건 등록 창(?new=1 — S02 등록 화면을 창 틀에, 원본 올리기 → 등록) | CaseWindowFrame · Field · Combobox · DataGrid | 그대로 | 진열 S02 등록 모드 그대로 |
+| S01 사건 창 왼쪽 이미지 목록 · 문양 코드 탭 오른쪽 판 폭 조절 손잡이(끌기 · ← → 키 · 두 번 누르면 기본 폭) | ResizeHandle | 새로 | kit — 값 · 콜백만, 폭 기억(localStorage)은 위젯(11/17 사용자 「이 사이드바는 좌우 크기 조정 가능하게」) |
+| S01 사건 창 왼쪽 이미지 목록 펼친 폭(오른쪽 가장자리 끌어 조절 200 ~ 380) | WindowRail | 확장 | `width` · `onWidthChange` · `onWidthReset` · `minWidth` · `maxWidth` — 접힘 64 는 그대로 |
+| S01 문양 코드 탭 · 신발 편집 확대경 누르면 고정(다시 누름 · Esc 로 풀기, 고정 중 brand 테 · 「고정」 핀) | LensBox | 확장 | `pin` · `onPinChange` — 끌기와 누름 구분(4px) · 상자 안 단추 제외, 확대경은 그대로 pointer-events-none(좌표 계약 안 건드림)(11/17 사용자 「클릭하면 고정이 되어야지 저기 오른쪽에 고정이 있으면 어떻게 비교를 해」) |
+| S01 문양 코드 탭 · 신발 편집 확대 보기 칸(「고정」 단추 뺌 → 「고정됨」 표시만 · 두 칸 높이 120 고정) | PatternPeek | 확장 | 고정은 현장 그림 누름으로 — 오른쪽 칸은 같은 상태를 보이기만 |
+| S01 문양 코드 탭 문양 목록 칸 규격(AI 제안 · 종류별 같은 칸 · 판 폭에 맞춘 칸 수) | PatternLibrary | 확장 | `columns="fill"`(칸 최소 56 · 같은 크기), 칸 크기 = 격자 칸 폭 정사각(11/17 사용자 「문양 부분 좀 규격화하고 정렬맞춰」) |
+| 문양 그림을 못 읽을 때(서버 이름에 맞는 그림이 화면에 없음) 같은 칸 안 이름만 | PatternIcon | 확장 | 깨진 그림 · 대체글이 칸을 흔들던 것 — 평소 모양은 그대로(대조 밖 상태) |
+| S01 문양 코드 탭 오른쪽 판(문양 목록 · 검색 이력 두 탭 · 탭 줄 끝 접기 · 접힘 세로 띠 펼치기) · 4부위 막대 「직접 가중치 n개 되돌리기」 | UnderlineTabs · WorkbenchButton | 그대로 | 「검색 조건」 탭 뺌(11/17 사용자 「검색 조건 없애기」 — 매칭 조건은 모두 준비 중) |
 | B단계 통합 S01 검색 결과 탭 본 것 · 확인대상(「여기까지 봤음」 줄 · 본 것 거르기 · 본 위치 · 확인대상 칸 — +α 묶음에서 뗌) | Segmented · WorkbenchButton | 그대로 | 위젯 선택 prop seen(결정 기록 「본 것 안 본 것은 좋네」) |
 | B단계 통합 S01 정밀 대조 탭 AI 대조 칸(종합 = 이미지 유사도 · 대조 기록 — 부위 · 한 줄 의견 · 지표 줄은 값이 있을 때만) | AiTag · ConfidenceBar | 그대로 | 위젯 선택 prop verdict(MatchVerdict) |
 | B단계 통합 S01 결과 확인 탭 판정 메모 칸(판정한 줄만 고침) | Field · ListHeadRow · ListRow | 그대로 | 위젯 선택 prop onOpinionCommit — 메모 칸이 있으면 표 열 하나 더(COLS_MEMO) |
@@ -207,6 +214,7 @@
 승인: 11/17 사용자 — WorkbenchButton
 승인: 11/17 사용자 — ScasShell(topbar), WindowHead(noNav), ThemeSettings(compact)
 승인: 11/17 사용자 — PatternZoneBoard, PatternLibrary, PatternPeek, LensView, LensBox(onLensMove · 지름 48), WorkTabAdd
+승인: 11/17 사용자 — ResizeHandle, WindowRail(width · onWidthChange), LensBox(pin · onPinChange), PatternPeek(고정 표시만 · 칸 120), PatternLibrary(columns fill · 칸 규격), PatternIcon(그림 못 읽음 — 이름만) (문양 코드 탭 손질 요청 원문 「오른쪽 탭 스크롤 … 규격화하고 정렬맞춰 · 검색 조건 없애기」 · 「클릭하면 고정」 · 「사이드바는 좌우 크기 조정 · 오른쪽 슬라이드바는 접을 수 있게」)
 승인: 11/17 사용자 — ShoeEditor(머리 꼬리표 2 — 승인됨 · 문양 잠김 · 검색 후보 아님)
 승인: 11/17 사용자 — AdminLogsScreen(기록 무결성 칸 상태 3종 · 어긋남 빨간 알약)
 승인: 11/17 사용자 — AdminUsersScreen(관리자 변경 이력 칸 상태 3종)

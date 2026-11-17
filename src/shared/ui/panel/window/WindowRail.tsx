@@ -1,6 +1,8 @@
+import * as React from "react"
 import type { ReactNode } from "react"
 
 import { cn } from "@/shared/lib/utils"
+import { ResizeHandle } from "../../kit"
 import { partAttrs } from "../../part-attrs"
 
 // r4 로망 이식: 창 머리 아래 왼쪽 작은 목록. 생김새 기준은 로망 `qa/HistoryRail`(시안 office-qa-mockup
@@ -11,6 +13,8 @@ import { partAttrs } from "../../part-attrs"
 // (확장 11/17 사용자 「왼쪽 사이드바 기본적으로 접혀있을까?? 그리고 정렬이 맘에 안들고, 이 소제목도 맘에 안들어」)
 // 접힘(`collapsed`) = 폭 64 썸네일 줄(썸네일 + 번호 + 귀퉁이 표식) · 위 「»」 펼치기 · 아래 `footerCollapsed`. 펼침 = 232 · 위 칸 오른쪽 「«」 접기.
 // 묶음 머리는 묶음이 둘 이상일 때만(한 묶음이면 위 칸 제목이 같은 말이라 뺀다).
+// (확장 11/17 사용자 「이 사이드바는 좌우 크기 조정 가능하게」) 펼침일 때 `onWidthChange` 를 주면 오른쪽 가장자리에 폭 조절 손잡이(kit ResizeHandle `bare`),
+// 폭은 `width`(부르는 쪽이 들고 기억) — 접힘(64)은 그대로.
 
 export interface WindowRailItem {
   id: string
@@ -52,6 +56,15 @@ export interface WindowRailProps {
   collapsed?: boolean
   /** 주면 위 칸에 접기 「«」 · 펼치기 「»」 단추 */
   onToggle?: () => void
+  /** 펼친 폭(px) — 주면 이 폭(사람이 끌어 정한 런타임 값이라 인라인 style), 없으면 232(`narrow` 208) */
+  width?: number
+  /** 주면 펼쳤을 때 오른쪽 가장자리에 폭 조절 손잡이(끌기 · ← → 키 — kit ResizeHandle) */
+  onWidthChange?: (width: number) => void
+  /** 손잡이 두 번 누름 — 기본 폭으로 */
+  onWidthReset?: () => void
+  /** 폭 범위(기본 200 ~ 380) */
+  minWidth?: number
+  maxWidth?: number
   /** 위치 식별자(`data-part-id`) */
   partId?: string
 }
@@ -74,8 +87,14 @@ export function WindowRail({
   narrow = false,
   collapsed = false,
   onToggle,
+  width,
+  onWidthChange,
+  onWidthReset,
+  minWidth = 200,
+  maxWidth = 380,
   partId,
 }: WindowRailProps) {
+  const navRef = React.useRef<HTMLElement>(null)
   const showGroupHead = groups.filter((g) => g.items.length > 0).length > 1
   const toggle = onToggle ? (
     <button
@@ -150,14 +169,31 @@ export function WindowRail({
 
   return (
     <nav
+      ref={navRef}
       {...partAttrs("WindowRail", { variant: narrow ? "narrow" : undefined, id: partId })}
       aria-label={label}
       data-slot="window-rail"
       className={cn(
-        "flex min-h-0 flex-col border-r border-solid border-border bg-panel-2",
-        narrow ? "w-[208px]" : "w-[232px]"
+        "relative flex min-h-0 flex-col border-r border-solid border-border bg-panel-2",
+        width === undefined && (narrow ? "w-[208px]" : "w-[232px]")
       )}
+      style={width === undefined ? undefined : { width }}
     >
+      {onWidthChange ? (
+        // 오른쪽 가장자리 선 위에 겹친 손잡이(평소 선은 목록 테두리 — 올리거나 초점 · 끄는 중에만 brand 선)
+        <ResizeHandle
+          label="이미지 목록 폭"
+          value={width ?? (narrow ? 208 : 232)}
+          min={minWidth}
+          max={maxWidth}
+          onChange={onWidthChange}
+          onReset={onWidthReset}
+          grow="right"
+          measure={() => navRef.current?.getBoundingClientRect().width}
+          bare
+          className="absolute inset-y-0 -right-[6px] z-[2]"
+        />
+      ) : null}
       {top || toggle ? (
         <div className="flex items-start gap-2 border-b border-solid border-border px-3 pt-2.5 pb-2.5">
           <div className="flex min-w-0 flex-1 flex-col gap-2">{top}</div>

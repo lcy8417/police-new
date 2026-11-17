@@ -43,6 +43,8 @@ export {
   type WorkbenchButtonSize,
   type WorkbenchButtonVariant,
 } from './WorkbenchButton'
+// 11/17 판 폭 조절 손잡이(사건 창 왼쪽 이미지 목록 · 문양 코드 탭 오른쪽 판)
+export { ResizeHandle, type ResizeHandleProps } from './ResizeHandle'
 // r4 목록 판(로망 이식) — 앱 틀 · 목록 생김새는 로망 정본, 색만 경찰 토큰
 export {
   BoardFrame,

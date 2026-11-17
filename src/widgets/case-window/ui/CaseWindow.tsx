@@ -1,5 +1,6 @@
 import * as React from "react"
 
+import { isIntBetween, useStoredState } from "@/shared/lib"
 import { StatePill, type StatePillTone } from "@/shared/ui/kit"
 import {
   CaseWindowFrame,
@@ -52,6 +53,12 @@ const MARK: Partial<Record<CaseImageStatus, string>> = {
 /** 위 칸 요약 순서 */
 const STATUS_ORDER: readonly CaseImageStatus[] = ["발견", "불발견", "감정불능", "확인", "검색됨", "등록"]
 
+/** 펼친 이미지 목록 폭 범위(px) · 기억 키 */
+const RAIL_MIN = 200
+const RAIL_MAX = 380
+const RAIL_WIDTH_KEY = "case-window:rail-width"
+const isRailWidth = isIntBetween(RAIL_MIN, RAIL_MAX)
+
 export function CaseWindow({
   summary,
   images,
@@ -85,6 +92,8 @@ export function CaseWindow({
   // 왼쪽 이미지 목록은 기본 접힘(11/17 사용자 「왼쪽 사이드바 기본적으로 접혀있을까??」) — 창 안 보기 상태라 위젯이 든다.
   // 새 사건 등록은 사진 추가가 첫 일이라 펼친 채로 시작(railInitiallyOpen)
   const [railCollapsed, setRailCollapsed] = React.useState(!railInitiallyOpen)
+  // 펼친 목록 폭(11/17 사용자 「이 사이드바는 좌우 크기 조정 가능하게」) — 이 브라우저에 기억(null = 기본 232)
+  const [railWidth, setRailWidth] = useStoredState<number | null>(RAIL_WIDTH_KEY, null, isRailWidth)
 
   const groups: WindowRailGroup[] = (["신발", "타이어"] as const)
     .map((kind) => ({
@@ -178,6 +187,11 @@ export function CaseWindow({
           onSelect={onSelectImage}
           collapsed={railCollapsed}
           onToggle={() => setRailCollapsed((v) => !v)}
+          width={railWidth ?? undefined}
+          onWidthChange={setRailWidth}
+          onWidthReset={() => setRailWidth(null)}
+          minWidth={RAIL_MIN}
+          maxWidth={RAIL_MAX}
           footer={railFooter}
           footerCollapsed={
             railFooter ? (

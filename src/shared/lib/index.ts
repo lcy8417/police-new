@@ -6,6 +6,7 @@ export { useAutoPlay, type UseAutoPlayOptions, type UseAutoPlayResult } from './
 export { isTextEntryTarget, shouldHandleShortcut, type ShortcutKeyEvent } from './should-handle-shortcut'
 export { handleRovingKey, rovingIndex } from './roving-tabs'
 export { ESC_LAYER_SELECTOR, hasLayerAbove } from './esc-layer'
+export { isBoolean, isIntBetween, useStoredState, type StoredUpdate } from './use-stored-state'
 export {
   buildGammaLut,
   clampByte,
