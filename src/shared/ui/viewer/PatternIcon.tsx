@@ -46,6 +46,11 @@ export function PatternIcon({
 }: PatternIconProps) {
   // 배지(필수 · 개수)가 없으면 시안처럼 바탕 안에서 자른다. 배지는 모서리 밖으로 나와야 하므로 있으면 자르지 않고 그림 모서리만 둥글게 한다.
   const hasBadge = essential || count !== undefined
+  const alt = selected ? `${name} 선택됨` : ai ? `${name} AI 제안` : name
+  // 그림을 못 읽으면(서버 이름에 맞는 그림이 이 화면에 없음 등) 깨진 그림 · 대체글 대신 같은 칸 안에 이름만 작게 —
+  // 칸 크기 · 줄이 흐트러지지 않게(11/17 사용자 「문양 부분 좀 규격화하고 정렬맞춰」). 다른 src 가 오면 다시 그림을 시도한다
+  const [failedSrc, setFailedSrc] = React.useState<string | null>(null)
+  const failed = failedSrc === src
   return (
     <span
       {...partAttrs("PatternIcon", { variant: size, state: selected ? "sel" : ai ? "ai" : undefined, id: partId })}
@@ -62,12 +67,24 @@ export function PatternIcon({
       )}
       {...props}
     >
-      <img
-        src={src}
-        alt={selected ? `${name} 선택됨` : ai ? `${name} AI 제안` : name}
-        loading="lazy"
-        className={cn("size-full object-contain", hasBadge && "overflow-hidden rounded-[5px]")}
-      />
+      {failed ? (
+        <span
+          role="img"
+          aria-label={alt}
+          data-img-missing=""
+          className="grid size-full min-w-0 place-items-center overflow-hidden px-[2px] text-center font-code text-[9px] leading-[1.15] break-all text-muted-foreground"
+        >
+          {name}
+        </span>
+      ) : (
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          onError={() => setFailedSrc(src)}
+          className={cn("size-full object-contain", hasBadge && "overflow-hidden rounded-[5px]")}
+        />
+      )}
       {essential ? (
         <span className="absolute -top-[5px] -left-[5px] rounded-[3px] border border-solid border-danger-line bg-danger-bg px-[3px] text-[9px] leading-[12px] text-danger-fg">
           필수

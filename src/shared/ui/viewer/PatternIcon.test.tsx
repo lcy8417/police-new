@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
 import { PatternIcon } from "./PatternIcon"
@@ -46,6 +46,17 @@ describe("PatternIcon", () => {
     expect(screen.getByAltText("a AI 제안")).toBeInTheDocument()
     rerender(<PatternIcon name="a" src="a.png" />)
     expect(screen.getByAltText("a")).toBeInTheDocument()
+  })
+
+  it("그림을 못 읽으면 깨진 그림 대신 같은 칸 안에 이름만(대체글은 그대로), 다른 src 가 오면 다시 그림", () => {
+    const { container, rerender } = render(<PatternIcon name="s71j" src="/없음/s71j.png" ai />)
+    fireEvent.error(screen.getByAltText("s71j AI 제안"))
+    const missing = screen.getByRole("img", { name: "s71j AI 제안" })
+    expect(missing).toHaveAttribute("data-img-missing")
+    expect(missing).toHaveTextContent("s71j")
+    expect(container.querySelector("img")).toBeNull()
+    rerender(<PatternIcon name="s71j" src="/src/assets/Patterns/전체/s71j.png" ai />)
+    expect(screen.getByAltText("s71j AI 제안")).toHaveAttribute("src", "/src/assets/Patterns/전체/s71j.png")
   })
 
   it("position relative 는 배지가 있을 때만", () => {
