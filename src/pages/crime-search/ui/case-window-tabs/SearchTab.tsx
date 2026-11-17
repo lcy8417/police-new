@@ -29,6 +29,7 @@ import {
   type ThumbSize,
 } from "@/widgets/search-result"
 
+import { runPagesState } from "./model/run-pages"
 import { useSelectedRun } from "./model/search-run-session"
 import { targetKey, useTargetsBinding } from "./model/use-targets-binding"
 import { toPercentList } from "./model/similarity-scale"
@@ -132,7 +133,8 @@ function RunResultsTab({ viewer, image, onOpenCompare, searchNo }: RunResultsTab
   })
   const first = pageQueries[0]?.data
   const rows = pageQueries.flatMap((q) => q.data?.items ?? [])
-  const total = first?.total ?? rows.length
+  // 201위 이후 다시 계산에서 빈 쪽이 오면 받은 줄 수가 전체(더 보기 멈춤 — model/run-pages)
+  const { total, exhausted } = runPagesState(pageQueries.map((q) => q.data))
   const recomputed = pageQueries.some((q) => q.data?.recomputed)
   const fetchingMore = pageQueries.some((q) => q.isFetching)
 
@@ -246,7 +248,7 @@ function RunResultsTab({ viewer, image, onOpenCompare, searchNo }: RunResultsTab
       onFocusChange={setFocusRank}
       onNotice={(message) => toast(message)}
       onLoadMore={
-        results.length < total && !fetchingMore && !legacy
+        results.length < total && !fetchingMore && !legacy && !exhausted
           ? () => setLoaded({ run: searchNo, pages: pageCount + 1 })
           : undefined
       }
