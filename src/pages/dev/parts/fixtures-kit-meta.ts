@@ -18,6 +18,8 @@ export const KIT_PART_FIXTURES: PartFixture[] = [
   { id: "S01-73", part: "Avatar", parentWidth: 60, surface: "panel" },
   { id: "S01-74", part: "DataGrid", parentWidth: 520, surface: "panel", noMockup: "시안 표는 화면마다 열 · 그림이 달라 한 짝으로 못 맞춤(열 정의는 화면이 정함)" },
   { id: "S01-75", part: "Pagination", parentWidth: 520, surface: "panel", noMockup: "시안 S01은 「페이지 1 / 9」 입력형, 부품은 이전 · 다음 + 범위 글자" },
+  // 11/17 신발 DB 패널 바닥 오른쪽 쪽 이동(사용자 「우하단 검색으로 페이지 넘어갈 수 있고」) — 시안에 그 자리가 없다
+  { id: "S10-71", part: "Pagination", variant: "jump", parentWidth: 760, surface: "panel", noMockup: "시안 S10에 쪽 번호 바로 가기 자리가 없음(11/17 사용자 요청으로 더한 변형)" },
   { id: "S00-71", part: "InlineError", parentWidth: 260, surface: "panel", noMockup: NO_MOCKUP_FORM },
   // r3 편의 부품 — 시안 짝 없음(사용자 r3 피드백으로 새로 만든 부품). 진열만 한다.
   { id: "S01-81", part: "FilterBar", parentWidth: 640, surface: "panel", noMockup: NO_MOCKUP_FORM },

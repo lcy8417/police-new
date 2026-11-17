@@ -112,6 +112,7 @@ export const KIT_FIXTURE_RENDERS: Record<string, () => ReactNode> = {
     />
   ),
   "S01-75": () => <Pagination total={116} page={1} pageSize={20} hasNext onPageChange={noop} partId="S01-75" />,
+  "S10-71": () => <Pagination jump total={115788} page={33} pageSize={50} hasNext onPageChange={noop} partId="S10-71" />,
   "S00-71": () => <InlineError message="확인 못 함" at="09:12" onRetry={noop} partId="S00-71" />,
   "S01-81": () => (
     <FilterBar
