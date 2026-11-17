@@ -52,7 +52,12 @@ export interface CaseListRow {
   ai?: { state: "running" | "done"; ready: number; total: number }
   /** (+α) 사건 진행 단계: -1 = 이미지 확인 중, 0 검증요청 · 1 교차 검증 · 2 감정서 · 3 결재 · 4 결재완료 */
   stage?: number
-  /** (+α) 교차 검증자(stage 1 에서 단계 이름 옆) */
+  /**
+   * 서버 흐름 단계(A1 `flow_stage`): 0 접수 대기 · 1 1차 작업 · 2 검색·판정 · 3 교차 검증 · 4 감정서 · 5 완료 · null 과거 사건.
+   * 실제 목록(`/cases`)이 준다 — 주면 `stage`(진열 시안 옛 번호) 대신 이 값으로 단계 알약 · 행 끝 단추를 정한다
+   */
+  flowStage?: 0 | 1 | 2 | 3 | 4 | 5 | null
+  /** (+α) 교차 검증자(stage 1 · flowStage 3 에서 단계 이름 옆) */
   crossReviewer?: string
   /** (+α) 행 펼침 요약 */
   summary?: CaseListRowSummary
@@ -124,8 +129,8 @@ export interface CaseListQuickFilter {
   onClear: () => void
   /** 빠른 찾기로 걸러진 개수 */
   resultCount: number
-  /** 빠른 찾기 전 개수 */
-  total: number
+  /** 빠른 찾기 전 개수 — 모르면 null(서버 키셋 목록 — 아래 줄 「n / 전체 m」을 그리지 않는다) */
+  total: number | null
   /** 검색칸 안내 글 */
   placeholder?: string
 }
@@ -144,6 +149,11 @@ export interface CaseListScreenProps {
   rows: readonly CaseListRow[]
   /** 조건에 맞는 전체 건수(모르면 생략) */
   total?: number
+  /**
+   * 다음 쪽이 있나(서버 키셋 목록 — 전체 건수가 없을 때). 주면 「다음」을 이 값으로 켜고 끈다.
+   * 안 주면 전체 건수로 계산(진열 그대로)
+   */
+  hasNext?: boolean
   page: number
   pageSize: number
   onPageChange: (page: number) => void
@@ -155,6 +165,17 @@ export interface CaseListScreenProps {
   onSearchCase: (aprthngNo: string) => void
   /** 사건 진행 칸 「확인」 — 확인 대기 장이 있을 때 */
   onConfirmCase: (aprthngNo: string) => void
+  /**
+   * 행 끝 「접수」(flowStage 0 — 접수 대기, 판정 확정 권한 EXAM_DECIDE) — 감정번호를 넘긴다. 안 주면 단추를 그리지 않는다
+   */
+  onReceive?: (aprthngNo: string) => void
+  /** 접수 중인 감정번호(그 행 「접수」 잠금) */
+  receivingCase?: string | null
+  /**
+   * 「사건 진행」 단계 칸(알약 + 단추)을 +α 와 따로 켠다 — 실제 목록은 서버 흐름 단계(flowStage)가 있어 showPlus=false 여도 보인다.
+   * 기본 = showPlus
+   */
+  stageColumn?: boolean
   /** (+α) 신규 기능 숨김 — 기본 true. false 면 `data-plus` 요소가 하나도 없다 */
   showPlus?: boolean
   /** 아직 기능이 없는 단추(검증요청 · 검증)를 눌렀을 때 — 이름을 넘긴다(시안 — 기능 준비 중) */

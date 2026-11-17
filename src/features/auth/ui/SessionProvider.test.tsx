@@ -74,6 +74,7 @@ function renderApp(path: string) {
               <RequireAuth>
                 <RequireFeature code={FEATURES.CRIME_SEARCH}>
                   <p>사건 조회 화면</p>
+                  <Link to="/search">옛 화면으로</Link>
                 </RequireFeature>
               </RequireAuth>
             }
@@ -283,6 +284,17 @@ describe("SessionProvider — 사건 목록 로딩 자격", () => {
       useSessionStore.getState().setUser({ ...pending, passwordChangeRequired: false, features: [] });
     });
     expect(reset).toHaveBeenCalledTimes(1);
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("새 사건관리(/cases)에서는 전체 사건 목록을 부르지 않고, 옛 화면에 처음 들어갈 때 1회 부른다(이식 계획 R1)", async () => {
+    fetchMeMock.mockResolvedValue(user([FEATURES.CRIME_SEARCH]));
+    renderApp("/cases");
+    await screen.findByText("사건 조회 화면");
+    expect(refetch).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("link", { name: "옛 화면으로" }));
+    await waitFor(() => expect(location()).toBe("/search"));
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 

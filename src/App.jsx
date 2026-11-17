@@ -2,16 +2,15 @@
 // @MX:CEILING: 라우팅이 FSD app/ 레이어(src/app/)로 이전되기 전까지 유효 — 현재 신규 라우트도 계속 이 파일에 추가됨
 // @MX:UPGRADE: src/app/에 라우터 설정이 이전되고 이 파일의 Routes가 제거되면 완료
 import { createElement, lazy, Suspense } from "react";
-import { Routes, Route, Navigate, Outlet, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet, useLocation, useParams } from "react-router-dom";
 import { AppShell, ScasAppShell } from "@/widgets/app-shell";
 import {
   CasesPage,
-  CrimeDetailPage as CrimeDetail,
   CrimeHistoryPage as CrimeHistory,
+  LegacyCaseRedirect,
   ResultDetailPage as ResultDetail,
 } from "@/pages/crime-search";
 import { CrimeRegisterPage } from "@/pages/crime-register";
-import { ShoeRepositoryPage } from "@/pages/shoe-repository";
 import { LoginPage } from "@/pages/login";
 import { PasswordChangePage } from "@/pages/password-change";
 import { ManageUsersPage } from "@/pages/manage-users";
@@ -20,6 +19,7 @@ import EditorMode from "./pages/EditorMode";
 import { FEATURES } from "@/entities/session";
 import {
   CASES_ROUTE_FEATURES,
+  CASE_VIEW_FEATURES,
   FirstAllowedRedirect,
   RequireAdmin,
   RequireAuth,
@@ -35,44 +35,21 @@ import {
 // 앞자리 0 보존 문자열), 이력 = `:searchNo`(정수). `useParams`는 디코딩된 값을 주므로
 // 리다이렉트 경로를 다시 만들 때 `encodeURIComponent`로 감싼다.
 
-// 패턴추출 화면은 통합 커맨드센터(`/search/:aprthngNo`)로 흡수됐다. 기존
-// `/patternExtract` 경로는 detail URL로 리다이렉트해 하위 호환을 유지한다.
-function PatternExtractRedirect() {
-  const { aprthngNo = "" } = useParams();
-  return <Navigate to={`/search/${encodeURIComponent(aprthngNo)}`} replace />;
-}
+// B 단계 통합(화면 이식 계획 §1 표 — 묶음 ③ · ④ 끝 넘겨주기): 옛 통합 커맨드센터(`/search/:aprthngNo` · `/edit` ·
+// `/patternExtract` · `/shoesResult`)는 새 사건관리 사건 창으로(`LegacyCaseRedirect` — A1 `aprthng=`로 감정번호를 찾음),
+// 옛 신발 화면(`/shoesRepository*` · `/shoesRegister` · `/shoesEdit`)은 사건관리 위 신발 DB 패널(`/cases?shoe=1`)로 넘긴다.
+// 옛 이력 상세(`…/crimeHistory/:searchNo`) · 결과 상세(`…/shoesResult/detail/:ftwrId`)는 새 화면에 같은 자리가 없어 그대로 둔다.
 
-// 검색 결과는 이제 통합 커맨드센터(`/search/:aprthngNo`) 안에 인라인으로
-// 표시된다(검색모드). 기존 `/search/:aprthngNo/shoesResult` 경로(북마크·
-// 레거시 링크)는 detail URL로 리다이렉트해 하위 호환을 유지한다.
-function ShoesResultRedirect() {
-  const { aprthngNo = "" } = useParams();
-  return <Navigate to={`/search/${encodeURIComponent(aprthngNo)}`} replace />;
-}
-
-// 신발 등록·조회·편집은 통합 커맨드센터(`/shoesRepository`)로 흡수됐다. 레거시
-// `/shoesRegister`·`/shoesEdit/:ftwrId` 경로(사이드바·북마크·레거시 링크)는
-// 각각 등록 모드·편집 모드 URL로 리다이렉트해 하위 호환을 유지한다.
-function ShoeRegisterRedirect() {
-  return <Navigate to="/shoesRepository?mode=new" replace />;
-}
-
-function ShoesEditRedirect() {
+/** `/shoesRepository/:ftwrId?mode=…` · `/shoesEdit/:ftwrId` → 신발 DB 패널 그 신발 */
+function ShoePanelRedirect() {
   const { ftwrId = "" } = useParams();
-  return (
-    <Navigate
-      to={`/shoesRepository/${encodeURIComponent(ftwrId)}?mode=edit`}
-      replace
-    />
-  );
+  return <Navigate to={`/cases?${new URLSearchParams({ shoe: "1", ftwr: ftwrId }).toString()}`} replace />;
 }
 
-// 현장 이미지 편집은 통합 커맨드센터(`/search/:aprthngNo`)의 우측 편집 Sheet로
-// 흡수됐다(신규 `features/crime-edit`). 레거시 `/edit/:aprthngNo` 경로(북마크·
-// 외부 링크)는 detail URL로 리다이렉트해 하위 호환을 유지한다.
-function EditRedirect() {
-  const { aprthngNo = "" } = useParams();
-  return <Navigate to={`/search/${encodeURIComponent(aprthngNo)}`} replace />;
+/** `/shoesRepository?mode=new` · `/shoesRegister` → 신발 DB 패널 새 신발, 그 밖 `/shoesRepository` → 패널 목록 */
+function ShoeListRedirect() {
+  const isNew = new URLSearchParams(useLocation().search).get("mode") === "new";
+  return <Navigate to={isNew ? "/cases?shoe=1&shoeNew=1" : "/cases?shoe=1"} replace />;
 }
 
 // 부품 진열 화면(`/dev/parts`)은 개발 실행에서만 있다. 프로덕션 빌드에서는 `import.meta.env.DEV`가
@@ -157,6 +134,35 @@ function App() {
             </RequireFeature>
           }
         />
+
+        {/* 옛 통합 커맨드센터 주소 → 사건 창(이미지 · 탭). 감정번호 찾기(A1)에 사건 보기 권한이 필요 */}
+        <Route
+          element={
+            <RequireFeature anyOf={CASE_VIEW_FEATURES}>
+              <Outlet />
+            </RequireFeature>
+          }
+        >
+          <Route path="/search" element={<Navigate to="/cases" replace />} />
+          <Route path="/search/:aprthngNo" element={<LegacyCaseRedirect tab="pattern" />} />
+          <Route path="/search/:aprthngNo/patternExtract" element={<LegacyCaseRedirect tab="pattern" />} />
+          <Route path="/search/:aprthngNo/shoesResult" element={<LegacyCaseRedirect tab="search" />} />
+          <Route path="/edit/:aprthngNo" element={<LegacyCaseRedirect tab="edit" />} />
+        </Route>
+
+        {/* 옛 신발 화면 주소 → 사건관리 위 신발 DB 패널 */}
+        <Route
+          element={
+            <RequireFeature code={FEATURES.SHOE_VIEW}>
+              <Outlet />
+            </RequireFeature>
+          }
+        >
+          <Route path="/shoesRepository" element={<ShoeListRedirect />} />
+          <Route path="/shoesRepository/:ftwrId" element={<ShoePanelRedirect />} />
+          <Route path="/shoesRegister" element={<Navigate to="/cases?shoe=1&shoeNew=1" replace />} />
+          <Route path="/shoesEdit/:ftwrId" element={<ShoePanelRedirect />} />
+        </Route>
       </Route>
 
       {/* Persistent shell: fixed TopNav + Sidebar, only the Outlet content swaps. */}
@@ -188,44 +194,15 @@ function App() {
             </RequireFeature>
           }
         >
-          {/* `/search`(param 없음)와 `/search/:aprthngNo` 모두 통합 커맨드센터.
-              param 없이 진입하면 빈 상태(사건 미선택)로 열려, 4열 사건 탐색 패널의
-              목록에서 사건을 골라 워크벤치를 채운다. */}
-          <Route path="/search" element={<CrimeDetail />} />
-          <Route path="/search/:aprthngNo" element={<CrimeDetail />} />
+          {/* 옛 이력 상세 · 결과 상세(새 사건 창에 같은 자리가 없어 남김). `/search`(목록 · 통합 화면)는 위에서 사건 창으로 넘긴다 */}
           <Route
             path="/search/:aprthngNo/crimeHistory/:searchNo"
             element={<CrimeHistory />}
           />
           <Route
-            path="/search/:aprthngNo/patternExtract"
-            element={<PatternExtractRedirect />}
-          />
-          <Route
-            path="/search/:aprthngNo/shoesResult"
-            element={<ShoesResultRedirect />}
-          />
-          <Route
             path="/search/:aprthngNo/shoesResult/detail/:ftwrId"
             element={<ResultDetail />}
           />
-          <Route path="/edit/:aprthngNo" element={<EditRedirect />} />
-        </Route>
-
-        <Route
-          element={
-            <RequireFeature code={FEATURES.SHOE_VIEW}>
-              <Outlet />
-            </RequireFeature>
-          }
-        >
-          <Route path="/shoesRegister" element={<ShoeRegisterRedirect />} />
-          <Route path="/shoesRepository" element={<ShoeRepositoryPage />} />
-          <Route
-            path="/shoesRepository/:ftwrId"
-            element={<ShoeRepositoryPage />}
-          />
-          <Route path="/shoesEdit/:ftwrId" element={<ShoesEditRedirect />} />
         </Route>
 
         {/* 관리자 화면(API `/admin/*`와 겹치지 않게 `/manage/*`). `/manage`와 없는 하위 주소는

@@ -12,6 +12,9 @@ import { hasFeature, useSessionStore } from "../model/session-store"
 import { PROTECTED_ROOT_SELECTOR } from "./RequireAuth"
 import { SessionLoadingScreen } from "./SessionLoadingScreen"
 
+/** 새 사건관리 주소 — 전역 사건 목록을 쓰지 않는 화면 */
+const CASES_PATH = "/cases"
+
 /** 서버가 비밀번호 변경 전 요청을 막을 때 주는 403 문구. */
 const PASSWORD_CHANGE_DETAIL = "비밀번호를 변경해야 합니다"
 
@@ -27,8 +30,8 @@ interface SessionProviderProps {
  * - 403 `"비밀번호를 변경해야 합니다"` → `/password`
  * - 이미 로그인된 채 `/login`에 오면 첫 화면으로(같은 문서에서 다른 계정 로그인 금지)
  * - 뒤로 가기 캐시(bfcache): `pagehide`에 보호 화면을 숨기고, 되살아나면(`persisted`) 새로고침
- * - 사건 목록 로딩 자격(로그인 + 비밀번호 변경 완료 + 사건 조회 권한)이 생기면 목록을 부르고,
- *   사라지면 비운다
+ * - 사건 목록 로딩 자격(로그인 + 비밀번호 변경 완료 + 사건 조회 권한)이 있고 옛 화면 주소(`/cases` 밖)면 목록을 부르고,
+ *   자격이 사라지면 비운다(`/cases` 는 A1 · A2 쿼리만 — 전역 목록을 부르지 않는다)
  */
 // @MX:ANCHOR: [AUTO] SessionProvider - 세션 복원·재확인·계정 전환·bfcache·사건 목록 자격을 한곳에서 관리(main.jsx에서 App을 감쌈)
 // @MX:REASON: 화면마다 세션을 따로 확인하면 계정 전환·권한 회수 감지가 어긋난다 — 이 컴포넌트가 단일 담당
@@ -89,19 +92,35 @@ export function SessionProvider({ children }: SessionProviderProps) {
     !user.passwordChangeRequired &&
     hasFeature(user, FEATURES.CRIME_SEARCH)
   const userId = user?.userId ?? null
+  // 화면 이식 계획 §5 R1: 새 사건관리(`/cases`)는 전역 store 를 쓰지 않으므로(A1 · A2 쿼리) 거기서는 전체 사건 목록
+  // (`GET /crime/` — 편집 이미지 base64 포함)을 부르지 않는다. 옛 화면 주소에 처음 들어갈 때 1회 부른다.
+  const legacyRoute = !location.pathname.startsWith(CASES_PATH)
   const prevEligibilityRef = useRef<{ eligible: boolean; userId: string | null }>({
     eligible: false,
     userId: null,
   })
+  /** store 를 채운 사용자(없으면 null) — 같은 사람이면 다시 부르지 않는다 */
+  const loadedForRef = useRef<string | null>(null)
   useEffect(() => {
     const before = prevEligibilityRef.current
     prevEligibilityRef.current = { eligible, userId }
-    if (eligible && (!before.eligible || before.userId !== userId)) {
-      void useCrimeStore.getState().refetch()
-    } else if (!eligible && before.eligible) {
-      useCrimeStore.getState().reset()
+    if (!eligible) {
+      if (before.eligible) {
+        useCrimeStore.getState().reset()
+        loadedForRef.current = null
+      }
+      return
     }
-  }, [eligible, userId])
+    if (loadedForRef.current === userId) return
+    if (legacyRoute) {
+      loadedForRef.current = userId
+      void useCrimeStore.getState().refetch()
+    } else if (loadedForRef.current !== null) {
+      // 새 화면에 있는 동안 계정이 바뀜 — 앞 사람 목록을 비워 두고 옛 화면에 들어갈 때 새로 부른다
+      useCrimeStore.getState().reset()
+      loadedForRef.current = null
+    }
+  }, [eligible, userId, legacyRoute])
 
   if (status === "loading") return <SessionLoadingScreen />
 

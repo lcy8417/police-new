@@ -9,37 +9,41 @@ import {
   fetchShoesCount,
   fetchShoesList,
   registerShoe,
+  fetchShoeStages,
   shoeKeys,
   SHOES_PAGE_SIZE,
   updateShoe,
   validateShoeForm,
   type Shoe,
 } from "@/entities/shoe"
-// 배럴(`@/entities/shoe` · features 배럴)은 통합 담당 파일 — 새 이름은 통합 때 배럴로(sprint-notes)
-import { fetchShoeStages } from "@/entities/shoe/api/shoe-api"
+import { useCodes } from "@/entities/code"
 import { hasFeature, isAdmin, useSessionStore } from "@/features/auth"
-import { extractShoePatterns, shoeExtractImage } from "@/features/shoe-repository/api/extract-shoe-patterns"
-import { approveShoe, saveShoePatterns } from "@/features/shoe-repository/api/shoe-duty-api"
-import { readSoleFile, rotateSoleImage } from "@/features/shoe-repository/lib/sole-image"
-import { SHOE_PATTERN_LIBRARY } from "@/features/shoe-repository/model/pattern-library"
+import {
+  SHOE_PATTERN_LIBRARY,
+  approveShoe,
+  extractShoePatterns,
+  readSoleFile,
+  rotateSoleImage,
+  saveShoePatterns,
+  shoeExtractImage,
+} from "@/features/shoe-repository"
 import { ApiError } from "@/shared/api"
 import type { ScreenStatus } from "@/shared/lib/screen-status"
 import {
+  SHOE_STAGE_LABEL,
   ShoeDbPanel,
+  toCardInfo,
+  toShoeListFilters,
+  toStageSummary,
   type ShoeAiMarks,
   type ShoeCardSize,
   type ShoeDbFilters,
   type ShoeDbView,
   type ShoeDialogState,
   type ShoeExtractState,
-} from "@/widgets/shoe-db"
-import {
-  SHOE_STAGE_LABEL,
-  toCardInfo,
-  toShoeListFilters,
-  toStageSummary,
+  type ShoeOfficeItem,
   type ShoeStageKey,
-} from "@/widgets/shoe-db/model/live-data"
+} from "@/widgets/shoe-db"
 
 // 신발 DB 슬라이드 패널 본문(새 사건관리 위 막대 「신발 DB」 · `/cases?shoe=1`, 결정 기록 §4) — 승인 시안 `ShoeDbPanel` · `ShoeEditor`
 // 그대로에 실제 값(B 단계 서버 J1~J8 · C3)만 꽂는다.
@@ -147,6 +151,12 @@ export interface ShoeDbPanelContainerProps {
 
 export function ShoeDbPanelContainer({ ftwrId, isNew, onOpenShoe, onNewShoe, onBackToList }: ShoeDbPanelContainerProps) {
   const user = useSessionStore((s) => s.user)
+  // 등록관서 거르기 목록 = 관서 코드표(A7 `ORG` — 값 = org_id 문자열, J1 `regist_org`)
+  const orgCodes = useCodes("ORG")
+  const officeItems = useMemo<ShoeOfficeItem[]>(
+    () => (orgCodes.data ?? []).map((o) => ({ value: o.code, label: o.codeNm })),
+    [orgCodes.data]
+  )
   const duty = useMemo(() => {
     const canRegister = hasFeature(user, FEATURES.SHOE_EDIT)
     return {
@@ -352,7 +362,7 @@ export function ShoeDbPanelContainer({ ftwrId, isNew, onOpenShoe, onNewShoe, onB
         filters={filters}
         onFiltersChange={setFilters}
         filtersApplied={applied !== null}
-        officeItems={[]}
+        officeItems={officeItems}
         onSearch={() => {
           setApplied(filters)
           resetToFirstPage()

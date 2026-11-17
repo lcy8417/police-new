@@ -27,10 +27,10 @@ export function canSeeCases(user: SessionUser): boolean {
 
 /**
  * 신발 DB 단추가 갈 곳. 사건관리를 볼 수 있으면 사건관리 위 패널(`shoe=1` — 사건관리에 있으면 열린 사건 창 주소는 그대로 두고 더한다),
- * 사건관리를 못 보면(신발 조회만) 옛 신발 화면 `/shoesRepository`(넘겨주기 전까지 — 계획 §1).
+ * 사건관리를 못 보면(신발 조회만)도 같은 패널 — `/cases` 가 「사건 보기 권한 없음」 안내 위에 패널을 연다(B 단계 통합 —
+ * 옛 `/shoesRepository` 는 이 패널로 넘겨준다).
  */
-export function shoeDbHref(user: SessionUser, pathname: string, search: string): string {
-  if (!canSeeCases(user)) return "/shoesRepository"
+export function shoeDbHref(_user: SessionUser, pathname: string, search: string): string {
   if (pathname !== CASES_PATH) return `${CASES_PATH}?shoe=1`
   const params = new URLSearchParams(search)
   params.set("shoe", "1")

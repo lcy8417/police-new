@@ -45,6 +45,17 @@ const GRID_BASE = "grid-cols-[44px_minmax(150px,1.3fr)_minmax(130px,1.1fr)_64px_
 
 // 사건 진행 단계 이름(11/16 · 11/17 사용자 「결재는 없어」 — 결재 → 감정서, 결재완료 → 완료)
 const STAGE_PILL = ["검증요청 전", "교차 검증", "감정서", "감정서", "완료"]
+// 서버 흐름 단계(flowStage 0~5 — 결정 §3 흐름 5칸 이름 + 완료). null = SCAS 과거 사건
+const FLOW_PILL = ["접수 대기", "1차 작업", "검색·판정", "교차 검증", "감정서", "완료"]
+
+/** 단계 알약 글자 · 완료 여부 — flowStage 가 있으면(실제 목록) 그 값, 없으면 진열 옛 번호(stage) */
+function stagePill(r: CaseListRow): { label: string; done: boolean } {
+  if (r.flowStage !== undefined) {
+    return r.flowStage === null ? { label: "과거 사건", done: false } : { label: FLOW_PILL[r.flowStage], done: r.flowStage === 5 }
+  }
+  const stage = r.stage ?? -1
+  return { label: stage < 0 ? "이미지 확인 중" : STAGE_PILL[Math.min(stage, 4)], done: stage === 4 }
+}
 
 const dash = (v: string) => (v === "" ? "—" : v)
 
@@ -136,6 +147,7 @@ export function CaseListScreen({
   features,
   rows,
   total,
+  hasNext,
   page,
   pageSize,
   onPageChange,
@@ -143,7 +155,10 @@ export function CaseListScreen({
   onRegister,
   onSearchCase,
   onConfirmCase,
+  onReceive,
+  receivingCase = null,
   showPlus = true,
+  stageColumn,
   onMockAction,
   quick,
   selectedCase,
@@ -157,9 +172,24 @@ export function CaseListScreen({
   // 기술책임자 = 보기 전용 EXAM_VIEW(결재 권한은 서버 0013에서 삭제)
   const verifierOnly = !isAdmin && features.includes(FEATURES.EXAM_VIEW) && !features.includes(FEATURES.EXAM_DECIDE)
   const canAct = canSearch && !(showPlus && verifierOnly)
+  const canReceive = isAdmin || features.includes(FEATURES.EXAM_DECIDE)
+  const showStage = stageColumn ?? showPlus
 
   // 그 단계에서 할 단추 하나 — 검색 안 한 장 → 검색, 확인 대기 → 확인, (+α) 교차 검증 → 검증, 검증요청 전 → 검증요청
   const actionOf = (r: CaseListRow): RowAction | null => {
+    // 서버 흐름 단계(실제 목록): 0 접수 대기 → 「접수」(A4), 2 검색·판정에서 모든 장 확정 → 「검증요청」(결과 확인 탭)
+    if (r.flowStage !== undefined) {
+      if (r.flowStage === 0) {
+        return canReceive && onReceive
+          ? { label: receivingCase === r.aprthngNo ? "접수 중…" : "접수", run: () => onReceive(r.aprthngNo) }
+          : null
+      }
+      if (!canAct || r.flowStage === null || r.flowStage > 2) return null
+      const p = r.progress
+      if (p.registered > 0) return { label: "검색", run: () => onSearchCase(r.aprthngNo) }
+      if (p.searched > 0) return { label: "확인", run: () => onConfirmCase(r.aprthngNo) }
+      return r.flowStage === 2 && p.confirmed > 0 ? { label: "검증요청", run: () => onConfirmCase(r.aprthngNo) } : null
+    }
     if (!canAct) return null
     const { registered, searched, confirmed } = r.progress
     if (registered > 0) return { label: "검색", run: () => onSearchCase(r.aprthngNo) }
@@ -173,7 +203,16 @@ export function CaseListScreen({
   const actionButton = (r: CaseListRow) => {
     const a = actionOf(r)
     return a ? (
-      <WorkbenchButton size="sm" title={a.title} onClick={a.run}>
+      <WorkbenchButton
+        size="sm"
+        title={a.title}
+        disabled={receivingCase !== null && receivingCase === r.aprthngNo}
+        onClick={(e) => {
+          // 행 누름(사건 창 열기)과 겹치지 않게
+          e.stopPropagation()
+          a.run()
+        }}
+      >
         {a.label}
       </WorkbenchButton>
     ) : null
@@ -248,19 +287,18 @@ export function CaseListScreen({
       title: "진행 · 장 (등록 검색 확인)",
       render: (r) => <ProgressCell row={r} />,
     },
-    showPlus
+    showStage
       ? {
           key: "stage",
           header: "사건 진행",
           title: "이미지 확인 → 검증요청 → 교차 검증 → 감정서 → 완료",
           render: (r) => {
-            const stage = r.stage ?? -1
+            const pill = stagePill(r)
+            const reviewing = r.flowStage !== undefined ? r.flowStage === 3 : (r.stage ?? -1) === 1
             return (
               <span className="flex min-w-0 items-center gap-1.5">
-                <StatePill tone={stage === 4 ? "done" : "fact"}>
-                  {stage < 0 ? "이미지 확인 중" : STAGE_PILL[Math.min(stage, 4)]}
-                </StatePill>
-                {stage === 1 && r.crossReviewer ? (
+                <StatePill tone={pill.done ? "done" : "fact"}>{pill.label}</StatePill>
+                {reviewing && r.crossReviewer ? (
                   <span className="truncate text-[11.5px] text-fg-2">{r.crossReviewer.split(" ")[0]}</span>
                 ) : null}
                 <span className="ml-auto shrink-0">{actionButton(r)}</span>
@@ -342,7 +380,7 @@ export function CaseListScreen({
           <div className="overflow-x-auto">
             <CaseTable
               label="사건 목록"
-              gridClass={showPlus ? GRID_PLUS : GRID_BASE}
+              gridClass={showStage ? GRID_PLUS : GRID_BASE}
               compact={!tall}
               columns={columns}
               rows={[...rows]}
@@ -356,7 +394,7 @@ export function CaseListScreen({
         {/* 아래 한 줄: 개수 · 쪽당 행 · 행 높이 ……… 쪽수 */}
         {listed ? (
           <ListFoot className="h-auto min-h-11 flex-wrap gap-x-4 gap-y-1.5 py-1.5">
-            {quick ? (
+            {quick && quick.total !== null ? (
               <span aria-live="polite" className="font-code tabular-nums text-fg-2">
                 {quick.resultCount} / 전체 {quick.total}
               </span>
@@ -372,7 +410,11 @@ export function CaseListScreen({
               total={status === "empty" ? 0 : total}
               page={page}
               pageSize={pageSize}
-              hasNext={status === "ready" && total !== undefined && page * pageSize < total}
+              hasNext={
+                hasNext !== undefined
+                  ? status === "ready" && hasNext
+                  : status === "ready" && total !== undefined && page * pageSize < total
+              }
               onPageChange={onPageChange}
             />
           </ListFoot>

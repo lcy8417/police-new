@@ -45,6 +45,34 @@ describe("CaseListScreen", () => {
     expect(p.onOpenCase).not.toHaveBeenCalled()
   })
 
+  it("서버 흐름 단계(flowStage) — +α 를 꺼도 단계 칸(stageColumn), 접수 대기 = 「접수」, 모든 장 확정 = 「검증요청」, 키셋 hasNext", () => {
+    const onReceive = vi.fn()
+    const p = props({
+      showPlus: false,
+      stageColumn: true,
+      onReceive,
+      total: undefined,
+      hasNext: true,
+      features: [FEATURES.CRIME_SEARCH, FEATURES.EXAM_DECIDE],
+      rows: [
+        { ...ROW, aprthngNo: "A-1", flowStage: 0 },
+        { ...ROW, aprthngNo: "A-2", flowStage: 2, progress: { registered: 0, searched: 0, confirmed: 3 } },
+        { ...ROW, aprthngNo: "A-3", flowStage: 5, progress: { registered: 0, searched: 0, confirmed: 3 } },
+        { ...ROW, aprthngNo: "A-4", flowStage: null },
+      ],
+    })
+    render(<CaseListScreen {...p} />)
+    expect(screen.getByText("접수 대기")).toBeInTheDocument()
+    expect(screen.getByText("검색·판정")).toBeInTheDocument()
+    expect(screen.getByText("완료")).toBeInTheDocument()
+    expect(screen.getByText("과거 사건")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "접수" }))
+    expect(onReceive).toHaveBeenCalledWith("A-1")
+    fireEvent.click(screen.getByRole("button", { name: "검증요청" }))
+    expect(p.onConfirmCase).toHaveBeenCalledWith("A-2")
+    expect(screen.getByRole("button", { name: /다음/ })).toBeEnabled()
+  })
+
   it("보기 전용(SHOE_VIEW만)이면 등록 · 검색 · 확인 버튼이 없다", () => {
     render(<CaseListScreen {...props({ features: [FEATURES.SHOE_VIEW] })} />)
     expect(screen.queryByRole("button", { name: "등록" })).toBeNull()
