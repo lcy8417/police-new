@@ -47,7 +47,7 @@ import {
 
 // 신발 DB 슬라이드 패널 본문(새 사건관리 위 막대 「신발 DB」 · `/cases?shoe=1`, 결정 기록 §4) — 승인 시안 `ShoeDbPanel` · `ShoeEditor`
 // 그대로에 실제 값(B 단계 서버 J1~J8 · C3)만 꽂는다.
-//   목록 · 개수 = J1 · J2(상세 조건 「조회」 · 작업 단계 칩은 서버가 거름), 작업 단계 줄 = J8, 카드 상태 = J1 `work_status`
+//   목록 · 개수 = J1 · J2(상세 거르기 「조회」 · 뚜껑 칩 작업 단계 · 승인 · 문양 입력은 서버가 거름), 칩 수 · 승인 진행 = J8, 카드 상태 = J1 `work_status`
 //   편집 판 = J3 상세 → 「저장」(등록 J4 / 등록 담당 J5 / 문양 입력 담당 J6) · 「승인」(J7) · AI 문양 추출(C3 `type=shoes`)
 //   분업: 등록 = SHOE_EDIT, 문양 입력 = SHOE_PATTERN(또는 SHOE_EDIT), 승인 = SHOE_APPROVE(관리자는 전부)
 // 빠른 찾기(화류번호 · 모델명 · 상표 글자)는 서버에 모델명 거르기가 없어 **이 쪽(50개) 안에서만** 거른다.
@@ -84,6 +84,19 @@ const BLANK_SHOE: Shoe = {
 const ZONES = ["top", "mid", "bottom", "outline"] as const
 const META_KEYS = ["ftwrId", "modlNm", "brandCode", "makrCode", "colctPlace", "colctYear"] as const
 const STAGE_KEYS: readonly ShoeStageKey[] = ["pattern", "group", "approve"]
+// 뚜껑 칩(바로 걸림) — 승인(J1 `approval`) · 문양 입력(J1 `pattern_input`). 예전 상세 조건의 라디오(전체 · 승인 · 미승인 / 전체 · 입력 · 미입력)를 칩으로.
+// 글자는 상태(「승인됨」) — 할 일 단추(「승인」)와 헷갈리지 않게
+const APPROVAL_CHIPS = [
+  { value: "yes", label: "승인됨" },
+  { value: "no", label: "미승인" },
+]
+const PATTERN_CHIPS = [
+  { value: "in", label: "문양 입력됨" },
+  { value: "out", label: "문양 미입력" },
+]
+
+/** 칩 묶음은 하나만 켠다 — 새로 누른 값, 켜진 칩을 다시 누르면 풀림 */
+const pickOne = (values: readonly string[], current: string | null): string | null => values.find((v) => v !== current) ?? null
 
 const has = (value: string | null | undefined, needle: string) => (value ?? "").toLowerCase().includes(needle)
 
@@ -173,10 +186,19 @@ export function ShoeDbPanelContainer({ ftwrId, isNew, onOpenShoe, onNewShoe, onB
   const [cardSize, setCardSize] = useState<ShoeCardSize>("보통")
   const [query, setQuery] = useState("")
   const [filters, setFilters] = useState<ShoeDbFilters>(EMPTY_FILTERS)
-  // 「조회」로 건 상세 조건(펴 놓고 고치는 값과 따로) · 작업 단계 칩
+  // 「조회」로 건 상세 조건(펴 놓고 고치는 값과 따로) · 뚜껑 칩(작업 단계 · 승인 · 문양 입력 — 누르면 바로 걸림)
   const [applied, setApplied] = useState<ShoeDbFilters | null>(null)
   const [stage, setStage] = useState<ShoeStageKey | null>(null)
-  const listFilters = useMemo(() => toShoeListFilters(applied, stage), [applied, stage])
+  const [approval, setApproval] = useState<string | null>(null)
+  const [patternInput, setPatternInput] = useState<string | null>(null)
+  const listFilters = useMemo(
+    () =>
+      toShoeListFilters(
+        { ...(applied ?? EMPTY_FILTERS), approval: approval ?? "all", patternInput: patternInput ?? "all" },
+        stage,
+      ),
+    [applied, stage, approval, patternInput],
+  )
 
   const countQuery = useQuery({ queryKey: shoeKeys.count(listFilters), queryFn: () => fetchShoesCount(listFilters) })
   const shoesQuery = useQuery({
@@ -402,15 +424,21 @@ export function ShoeDbPanelContainer({ ftwrId, isNew, onOpenShoe, onNewShoe, onB
               value: stage ? [stage] : [],
               options: STAGE_KEYS.map((key) => ({ value: key, label: SHOE_STAGE_LABEL[key], count: stageCount(key) })),
             },
+            { key: "approval", label: "승인", value: approval ? [approval] : [], options: APPROVAL_CHIPS },
+            { key: "patternInput", label: "문양 입력", value: patternInput ? [patternInput] : [], options: PATTERN_CHIPS },
           ],
-          // 작업 단계는 서버 거르기 하나(J1 `stage`) — 칩은 하나만 켜진다(새로 누른 것)
-          onGroupChange: (_key, values) => {
-            setStage((values.find((v) => v !== stage) as ShoeStageKey | undefined) ?? null)
+          // 묶음마다 서버 거르기 하나(J1 `stage` · `approval` · `pattern_input`) — 칩은 묶음마다 하나만 켜진다(새로 누른 것)
+          onGroupChange: (key, values) => {
+            if (key === "stage") setStage(pickOne(values, stage) as ShoeStageKey | null)
+            else if (key === "approval") setApproval(pickOne(values, approval))
+            else if (key === "patternInput") setPatternInput(pickOne(values, patternInput))
             resetToFirstPage()
           },
           onClear: () => {
             setQuery("")
             setStage(null)
+            setApproval(null)
+            setPatternInput(null)
             resetToFirstPage()
           },
           resultCount: shown.length,

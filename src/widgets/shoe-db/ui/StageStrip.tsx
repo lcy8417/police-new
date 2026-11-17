@@ -85,34 +85,3 @@ export function StageStrip({ summary }: { summary: ShoeStageSummary }) {
     </div>
   )
 }
-
-/**
- * 컴팩트 작업 단계 한 줄(신발 DB 패널) — 「등록됨 214 → 문양 입력 98 → 승인 대기 224 → 승인 0」 + 오늘 승인 수.
- * 담당 설명 · AI 표식 · 미승인 막대는 뺐다(11/17 사용자 「장황한 설명 · 군더더기 빼기」). 제목은 앞말만(「·」 앞).
- */
-export function StageLine({ summary }: { summary: ShoeStageSummary }) {
-  const { stages, backlog } = summary
-  return (
-    <ol aria-label="작업 단계" className="m-0 flex min-w-0 list-none flex-wrap items-center gap-[6px] p-0 text-[12px]">
-      {stages.map((st, i) => (
-        <li key={st.title} className="inline-flex items-center gap-[6px]">
-          {i > 0 ? (
-            <span aria-hidden="true" className="text-faint">
-              →
-            </span>
-          ) : null}
-          <span title={`${st.title} · ${st.owner}`} className={cn("inline-flex items-center gap-[5px]", st.active ? "text-brand-3" : "text-fg-2")}>
-            <span className={cn(st.active && "font-bold")}>{st.title.split(" · ")[0]}</span>
-            <b className={cn("font-code tabular-nums", st.active ? "text-brand" : "text-foreground")}>{st.count}</b>
-          </span>
-        </li>
-      ))}
-      <li className="ml-[6px] inline-flex items-center gap-[5px] border-0 border-l border-solid border-border pl-[10px] text-muted-foreground">
-        오늘 승인
-        <b className="font-code tabular-nums text-foreground">
-          {backlog.todayDone}/{backlog.todayLimit}
-        </b>
-      </li>
-    </ol>
-  )
-}

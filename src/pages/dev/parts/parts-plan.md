@@ -144,6 +144,9 @@
 | B단계 통합 S01 신발 DB 편집 판 머리 꼬리표(승인됨 · 문양 잠김, 검색 후보 아님(배치 반영 전)) | ShoeEditor | 확장 | 묶음 ④ — 기존 작업 상태 꼬리표와 같은 모양(위젯 안 글자 꼬리표) |
 | B단계 통합 S14 기록 무결성 칸 상태 3종(확인 중 · 실패 · 결과) · 어긋남 빨간 알약 | AdminLogsScreen · InlineError | 확장 | 묶음 ⑤ — 위젯 안 KindChip 알약(온전 「✓ 변조 없음」 · 어긋남 「! 사슬 어긋남 #n」 빨강) |
 | B단계 통합 S13 관리자 변경 이력 칸 상태 3종(불러오는 중 · 실패 · 없음) | AdminUsersScreen · ListNote · InlineError | 확장 | 묶음 ⑤ — 선택 prop plusParts |
+| S01 신발 DB 패널 바닥 오른쪽 쪽 이동(처음 · 이전 · 쪽 번호 입력 Enter · / 끝 쪽 · 이동 · 다음 · 끝) | Pagination | 확장 | `jump` 변형 — 전체 개수를 알 때만. 기본 모양(이전 · 다음 + 범위 글자)은 그대로 — 진열 S10-71 |
+| S01 신발 DB 패널 위 거르기(뚜껑 = 작업 단계 칩 · 승인 칩 · 문양 입력 칩 · 「상세 거르기 n」 · 찾기 · + 등록, 접힌 한 줄 상세 거르기 = 화류번호 · 상표 · 제조사 · 등록관서 · 등록일자 · 조건 지우기 · 조회, 칩과 같은 수를 보이던 작업 단계 흐름 줄 뺌) | BoardLid · LidChip · LidChipGroup · LidSeparator · LidResetLink · LidSearch · Field · Combobox · WorkbenchButton · Segmented | 그대로 | 사건관리 목록 뚜껑과 같은 결 — 라디오 · 폼 판 없앰, 거르기 값(J1)은 그대로. 보기 크기 · 카드/목록은 목록 머리 오른쪽 |
+| S01 신발 DB 패널 카드 그림을 못 읽을 때(사진 없는 신발 — 서버 404) 같은 칸 크기 「이미지 없음」 자리(흐린 밑창 표식 + 글자) | ShoeCard | 확장 | 위젯 안 상태 — 깨진 그림 아이콘 대신. 평소 모양은 그대로 |
 | S00 로그인 · S13 사용자 관리 · S14 사용 기록 안쪽 정리(R6 — 큰 KPI 카드 · 설명 · 색 띠 줄임) | BoardFrame · BoardLid · LidChip · LidChipGroup · LidSearch · LidSeparator · LidResetLink · ListHeadRow · ListRow · ListNameCell · ListFoot · ListNote · StatePill · WorkbenchButton · PaneHead | 그대로 | 표는 사건관리 목록과 같은 로망 목록 표 부품. 기능(거르기 · 잠금 해제 · 비밀번호 초기화 · 권한 바꾸기 · 기록 거르기 · 세션 펼치기) 그대로 |
 
 ## 승인 (spec §8 「만들 부품」 표 = 사용자 승인)
@@ -221,3 +224,4 @@
 승인: 11/17 사용자 — AdminUsersScreen(관리자 변경 이력 칸 상태 3종)
 승인: 11/17 사용자 — 판정 메모 칸(결정 기록 B15 「둔다」 — Field 그대로)
 승인: 11/17 사용자 — 본 것 · 확인대상 · AI 대조 칸을 +α 묶음에서 떼어 기본 화면에(결정 기록 — 생김새 그대로)
+승인: 11/17 사용자 — Pagination(jump), ShoeCard(이미지 없음 자리) (신발 DB 손질 요청 원문 「신발 DB도 우하단 검색으로 페이지 넘어갈 수 있고, 위 필터부분도 좀 다듬자. 전문적으로 — 너무 아카데믹하고 따로논다」 · 운영 PC 카드 그림 깨짐 확인)

@@ -48,8 +48,14 @@ import {
 
 const isCardSize = oneOf<ShoeCardSize>(["작게", "보통", "크게"]);
 
-type QuickValues = { status: string[]; dup: string[] };
-const EMPTY_QUICK: QuickValues = { status: [], dup: [] };
+type QuickValues = { status: string[]; dup: string[]; approval: string[]; patternInput: string[] };
+const EMPTY_QUICK: QuickValues = { status: [], dup: [], approval: [], patternInput: [] };
+/** 패널 뚜껑 칩(바로 걸림) — 운영 패널과 같은 승인 · 문양 입력 묶음. 묶음마다 하나만 켠다 */
+const SINGLE_GROUPS: readonly string[] = ["approval", "patternInput"];
+const LID_CHIP_GROUPS: FilterGroup[] = [
+  { key: "approval", label: "승인", value: [], options: [{ value: "yes", label: "승인됨" }, { value: "no", label: "미승인" }] },
+  { key: "patternInput", label: "문양 입력", value: [], options: [{ value: "in", label: "문양 입력됨" }, { value: "out", label: "문양 미입력" }] },
+];
 
 const info = devScreen("s10");
 
@@ -167,7 +173,13 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
   const needle = query.trim().toLowerCase();
   const filtered = allShoes.filter((s) => {
     if (needle !== "" && ![s.ftwrId, s.modlNm, s.brandCode].some((t) => (t ?? "").toLowerCase().includes(needle))) return false;
-    if (applied && !matchesFilters(s, applied, cardInfo[s.ftwrId]?.status)) return false;
+    // 패널은 승인 · 문양 입력을 뚜껑 칩으로 건다(상세 거르기에 그 칸이 없다 — 기본값 「미승인 · 미입력」이 숨어 걸리지 않게)
+    const detail = applied && inPanel ? { ...applied, approval: "all", patternInput: "all" } : applied;
+    if (detail && !matchesFilters(s, detail, cardInfo[s.ftwrId]?.status)) return false;
+    if (inPanel) {
+      const lid = { ...S10_EMPTY_FILTERS, approval: quickValues.approval[0] ?? "all", patternInput: quickValues.patternInput[0] ?? "all" };
+      if (!matchesFilters(s, lid, cardInfo[s.ftwrId]?.status)) return false;
+    }
     if (!showPlus) return true;
     const info = cardInfo[s.ftwrId];
     if (quickValues.status.length > 0 && !(info && quickValues.status.includes(info.status))) return false;
@@ -200,7 +212,7 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
   // 패널 뚜껑 칩은 수를 단다(전체 신발 기준)
   const countOf = (pred: (i: (typeof cardInfo)[string] | undefined) => boolean) =>
     inPanel ? allShoes.filter((s) => pred(cardInfo[s.ftwrId])).length : undefined;
-  const groups: FilterGroup[] = showPlus
+  const plusGroups: FilterGroup[] = showPlus
     ? [
         {
           key: "status",
@@ -220,6 +232,10 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
         },
       ]
     : [];
+  // 패널은 승인 · 문양 입력 칩을 늘 단다(지금 기능 — 신규를 꺼도 남는다). 전체 화면(S10)은 검색 폼 라디오 그대로
+  const groups: FilterGroup[] = inPanel
+    ? [...plusGroups, ...LID_CHIP_GROUPS.map((g) => ({ ...g, value: quickValues[g.key as keyof QuickValues] }))]
+    : plusGroups;
   const runSearch = () => {
     setApplied(filters);
     afterFilterChange();
@@ -356,7 +372,12 @@ export function S10Content({ caseName, inPanel = false }: S10ContentProps) {
       },
       groups,
       onGroupChange: (key: string, values: string[]) => {
-        setQuickValues((prev) => ({ ...prev, [key]: values }));
+        setQuickValues((prev) => {
+          const before = prev[key as keyof QuickValues] ?? [];
+          // 승인 · 문양 입력은 하나만(새로 누른 값, 켜진 칩을 다시 누르면 풀림)
+          const next = SINGLE_GROUPS.includes(key) ? values.filter((v) => !before.includes(v)).slice(-1) : values;
+          return { ...prev, [key]: next };
+        });
         afterFilterChange();
       },
       onClear: clearQuick,

@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { http, HttpResponse } from "msw"
 
@@ -58,6 +58,8 @@ const STAGES = {
 
 let listQueries: string[] = []
 let shoes: Record<string, ReturnType<typeof dto>> = {}
+/** J2 개수(없으면 shoes 수) — 쪽 이동 시험용 */
+let countOverride: number | null = null
 
 function renderPanel(props: Partial<{ ftwrId: string | null; isNew: boolean }> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -77,6 +79,7 @@ beforeEach(() => {
     (query: string) => ({ matches: false, media: query, addEventListener: () => {}, removeEventListener: () => {} }) as unknown as MediaQueryList,
   )
   listQueries = []
+  countOverride = null
   shoes = {
     "00758": dto("00758"),
     "00901": dto("00901", { top: ["s21b"], work_status: ["승인 대기"], in_search_index: true }),
@@ -86,7 +89,7 @@ beforeEach(() => {
       listQueries.push(new URL(request.url).search)
       return HttpResponse.json(Object.values(shoes))
     }),
-    http.get("*/shoes/count", () => HttpResponse.json({ count: Object.keys(shoes).length })),
+    http.get("*/shoes/count", () => HttpResponse.json({ count: countOverride ?? Object.keys(shoes).length })),
     http.get("*/shoes/stages", () => HttpResponse.json(STAGES)),
     http.get("*/shoes/:id", ({ params }) => {
       const s = shoes[String(params.id)]
@@ -102,14 +105,17 @@ afterEach(() => {
 afterAll(() => mswServer.close())
 
 describe("신발 DB 패널 — 목록(J1 · J2 · J8)", () => {
-  it("실제 목록 · 카드 작업 상태 · 작업 단계 줄(오늘 승인 n/50)", async () => {
+  it("실제 목록 · 카드 작업 상태 · 작업 단계 수는 뚜껑 칩에 한 번만(흐름 줄 없음) · 목록 머리 승인 진행", async () => {
     useSessionStore.getState().setUser(user([]))
     renderPanel()
     expect(await screen.findByText("00758")).toBeInTheDocument()
     expect(screen.getAllByText("문양 대기").length).toBeGreaterThan(0)
-    const stageLine = await screen.findByRole("list", { name: "작업 단계" })
-    expect(stageLine).toHaveTextContent("승인 대기2")
-    expect(stageLine).toHaveTextContent("오늘 승인5/50")
+    const lid = screen.getByRole("search", { name: "신발 거르기" })
+    const stageChips = within(within(lid).getByRole("group", { name: "작업 단계" }))
+    expect(await stageChips.findByRole("button", { name: "승인 대기 2" })).toBeInTheDocument()
+    expect(screen.queryByRole("list", { name: "작업 단계" })).toBeNull()
+    expect(screen.getByText(/이번 달 승인/)).toHaveTextContent("이번 달 승인 9")
+    expect(screen.getByText(/오늘 승인/)).toHaveTextContent("오늘 승인 5/50")
     // 보기 권한만 — 등록 단추 없음
     expect(screen.queryByRole("button", { name: "등록" })).toBeNull()
   })
@@ -122,17 +128,71 @@ describe("신발 DB 패널 — 목록(J1 · J2 · J8)", () => {
     await waitFor(() => expect(listQueries.at(-1)).toBe("?page=0&stage=approve"))
   })
 
-  it("상세 조건 「조회」 → 승인 · 문양 입력 거르기를 서버로", async () => {
+  it("뚜껑 승인 · 문양 입력 칩 → 누르는 즉시 J1 approval · pattern_input(묶음마다 하나, 다시 누르면 풀림)", async () => {
     useSessionStore.getState().setUser(user([]))
     renderPanel()
     await screen.findByText("00758")
-    fireEvent.click(screen.getByRole("button", { name: /필터/ }))
-    fireEvent.click(screen.getByRole("radio", { name: "미승인" }))
-    fireEvent.click(screen.getByRole("radio", { name: "미입력" }))
-    fireEvent.click(screen.getByRole("button", { name: "조회" }))
+    const lid = within(screen.getByRole("search", { name: "신발 거르기" }))
+    // 라디오 · 양식 판은 없다
+    expect(screen.queryByRole("radio")).toBeNull()
+    fireEvent.click(lid.getByRole("button", { name: "미승인" }))
+    await waitFor(() => expect(listQueries.at(-1)).toBe("?page=0&approval=no"))
+    fireEvent.click(lid.getByRole("button", { name: "문양 미입력" }))
     await waitFor(() => expect(listQueries.at(-1)).toBe("?page=0&approval=no&pattern_input=out"))
+    // 같은 묶음의 다른 칩 = 바꿔 걸기
+    fireEvent.click(lid.getByRole("button", { name: "승인됨" }))
+    await waitFor(() => expect(listQueries.at(-1)).toBe("?page=0&approval=yes&pattern_input=out"))
+    expect(lid.getByRole("button", { name: "미승인" })).toHaveAttribute("aria-pressed", "false")
+    // 다시 누르면 풀림
+    fireEvent.click(lid.getByRole("button", { name: "문양 미입력" }))
+    await waitFor(() => expect(listQueries.at(-1)).toBe("?page=0&approval=yes"))
+  })
+
+  it("상세 거르기(접힘 기본) 「조회」 · Enter → 화류번호 · 상표 · 제조사 · 등록일자를 J1 그대로, 「상세 거르기 n」", async () => {
+    useSessionStore.getState().setUser(user([]))
+    renderPanel()
+    await screen.findByText("00758")
+    expect(screen.queryByRole("group", { name: "상세 거르기" })).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: /^상세 거르기/ }))
+    const row = within(screen.getByRole("group", { name: "상세 거르기" }))
+    fireEvent.change(row.getByRole("textbox", { name: "화류번호" }), { target: { value: "0075" } })
+    fireEvent.change(row.getByRole("textbox", { name: "상표" }), { target: { value: "B00" } })
+    fireEvent.change(row.getByRole("textbox", { name: "제조사" }), { target: { value: "M1" } })
+    fireEvent.change(row.getByRole("textbox", { name: "등록일자 시작일" }), { target: { value: "2026-11-01" } })
+    fireEvent.change(row.getByRole("textbox", { name: "등록일자 종료일" }), { target: { value: "2026-11-17" } })
+    fireEvent.click(lidButton("미승인"))
+    // 치는 동안은 그대로(칩만 바로 걸림)
+    await waitFor(() => expect(listQueries.at(-1)).toBe("?page=0&approval=no"))
+    fireEvent.keyDown(row.getByRole("textbox", { name: "화류번호" }), { key: "Enter" })
+    await waitFor(() =>
+      expect(listQueries.at(-1)).toBe(
+        "?page=0&ftwr_id=0075&makr_code=M1&brand_code=B00&regist_from=2026-11-01&regist_to=2026-11-17&approval=no",
+      ),
+    )
+    expect(screen.getByRole("button", { name: /^상세 거르기/ })).toHaveAccessibleName("상세 거르기 4")
+    // 뚜껑 「조건 지우기」 = 칩 · 상세 거르기 모두
+    fireEvent.click(screen.getByRole("button", { name: "조건 지우기" }))
+    await waitFor(() => expect(listQueries.at(-1)).toBe("?page=0"))
+  })
+
+  it("바닥 오른쪽 쪽 이동 — 쪽 번호 Enter · 끝 · 처음(쪽 크기 50, 서버 쪽은 0부터)", async () => {
+    countOverride = 115788
+    useSessionStore.getState().setUser(user([]))
+    renderPanel()
+    await screen.findByText("00758")
+    const nav = within(await screen.findByRole("navigation", { name: "쪽 이동" }))
+    expect(screen.getByText("/ 2316쪽")).toBeInTheDocument()
+    fireEvent.change(nav.getByRole("textbox", { name: "쪽 번호" }), { target: { value: "33" } })
+    fireEvent.keyDown(nav.getByRole("textbox", { name: "쪽 번호" }), { key: "Enter" })
+    await waitFor(() => expect(listQueries.at(-1)).toBe("?page=32"))
+    fireEvent.click(nav.getByRole("button", { name: "끝" }))
+    await waitFor(() => expect(listQueries.at(-1)).toBe("?page=2315"))
+    fireEvent.click(nav.getByRole("button", { name: "처음" }))
+    await waitFor(() => expect(nav.getByRole("textbox", { name: "쪽 번호" })).toHaveValue("1"))
   })
 })
+
+const lidButton = (name: string) => within(screen.getByRole("search", { name: "신발 거르기" })).getByRole("button", { name })
 
 describe("신발 DB 패널 — 편집 판 분업(J3 · J6 · J7 · C3)", () => {
   it("문양 입력 담당: AI 추출 → 저장 = J6(문양만), 기본정보 · 그림 · 승인은 없다", async () => {

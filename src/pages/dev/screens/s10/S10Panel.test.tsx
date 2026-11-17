@@ -75,9 +75,9 @@ describe("신발 DB 패널(S10Content inPanel)", () => {
     expect(screen.getByRole("search", { name: "신발 거르기" })).toBeInTheDocument()
   })
 
-  it("2회차 검수 — 상세 필터는 「조회」를 눌러야 목록에 걸리고, 「조건 지우기」로 풀린다", () => {
+  it("2회차 검수 — 상세 거르기는 「조회」를 눌러야 목록에 걸리고, 「조건 지우기」로 풀린다", () => {
     renderPanel()
-    fireEvent.click(screen.getByRole("button", { name: /^필터/ }))
+    fireEvent.click(screen.getByRole("button", { name: /^상세 거르기/ }))
     fireEvent.change(screen.getByRole("textbox", { name: "화류번호" }), { target: { value: "303351" } })
     // 입력만으로는 그대로
     expect(screen.getAllByRole("button", { name: / 열기$/ }).length).toBeGreaterThan(1)
@@ -85,5 +85,51 @@ describe("신발 DB 패널(S10Content inPanel)", () => {
     expect(screen.getAllByRole("button", { name: / 열기$/ }).map((b) => b.getAttribute("aria-label"))).toEqual(["303351 열기"])
     fireEvent.click(screen.getByRole("button", { name: "조건 지우기" }))
     expect(screen.getAllByRole("button", { name: / 열기$/ }).length).toBeGreaterThan(1)
+  })
+
+  it("11/17 — 승인 · 문양 입력은 뚜껑 칩(라디오 · 양식 판 없음), 누르면 바로 걸리고 묶음마다 하나만", () => {
+    renderPanel()
+    const lid = within(screen.getByRole("search", { name: "신발 거르기" }))
+    expect(screen.queryByRole("radio")).toBeNull()
+    // 바닥 「전체 n 중 a-b」의 n = 걸러진 수
+    const totalShown = () => Number(/전체 (\d+)/.exec(screen.getByText(/^전체 \d+/).textContent ?? "")?.[1])
+    const all = totalShown()
+    fireEvent.click(lid.getByRole("button", { name: "문양 미입력" }))
+    const out = totalShown()
+    expect(out).toBeLessThan(all)
+    fireEvent.click(lid.getByRole("button", { name: "문양 입력됨" }))
+    expect(lid.getByRole("button", { name: "문양 미입력" })).toHaveAttribute("aria-pressed", "false")
+    expect(lid.getByRole("button", { name: "문양 입력됨" })).toHaveAttribute("aria-pressed", "true")
+    expect(totalShown()).toBe(all - out)
+    fireEvent.click(lid.getByRole("button", { name: "문양 입력됨" }))
+    expect(totalShown()).toBe(all)
+  })
+
+  it("11/17 — 그림을 못 읽은 신발(서버 404)은 카드 「이미지 없음」 · 목록 「—」(깨진 그림 아이콘 없음)", () => {
+    renderPanel()
+    const card = screen.getByRole("button", { name: "303351 열기" })
+    fireEvent.error(card.querySelector("img") as HTMLImageElement)
+    expect(within(card).getByText("이미지 없음")).toBeInTheDocument()
+    expect(card.querySelector("img")).toBeNull()
+
+    fireEvent.click(within(screen.getByRole("group", { name: "보기 방식" })).getByRole("button", { name: "목록" }))
+    const thumb = screen.getByRole("button", { name: "303351 바닥" })
+    fireEvent.error(thumb.querySelector("img") as HTMLImageElement)
+    expect(screen.queryByRole("button", { name: "303351 바닥" })).toBeNull()
+    expect(screen.getAllByTitle("이미지 없음").length).toBeGreaterThan(0)
+  })
+
+  it("11/17 — 바닥 오른쪽 쪽 이동: 쪽 번호 Enter · 처음 · 끝", () => {
+    renderPanel()
+    const nav = within(screen.getByRole("navigation", { name: "쪽 이동" }))
+    const first = screen.getAllByRole("button", { name: / 열기$/ })[0].getAttribute("aria-label")
+    fireEvent.change(nav.getByRole("textbox", { name: "쪽 번호" }), { target: { value: "2" } })
+    fireEvent.keyDown(nav.getByRole("textbox", { name: "쪽 번호" }), { key: "Enter" })
+    expect(nav.getByRole("textbox", { name: "쪽 번호" })).toHaveValue("2")
+    expect(screen.getAllByRole("button", { name: / 열기$/ })[0].getAttribute("aria-label")).not.toBe(first)
+    fireEvent.click(nav.getByRole("button", { name: "처음" }))
+    expect(screen.getAllByRole("button", { name: / 열기$/ })[0].getAttribute("aria-label")).toBe(first)
+    fireEvent.click(nav.getByRole("button", { name: "끝" }))
+    expect(nav.getByRole("button", { name: "끝" })).toBeDisabled()
   })
 })
