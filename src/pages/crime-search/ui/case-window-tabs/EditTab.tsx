@@ -187,6 +187,16 @@ export function EditTab({ viewer, image, onCancel, judged = false }: EditTabProp
     edit.setActiveTool(tool)
   }
 
+  /**
+   * 도구 줄 「취소」 = 지금 고른 도구 · 확인 안 한 보기 회전 · 이진화 미리보기 · 찍은 점을 버린다. 탭은 그대로
+   * ([버그] 옛 단독 편집 화면의 「나가기」 뜻이 남아 사건 정보 탭으로 가던 것 — 탭 이동은 위 작업 탭으로)
+   */
+  const handleCancel = () => {
+    exitEditor()
+    setRotation(0)
+    edit.setActiveTool(null)
+  }
+
   const handleConfirm = async () => {
     if (editor.mode === "crop") {
       await editor.toggleCrop()
@@ -362,7 +372,7 @@ export function EditTab({ viewer, image, onCancel, judged = false }: EditTabProp
       onUndoTo={(no) => void revertTo(no)}
       onRestore={() => void revertTo(0)}
       onFlip={(axis) => void handleFlip(axis)}
-      onCancel={onCancel}
+      onCancel={handleCancel}
       onConfirm={() => void handleConfirm()}
       onSave={() => void handleSave()}
       viewerImage={{ src: edit.displayImage, alt: `${aprthngNo} 사건 이미지` }}

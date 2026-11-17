@@ -37,18 +37,31 @@ const item = (edit_id: number, result_file_id: number, ops: unknown[], revert_of
   actor_id: "u1", actor_nm: "감정관", occurred_dt: "2026-11-17T14:03:05+09:00", revert_of,
 })
 
-function renderTab() {
+function renderTab(onCancel: () => void = vi.fn()) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   render(
     <QueryClientProvider client={qc}>
       <div className="h-[800px]">
-        <EditTab viewer={VIEWER} image={IMAGE} onCancel={vi.fn()} />
+        <EditTab viewer={VIEWER} image={IMAGE} onCancel={onCancel} />
       </div>
     </QueryClientProvider>
   )
 }
 
 describe("EditTab — 편집 이력(B3) · 되돌리기(B5)", () => {
+  it("[버그] 도구 줄 「취소」는 고른 도구만 끄고 탭을 떠나지 않는다(사건 정보 탭으로 가던 것)", async () => {
+    mswServer.use(
+      http.get("*/crime/:no/edits", () =>
+        HttpResponse.json({ original: null, working_file_id: null, current_file_id: null, legacy: true, items: [] })
+      )
+    )
+    const onCancel = vi.fn()
+    renderTab(onCancel)
+    const cancel = await screen.findByRole("button", { name: "취소" })
+    fireEvent.click(cancel)
+    expect(onCancel).not.toHaveBeenCalled()
+  })
+
   it("이력을 읽는 동안 불러오는 중, 실패하면 확인 못 함", async () => {
     mswServer.use(http.get("*/crime/:no/edits", () => HttpResponse.json({ detail: "x" }, { status: 503 })))
     renderTab()
