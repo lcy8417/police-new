@@ -33,7 +33,7 @@ import {
 import { aheadWatchKey, useAheadRank } from "../lib/use-ahead-rank"
 import { viewerRoles } from "../model/roles"
 import { parseSimilarity } from "../model/similarity"
-import type { AutoMode, AutoScrollMode, ImageMode, SearchResultScreenProps, SearchTarget } from "../model/types"
+import type { AutoMode, AutoScrollMode, ImageMode, ImageSearchResultItem, SearchResultScreenProps, SearchTarget } from "../model/types"
 import { PEEK_H, PEEK_W, PeekPop } from "./PeekPop"
 import { WindowCard } from "./WindowCard"
 
@@ -72,8 +72,10 @@ const SCROLL_ITEMS = [
 
 /** 마우스를 이만큼 올려 두면 빠른 비교 */
 const PEEK_DELAY_MS = 400
+/** 두 번 누름으로 볼 첫 누름의 유효 시간(운영 PC 기본 두 번 누름 간격 500ms 보다 넉넉히) */
+const DOUBLE_MS = 800
 const TIP =
-  "순위 내림차순 한 목록. 자동 = 목록이 저절로 내려가고, 카드를 누르면 멈춥니다(⚙ 속도 · 쪽 넘김). 마우스를 올리면 빠른 비교 · Enter 정밀 대조 · S 확인대상."
+  "순위 내림차순 한 목록. 자동 = 목록이 저절로 내려가고, 카드를 누르면 멈춥니다(⚙ 속도 · 쪽 넘김). 마우스를 올리면 빠른 비교 · 카드 두 번 누름 · Enter 정밀 대조 · S 확인대상."
 
 const perOf = (c: number | undefined): Per => (c === 1 || c === 3 ? c : 5)
 
@@ -246,6 +248,35 @@ export function SearchWindow(props: SearchResultScreenProps) {
     props.onFocusChange?.(rank)
   }
 
+  // ── 두 번 누름 = 정밀 대조(11/17 사용자 「검색결과 더블 클릭하면 바로 정밀 대조 나오게」) ──
+  // 첫 누름이 고른 카드를 연다: 첫 누름이 본 위치를 올리면 「여기까지 봤음」 줄이 옮겨 가고(본 것 거르기면 카드가 빠지고)
+  // 카드가 밀려 두 번째 누름 · 두 번 누름 이벤트가 옆 카드 · 줄에 떨어지던 것 — 목록이 받아 첫 카드로 연다
+  const firstPick = React.useRef<{ rank: number; item: ImageSearchResultItem; at: number } | null>(null)
+  const selectCard = (item: ImageSearchResultItem, rank: number, detail: number) => {
+    const prev = firstPick.current
+    const second = detail >= 2 && prev !== null && Date.now() - prev.at <= DOUBLE_MS
+    // 두 번째 누름이 밀린 다른 카드에 떨어짐 — 첫 카드를 고른 채로 둔다
+    if (second && prev.rank !== rank) return
+    if (!second) firstPick.current = { rank, item, at: Date.now() }
+    props.onFocusChange?.(rank)
+    raiseSeen(rank)
+    if (auto) setAuto("manual")
+  }
+  const openCard = (item: ImageSearchResultItem, rank: number) => {
+    firstPick.current = null
+    raiseSeen(rank)
+    props.onOpenResult(item, rank)
+  }
+  const onListDoubleClick = (e: React.MouseEvent) => {
+    // ★ · 더 보기 같은 다른 단추의 두 번 누름은 제외
+    const button = e.target instanceof Element ? e.target.closest("button") : null
+    if (button && !button.hasAttribute("data-result-card")) return
+    const pick = firstPick.current
+    if (!pick || Date.now() - pick.at > DOUBLE_MS) return
+    e.preventDefault()
+    openCard(pick.item, pick.rank)
+  }
+
   // ── 빠른 비교 자리 ──
   const placePeek = (el: HTMLElement, rank: number, hover: boolean) => {
     const stage = stageRef.current
@@ -333,15 +364,8 @@ export function SearchWindow(props: SearchResultScreenProps) {
           eager={rank <= aheadRank}
           starred={isTarget(item.ftwrId)}
           canStar={roles.analyst}
-          onSelect={() => {
-            props.onFocusChange?.(rank)
-            raiseSeen(rank)
-            if (auto) setAuto("manual")
-          }}
-          onOpen={() => {
-            raiseSeen(rank)
-            props.onOpenResult(item, rank)
-          }}
+          onSelect={(detail) => selectCard(item, rank, detail)}
+          onOpen={() => openCard(item, rank)}
           onStar={() => toggleTarget({ rank, ftwrId: item.ftwrId })}
           onPeekStart={(el, now) => startPeek(el, rank, now)}
           onPeekEnd={endPeek}
@@ -586,6 +610,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
             data-result-list
             data-auto={running ? "running" : auto ? "paused" : undefined}
             onScroll={onListScroll}
+            onDoubleClick={onListDoubleClick}
             className="min-h-0 flex-1 overflow-y-auto p-[10px]"
           >
             {body}
@@ -612,7 +637,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
             <b className="font-code tabular-nums">{`${parseSimilarity(selected.item.similarity)?.toFixed(1) ?? "—"}%`}</b>
           </span>
         ) : (
-          <span className="text-[11px] text-muted-foreground">카드를 눌러 고르세요</span>
+          <span className="text-[11px] text-muted-foreground">카드를 눌러 고르세요 · 두 번 누르면 바로 정밀 대조</span>
         )}
         <span className="ml-auto flex flex-wrap items-center gap-[6px]">
           <WorkbenchButton
@@ -628,7 +653,7 @@ export function SearchWindow(props: SearchResultScreenProps) {
             variant="primary"
             icon={ArrowRight}
             disabled={!selected}
-            onClick={() => selected && props.onOpenResult(selected.item, selected.rank)}
+            onClick={() => selected && openCard(selected.item, selected.rank)}
           >
             정밀 대조
           </WorkbenchButton>

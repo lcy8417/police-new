@@ -122,7 +122,7 @@ export function PeekPop({
           ))}
         </div>
       ) : null}
-      <span className="text-[10px] text-muted-foreground">Enter 정밀 대조 · S 확인대상</span>
+      <span className="text-[10px] text-muted-foreground">두 번 누름 · Enter 정밀 대조 · S 확인대상</span>
     </div>
   )
 }

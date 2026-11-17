@@ -25,7 +25,9 @@ export interface WindowCardProps {
   eager?: boolean
   starred: boolean
   canStar: boolean
-  onSelect: () => void
+  /** 누름 = 고름. `detail` = 연달아 누른 횟수(마우스 click 의 detail — 두 번째 누름이면 2) */
+  onSelect: (detail: number) => void
+  /** Enter = 정밀 대조(두 번 누름은 목록이 받는다 — 첫 누름의 카드를 연다) */
   onOpen: () => void
   onStar: () => void
   /** 빠른 비교 — 마우스 올림 시작(지연은 부르는 쪽) · 초점(바로) · 나감 */
@@ -58,6 +60,7 @@ function ZoneMarks({ item }: { item: ImageSearchResultItem }) {
  * 사건 창 검색 결과 카드(11/17 「순위가 쭉 · 점수 잘 보이게 · 어느 문양 일치하는지 살짝 상단」).
  * 위: 순위 · 부위 일치 표식 · 본 것 / 가운데: 밑창(★ 겹침) / 아래: 화류번호 · 점수(크게) · 점수 막대.
  * 누름 = 고름(자동이면 멈춤), 두 번 누름 · Enter = 정밀 대조, S = 확인대상. ★ 는 버튼 안 버튼이 안 되어 겹친 형제 버튼.
+ * 두 번 누름은 목록(SearchWindow)이 받는다 — 첫 누름 뒤 「여기까지 봤음」 줄 · 본 것 거르기로 카드가 밀려 두 번째 누름이 다른 카드에 떨어져도 첫 카드를 연다.
  */
 export function WindowCard({
   item,
@@ -103,8 +106,7 @@ export function WindowCard({
         data-selected={selected ? "true" : undefined}
         aria-pressed={selected}
         aria-label={`${rank}위 ${item.ftwrId} 유사도 ${value === null ? "—" : value.toFixed(1)}%${seen ? " · 본 것" : ""}${starred ? " · 확인대상" : ""}`}
-        onClick={onSelect}
-        onDoubleClick={onOpen}
+        onClick={(e) => onSelect(e.detail)}
         onKeyDown={onKey}
         onMouseEnter={(e) => onPeekStart(e.currentTarget, false)}
         onMouseLeave={onPeekEnd}
