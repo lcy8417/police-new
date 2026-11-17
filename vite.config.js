@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
 import process from 'node:process'
+import { readFileSync } from 'node:fs'
 
 /**
  * 백엔드로 중계(proxy)할 API 경로 — 키가 `^`로 시작하면 Vite가 정규식으로 쓴다.
@@ -47,6 +48,12 @@ export default defineConfig(({ mode }) => {
   // `.env`의 VITE_PROXY_TARGET을 읽는다(이미 설정된 환경변수가 우선).
   const env = loadEnv(mode, process.cwd(), '')
   const proxyTarget = process.env.VITE_PROXY_TARGET ?? env.VITE_PROXY_TARGET ?? 'https://localhost:8000'
+  // 화면을 https:// 로 열 때(운영 — 서버 COOKIE_SECURE=true 와 짝): `.env`에 인증서 · 키 파일 경로를 둘 다 적으면
+  // 개발 서버 · 미리보기 서버가 HTTPS 로 뜬다. 비우면 지금처럼 http. 경로는 이 폴더 기준(서버의 cert.pem 을 그대로 써도 됨).
+  // VITE_ 접두어를 붙이지 않는다(화면 번들에 들어가지 않게).
+  const certFile = process.env.HTTPS_CERT_FILE ?? env.HTTPS_CERT_FILE
+  const keyFile = process.env.HTTPS_KEY_FILE ?? env.HTTPS_KEY_FILE
+  const https = certFile && keyFile ? { cert: readFileSync(certFile), key: readFileSync(keyFile) } : undefined
 
   return {
     plugins: [react(), tailwindcss()],
@@ -57,6 +64,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      https,
       proxy: backendProxy(proxyTarget),
       watch: {
         // 개발 도구(MoAI/OMC/Claude Code)가 프로젝트 안 상태 폴더에 몇 초마다
@@ -67,6 +75,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     preview: {
+      https,
       proxy: backendProxy(proxyTarget),
     },
   }

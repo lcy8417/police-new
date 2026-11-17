@@ -55,6 +55,7 @@ copy .env.example .env          # Linux/macOS: cp .env.example .env
 |---|---|---|
 | `VITE_API_URL` | **(빈 값)** | 비우면 같은 주소 중계(권장). 백엔드 주소를 직접 쓰려면 `https://<서버IP>:8000` — 이때는 서버 `.env`에 `COOKIE_SAMESITE=none` · `COOKIE_SECURE=true`가 필요하고 브라우저 쿠키 차단에 걸릴 수 있습니다 |
 | `VITE_PROXY_TARGET` | `https://localhost:8000` | 중계 대상 police-server 주소. 다른 PC의 서버면 `https://<서버IP>:8000`. 자체 서명 인증서여도 됩니다. 서버를 `http://`로 켰으면 `http://…` |
+| `HTTPS_CERT_FILE` · `HTTPS_KEY_FILE` | `../police-server/cert.pem` · `../police-server/key.pem` | **둘 다 적으면 개발 · 미리보기 서버가 `https://`로 뜹니다**(운영 권장 — 서버 `.env`의 `COOKIE_SECURE=true`와 짝. 화면은 http인데 `COOKIE_SECURE=true`면 로그인이 바로 풀림). 비우면 http. 경로는 이 폴더 기준, 서버의 자체 서명 인증서를 그대로 써도 됩니다 |
 
 - 중계되는 것: API(`/crime` · `/shoes` · `/auth` · `/admin` · `/files` · `/requests` · `/codes` · `/review-steps` · `/report-versions`)와 그림(`/crime_images/` · `/crime_history/` · `/crime_outlines/` · `/shoes_images/` 등 — 목록은 `vite.config.js`의 `BACKEND_STATIC_PREFIXES`).
 - 서버가 그림을 어느 폴더(다른 드라이브 등)에 두든 그림 주소는 같으므로 프론트 설정은 바꾸지 않습니다.
