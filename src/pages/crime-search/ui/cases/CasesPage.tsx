@@ -32,7 +32,7 @@ import {
   toWindowStages,
   windowTabMarks,
 } from "../../model/case-rows"
-import { PERIOD_OPTIONS, SOURCE_OPTIONS, periodFrom, sourceParam } from "../../model/case-list-filters"
+import { LIST_SOURCE, PERIOD_OPTIONS, periodFrom } from "../../model/case-list-filters"
 import {
   MAX_OPEN_CASES,
   OPEN_CASES_FULL,
@@ -74,12 +74,10 @@ interface QuickValues {
   flow: string[]
   progress: string[]
   mine: string[]
-  /** 출처 칩(APP · SCAS) — case-list-filters.ts */
-  src: string[]
-  /** 기간 칩(3m · 1y · all) */
+  /** 기간 칩(3m · 1y · all) — case-list-filters.ts */
   period: string[]
 }
-const EMPTY_QUICK: QuickValues = { flow: [], progress: [], mine: [], src: [], period: [] }
+const EMPTY_QUICK: QuickValues = { flow: [], progress: [], mine: [], period: [] }
 
 /** 조회 실패를 확인한 시각 「시:분」(KST) */
 function kstClock(ms: number): string {
@@ -111,7 +109,8 @@ export function CasesPage() {
       unsearched: quickValues.progress.includes("unsearched"),
       awaiting: quickValues.progress.includes("awaiting"),
       mine: quickValues.mine.length > 0,
-      src: sourceParam(quickValues.src),
+      // 출처는 나누지 않는다 — 새로 등록한 사건 + SCAS 에서 옮겨 온 사건 모두
+      src: LIST_SOURCE,
       // 날짜는 칩을 고른 그 날 기준(자정을 넘겨도 쿼리 키가 렌더마다 바뀌지 않게 quickValues 에만 묶음)
       from: periodFrom(quickValues.period, Date.now()),
       limit: SERVER_LIMIT,
@@ -150,7 +149,6 @@ export function CasesPage() {
     quickValues.flow.length +
       quickValues.progress.length +
       quickValues.mine.length +
-      quickValues.src.length +
       quickValues.period.length >
       0
   const status: ScreenStatus = listQuery.isPending
@@ -460,8 +458,7 @@ export function CasesPage() {
       ],
     },
     { key: "mine", label: "담당", value: quickValues.mine, options: [{ value: "mine", label: "내 담당만" }] },
-    // 기본(아무것도 안 고름) = 새 사건 + 과거 SCAS · 최근 한 달. 오래된 과거 사건은 「기간」으로 넓혀 본다
-    { key: "src", label: "출처", value: quickValues.src, options: SOURCE_OPTIONS },
+    // 기본(아무것도 안 고름) = 최근 한 달. 오래된 사건은 「기간」으로 넓혀 본다(출처 구분 없음)
     { key: "period", label: "기간", value: quickValues.period, options: PERIOD_OPTIONS },
   ]
 

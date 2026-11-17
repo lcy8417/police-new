@@ -1,17 +1,13 @@
 /**
- * 사건 목록(/cases) 「출처」 · 「기간」 칩 → A1 거르기 값.
+ * 사건 목록(/cases) 「기간」 칩 → A1 거르기 값.
  *
- * 서버 기본은 출처 APP(새 사건) · 최근 한 달이라, 칩이 없으면 SCAS 과거 사건(17만 건)을 볼 길이 없다.
- * 칩 부품(FilterBar)은 여러 개 고르기라 아래처럼 푼다:
- * - 출처: 아무것도 안 고름 = 둘 다(ALL — 「조건 없음 = 다 보임」. 기본 기간이 한 달이라 과거 사건이 목록을 덮지 않음),
- *   「새 사건」만 = APP, 「과거 SCAS」만 = SCAS.
- * - 기간: 아무것도 안 고름 = 서버 기본(최근 한 달), 여럿이면 가장 넓은 것.
+ * 목록은 출처를 나누지 않고 늘 전체(새로 등록한 사건 + SCAS 에서 옮겨 온 사건 — A1 `src=ALL`)를 보인다(사용자 결정 11/17).
+ * 서버 기본 기간은 최근 한 달이라, 오래된 사건은 기간 칩으로 넓혀 본다.
+ * 칩 부품(FilterBar)은 여러 개 고르기라 기간이 여럿이면 가장 넓은 것을 쓴다.
  */
 
-export const SOURCE_OPTIONS = [
-  { value: "APP", label: "새 사건" },
-  { value: "SCAS", label: "과거 SCAS" },
-] as const
+/** A1 출처 — 늘 전체 */
+export const LIST_SOURCE = "ALL" as const
 
 export const PERIOD_OPTIONS = [
   { value: "3m", label: "최근 3개월" },
@@ -23,15 +19,6 @@ export const PERIOD_OPTIONS = [
 export const ALL_PERIOD_FROM = "1990-01-01"
 
 const PERIOD_DAYS: Record<string, number> = { "3m": 92, "1y": 366 }
-
-/** 출처 칩 → A1 `src`(안 고름 · 둘 다 = ALL) */
-export function sourceParam(values: readonly string[]): "APP" | "SCAS" | "ALL" {
-  const app = values.includes("APP")
-  const scas = values.includes("SCAS")
-  if (scas && !app) return "SCAS"
-  if (app && !scas) return "APP"
-  return "ALL"
-}
 
 /** 한국 날짜 YYYY-MM-DD(nowMs 기준 days 일 전) */
 function kstDate(nowMs: number, daysBefore: number): string {
