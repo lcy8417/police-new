@@ -1,3 +1,6 @@
+import * as React from "react"
+import { Footprints } from "lucide-react"
+
 import type { Shoe } from "@/entities/shoe"
 import { cn } from "@/shared/lib/utils"
 import { AiTag, ScanOverlay } from "@/shared/ui/ai"
@@ -56,9 +59,26 @@ interface ShoeCardProps {
 /** 조용한 카드에서도 남기는 AI 표식 — 사람이 확인해야 하는 것만 */
 const needsEye = (mark: ShoeCardMark) => mark === "scan" || mark === "dup" || mark < 0.7
 
+/**
+ * 그림이 없거나 못 읽은 신발 — 깨진 그림 아이콘 대신 같은 칸 안 흐린 밑창 표식 + 글자.
+ * 운영 DB 는 약 11.6만 켤레인데 서버 B 폴더 사진은 약 2.8만 장이라 사진 없는 신발이 많다(서버가 404).
+ */
+function NoImage() {
+  return (
+    <span data-slot="shoe-card-no-image" className="flex flex-col items-center justify-center gap-[4px] text-faint">
+      <Footprints aria-hidden="true" strokeWidth={1.5} className="size-[22px]" />
+      <span className="text-[10.5px] text-dim">이미지 없음</span>
+    </span>
+  )
+}
+
 export function ShoeCard({ shoe, selected, hasPattern, info, onOpen, imageClass = "h-[92px]", highlighted = false, quiet = false }: ShoeCardProps) {
   const status = info ? STATUS_CLASS[info.status] : null
   const mark = info?.mark !== undefined && (!quiet || needsEye(info.mark)) ? info.mark : undefined
+  // 못 읽은 그림 주소(그 주소일 때만 「이미지 없음」 — 그림을 바꾸면 다시 읽어 본다)
+  const [failedSrc, setFailedSrc] = React.useState<string | null>(null)
+  const src = shoe.image ?? ""
+  const noImage = src === "" || failedSrc === src
   return (
     // 카드 어디를 눌러도 열린다(시안: 카드 클릭 = 같은 자리 레이어 창). 키보드는 안쪽 버튼의 눌림이 여기로 올라온다.
     <div
@@ -79,7 +99,7 @@ export function ShoeCard({ shoe, selected, hasPattern, info, onOpen, imageClass 
           imageClass,
         )}
       >
-        {shoe.image && <img src={shoe.image} alt="" className="size-full object-contain" />}
+        {noImage ? <NoImage /> : <img src={src} alt="" onError={() => setFailedSrc(src)} className="size-full object-contain" />}
         {mark !== undefined && (
           <span data-plus="" className="contents">
             <CardMark mark={mark} />
