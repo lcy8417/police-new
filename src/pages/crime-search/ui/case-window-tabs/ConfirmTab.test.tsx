@@ -8,6 +8,7 @@ import { useSessionStore } from "@/features/auth"
 import { mswServer } from "@/test/msw-server"
 
 import { ConfirmTab } from "./ConfirmTab"
+import { useTabSessionStore } from "./model/tab-session"
 
 beforeAll(() => mswServer.listen({ onUnhandledRequest: "error" }))
 afterEach(() => {
@@ -284,6 +285,92 @@ describe("ConfirmTab — 결과 확인(G1) · 판정(G2) · 교차 검증(H1 · 
     fireEvent.blur(judged) // 저장이 끝난 뒤(다시 읽은 결과가 아직 옛 메모여도)
     await new Promise((r) => setTimeout(r, 120))
     expect(calls).toBe(1)
+  })
+
+  it("[검수] 교차 검증 요청 · 검증자 고르기는 판정 확정 권한(EXAM_DECIDE — 서버 H1 · H2 와 같음), 타인 검증 권한(CROSS_REVIEW)과 무관", async () => {
+    login(["CRIME_SEARCH", "EXAM_DECIDE", "CASE_STATUS_VIEW"]) // CROSS_REVIEW 없음
+    let body: unknown = null
+    useHandlers(
+      () =>
+        confirmBody({
+          rows: [row(1, { judgement: "unable", exam_id: 11, exam_round: 1, exam_sttus: "CONFIRMED", row_version: 2 })],
+        }),
+      [
+        http.post("*/requests/:id/cross-review", async ({ request }) => {
+          body = await request.json()
+          return HttpResponse.json({ step_id: 5, rqest_sttus: "CROSS_REVIEW", row_version: 4 })
+        }),
+      ]
+    )
+    renderTab()
+    const pick = await screen.findByRole("button", { name: "김검증 · 과학수사과" })
+    expect(pick).toBeEnabled()
+    fireEvent.click(pick)
+    const request = screen.getByRole("button", { name: "교차 검증 요청" })
+    await waitFor(() => expect(request).toBeEnabled())
+    fireEvent.click(request)
+    await waitFor(() => expect(body).toEqual({ reviewerId: "exm_rv" }))
+  })
+
+  it("[검수] 검증만 하는 사람(EXAM_VIEW + CROSS_REVIEW)에게는 교차 검증 요청 단추가 없다", async () => {
+    login(["EXAM_VIEW", "CROSS_REVIEW", "CASE_STATUS_VIEW"])
+    mswServer.use(
+      http.get("*/requests", () => HttpResponse.json({ items: [{ rqest_id: 41, apprsl_reqest_no: NO }], next_cursor: null })),
+      http.get("*/requests/:id/confirm", () => HttpResponse.json(confirmBody()))
+    )
+    renderTab()
+    await screen.findByRole("group", { name: `${NO}_1 판정` })
+    expect(screen.queryByRole("button", { name: "교차 검증 요청" })).not.toBeInTheDocument()
+  })
+
+  it("[검수] 감정번호는 받은 그대로 A1 no= 로(끝이 _숫자 여도 자르지 않음)", async () => {
+    login(EXAMINER)
+    const odd = "ABC_1"
+    let asked: string | null = null
+    mswServer.use(
+      http.get("*/requests", ({ request }) => {
+        asked = new URL(request.url).searchParams.get("no")
+        return HttpResponse.json({ items: [{ rqest_id: 41, apprsl_reqest_no: odd }], next_cursor: null })
+      }),
+      http.get("*/requests/:id/confirm", () => HttpResponse.json(confirmBody())),
+      http.get("*/requests/:id/reviewers", () => HttpResponse.json([]))
+    )
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <ConfirmTab aprthngNo={odd} />
+      </QueryClientProvider>
+    )
+    await waitFor(() => expect(asked).toBe(odd))
+  })
+
+  it("[검수] 발견 줄 「열기」는 그 줄의 확인대상 신발을 정밀 대조 대상으로 정한 뒤 연다", async () => {
+    login(EXAMINER)
+    const open = vi.fn()
+    useTabSessionStore.setState({ byImage: {} })
+    useHandlers(() =>
+      confirmBody({
+        rows: [
+          row(1, {
+            judgement: "found",
+            exam_id: 11,
+            exam_round: 1,
+            exam_sttus: "CONFIRMED",
+            row_version: 3,
+            shoe: { ftwr_id: "00758", search_no: 7001, score: 89.5, pattern_score: null, ranking: 4, confirmed: true },
+          }),
+        ],
+      })
+    )
+    renderTab(open)
+    fireEvent.click(await screen.findByRole("button", { name: "_1 열기" }))
+    expect(open).toHaveBeenCalledWith(`${NO}_1`, "compare")
+    expect(useTabSessionStore.getState().byImage[`${NO}_1`]?.compare).toEqual({
+      ftwrId: "00758",
+      rank: 4,
+      similarity: 89.5,
+      searchNo: 7001,
+    })
   })
 
   it("열기 단추는 판정 전 = 검색 결과, 발견 = 정밀 대조", async () => {

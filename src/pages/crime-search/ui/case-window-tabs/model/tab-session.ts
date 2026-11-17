@@ -15,6 +15,8 @@ export interface TabCompareCandidate {
   rank: number
   /** 유사도 퍼센트 0~100 */
   similarity: number | string
+  /** 이 후보를 고른 검색 번호(검색 기록이 있을 때) — 정밀 대조 「확인대상」 저장(E3)에 쓴다. 없으면 기록 없는 즉석 검색 */
+  searchNo?: number
 }
 
 interface ImageSession {

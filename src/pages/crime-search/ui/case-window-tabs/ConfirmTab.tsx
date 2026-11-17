@@ -12,11 +12,13 @@ import { toKstIso } from "@/shared/lib"
 import type { ScreenStatus } from "@/shared/lib/screen-status"
 import { ConfirmWindow, type ConfirmRow, type CrossReviewState, type Judgement } from "@/widgets/result-confirm"
 
+import { useTabSessionStore } from "./model/tab-session"
 import { useViewer } from "./model/use-viewer"
 
 /** `ConfirmTab` 이 받는 값 */
 export interface ConfirmTabProps {
-  /** 사건 감정번호(= 감정의뢰번호). A1 `no=`로 `rqest_id`(최신 회차)를 얻어 G1을 부른다. 감정물 번호를 줘도 그 의뢰로 푼다 */
+  /** 사건 감정번호(= 감정의뢰번호). A1 `no=`로 `rqest_id`(최신 회차)를 얻어 G1을 부른다.
+   *  받은 값 그대로 쓴다([검수] — 예전엔 끝의 `_숫자`를 감정물 번호로 보고 잘라, 그런 모양의 감정번호가 다른 사건으로 풀렸다) */
   aprthngNo: string
   /** 줄 끝 「열기」 — 그 이미지의 검색 결과(판정 전) · 정밀 대조(발견) 탭으로(감정물 번호 전체). 없으면 단추를 그리지 않는다 */
   onOpenImage?: (aprthngNo: string, tab: "search" | "compare") => void
@@ -25,12 +27,6 @@ export interface ConfirmTabProps {
 const KIND_LABEL: Record<ConfirmRowDto["kind"], string> = { shoe: "신발", tire: "타이어" }
 const kstClock = (ms: number) => toKstIso(new Date(ms)).slice(11, 16)
 const errorText = (e: unknown, fallback: string) => (e instanceof ApiError && e.detail ? e.detail : fallback)
-
-/** 감정물 번호(`…_5`)를 줘도 감정번호로 — 사건 창 주소는 감정번호지만 옛 길은 감정물 번호를 줄 수 있다 */
-function requestNoOf(no: string): string {
-  const m = /^(.*)_\d+$/.exec(no)
-  return m ? m[1] : no
-}
 
 /** G1 줄 → 위젯 줄(이미지 주소는 루트 기준 경로를 백엔드 주소로) */
 function toRow(r: ConfirmRowDto): ConfirmRow {
@@ -75,7 +71,8 @@ export function ConfirmTab({ aprthngNo, onOpenImage }: ConfirmTabProps) {
   const userId = useSessionStore((s) => s.user?.userId ?? null)
   const canDecide = viewer.isAdmin || viewer.features.includes(FEATURES.EXAM_DECIDE)
 
-  const idQuery = useRequestIdByNo(requestNoOf(aprthngNo))
+  const idQuery = useRequestIdByNo(aprthngNo)
+  const setCompare = useTabSessionStore((s) => s.setCompare)
   const rqestId = idQuery.data ?? null
   const viewQuery = useConfirmView(rqestId)
   const view = viewQuery.data
@@ -156,6 +153,24 @@ export function ConfirmTab({ aprthngNo, onOpenImage }: ConfirmTabProps) {
     )
   }
 
+  // 줄 끝 「열기」 — 발견 줄은 그 줄의 확인대상 신발을 정밀 대조 대상으로 정한 뒤 연다([검수] — 예전엔 탭만 옮겨
+  // 재접속 뒤 「후보를 고르세요」나 전에 고른 다른 신발이 보였다). 후보 목록은 그 한 켤레.
+  const handleOpen = (row: ConfirmRow) => {
+    if (!onOpenImage) return
+    const dto = byNo.get(row.imageNo)
+    const found = row.judgement === "found"
+    if (found && dto?.shoe) {
+      const target = {
+        ftwrId: dto.shoe.ftwrId,
+        rank: dto.shoe.ranking ?? 0,
+        similarity: dto.shoe.score ?? "—",
+        searchNo: dto.shoe.searchNo,
+      }
+      setCompare(row.imageNo, target, [target])
+    }
+    onOpenImage(row.imageNo, found ? "compare" : "search")
+  }
+
   const handleRequest = (reviewerId: string) => {
     if (rqestId === null) return
     requestCross.mutate(
@@ -190,14 +205,12 @@ export function ConfirmTab({ aprthngNo, onOpenImage }: ConfirmTabProps) {
       }}
       isAdmin={viewer.isAdmin}
       features={viewer.features}
-      aprthngNo={requestNoOf(aprthngNo)}
+      aprthngNo={aprthngNo}
       rows={rows}
       onJudgementChange={canDecide ? handleJudge : undefined}
       onOpinionCommit={handleOpinion}
       lockedReason={view?.lockedReason ?? undefined}
-      onOpenImage={
-        onOpenImage ? (row) => onOpenImage(row.imageNo, row.judgement === "found" ? "compare" : "search") : undefined
-      }
+      onOpenImage={onOpenImage ? handleOpen : undefined}
       crossReview={crossReview}
       reviewers={shownReviewers}
       reviewer={shownReviewer}
