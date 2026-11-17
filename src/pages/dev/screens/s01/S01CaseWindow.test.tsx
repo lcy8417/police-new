@@ -208,8 +208,6 @@ describe("S01 사건 창", () => {
       it("AI 조건은 뺀다 — 검색 방식 · 깔때기 · 인공지능문양관리 없음, AI 동작은 「다시 추출」 하나", () => {
         const d = open()
         expect(within(d).queryByRole("button", { name: "인공지능문양관리" })).toBeNull()
-        fireEvent.click(within(side(d)).getByRole("tab", { name: "검색 조건" }))
-        expect(within(d).getByRole("region", { name: "매칭 조건" })).toBeInTheDocument()
         expect(within(d).queryByRole("radiogroup", { name: "검색 방식" })).toBeNull()
         expect(within(d).queryByText(/이미지 검색 추천|하이브리드/)).toBeNull()
         expect(within(d).queryByText("신발 DB")).toBeNull()
@@ -226,20 +224,29 @@ describe("S01 사건 창", () => {
         expect(within(board).getByRole("button", { name: "빼기 · 윤곽 s10c" })).toBeInTheDocument()
       })
 
-      it("가중치를 바꾸면 「직접」, 다시 누르면 규칙 값 · 검색 조건 탭 「규칙 기본값으로」는 모두 되돌린다", () => {
+      it("11/17 「검색 조건 없애기」 — 오른쪽 판은 문양 목록 · 검색 이력 두 탭(매칭 조건 · 가중치 규칙 칸 없음), 가중치 규칙은 머리 ⓘ 말풍선에", () => {
+        const d = open()
+        const tabs = within(side(d)).getAllByRole("tab")
+        expect(tabs.map((t) => t.textContent)).toEqual([expect.stringMatching(/목록/), expect.stringMatching(/이력/)])
+        expect(within(side(d)).queryByRole("tab", { name: /검색 조건/ })).toBeNull()
+        expect(within(d).queryByRole("region", { name: "매칭 조건" })).toBeNull()
+        expect(within(d).queryByRole("region", { name: "가중치 규칙" })).toBeNull()
+        expect(within(d).getByRole("button", { name: /^도움말 — / })).toHaveAccessibleName(expect.stringMatching(/가중치 규칙: 윤곽 부위 −1/))
+      })
+
+      it("가중치를 바꾸면 「직접」, 다시 누르면 규칙 값 · 4부위 막대 「직접 가중치 n개 되돌리기」는 모두 되돌린다(직접이 있을 때만)", () => {
         const d = open()
         const board = within(d).getByRole("group", { name: "현장 이미지 문양" })
+        const bench = within(d).getByRole("region", { name: "현장 이미지 문양" })
+        expect(within(bench).queryByRole("button", { name: /직접 가중치/ })).toBeNull()
         fireEvent.click(within(within(board).getByRole("group", { name: /^중 s81b 가중치/ })).getByRole("button", { name: "가중치 높음" }))
         expect(within(board).getByRole("group", { name: "중 s81b 가중치 높음 직접" })).toBeInTheDocument()
         fireEvent.click(within(within(board).getByRole("group", { name: /^중 s81b 가중치/ })).getByRole("button", { name: "가중치 높음" }))
         expect(within(board).getByRole("group", { name: "중 s81b 가중치 낮음" })).toBeInTheDocument()
         fireEvent.click(within(within(board).getByRole("group", { name: /^윤곽 s10c 가중치/ })).getByRole("button", { name: "가중치 보통" }))
-        fireEvent.click(within(side(d)).getByRole("tab", { name: /검색 조건/ }))
-        const rules = within(d).getByRole("region", { name: "가중치 규칙" })
-        expect(rules).toHaveTextContent("직접 1개")
-        fireEvent.click(within(rules).getByRole("button", { name: "규칙 기본값으로" }))
+        fireEvent.click(within(bench).getByRole("button", { name: "직접 가중치 1개 되돌리기" }))
         expect(within(board).getByRole("group", { name: "윤곽 s10c 가중치 낮음" })).toBeInTheDocument()
-        expect(within(rules).getByRole("button", { name: "규칙 기본값으로" })).toBeDisabled()
+        expect(within(bench).queryByRole("button", { name: /직접 가중치/ })).toBeNull()
       })
 
       it("문양 목록(기본 탭): 전체 종류 폴더 그대로, 누르면 고른 부위에 넣고 다시 누르면 뺀다(이름 기준)", () => {
@@ -348,9 +355,9 @@ describe("S01 사건 창", () => {
       it("1회차 검수 — 「다시입력」은 직접 가중치도 지운다(빈 화면에 「직접 n」이 남지 않음)", () => {
         const d = open()
         fireEvent.click(within(within(d).getByRole("group", { name: /^중 s81b 가중치/ })).getByRole("button", { name: "가중치 높음" }))
+        expect(within(d).getByRole("button", { name: "직접 가중치 1개 되돌리기" })).toBeInTheDocument()
         fireEvent.click(within(d).getByRole("button", { name: "다시입력" }))
-        fireEvent.click(within(side(d)).getByRole("tab", { name: /검색 조건/ }))
-        expect(within(d).getByRole("region", { name: "가중치 규칙" })).toHaveTextContent("직접 0개")
+        expect(within(d).queryByRole("button", { name: /직접 가중치/ })).toBeNull()
       })
 
       it("확대경: 켜고 마우스를 대면 동그란 확대경(누를 수 없는 장식)이 따라오고, [ ] 키로 지름을 바꾼다", () => {
@@ -370,6 +377,69 @@ describe("S01 사건 창", () => {
         // 누른 채 움직이면(경계선 끌기) 숨긴다
         fireEvent.pointerMove(box, { clientX: 50, clientY: 60, buttons: 1, pointerType: "mouse" })
         expect(d.querySelector('[data-slot="pattern-lens"]')).toBeNull()
+      })
+
+      it("11/17 「클릭하면 고정」 — 현장 이미지를 누르면 확대경이 그 자리에 고정(오른쪽 칸은 「고정됨」 표시만 · 고정 단추 없음), Esc 는 고정만 풀고 사건 창은 그대로", () => {
+        const d = open()
+        const box = d.querySelector("[data-lens]") as HTMLElement
+        fireEvent.click(within(d).getByRole("button", { name: "확대경" }))
+        vi.spyOn(box, "getBoundingClientRect").mockReturnValue({ left: 0, top: 0, width: 200, height: 400, right: 200, bottom: 400, x: 0, y: 0, toJSON: () => ({}) })
+        const peek = () => within(d).getByRole("region", { name: "확대 보기" })
+        expect(within(peek()).queryByRole("button", { name: /고정/ })).toBeNull()
+        fireEvent.pointerDown(box, { button: 0, clientX: 60, clientY: 120 })
+        fireEvent.click(box, { clientX: 60, clientY: 120 })
+        const lens = d.querySelector('[data-slot="pattern-lens"]') as HTMLElement
+        expect(lens).toHaveAttribute("data-lens-pinned")
+        expect(lens).toHaveClass("pointer-events-none")
+        expect(peek()).toHaveAttribute("data-pinned")
+        expect(within(peek()).getByRole("status")).toHaveTextContent("고정됨")
+        // 마우스를 문양 목록으로 옮겨도(현장 이미지를 떠나도) 고정 자리 그대로
+        fireEvent.pointerLeave(box)
+        expect(d.querySelector("[data-lens-pinned]")).not.toBeNull()
+        fireEvent.keyDown(document, { key: "Escape" })
+        expect(d.querySelector("[data-lens-pinned]")).toBeNull()
+        expect(peek()).not.toHaveAttribute("data-pinned")
+        expect(screen.getByRole("dialog", { name: /사건 창$/ })).toBeInTheDocument()
+        // 확대경을 끄면 고정도 풀린다
+        fireEvent.click(box, { clientX: 60, clientY: 120 })
+        expect(d.querySelector("[data-lens-pinned]")).not.toBeNull()
+        fireEvent.click(within(d).getByRole("button", { name: "확대경" }))
+        fireEvent.click(within(d).getByRole("button", { name: "확대경" }))
+        expect(d.querySelector("[data-lens-pinned]")).toBeNull()
+      })
+
+      it("11/17 「오른쪽 슬라이드바는 접을 수 있게」 · 「크기 조정」 — 오른쪽 판 접기/펼치기 · 왼쪽 가장자리 손잡이(← → 키) · 이 브라우저에 기억", () => {
+        const d = open()
+        const handle = within(d).getByRole("separator", { name: "문양 · 검색 판 폭" })
+        expect(handle).toHaveAttribute("aria-valuenow", "280")
+        fireEvent.keyDown(handle, { key: "ArrowLeft" })
+        expect(handle).toHaveAttribute("aria-valuenow", "296")
+        const sideRegion = within(d).getByRole("region", { name: "문양 · 검색" })
+        expect(sideRegion.style.width).toBe("296px")
+        expect(localStorage.getItem("scas:pattern-window:side-width")).toBe("296")
+        fireEvent.doubleClick(handle)
+        expect(within(d).getByRole("region", { name: "문양 · 검색" }).style.width).toBe("")
+        fireEvent.click(within(d).getByRole("button", { name: "문양 · 검색 판 접기" }))
+        expect(within(d).getByRole("region", { name: "문양 · 검색" })).toHaveAttribute("data-collapsed")
+        expect(within(d).queryByRole("tablist", { name: "문양 · 검색" })).toBeNull()
+        expect(within(d).queryByRole("separator", { name: "문양 · 검색 판 폭" })).toBeNull()
+        expect(localStorage.getItem("scas:pattern-window:side-collapsed")).toBe("true")
+        fireEvent.click(within(d).getByRole("button", { name: "문양 · 검색 판 펼치기" }))
+        expect(side(d)).toBeInTheDocument()
+      })
+
+      it("11/17 「이 사이드바는 좌우 크기 조정 가능하게」 — 왼쪽 이미지 목록을 펼치면 오른쪽 가장자리 손잡이로 폭 조절(→ 키 · 기억), 접으면 손잡이 없음", () => {
+        const d = open()
+        const rail = () => d.querySelector('[data-slot="window-rail"]') as HTMLElement
+        expect(within(rail()).queryByRole("separator")).toBeNull()
+        fireEvent.click(within(d).getByRole("button", { name: "이미지 목록 펼치기" }))
+        const handle = within(rail()).getByRole("separator", { name: "이미지 목록 폭" })
+        expect(handle).toHaveAttribute("aria-valuenow", "232")
+        fireEvent.keyDown(handle, { key: "ArrowRight", shiftKey: true })
+        expect(rail().style.width).toBe("280px")
+        expect(localStorage.getItem("scas:case-window:rail-width")).toBe("280")
+        fireEvent.keyDown(handle, { key: "End" })
+        expect(rail().style.width).toBe("380px")
       })
 
       it("현장 이미지를 두 번 누르면 살펴보기 판 — 보기 조정 · 문양 넣기, Esc 는 살펴보기만 닫는다(사건 창은 그대로)", () => {

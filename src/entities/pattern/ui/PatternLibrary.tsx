@@ -28,13 +28,13 @@ export interface PatternLibraryProps {
   canEdit: boolean
   /** 격자 위 덧칸(AI 추출 진행 등) */
   head?: React.ReactNode
-  /** 칸 수(기본 4) */
-  columns?: 4 | 5
+  /** 칸 수(기본 4) — "fill" 은 판 폭에 맞춰 칸 수를 늘리고 줄인다(칸 최소 56px · 같은 크기, 폭을 조절하는 판) */
+  columns?: 4 | 5 | "fill"
   className?: string
 }
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-1 focus-visible:outline-brand"
-const GRID: Record<4 | 5, string> = { 4: "grid-cols-4", 5: "grid-cols-5" }
+const GRID: Record<4 | 5 | "fill", string> = { 4: "grid-cols-4", 5: "grid-cols-5", fill: "grid-cols-[repeat(auto-fill,minmax(56px,1fr))]" }
 
 /** 문양 한 칸 — 흰 카드, 누르면 넣기 · 넣은 문양은 진한 테 + ✓(다시 누르면 빼기), 끌어서 부위 행에 놓기 */
 function LibraryTile({
@@ -72,7 +72,8 @@ function LibraryTile({
       onPointerEnter={onHover ? () => onHover(item) : undefined}
       onFocus={onHover ? () => onHover(item) : undefined}
       className={cn(
-        "relative m-0 grid aspect-square cursor-pointer place-items-center rounded-[9px] border border-solid bg-picon p-[5px] transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none",
+        // 칸 크기는 격자 칸 폭 × 정사각형만으로 정한다 — 그림은 안쪽 5px 띄운 겹에 꽉 맞춰, 그림 크기 · 못 읽은 그림이 칸 · 줄을 흔들지 않는다(11/17 「규격화 · 정렬」)
+        "relative m-0 block aspect-square w-full min-w-0 cursor-pointer rounded-[9px] border border-solid bg-picon p-0 transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none",
         FOCUS,
         "disabled:cursor-default disabled:opacity-60",
         inserted
@@ -80,7 +81,9 @@ function LibraryTile({
           : "border-line-3 [box-shadow:0_1px_2px_var(--t-panel-drop)] enabled:hover:border-brand-line enabled:hover:[box-shadow:0_3px_8px_var(--t-panel-drop)]"
       )}
     >
-      <PatternIcon name={name} src={src} title={name} className="size-full border-0 bg-transparent" />
+      <span className="absolute inset-[5px] grid min-w-0 place-items-center overflow-hidden">
+        <PatternIcon name={name} src={src} title={name} className="size-full border-0 bg-transparent" />
+      </span>
       {score !== undefined ? (
         <span
           className={cn(

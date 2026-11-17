@@ -1,10 +1,11 @@
 import * as React from "react"
-import { ArrowRight, Check, Layers, List, Maximize2, RotateCcw, Search, Sparkles } from "lucide-react"
+import { ArrowRight, Check, Layers, List, Maximize2, PanelRightClose, PanelRightOpen, RotateCcw, Search, Sparkles } from "lucide-react"
 
 import { PatternPeek, type PatternLibraryItem } from "@/entities/pattern"
+import { isBoolean, isIntBetween, useStoredState } from "@/shared/lib"
 import { cn } from "@/shared/lib/utils"
 import { ScanOverlay } from "@/shared/ui/ai"
-import { Field, Segmented, WorkbenchButton } from "@/shared/ui/kit"
+import { Field, ResizeHandle, Segmented, WorkbenchButton } from "@/shared/ui/kit"
 import { PaneHead, TabMark, UnderlineTabs } from "@/shared/ui/panel"
 import {
   DEFAULT_LENS,
@@ -22,9 +23,7 @@ import {
 import { patternName, ZONE_ROWS } from "../model/constants"
 import type { PatternCodeScreenProps, SearchImageSource } from "../model/types"
 import { countOverrides, patternWeights, WEIGHT_RULES } from "../model/weight-rules"
-import { SubHead } from "./Band"
 import { InspectOverlay } from "./InspectOverlay"
-import { MatchConditions } from "./MatchConditions"
 import { PatternLibrary } from "./PatternLibrary"
 import { SearchRunList } from "./SearchRunList"
 import { ZoneBoard } from "./ZoneBoard"
@@ -39,7 +38,15 @@ const BAR = "flex shrink-0 flex-wrap items-center gap-x-[8px] gap-y-[4px] bg-pan
 /** 그림 위 꼬리표 */
 const TAG = "pointer-events-none absolute rounded-[5px] bg-canvas/90 px-[7px] py-[2px] font-code text-[10px] text-fg-2"
 
-type SideTab = "library" | "conditions" | "history"
+type SideTab = "library" | "history"
+
+/** 오른쪽 판 폭 범위(px) · 기억 키(이 브라우저 — 사건 · 이미지가 바뀌어도 같은 폭) */
+const SIDE_MIN = 240
+const SIDE_MAX = 440
+const SIDE_DEFAULT = 280
+const SIDE_WIDTH_KEY = "pattern-window:side-width"
+const SIDE_COLLAPSED_KEY = "pattern-window:side-collapsed"
+const isSideWidth = isIntBetween(SIDE_MIN, SIDE_MAX)
 
 export interface PatternWindowProps extends PatternCodeScreenProps {
   /** 문양 편집 · 추출 · 검색을 할 수 있나 */
@@ -57,20 +64,28 @@ export interface PatternWindowProps extends PatternCodeScreenProps {
  * 필수 · 가중치를 정한 뒤 검색하고, 조건별 결과를 이력으로 비교한다. AI 는 문양 추출(제안 + 확신도)만.
  *   머리(밝은 바탕) — 칸 이름 · 제안/확인/필수 수
  *   어두운 작업판(`data-theme="dark"` — 경찰 다크 팔레트 토큰 그대로): 왼쪽 현장 이미지 | 가운데 4부위 문양 행
- *   오른쪽 보조 칸(밝은 바탕 · 왼쪽 가는 선): 문양 목록 · 검색 조건 · 검색 이력
+ *   오른쪽 보조 칸(밝은 바탕): 문양 목록 · 검색 이력 — 왼쪽 가장자리 손잡이로 폭 조절(기억), 「접기」로 가운데를 넓힘
  *   바닥 단추 줄: 진행 · 다음 이미지 | 다시입력 · 검색결과 · 검색
+ * 11/17 사용자 「오른쪽 탭 스크롤이나, 그런 거 다 없애고 문양 부분 좀 규격화하고 정렬맞춰. 검색 조건 없애기」 ·
+ * 「클릭하면 고정이 되어야지」 · 「오른쪽 슬라이드바는 접을 수 있게」:
+ *   「검색 조건」 탭을 뺐다 — 매칭 조건은 모두 「준비 중」(비활성)이라 잃는 값이 없고, 가중치 규칙은 머리 ⓘ 말풍선 · 카드 마우스 설명,
+ *   「직접 가중치 되돌리기」는 4부위 막대로 옮겼다. 탭이 둘이라 탭 줄이 넘치지 않는다. 문양 목록 탭은 바깥 스크롤 없이 문양 격자만 스크롤.
+ *   확대경은 현장 이미지를 누르면 그 자리에 고정(다시 누름 · Esc 로 풀기) — 오른쪽 확대 보기 칸은 고정 표시만.
  * 상태 · 핸들러는 단독 진열과 같다(배치만 다름). 좌표 캔버스(`canvasSlot`)는 바깥 상자만 다룬다 — PatternCanvas 좌표 계약 그대로.
  */
 export function PatternWindow(props: PatternWindowProps) {
   const { zones, selectedZone, patternMeta, canEdit } = props
   const [sideTab, setSideTab] = React.useState<SideTab>("library")
   const sideTabsId = React.useId()
+  const sideRef = React.useRef<HTMLElement>(null)
+  const [sideWidth, setSideWidth] = useStoredState<number | null>(SIDE_WIDTH_KEY, null, isSideWidth)
+  const [sideCollapsed, setSideCollapsed] = useStoredState<boolean>(SIDE_COLLAPSED_KEY, false, isBoolean)
   const [tune, setTune] = React.useState<ViewTune>(DEFAULT_VIEW_TUNE)
   const [lens, setLens] = React.useState<LensSettings>(DEFAULT_LENS)
   const [inspecting, setInspecting] = React.useState(false)
-  // 확대 보기 칸: 확대경이 마지막으로 본 자리(마우스를 떼도 유지 · 「고정」이면 멈춤) · 문양 목록에서 마우스를 올린 문양
+  // 확대 보기 칸: 확대경이 마지막으로 본 자리(마우스를 떼도 유지) · 현장 이미지를 눌러 고정한 자리 · 문양 목록에서 마우스를 올린 문양
   const [spot, setSpot] = React.useState<LensSpot | null>(null)
-  const [pinned, setPinned] = React.useState(false)
+  const [pin, setPin] = React.useState<LensSpot | null>(null)
   const [hovered, setHovered] = React.useState<PatternLibraryItem | null>(null)
 
   const weights = React.useMemo(
@@ -99,6 +114,14 @@ export function PatternWindow(props: PatternWindowProps) {
   const extracting = props.extractState === "running"
   const sourceLabel = props.searchImage === "edited" ? (props.editedLook ? `편집본 · ${props.editedLook}` : "편집본") : "원본"
   const lensStep = (by: 1 | -1) => setLens((l) => ({ ...l, size: stepLens(l.size, by) }))
+  // 확대경을 끄면 고정도 푼다(다시 켰을 때 옛 자리에 멈춰 있지 않게)
+  const changeLens = (next: LensSettings) => {
+    setLens(next)
+    if (!next.on) setPin(null)
+  }
+  // 검색 이력(searchRuns)을 주지 않으면 「검색 이력」 탭을 그리지 않는다 — 그때 고른 탭이 이력이면 문양 목록으로
+  const tab: SideTab = sideTab === "history" && !runs ? "library" : sideTab
+  const weightRulesText = `가중치 규칙: ${WEIGHT_RULES.map((r) => r.text).join(" · ")}(합은 −1 ~ +1). 카드에서 직접 고른 값이 규칙보다 먼저입니다.`
 
   const library = {
     kind: props.paletteKind,
@@ -140,34 +163,114 @@ export function PatternWindow(props: PatternWindowProps) {
       </span>
     )
 
-  // 좁은 창(1280 + 왼쪽 목록 펼침 — 안쪽 폭 약 884)에서는 앞말(문양 · 검색)과 탭 뒤 수를 숨겨 세 탭이 한 줄에 들게 한다.
-  // 기준 920(1회차 검수: 860 이면 1280 + 목록 펼침에서 발동하지 않아 오른쪽 탭이 잘림)
+  // 탭 둘(문양 목록 · 검색 이력) — 판이 좁으면(판 폭 260 아래) 앞말(문양 · 검색)만 숨겨 한 줄에 든다. 오른쪽 판이 container 다.
   // 탭 안은 flex 라 낱말 사이 빈칸이 접히므로 보이는 글은 앞말 끝 빈칸(U+00A0)으로 띄우고, 이름은 숨은 글로 그대로 준다
   const tabName = (lead: string, word: string) => (
     <>
       <span aria-hidden="true">
-        <span className="@max-[920px]:hidden">{`${lead} `}</span>
+        <span className="@max-[260px]:hidden">{`${lead} `}</span>
         {word}
       </span>
       <span className="sr-only">{`${lead} ${word}`}</span>
     </>
   )
-  const countMark = (n: number) => (
-    <span className="@max-[920px]:hidden">
-      <TabMark kind="count" count={n} />
-    </span>
-  )
-  // 검색 이력(searchRuns)을 주지 않으면 「검색 이력」 탭을 그리지 않는다 — 실제 앱은 이력 요약 API(D2)가 생길 때까지 숨김
   const sideTabs: [SideTab, React.ReactNode][] = [
     ["library", tabName("문양", "목록")],
-    ["conditions", <>{tabName("검색", "조건")}{overrideCount > 0 ? countMark(overrideCount) : null}</>],
-    ...(runs ? [["history", <>{tabName("검색", "이력")}{countMark(runs.length)}</>] as [SideTab, React.ReactNode]] : []),
+    ...(runs ? [["history", <>{tabName("검색", "이력")}<TabMark kind="count" count={runs.length} /></>] as [SideTab, React.ReactNode]] : []),
   ]
 
   const handleSearch = () => {
     props.onSearch()
     if (runs) setSideTab("history")
   }
+
+  const side = sideCollapsed ? (
+    // 접힘 — 가는 세로 띠(펼치기 단추 + 세로 이름). 가운데(현장 이미지 · 4부위)가 넓어진다
+    <section
+      aria-label="문양 · 검색"
+      data-slot="pattern-side"
+      data-collapsed=""
+      className="flex min-h-0 w-[40px] shrink-0 flex-col items-center gap-[10px] border-0 border-l border-solid border-border pt-[6px] pl-[6px]"
+    >
+      <WorkbenchButton
+        size="sm"
+        variant="ghost"
+        icon={PanelRightOpen}
+        iconOnly
+        aria-label="문양 · 검색 판 펼치기"
+        aria-expanded={false}
+        title="펼치기 — 문양 목록 · 검색 이력"
+        onClick={() => setSideCollapsed(false)}
+      />
+      <span aria-hidden="true" className="text-[11px] font-semibold tracking-[0.08em] whitespace-nowrap text-muted-foreground [writing-mode:vertical-rl]">
+        문양 목록 · 검색 이력
+      </span>
+    </section>
+  ) : (
+    <>
+      <ResizeHandle
+        label="문양 · 검색 판 폭"
+        value={sideWidth ?? SIDE_DEFAULT}
+        min={SIDE_MIN}
+        max={SIDE_MAX}
+        onChange={setSideWidth}
+        onReset={() => setSideWidth(null)}
+        grow="left"
+        measure={() => sideRef.current?.getBoundingClientRect().width}
+        className="mx-[2px]"
+      />
+      <section
+        ref={sideRef}
+        aria-label="문양 · 검색"
+        data-slot="pattern-side"
+        className={cn(
+          "@container flex min-h-0 max-w-[45%] min-w-0 shrink-0 flex-col gap-[10px] pl-[4px]",
+          sideWidth === null && "w-[280px] @max-[920px]:w-[240px]"
+        )}
+        style={sideWidth === null ? undefined : { width: sideWidth }}
+      >
+        <UnderlineTabs
+          label="문양 · 검색"
+          tabs={sideTabs}
+          value={tab}
+          onChange={setSideTab}
+          idPrefix={sideTabsId}
+          end={
+            <WorkbenchButton
+              size="sm"
+              variant="ghost"
+              icon={PanelRightClose}
+              iconOnly
+              aria-label="문양 · 검색 판 접기"
+              aria-expanded
+              title="접기 — 가운데(현장 이미지 · 4부위)를 넓게"
+              onClick={() => setSideCollapsed(true)}
+            />
+          }
+        />
+        <div
+          role="tabpanel"
+          aria-labelledby={`${sideTabsId}-${tab}`}
+          // 문양 목록 = 바깥 스크롤 없음(문양 격자만 스크롤) · 검색 이력 = 목록 스크롤
+          className={cn("flex min-h-0 min-w-0 flex-1 flex-col gap-[12px] px-[2px]", tab === "history" ? "overflow-y-auto" : "overflow-hidden")}
+        >
+          {tab === "library" ? (
+            <>
+              <PatternPeek
+                lens={lens.on ? { spot: pin ?? spot, zoom: lens.zoom, source: props.lensSource, tune: cls, pinned: pin !== null } : null}
+                pattern={hovered}
+              />
+              <PatternLibrary {...library} fill onHoverItem={(it) => (it ? setHovered(it) : undefined)} className="min-h-0 flex-1" />
+            </>
+          ) : (
+            <section aria-label="검색이력" className="flex min-w-0 flex-col gap-[6px]">
+              <SearchRunList runs={runs ?? []} currentNo={props.currentRunNo} onRestore={props.onRestoreRun} onOpen={props.onOpenRun} canEdit={canEdit} />
+            </section>
+          )}
+        </div>
+      </section>
+    </>
+  )
 
   return (
     <section
@@ -177,11 +280,11 @@ export function PatternWindow(props: PatternWindowProps) {
       data-slot="pattern-code-window"
       className="@container relative flex h-full min-h-0 min-w-0 flex-col gap-[8px] p-[12px]"
     >
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_280px] @max-[920px]:grid-cols-[minmax(0,1fr)_240px]">
-        <div className="flex min-h-0 min-w-0 flex-col gap-[8px] pr-[14px] @max-[920px]:pr-[10px]">
+      <div className="flex min-h-0 min-w-0 flex-1">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-[8px] pr-[2px]">
           <PaneHead
             title="문양 코딩"
-            tip="현장 이미지를 두 번 누르면 크게 살펴봅니다. 문양은 오른쪽 목록에서 누르거나 끌어 넣고, 카드에서 필수 · 가중치를 정합니다. 확인 전 AI 제안은 검색에 들어가지 않습니다."
+            tip={`현장 이미지를 두 번 누르면 크게 살펴봅니다. 확대경을 켜고 현장 이미지를 누르면 그 자리에 고정됩니다(다시 누르거나 Esc 로 풀기). 문양은 오른쪽 목록에서 누르거나 끌어 넣고, 카드에서 필수 · 가중치를 정합니다. 확인 전 AI 제안은 검색에 들어가지 않습니다. ${weightRulesText}`}
             sub={`제안 ${counts.sug} · 확인 ${counts.ok} · 필수 ${counts.must}`}
           />
           <div
@@ -189,7 +292,7 @@ export function PatternWindow(props: PatternWindowProps) {
             data-slot="pattern-workbench"
             className="grid min-h-0 flex-1 grid-cols-[252px_minmax(0,1fr)] overflow-hidden rounded-[12px] border border-solid border-border bg-panel text-foreground [box-shadow:0_6px_18px_var(--t-panel-drop)] @max-[920px]:grid-cols-[216px_minmax(0,1fr)]"
           >
-            {/* 왼쪽: 현장 이미지 — 보기 조정 · 확대경 · 두 번 눌러 크게 */}
+            {/* 왼쪽: 현장 이미지 — 보기 조정 · 확대경(누르면 고정) · 두 번 눌러 크게 */}
             <section aria-label="현장 이미지" className="flex min-h-0 min-w-0 flex-col border-0 border-r border-solid border-border">
               <div className={cn(BAR, "border-0 border-b border-solid border-border")}>
                 <h3 className="m-0 text-[12.5px] font-bold whitespace-nowrap text-foreground">현장 이미지</h3>
@@ -206,7 +309,7 @@ export function PatternWindow(props: PatternWindowProps) {
                 />
               </div>
               <div className={cn(BAR, "border-0 border-b border-solid border-border py-[4px]")}>
-                <ViewControls tune={tune} onTuneChange={setTune} lens={lens} onLensChange={setLens} />
+                <ViewControls tune={tune} onTuneChange={setTune} lens={lens} onLensChange={changeLens} />
               </div>
               <div className="relative min-h-0 flex-1 bg-canvas p-[10px]">
                 <LensBox
@@ -216,14 +319,16 @@ export function PatternWindow(props: PatternWindowProps) {
                   source={props.lensSource}
                   tune={cls}
                   lensSlot="pattern-lens"
-                  onLensMove={pinned ? undefined : setSpot}
+                  onLensMove={setSpot}
+                  pin={pin}
+                  onPinChange={setPin}
                   onSizeStep={lensStep}
                   onDoubleClick={() => setInspecting(true)}
                   className="size-full"
                 >
                   {/* 경계선 캔버스 바깥 상자(슬롯) — 안쪽 좌표 캔버스(PatternCanvas)는 이 상자를 꽉 채운다. 보기 조정은 겹 클래스만 */}
                   <div
-                    title="두 번 누르면 크게 살펴봅니다"
+                    title={lens.on ? "누르면 그 자리에 확대경 고정(다시 누르거나 Esc 로 풀기) · 두 번 누르면 크게 살펴봅니다" : "두 번 누르면 크게 살펴봅니다"}
                     className="relative size-full min-w-0 overflow-hidden rounded-[8px] border border-solid border-line-3 bg-canvas [box-shadow:0_8px_24px_var(--t-panel-drop)]"
                   >
                     {/* 좌표 캔버스 겹은 색 필터(대비 · 밝기 · 반전 · 이진화 · 감마)만 — 회전 같은 변형은 bounding rect 를 바꿔 좌표가 틀어지므로 절대 걸지 않는다(1회차 검수 확인) */}
@@ -233,7 +338,9 @@ export function PatternWindow(props: PatternWindowProps) {
                     <ScanOverlay active={extracting} />
                     <span className={cn(TAG, "top-[6px] right-[6px]")}>{sourceLabel}</span>
                     {tuneLabels.length ? <span className={cn(TAG, "top-[30px] right-[6px] text-brand")}>{tuneLabels.join(" · ")}</span> : null}
-                    <span className={cn(TAG, "bottom-[6px] left-[6px] bg-transparent px-0 text-muted-foreground")}>ROI · 경계선 끌어서 조정</span>
+                    <span className={cn(TAG, "bottom-[6px] left-[6px] bg-transparent px-0 text-muted-foreground")}>
+                      {lens.on ? (pin ? "확대경 고정 · 다시 누르거나 Esc 로 풀기" : "누르면 확대경 고정") : "ROI · 경계선 끌어서 조정"}
+                    </span>
                   </div>
                 </LensBox>
               </div>
@@ -263,6 +370,19 @@ export function PatternWindow(props: PatternWindowProps) {
                 <h3 className="m-0 text-[12.5px] font-bold whitespace-nowrap text-foreground">4부위 문양</h3>
                 {research}
                 <span className="ml-auto inline-flex items-center gap-[4px]">
+                  {overrideCount > 0 ? (
+                    // 「검색 조건」 탭의 「규칙 기본값으로」를 옮김 — 카드에서 직접 고른 가중치를 한 번에 규칙 값으로(직접 고른 것이 있을 때만)
+                    <WorkbenchButton
+                      size="sm"
+                      variant="ghost"
+                      icon={RotateCcw}
+                      title={`카드에서 직접 고른 가중치를 규칙 값으로 되돌립니다. ${weightRulesText}`}
+                      disabled={!canEdit || !props.onResetWeights}
+                      onClick={props.onResetWeights}
+                    >
+                      <span className="@max-[1000px]:sr-only">{`직접 가중치 ${overrideCount}개 되돌리기`}</span>
+                    </WorkbenchButton>
+                  ) : null}
                   {patternMeta ? (
                     <WorkbenchButton
                       size="sm"
@@ -319,58 +439,8 @@ export function PatternWindow(props: PatternWindowProps) {
           </div>
         </div>
 
-        {/* 오른쪽 보조 칸 — 밝은 바탕, 왼쪽 가는 선 */}
-        <section aria-label="문양 · 검색" className="flex min-h-0 min-w-0 flex-col gap-[10px] border-0 border-l border-solid border-border pl-[14px] @max-[920px]:pl-[10px]">
-          <UnderlineTabs label="문양 · 검색" tabs={sideTabs} value={sideTab} onChange={setSideTab} idPrefix={sideTabsId} />
-          <div role="tabpanel" aria-labelledby={`${sideTabsId}-${sideTab}`} className="flex min-h-0 min-w-0 flex-1 flex-col gap-[14px] overflow-y-auto px-[2px]">
-            {sideTab === "library" ? (
-              <>
-                <PatternPeek
-                  lens={
-                    lens.on
-                      ? { spot, zoom: lens.zoom, source: props.lensSource, tune: cls, pinned, onPinnedChange: setPinned }
-                      : null
-                  }
-                  pattern={hovered}
-                />
-                <PatternLibrary {...library} onHoverItem={(it) => (it ? setHovered(it) : undefined)} className="min-h-[160px] flex-1" />
-              </>
-            ) : sideTab === "conditions" ? (
-              <>
-                <MatchConditions value={props.matchConditions} onChange={props.onMatchConditionsChange} bare />
-                <section aria-label="가중치 규칙" className="flex flex-col gap-[6px]">
-                  <SubHead title="가중치 규칙">
-                    <span title="합을 −1 ~ +1 로 자름 · 카드에서 고른 「직접」 값이 규칙보다 먼저 · 필수는 따로 거르기" className="text-[11px] text-muted-foreground">
-                      직접 {overrideCount}개
-                    </span>
-                  </SubHead>
-                  <ul className="m-0 flex list-none flex-col gap-[3px] p-0">
-                    {WEIGHT_RULES.map((r) => (
-                      <li key={r.id} className="flex gap-[6px] text-[11px] text-fg-2">
-                        <b className="w-[20px] shrink-0 font-code text-[10px] font-semibold text-muted-foreground">{r.id}</b>
-                        {r.text}
-                      </li>
-                    ))}
-                  </ul>
-                  <WorkbenchButton
-                    size="sm"
-                    variant="soft"
-                    icon={RotateCcw}
-                    disabled={!canEdit || overrideCount === 0 || !props.onResetWeights}
-                    onClick={props.onResetWeights}
-                    className="self-start"
-                  >
-                    규칙 기본값으로
-                  </WorkbenchButton>
-                </section>
-              </>
-            ) : (
-              <section aria-label="검색이력" className="flex min-w-0 flex-col gap-[6px]">
-                <SearchRunList runs={runs ?? []} currentNo={props.currentRunNo} onRestore={props.onRestoreRun} onOpen={props.onOpenRun} canEdit={canEdit} />
-              </section>
-            )}
-          </div>
-        </section>
+        {/* 오른쪽 보조 칸 — 밝은 바탕, 왼쪽 가장자리 손잡이(폭 조절) · 접기 */}
+        {side}
       </div>
 
       {/* 바닥 단추 줄: 진행 · 다음 이미지 | 다시입력 · 검색결과 · 검색(닫기는 창 ✕) */}
@@ -412,7 +482,7 @@ export function PatternWindow(props: PatternWindowProps) {
           tune={tune}
           onTuneChange={setTune}
           lens={lens}
-          onLensChange={setLens}
+          onLensChange={changeLens}
           library={library}
           onClose={() => setInspecting(false)}
         />

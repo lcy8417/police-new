@@ -127,7 +127,12 @@ export function ShoeEditor(props: ShoeEditorProps) {
   const [tune, setTune] = React.useState<ViewTune>(DEFAULT_VIEW_TUNE)
   const [lens, setLens] = React.useState<LensSettings>(DEFAULT_LENS)
   const [spot, setSpot] = React.useState<LensSpot | null>(null)
-  const [pinned, setPinned] = React.useState(false)
+  // 밑창 그림을 누르면 그 자리에 확대경 고정(다시 누름 · Esc 로 풀기 — 문양 코드 탭과 같음, 11/17 사용자 「클릭하면 고정이 되어야지」)
+  const [pin, setPin] = React.useState<LensSpot | null>(null)
+  const changeLens = (next: LensSettings) => {
+    setLens(next)
+    if (!next.on) setPin(null)
+  }
   const [hovered, setHovered] = React.useState<PatternLibraryItem | null>(null)
   // AI 출처는 부위 · 이름별(다른 부위에 손으로 넣은 같은 이름은 수동 그대로 — 2회차 검수)
   const aiMarks = dialog.aiMarks
@@ -295,7 +300,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
         ) : null}
       </div>
       <div className={cn(BAR, "border-0 border-b border-solid border-border py-[4px]")}>
-        <ViewControls tune={tune} onTuneChange={setTune} lens={lens} onLensChange={setLens} rotatable />
+        <ViewControls tune={tune} onTuneChange={setTune} lens={lens} onLensChange={changeLens} rotatable />
       </div>
       <div className="relative min-h-0 flex-1 bg-canvas p-[10px]">
         <LensBox
@@ -305,7 +310,9 @@ export function ShoeEditor(props: ShoeEditorProps) {
           source={soleImage(true)}
           tune={cls}
           onSizeStep={(by) => setLens((l) => ({ ...l, size: stepLens(l.size, by) }))}
-          onLensMove={pinned ? undefined : setSpot}
+          onLensMove={setSpot}
+          pin={pin}
+          onPinChange={setPin}
           lensSlot="shoe-lens"
           className="size-full"
         >
@@ -384,7 +391,7 @@ export function ShoeEditor(props: ShoeEditorProps) {
   const side = (
     <aside aria-label="문양 고르기" className="flex min-h-0 min-w-0 flex-col gap-[10px] border-0 border-l border-solid border-border pl-[12px]">
       <PatternPeek
-        lens={lens.on ? { spot, zoom: lens.zoom, source: soleImage(true), tune: cls, pinned, onPinnedChange: setPinned } : null}
+        lens={lens.on ? { spot: pin ?? spot, zoom: lens.zoom, source: soleImage(true), tune: cls, pinned: pin !== null } : null}
         pattern={hovered}
         subject="밑창"
       />

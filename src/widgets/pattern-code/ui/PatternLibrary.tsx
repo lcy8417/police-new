@@ -36,6 +36,8 @@ export interface PatternLibraryProps {
   onHoverItem?: (item: PatternLibraryItem | null) => void
   /** 살펴보기 판 안 — 한 줄 칸 수를 늘린다 */
   roomy?: boolean
+  /** 판 폭에 맞춰 칸 수를 바꾼다(폭을 조절하는 사건 창 오른쪽 판 — 칸 크기는 같게) */
+  fill?: boolean
   className?: string
 }
 
@@ -60,6 +62,7 @@ export function PatternLibrary({
   codeNote,
   onHoverItem,
   roomy = false,
+  fill = false,
   className,
 }: PatternLibraryProps) {
   const ai = React.useMemo(() => [...(extracted ?? [])].sort((a, b) => b.score - a.score), [extracted])
@@ -112,7 +115,7 @@ export function PatternLibrary({
       onHoverItem={onHoverItem}
       canEdit={canEdit}
       head={tab === "AI" && (extractState === "running" || extractState === "failed") ? <AiProgress state={extractState} label="문양 추출" /> : null}
-      columns={roomy ? 5 : 4}
+      columns={fill ? "fill" : roomy ? 5 : 4}
       className={className}
     />
   )
