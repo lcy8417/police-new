@@ -10,9 +10,10 @@ const DEFAULT_ERROR_MESSAGE = "서버 요청에 실패했습니다";
 
 /**
  * 서버가 사용자용 한국어 `detail` 문구를 돌려주는 상태 코드: 검증 실패 400, 로그인 실패 401,
- * 권한 없음·사용 중지 403, 중복 409, 원본 파일이 너무 큼 413(`POST /files/original`), 계정 잠김 423(설계서 §6).
+ * 권한 없음·사용 중지 403, 중복 409, 원본 파일이 너무 큼 413(`POST /files/original`), 계정 잠김 423(설계서 §6),
+ * 모델 없음 · DB 일시 오류 503(「image_search 모델을 현재 사용할 수 없습니다.」 — 스모크 4단계: 전엔 「검색에 실패했습니다」만 보임).
  */
-const DETAIL_STATUSES = new Set([400, 401, 403, 409, 413, 423]);
+const DETAIL_STATUSES = new Set([400, 401, 403, 409, 413, 423, 503]);
 
 export class ApiError extends Error {
   readonly status: number;

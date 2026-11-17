@@ -72,6 +72,19 @@ describe("ApiError — 서버 detail 문구 전달", () => {
     expect(error.message).toBe("파일이 너무 큽니다(최대 50MB)");
   });
 
+  it("503(모델 없음)도 서버 detail 문구를 그대로 담는다", async () => {
+    mswServer.use(
+      http.post("*/crime/x_1/search", () =>
+        HttpResponse.json({ detail: "image_search 모델을 현재 사용할 수 없습니다." }, { status: 503 })
+      )
+    );
+
+    const error = (await apiSend("/crime/x_1/search", "POST").catch((e: unknown) => e)) as ApiError;
+
+    expect(error.status).toBe(503);
+    expect(error.detail).toBe("image_search 모델을 현재 사용할 수 없습니다.");
+  });
+
   it("본문이 JSON이 아니어도 ApiError를 던진다", async () => {
     mswServer.use(
       http.post("*/crime/broken", () => new HttpResponse("oops", { status: 409 }))
