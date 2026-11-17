@@ -171,3 +171,80 @@
 
 ### 3회차 남은 것
 회전 보기 잘림(#29, 좌표 계산 함께) · 사건복사 값 · 사건 정보 빈칸 배지 연동(#24) · 사용 기록 「더 보기」 누적(#26) · 분업 저장 방식 통일(#25) · WorkTabStrip 탭 줄 ARIA(#28) · 2회차 남은 것 전부(창 안 이미지 삭제 · 신발 편집 1280 · 단독 S05 빠른 비교 · 공용 시드 사전 · 형제 import · 날것 컨트롤 이행 · 크게 살펴보기 S06 · S10 연결 · 창 안 loading · error 진열 · 확대 찍기 키보드 · 다중 역할).
+
+## 스펙 검수 (2026-11-17) — 서버 B 단계 설계서 · 화면 이식 계획
+
+> 대상: 서버 `docs/superpowers/specs/2026-11-17-pilot-b-stage-api-design.md`(「A」 — r1 → r2) · 이 저장소 `docs/superpowers/plans/2026-11-17-screens-port-plan.md`(「B」 — r1 → r2). 지적마다 **서버 코드 · 마이그레이션 · 프론트 코드를 직접 열어 확인**한 뒤 판정했다(근거 줄은 표). 함께 착수 잠금 파일 서버 `docs/superpowers/specs/2026-11-17-pilot-b-stage-sprint-lock.md`(5대 대조 잠금표 · 연결 약속표 · 묶음별 파일 소유표 · 범위 밖 처리)를 새로 만들었다.
+
+지적 54건(C 26 · G 28), 같은 내용을 묶어 표 49줄(G28은 서버 테스트 · 프론트 검사 두 몫이라 두 줄). **줄 기준 맞음 47 · 부분 맞음 1 · 틀림 1 / 지적 기준 맞음 52 · 부분 맞음 1 · 틀림 1**. 코드 수정 없음(문서만).
+
+커밋: 서버 `7bb8b07cd`(`feat/pilot-b-stage-spec` — A r2 + 잠금 파일) / 이 저장소 이 회차 커밋(`feat/scas-screens-mock` — B r2 + 이 기록).
+
+| # | 지적 요약 | 출처 | 판정 | 확인한 근거 · 반영 위치 |
+|---|---|---|---|---|
+| 1 | 검증자에게 `CRIME_SEARCH`를 주면 「보기만」과 달리 문양 · 편집 · 이력 · 정렬 저장까지 열림 | C1 | 맞음 | `auth/deps.require_feature`는 「하나라도 있으면 통과」, `auth/actions.py`의 `_CS` 쓰기 행 다수. → A §3-1 새 권한 `EXAM_VIEW`(보기 라우트에만), 검증자 역할 = `EXAM_VIEW`, 쓰기 403 순회 테스트(§6-1) |
+| 2 | 승인된 신발의 문양 변경을 J6만 막고 기존 J5로 우회 | C2 | 맞음 | `shoe_repo.update_shoe`가 승인 여부 없이 문양 행 삭제 · 재삽입. → A §3-8 `lock_for_pattern_change`(행 잠금 + 승인 검사) J5 · J6 · J7 공통, J5는 메타만이면 통과 |
+| 3 | 감정서 「발송된 최신 판본만 공개」가 `GET /files/{id}`에는 안 걸림 | C3 | 맞음 | `file_repo.can_read`가 비직원에게 관서 범위만 봄. → A §4-2 끝 — `REPORT` · `ATTACH`는 `SENT` 최신 판본 파일만(0단계) |
+| 4 | 현장 추출 응답은 배열 — `run_id`를 붙이면 기존 화면이 깨짐 | C4 | 맞음 | `routes/crime_process.py` crime 분기 `JSONResponse(content=result)`(목록), `services/api.js` `{ extracted: data }`. → A C3 본문 그대로 + 헤더 `X-AI-Run-Id`(CORS expose) · B §2-2 새 함수가 헤더 읽기 |
+| 5 | 201위 이후 재계산이 문양 · 후보 목록 변경으로 저장 200위와 중복 · 누락 | C5 | 맞음 | `image_search_adapter.ref_names`는 서버 시작 때 폴더에서, 신발 문양은 J5 · J6로 바뀜. → A §3-4 「지금 기준 다시 계산 · 저장 200위와 중복 제거 · `recomputed` · `basis_changed`」, `ref_index_ver` 정의 |
+| 6 | 순위 기록 없는 옛 이력은 D4가 못 그림 | C6 | 맞음 | `search_repo.save_history`는 스냅샷만. → A §3-4 `legacy: true` + 「이 문양으로 새 검색」 |
+| 7 | `query` 가중치가 단계 문자열인데 같은 칸을 숫자 0.5 · 1 · 2로 받는다고 적음, `final_score` 응답 누락 | C7 · G6 | 맞음 | A r1 §3-4 · D1 · §5-1 모순. 서버 `utils/pattern_weight.py`에는 단계(`pattern_weights`) · 숫자(`query_from_request`) 둘 다 있음. → A §5-1 「단계 문자열 하나, 숫자는 `WEIGHT_VALUE` 한 곳 · 응답 `weights_applied`에만」, D1 · D4 `final_score` |
+| 8 | 새 페이지가 `usePatternManager`를 그대로 쓰면 문양이 옛 전역 store로 감 | C8 | 맞음 | `use-pattern-manager.ts` `setCrimeData`(42 · 137 · 217행), 이미 이식된 `PatternTab.tsx`가 그 훅을 씀. → B §3-1 순수 함수 `pattern-ops.ts` + 제어 모드 + `usePatternDraft`(좌표 부분 불변) |
+| 9 | 신발 권한만 있는 사람이 `/cases?shoe=1`에 못 들어감 | C9 | 맞음 | `App.jsx` `/cases` = `RequireFeature code={CRIME_SEARCH}`. → B §1 `anyOf`(사건 · 신발 권한), 사건 권한 없으면 목록 자리 안내 + 신발 패널 |
+| 10 | `/search*`를 ① 끝에 넘기면 ③ 전 이미지 편집 길이 끊김 | C10 | 맞음 | `CrimeDetailPage.tsx` `useImageEdit`(옛 통합 화면이 편집 입구). → B §1 · §4 넘겨주기를 ①②③ 모두 뒤로 |
+| 11 | 화면 ①이 서버 ② 소속 E2~E4(★)를 완료 기준으로 삼음 | C11 | 맞음 | A §8 r1 묶음표. → B §4 ★ 저장을 ②로, ①은 `use-targets-binding.ts` 자리 훅만 부름(잠금 파일 §3-2) |
+| 12 | 교차 검증 요청과 판정 · 확인대상 변경 사이 공통 잠금 없음(추정) | C12 | 맞음 | 0007 `fn_lock_aprthng_links`는 연결 행만 잠금, 의뢰 상태 재검사 없음. → A §4-0 「의뢰 행 잠금 먼저」(의뢰 → 판정 → 연결 순서) + ② 경합 테스트 |
+| 13 | `CONFIRMED` 직접 INSERT로 후보 없는 발견 판정 가능 | C13 | 맞음 | 0007 `fn_guard_examination` INSERT 분기는 `SUPERSEDED`만 막음. → A §3-6 0016 「INSERT = DRAFT만」 |
+| 14 | 동시 수정을 약속하면서 C2에는 기대 버전이 없고 G2는 선택 | C14 | 맞음 | A r1 표. → A §4-0 기대 버전 필수(판정 = `expectedExamId` + `rowVersion`, 문양 · 감정물 = `aprthng_extra.row_version` 새 칸) |
+| 15 | 지운 문양의 메타가 남음 · 메타 통째 교체인데 삭제 권한 금지 · 「직접」이 규칙과 같으면 풀림 · 값 바꾸기 · 제안 카드 순서 | C15 · G9 | 맞음 | A r1 §3-3 · §3-11. → A §3-3 옛 저장도 빠진 `AI`·`MANUAL` 메타 정리, 권한 `DELETE` 포함, `manual: true`는 같아도 저장, 값 바꾸기 표, `sort_ordr` |
+| 16 | `ptrn_snapshot`에 필수만 남기면 옛 화면이 비필수 문양을 못 되살림 | C16 | 맞음 | `search_repo._ptrn_snapshot`은 받은 문양 전부 + 플래그. → A §3-4 · D1 「확인된 문양 전부 + 필수 플래그」 |
+| 17 | F1 응답에 「종합 점수」가 없음 | C17 | 맞음 | `models/image_search/correspondence.py` 응답 `{ query, ref, matches }`. → A §4-6 종합 자리 = 이미지 유사도, B §2-2 |
+| 18 | 「등록되면 검색 후보 · 벡터 반영」은 사실과 다름 | C18 | 맞음 | `routes/shoes.py` 주석 · `image_search_adapter.py` `@MX:DEBT`(Shoerinsics · `ref_vecs.npy` 별도 배치 · 재시작). → A §3-8 · §7-5 바로잡음, J1 · J3 `in_search_index`, 배치는 범위 밖(§9-1 ⑬) |
+| 19 | `WORKING` 파일 없는 옛 감정물은 B4 · B5 불가 · 편집 AI 실행 기록 모순 · B5 동시 수정 · 같은 단계 되돌리기 500 | C19 · G21 | 맞음 | 0010 소급 등록 없음, `ck_image_edit_history_files`(src ≠ result), A r1 §2 vs §3-7. → A §3-7 첫 B4 때 소급 등록(`srcFileId: null`), 편집 도구 `ai_run` 없음, B5 `srcFileId` · 같은 단계 400 |
+| 20 | 확정 뒤 이미지 · 문양을 바꿀 때 판정 유효성 규칙 없음(추정) | C20 | 맞음 | `crime_repo` 저장은 출처만 검사. → A §3-6 B4 · B5 · C2도 「다시 판정」(이전 판본 대체 + 감사), 교차 검증 이후 409 |
+| 21 | `flow_stage`를 그대로 넣으면 단계 알약 · 행 단추가 잘못 보임 | C21 · G12 | 맞음 | `CaseListScreen.tsx` `STAGE_PILL`(47행) · `actionOf`(160행대) · 완료 색 `stage === 4`. → A A1 `flow_stage` 0~5 · null 정의, B §2-3 알약 · 단추 · 콜백 교체(결정 §3 흐름 이름) |
+| 22 | 장 단위 칸(채취 일시 · 장소 · 방법)을 A2로 읽고 A3로 고칠 수 없음 | C22 · G2 | 맞음 | `request_repo.EDITABLE_FIELDS`는 의뢰 칸만, A2 `images[]`에 그 칸 없음. → A A2 `images[]` 확장 + 새 **A8** `PUT /crime/{no}/info`, B §2-2 S02 |
+| 23 | 지난 검색의 `runQueryPatterns`를 지금 문양(C1)으로 그리면 근거가 바뀜 | C23 | 맞음 | 시안 `S05DevPage`가 검색별 문양을 씀. → B §2-2 지난 검색 = D3 `cond`(옛 이력 `ptrn_snapshot`) |
+| 24 | 새 페이지가 store를 안 써도 로그인 직후 전체 사건 조회는 계속 | C24 | 맞음 | `SessionProvider.tsx` 100행 `refetch()`, 게다가 이미 이식된 탭 4개가 store를 씀. → B §5 R1 자동 조회를 옛 라우트 안으로, ⓪ 완료 기준에 `GET /crime/` 0회 |
+| 25 | 완료 기준에 `npm run build` · `check:ui:static`(부품표 · `components.md` · hex) 없음 | C25 · G28 | 맞음 | `CLAUDE.md` 「검증 3종」, `package.json` `check:ui:static`. → B §4 공통 완료 기준 |
+| 26 | `total`만 빼도 칩 건수 · 하단 전체 건수가 남음 | C26 | 맞음 | `case-list/model/types.ts` 128 · 146행, `CaseListScreen` 374행 `hasNext`. → B §2-3 `hasNext` · `count: null` |
+| 27 | 썸네일을 `/crime_images`로 주면 수사관 403, `/files`로 주면 감사 잠금 직렬 | G1 | 맞음 | `middleware.can_view_crime_photos`(직원 · `CRIME_SEARCH`만), `audit_repo.AUDIT_LOCK_KEY` 841018. → A §4-1 썸네일 규칙(수사관 null, 창에서 `working_file_id`로 `/files`) |
+| 28 | `REPORT_DRAFT` · 발송 뒤 정정 중 판정을 다시 열 길이 없음 | G3 | 맞음 | A r1 허용 이동표. → A 새 **G4** `POST /requests/{id}/reopen`(사유 · 감사 `EXAM_REOPEN` · 작성 중 판본 버림 · 교차 검증 다시) |
+| 29 | `REQUESTED`에서 직원이 접수 없이 감정 쓰기 → 상태 꼬임 | G4 | 맞음 | A r1 §3-2 · D1 이동표. → A §3-2 접수 전 감정 쓰기 전부 409(자동 접수 안 함) |
+| 30 | `exam_ids` 빈 배열이면 트리거 통과 · I4 발송 검사 부족 | G5 | 맞음 | 0007 `exam_ids bigint[] NOT NULL DEFAULT '{}'`, 비어 있음 금지 없음. → A §3-1 `cardinality ≥ 1` · 트리거 「지금 확정 판정 전부」, I4 상태 · 「일치」 이력 검사 |
+| 31 | 캐시 적중이면 `record` 이력 저장을 건너뜀 · 캐시에 50건뿐 | G7 | 맞음 | `search_crime` 캐시 적중 즉시 반환, 쪽당 50 저장. → A §4-4 캐시 = 쪽 무관 앞 200 + 전체 수, `record`면 늘 저장 |
+| 32 | 팔레트 `윤곽선` ↔ `윤곽`, R5에 확인 전 제안 합산 | G8 | 부분 맞음 | 서버 `utils/pattern_weight.py`(`df8b41895`)가 이미 종류를 `윤곽`으로 정규화하고 `pattern_weights`가 R5에 제안을 셈 — 코드는 맞고 **문서만** 틀렸음. → A §5-3 C4 = `PATTERN_KINDS`(별도 JSON 없음), D1 `pending` → R5 |
+| 33 | `SHOE_PATTERN` · `SHOE_APPROVE` 단독은 신발 보기 403 · 신발 AI 추출 403 · 감정관 `SHOE_EDIT` 기본이 분업과 충돌 | G10 | 맞음 | `auth/entities.effective_features`는 `SHOE_EDIT`만 펼침, `extract_patterns`는 `SHOE_EDIT`만, S13 `DUTY_COLUMNS` 「신발 등록」 = 개인 `SHOE_EDIT`. → A §3-1 펼침 확장 · C3 `SHOE_PATTERN` · 감정관 `SHOE_EDIT` 기본 제외(기본값 5 — 사용자 확인) |
+| 34 | 「위젯 거의 무수정」 전제 틀림(결재 권한 8곳 · `SessionUser.roles` 없음 · 신발 편집 관리자 고정 · SCAS 칸 「준비 중」 · `hasNext`) | G11 | 맞음 | `REPORT_APPROVE` 참조 파일 확인, 프론트 `SessionUser`에 `roles` 없음, `ShoeEditor` `disabled={!isAdmin \|\| isNew}`. → B §2-3 표 전면 개정(묶음 표시) |
+| 35 | 확인대상만 고른 장을 `확인`으로 내리면 판정 완료로 오인 | G13 | 맞음 | 시안 `case-flow.ts` `JUDGED`에 `확인` 포함, `mock-cases` `확인` → 불발견 결과. → A §7-2 `CANDIDATE_SELECTED` → `검색됨`, `progress.searched`, 한글 리터럴 통일 |
+| 36 | 기존 `/crime/*`에 관서 범위 없음 — 개인 `CRIME_SEARCH` 비직원이 다른 관서 접근 | G14 | 맞음 | `routes/crime.py`에서 범위 검사는 등록뿐. → A §4-0 공통 의존성 `crime_scope`(0단계), 이름표 순회 차단 테스트 |
+| 37 | H4 · H5가 `CROSS` 배당을 안 풀어 재요청 500 · 회수자가 요청자뿐 | G15 | 맞음 | 0006 `ux_case_assignment_active`(release_dt NULL 부분 UNIQUE). → A §4-8 배당 해제 · 관리자 회수 |
+| 38 | 새 쓰기 라우트가 `VALIDATION_400_ROUTES`에 없으면 422 배열 | G16 | 맞음 | `main.py` `VALIDATION_400_ROUTES` 6개 · `fullmatch`. → A §4-0 0단계에서 전부 등록 |
+| 39 | 시각 「초 단위」 규칙이 키셋 커서(마이크로초)를 깸 | G17 | 틀림 | 지금 `routes/requests.py`는 표시 시각만 `timespec="seconds"`, 커서는 `request_repo` 308행 `timespec="microseconds"`로 이미 나뉘어 있고 A 규칙은 응답 시각 칸 얘기라 깨지지 않는다. 오해를 막게 A §4-0 문구에 「커서 제외」만 보탬 |
+| 40 | `case_status_history`는 두 갈래 CHECK(`ARCHIVED` 없음) · `ck_review_step_target`의 `APPROVAL` 갈래 교체 누락 | G18 | 맞음 | 0006 · 0007 제약 원문. → A §3-1 표 |
+| 41 | `RequireFeature` 단일 코드 · `FEATURE_ROUTES` 첫 항목 `/crimeRegister` · `/auth/me`에 `org_nm` 없음 | G19 | 맞음 | `RequireFeature.tsx` · `feature-routes.ts` · `routes/auth.user_payload`. → B §1(`anyOf` · `/cases` 맨 앞), A §4-12 `org_nm`(0단계) |
+| 42 | 옛 `/search` 넘겨주기 누락 · 끝 `_n` 잘라 감정번호 짐작 · 감정번호 ↔ `rqest_id` 역조회 | G20 | 맞음 | `App.jsx` 191 · 192행, 감정번호는 회차별 행. → A A1 `aprthng=` · `no=` 최신 회차, B §1 넘겨주기 페이지 |
+| 43 | D1 · D4에 후보 문양 · 상표 없음(N+1) · 그림 경로 고정 · D2 `top3` · G1 점수 단위 | G22 | 맞음 | 시안 `SearchRun.top`(5) · `method`, `ConfirmWindow` 보기 전환. → A D1 · D2 · D4 · G1 |
+| 44 | D1 입력 파일 미고정 · GPU 대기 중 DB 연결 점유(풀 10) | G23 | 맞음 | `db/database.py` `pool_size=10, max_overflow=0`, `search_crime(conn=Depends(...))`. → A D1 `inputFileId`(record 필수) · 계산 뒤 연결 획득 |
+| 45 | A1 `doc_no` · 인덱스 · 거르기를 `WHERE`에서 · 속도 검사 · 칩 건수 | G24 | 맞음 | 0006 `doc_no` · `scas_case_no` 칸, 인덱스 없음. → A A1 · 0018 `lookup_index` · 칩 건수 안 줌 · `test_query_plans_requests.py` |
+| 46 | K1 숫자 번호를 앞부분 일치로 찾으면 섞임 · 파생 번호 누락 | G25 | 맞음 | `middleware.TARGET_PARAMS` · `target_id` 한 칸에 여러 번호. → A §3-9 문자열만 앞부분 일치, 숫자는 이름표 묶음 + 정확 일치 |
+| 47 | 서버 `RESERVED_FTWR_IDS`에 `stages` 빠짐 · J8 `parts` 계산식 · 집계 속도 검사 | G26 | 맞음 | `schemas/shoes.py` `{"count"}`. → A §3-8 · J8 · §8-2 ④ |
+| 48 | 확정 판정에서 확인대상을 다 빼면 `SEARCHED`로 · `search_result_code` 환원 | G27 | 맞음 | A r1 §3-6 vs §4-5 충돌. → A §3-6 · §4-5 |
+| 49 | `test_pg_schema.py` 끝 번호 하드코딩 · 무GPU 라우트 스텁 | G28 | 맞음 | `test_pg_schema.py` 156행 「0001~0012」. → A §3-11 · §4-4 끝 · §8-2 0단계 |
+
+(#7 · #15 · #19 · #21 · #22 · #25는 두 출처를 한 줄로 묶음.)
+
+### 스펙 검수에서 크게 바뀐 설계 결정
+- 검증자 = 보기 전용 새 권한 `EXAM_VIEW` + 발송(쓰기 없음), 감정관 역할에서 `SHOE_EDIT` 뺌(분업으로) — 기본값 5 · 6.
+- 접수 전 감정 쓰기 409 · 판정 다시 열기 G4 · 감정물 정보 수정 A8 → API 새 35개.
+- 의뢰 행 잠금 먼저 · 기대 버전 필수 · 판정 INSERT = DRAFT만 · 편집 · 문양 변경도 「다시 판정」.
+- 가중치 = 단계 문자열 하나 · 201위 이후 「지금 기준」 · 옛 이력 「새 검색」 · C3 실행 번호 = 헤더.
+- 마이그레이션 0013~0018 · 이름표 · 라우터 등록은 **0단계 한 사람**, 그 뒤 묶음 병렬(파일 겹침 0 — 잠금 파일 §3). F1 · F2 · A7은 ①로.
+- 이식 순서: ★는 ②, 옛 `/search*` 넘겨주기는 ①②③ 뒤.
+
+### 스펙 검수 사용자 확인 필요
+- 기본값 5: 감정관 역할 기본에서 `SHOE_EDIT`(신발 등록) 빼고 분업으로 줄지.
+- 기본값 6: 검증자(기술책임자)를 보기 전용 `EXAM_VIEW`로 둘지.
+- 사건 정보 「체크 삭제」(감정물 삭제) — API를 두지 않고 「준비 중」으로 둠. 삭제가 필요한지.
+- 단계 알약 이름을 결정 §3 흐름 이름으로 바꾸는 것(계획 §7 ⑦).
+- 신발 검색 후보 반영 배치를 언제 만들지(A §9-1 ⑬).
