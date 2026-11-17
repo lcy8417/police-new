@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import type { EditOp } from "@/entities/crime/api/edit-history-api";
 import {
   bakeThreshold,
   isDataUrl,
@@ -38,6 +39,9 @@ import {
 
 /** 편집 툴. null = 도구 미선택(관찰 모드). */
 export type EditTool = "background" | "threshold" | "denoise" | "inpaint";
+
+/** 편집 한 단계에 한 일(서버 편집 이력 `ops` 항목 — B 단계 설계서 §3-7 이름: crop · rotate · calibrate · background · inpaint · threshold · denoise · flip) */
+export type EditStepOp = EditOp;
 
 /** 이진화 초기 임계값(레거시 `resetScrollState.binarization`). */
 const DEFAULT_THRESHOLD = 127;
@@ -73,6 +77,11 @@ export interface UseImageEditParams {
    * 있으므로, 편집이 전혀 없는 raw `image`를 별도로 받는다(없으면 복원 no-op).
    */
   originalImage?: string | null | undefined;
+  /**
+   * 단계 저장 모드(사건 창 이미지 편집 탭 — 서버 편집 이력 B4). 주면 도구 결과를 반영하기 **전에** 이 함수를 부르고,
+   * 성공해야 화면에 반영한다(실패하면 그대로 — 알림은 부른 쪽이). 안 주면 지금처럼 화면 스택에만 쌓는다(옛 화면 그대로).
+   */
+  onStep?: (image: string, op: EditStepOp) => Promise<void>;
 }
 
 /**
@@ -132,7 +141,12 @@ export interface UseImageEdit {
    * 바깥 도구(자르기 · 4점 보정 · 회전 — `features/crime-register` `useImageEditor` · `rotateArbitrary`)가 만든
    * 결과 이미지를 편집 한 단계로 커밋한다(history push — 되돌리기 가능). 사건 창 이미지 편집 탭이 쓴다.
    */
-  applyImage: (next: string) => void;
+  applyImage: (next: string, op?: EditStepOp) => Promise<boolean>;
+  /**
+   * 편집 캔버스를 이 이미지로 바꾸고 화면 스택 · 도구 · 점 · 이진화 값을 비운다(단계 저장 모드의 되돌리기 결과 반영용 —
+   * 서버 이력이 정본이라 화면 스택을 이어 쌓지 않는다).
+   */
+  resetTo: (image: string) => void;
   /** 서버 처리 진행 중 여부(로딩 오버레이용). */
   isProcessing: boolean;
   /** 처리 중 오버레이 문구(툴별). */
@@ -148,6 +162,7 @@ export function useImageEdit({
   aprthngNo,
   seedImage,
   originalImage,
+  onStep,
 }: UseImageEditParams): UseImageEdit {
   const [workingImage, setWorkingImage] = useState<string>(seedImage ?? "");
   const [displayImage, setDisplayImage] = useState<string>(seedImage ?? "");
@@ -218,10 +233,36 @@ export function useImageEdit({
     };
   }, [workingImage]);
 
-  // 새 workingImage 커밋 + 직전값 history push(undo용).
-  const commit = useCallback((next: string) => {
+  const onStepRef = useRef(onStep);
+  onStepRef.current = onStep;
+
+  // 새 workingImage 커밋 + 직전값 history push(undo용). 단계 저장 모드(onStep)면 서버 저장이 성공해야 반영 — 실패하면 false.
+  const commit = useCallback(async (next: string, op?: EditStepOp): Promise<boolean> => {
+    const step = onStepRef.current;
+    if (step && op) {
+      setProcessingLabel(SAVING_LABEL);
+      setIsProcessing(true);
+      try {
+        await step(next, op);
+      } catch {
+        return false;
+      } finally {
+        setIsProcessing(false);
+      }
+    }
     setHistory((h) => [...h, workingImageRef.current]);
     setWorkingImage(next);
+    return true;
+  }, []);
+
+  const resetTo = useCallback((image: string) => {
+    setWorkingImage(image);
+    setDisplayImage(image);
+    setHistory([]);
+    setPoints([]);
+    setActiveToolState(null);
+    setThreshold(DEFAULT_THRESHOLD);
+    setThresholdMode(DEFAULT_THRESHOLD_MODE);
   }, []);
 
   const undo = useCallback(() => {
@@ -238,7 +279,7 @@ export function useImageEdit({
   const restoreOriginal = useCallback(() => {
     const original = originalImageRef.current;
     if (!original) return;
-    commit(original);
+    void commit(original);
     setPoints([]);
     setActiveToolState(null);
     setThreshold(DEFAULT_THRESHOLD);
@@ -296,9 +337,11 @@ export function useImageEdit({
       setIsProcessing(true);
       try {
         const next = await mutation.mutateAsync({ polygon, image, renderSize: [renderW, renderH] });
-        commit(next);
-        setPoints([]);
-        setActiveToolState(null);
+        // 단계 저장 모드에서 저장이 실패하면 점 · 도구를 그대로 둬 다시 시도할 수 있게(알림은 onStep 쪽)
+        if (await commit(next, { op: activeTool, points: polygon.length })) {
+          setPoints([]);
+          setActiveToolState(null);
+        }
       } catch {
         // 실패 시 points·activeTool을 보존해 재시도 가능하게 두고(workingImage 미변경) 사용자에게 알린다.
         toast.error(PROCESSING_ERROR_LABELS[activeTool]);
@@ -318,10 +361,10 @@ export function useImageEdit({
 
   const applyThreshold = useCallback(async () => {
     const baked = await bakeCurrentThreshold();
-    commit(baked);
+    if (!(await commit(baked, { op: "threshold", value: threshold, mode: thresholdMode }))) return;
     setThreshold(DEFAULT_THRESHOLD);
     setActiveToolState(null);
-  }, [bakeCurrentThreshold, commit]);
+  }, [bakeCurrentThreshold, commit, threshold, thresholdMode]);
 
   const runDenoise = useCallback(async () => {
     const image = prepareImage(workingImageRef.current, aprthngNo);
@@ -329,8 +372,7 @@ export function useImageEdit({
     setIsProcessing(true);
     try {
       const next = await denoising.mutateAsync({ image });
-      commit(next);
-      setActiveToolState(null);
+      if (await commit(next, { op: "denoise" })) setActiveToolState(null);
     } catch {
       // 실패 시 workingImage·activeTool 미변경(재시도 가능)하고 사용자에게 알린다.
       toast.error(PROCESSING_ERROR_LABELS.denoise);
@@ -350,7 +392,7 @@ export function useImageEdit({
         let finalImage = workingImageRef.current;
         if (activeTool === "threshold") {
           finalImage = await bakeCurrentThreshold();
-          commit(finalImage);
+          void commit(finalImage);
         }
         await saveMutation.mutateAsync({ image: finalImage });
         onSaved?.(finalImage);
@@ -387,6 +429,7 @@ export function useImageEdit({
     applyThreshold,
     runDenoise,
     applyImage: commit,
+    resetTo,
     isProcessing,
     processingLabel,
     save,

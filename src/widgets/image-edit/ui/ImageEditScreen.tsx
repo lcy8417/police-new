@@ -63,11 +63,20 @@ export function ImageEditScreen(props: ImageEditScreenProps) {
     const side = history !== undefined
     const original = props.beforeAfter?.original
     const shown = previewNo !== null && history && previewNo <= (history.at(-1)?.no ?? 0) ? previewNo : null
-    const previewEntry = shown === null ? undefined : shown === 0 ? { no: 0, label: "받은 원본" } : history?.find((h) => h.no === shown)
+    const previewEntry: { no: number; label: string; src?: string } | undefined =
+      shown === null ? undefined : shown === 0 ? { no: 0, label: "받은 원본" } : history?.find((h) => h.no === shown)
     const lastNo = history?.at(-1)?.no ?? 0
+    // 서버 단계 그림(src)이 있으면 그 그림 그대로, 없으면(진열) 받은 원본에 근사 모습
+    const previewSrc = previewEntry?.src ?? original
     const preview =
-      previewEntry && original && history
-        ? { no: previewEntry.no, label: previewEntry.label, src: original, look: stepLook(history, previewEntry.no), isNow: previewEntry.no === lastNo }
+      previewEntry && previewSrc && history
+        ? {
+            no: previewEntry.no,
+            label: previewEntry.label,
+            src: previewSrc,
+            look: previewEntry.src ? "" : stepLook(history, previewEntry.no),
+            isNow: previewEntry.no === lastNo,
+          }
         : null
     const revertTo = (no: number) => {
       if (props.onUndoTo) props.onUndoTo(no)
@@ -99,6 +108,7 @@ export function ImageEditScreen(props: ImageEditScreenProps) {
               history={history}
               originalSrc={original}
               originalHash={props.originalHash}
+              originalMissing={props.originalMissing}
               previewNo={shown}
               onPreview={setPreviewNo}
               canUndo={props.canUndo}

@@ -16,6 +16,8 @@ export interface EditHistoryPaneProps {
   /** 받은 원본 그림(작은 그림 바탕) — 없으면 그림 없이 줄만 */
   originalSrc?: string
   originalHash?: string
+  /** 받은 원본 파일이 보관돼 있지 않다(옛 자료) — 해시 줄 자리에 「원본 없음」 */
+  originalMissing?: boolean
   /** 미리 보는 단계(0 = 원본, null = 미리보기 아님) */
   previewNo: number | null
   onPreview: (no: number | null) => void
@@ -24,9 +26,9 @@ export interface EditHistoryPaneProps {
   canEdit: boolean
 }
 
-export function EditHistoryPane({ history, originalSrc, originalHash, previewNo, onPreview, canUndo, onUndo, canEdit }: EditHistoryPaneProps) {
+export function EditHistoryPane({ history, originalSrc, originalHash, originalMissing, previewNo, onPreview, canUndo, onUndo, canEdit }: EditHistoryPaneProps) {
   const last = history.length > 0 ? history[history.length - 1].no : 0
-  const rows: { no: number; label: string; at?: string }[] = [{ no: 0, label: "받은 원본" }, ...history]
+  const rows: { no: number; label: string; at?: string; src?: string }[] = [{ no: 0, label: "받은 원본" }, ...history]
   return (
     <section aria-label="편집 이력" data-plus="" className="flex min-h-0 min-w-0 flex-1 flex-col gap-[8px]">
       <PaneHead
@@ -56,7 +58,10 @@ export function EditHistoryPane({ history, originalSrc, originalHash, previewNo,
                 )}
               >
                 <span className="relative block h-[58px] w-[44px] overflow-hidden rounded-[6px] border border-solid border-border bg-canvas">
-                  {originalSrc ? (
+                  {/* 서버 단계 그림이 있으면 그 그림 그대로, 없으면(진열) 받은 원본에 근사 모습 */}
+                  {r.src ? (
+                    <img src={r.src} alt="" className="block size-full object-cover" />
+                  ) : originalSrc ? (
                     <img src={originalSrc} alt="" className={cn("block size-full object-cover", stepLook(history, r.no))} />
                   ) : null}
                 </span>
@@ -79,6 +84,10 @@ export function EditHistoryPane({ history, originalSrc, originalHash, previewNo,
       {originalHash ? (
         <p className="m-0 shrink-0 border-0 border-t border-solid border-border pt-[8px] text-[10px] leading-[1.5] text-muted-foreground">
           원본 보관 · SHA-256 <b className="font-code font-medium text-fg-2">{originalHash}</b>
+        </p>
+      ) : originalMissing ? (
+        <p className="m-0 shrink-0 border-0 border-t border-solid border-border pt-[8px] text-[10px] leading-[1.5] text-muted-foreground">
+          원본 없음 — 받은 그대로의 원본 파일이 보관돼 있지 않은 옛 자료입니다
         </p>
       ) : null}
     </section>

@@ -350,7 +350,10 @@ function BottomRow({ p, className, workbench = false }: { p: CuttingPaneProps; c
     <ScasButtonRow
       label="SCAS 아래 버튼 줄"
       locked={!canEdit}
-      actions={{ 처음상태: p.onRestore }}
+      actions={{
+        처음상태: p.onRestore,
+        ...(p.onFlip && { 좌우반전: () => p.onFlip?.("horizontal"), 상하반전: () => p.onFlip?.("vertical") }),
+      }}
       highlight={p.plus && p.recommendFlip ? "좌우반전" : undefined}
       workbench={workbench}
       className={className}

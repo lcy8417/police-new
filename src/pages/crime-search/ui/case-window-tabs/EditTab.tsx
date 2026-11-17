@@ -1,9 +1,17 @@
 import * as React from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { useCrimeStore, type Crime } from "@/entities/crime"
+import { editFileUrl, editHistoryKeys, useEditHistory, type EditHistory } from "@/entities/crime/api/edit-history-api"
 import { PolygonCaptureCanvas, useImageEdit } from "@/features/crime-edit"
+import type { EditStepOp } from "@/features/crime-edit/model/use-image-edit"
+import { useRevertEdit, useSaveEditStep } from "@/features/crime-edit/api/use-save-edit"
+import { flipImage, type FlipAxis } from "@/features/crime-edit/lib/flip-image"
+import { revertTargetOf, shortHash, toHistoryRows, undoTargetNo } from "@/features/crime-edit/model/edit-history-view"
 import { rotateArbitrary, useImageEditor } from "@/features/crime-register"
+import { ApiError } from "@/shared/api"
+import { resolveImageToDataUrl, toKstIso } from "@/shared/lib"
 import {
   DEFAULT_VIEW_ADJUSTMENTS,
   ImageEditScreen,
@@ -21,6 +29,14 @@ type EditorTool = keyof typeof EDITOR_MODE
 const isEditorTool = (tool: ImageEditTool | null): tool is EditorTool =>
   tool === "crop" || tool === "calibrate" || tool === "measure"
 
+/** 조회 실패 시각 「시:분」(KST) */
+const kstClock = (ms: number) => toKstIso(new Date(ms)).slice(11, 16)
+
+/** 서버 거절 문구(한국어 detail) 그대로, 없으면 기본 문구 */
+const errorText = (e: unknown, fallback: string) => (e instanceof ApiError && e.detail ? e.detail : fallback)
+
+const MSG_SUPERSEDED = "확정 판정이 있던 이미지라 판정이 「다시 판정」 상태가 되었습니다."
+
 export interface EditTabProps {
   viewer: TabViewer
   image: Crime
@@ -29,21 +45,79 @@ export interface EditTabProps {
 }
 
 /**
- * 「이미지 편집」 탭 — 1차 편집(결정 §3-2)을 실제 편집 훅으로:
- *   배경제거 · 접합장애물제거 · 이진화 · 노이즈제거 · 되돌리기 · 원본 복원 · 저장 = `features/crime-edit` `useImageEdit`(서버 처리 · `PUT /crime/edit_image`)
- *   자르기 · 4점 각도 보정(`/crime/demo/perspective`) · 길이 측정 = `features/crime-register` `useImageEditor`(등록 화면과 같은 훅)
- *   회전 = 보기 회전(미리보기) → 확인 · 도구 진입 · 저장 때 `rotateArbitrary` 로 픽셀에 굽기
- * 편집 결과는 모두 `useImageEdit` 한 스택에 쌓여 되돌리기가 이어진다. 편집 이력 단계 그림(B3 · B4)은 서버 API 가 없어 그리지 않는다.
+ * 「이미지 편집」 탭 — 1차 편집(결정 §3-2). **도구 「확인」 1번 = 서버 편집 이력 한 단계(B4)**(잠금 §1-③):
+ *   배경제거 · 접합장애물제거 · 이진화 · 노이즈제거 = `features/crime-edit` `useImageEdit`(서버 처리 결과를 `onStep` 으로 B4 저장 뒤 반영)
+ *   자르기 · 4점 각도 보정 · 길이 측정 = `features/crime-register` `useImageEditor`, 회전 = 보기 회전 → 확인 때 픽셀에 굽기(B4)
+ *   좌우 · 상하반전 = 캔버스 뒤집기(B4)
+ * 편집 이력 · 단계 그림 · 원본 해시는 B3(`useEditHistory`), 되돌리기 · 여기까지 되돌리기 · 처음상태 = B5(새 줄 — 지움 없음).
+ * 「그새 다른 편집」 409 는 알림 + 이력 다시 읽기 + 서버의 지금 편집본으로 바꿔 놓음.
  */
 export function EditTab({ viewer, image, onCancel }: EditTabProps) {
   const aprthngNo = image.aprthngNo ?? ""
+  const queryClient = useQueryClient()
   const setCrimeData = useCrimeStore((s) => s.setCrimeData)
-  const edit = useImageEdit({
-    aprthngNo,
-    seedImage: image.editImage ?? image.image,
-    originalImage: image.image,
+  const historyQuery = useEditHistory(aprthngNo)
+  const history = historyQuery.data
+  const saveStep = useSaveEditStep(aprthngNo)
+  const revert = useRevertEdit(aprthngNo)
+
+  // B4 · B5 의 srcFileId — 서버 응답으로 바로 옮긴다(이력 다시 읽기를 기다리지 않고 다음 단계가 맞는 파일을 보게)
+  const currentRef = React.useRef<number | null>(null)
+  React.useEffect(() => {
+    if (history) currentRef.current = history.currentFileId
+  }, [history])
+
+  // 받은 원본(0번 줄) 그림 = 작업본 파일, 옛 감정물(작업본 없음)은 장면 이미지
+  const baseSrc = history?.workingFileId != null ? editFileUrl(history.workingFileId) : image.image
+  // 편집 시작 그림 = 서버의 지금 편집본. 옛 감정물은 옛 편집본(없으면 장면) — 첫 저장 때 서버가 장면을 작업본으로 소급 등록
+  const seedImage = history
+    ? history.currentFileId !== null
+      ? editFileUrl(history.currentFileId)
+      : (image.editImage ?? image.image)
+    : undefined
+
+  /** 옛 화면(통합 커맨드센터 · 문양 탭)이 아직 전역 store 의 editImage 를 읽어 — 지금 편집본을 같이 넣어 둔다(전환 기간) */
+  const mirrorToStore = React.useCallback(
+    (img: string) => {
+      void resolveImageToDataUrl(img)
+        .then((dataUrl) =>
+          setCrimeData((prev) => prev.map((item) => (item.aprthngNo === aprthngNo ? { ...item, editImage: dataUrl } : item)))
+        )
+        .catch(() => undefined)
+    },
+    [aprthngNo, setCrimeData]
+  )
+
+  // 409 등으로 화면이 서버와 어긋나면 서버의 지금 편집본으로(다시 읽은 이력 기준)
+  const editRef = React.useRef<ReturnType<typeof useImageEdit> | null>(null)
+  const syncToServer = React.useCallback(() => {
+    const fresh = queryClient.getQueryData<EditHistory>(editHistoryKeys.list(aprthngNo))
+    if (fresh?.currentFileId == null) return
+    currentRef.current = fresh.currentFileId
+    editRef.current?.resetTo(editFileUrl(fresh.currentFileId))
+  }, [queryClient, aprthngNo])
+
+  const onStep = async (img: string, op: EditStepOp) => {
+    try {
+      const res = await saveStep.mutateAsync({ srcFileId: currentRef.current, image: img, ops: [op] })
+      currentRef.current = res.resultFileId
+      mirrorToStore(img)
+      if (res.supersededExamId !== null) toast(MSG_SUPERSEDED)
+    } catch (e) {
+      toast.error(errorText(e, "편집 단계를 저장하지 못했습니다. 다시 시도해 주세요."))
+      if (e instanceof ApiError && e.status === 409) syncToServer()
+      throw e
+    }
+  }
+
+  const edit = useImageEdit({ aprthngNo, seedImage, originalImage: baseSrc, onStep })
+  editRef.current = edit
+  // 자르기 · 4점 보정이 결과를 넘길 때 어느 도구였나(onApply 시점의 모드)
+  const editorModeRef = React.useRef<string>("none")
+  const editor = useImageEditor(edit.workingImage || null, (next: string) => {
+    void edit.applyImage(next, { op: editorModeRef.current === "calibration" ? "calibrate" : "crop" })
   })
-  const editor = useImageEditor(edit.workingImage || null, edit.applyImage)
+  editorModeRef.current = editor.mode
 
   const [zoom, setZoom] = React.useState(100)
   const [rotateStep, setRotateStep] = React.useState(1)
@@ -56,12 +130,13 @@ export function EditTab({ viewer, image, onCancel }: EditTabProps) {
   const workingRef = React.useRef(edit.workingImage)
   workingRef.current = edit.workingImage
 
-  /** 보기 회전을 픽셀에 굽는다(편집 한 단계) */
+  /** 보기 회전을 픽셀에 굽는다(편집 한 단계 = B4). 저장이 실패하면 회전을 그대로 둔다 */
   const commitRotation = React.useCallback(async () => {
-    if (rotation === 0 || !workingRef.current) return
+    if (rotation === 0 || !workingRef.current) return true
     const rotated = await rotateArbitrary(workingRef.current, rotation)
-    edit.applyImage(rotated)
-    setRotation(0)
+    const ok = await edit.applyImage(rotated, { op: "rotate", deg: rotation })
+    if (ok) setRotation(0)
+    return ok
   }, [rotation, edit])
 
   /** 자르기 · 보정 · 측정 모드를 적용 없이 끈다 */
@@ -84,7 +159,7 @@ export function EditTab({ viewer, image, onCancel }: EditTabProps) {
       edit.setActiveTool(null)
       return
     }
-    await commitRotation()
+    if (!(await commitRotation())) return
     if (isEditorTool(tool)) {
       edit.setActiveTool(null)
       if (editor.mode === EDITOR_MODE[tool]) return
@@ -112,7 +187,7 @@ export function EditTab({ viewer, image, onCancel }: EditTabProps) {
   }
 
   const handleDenoise = async () => {
-    await commitRotation()
+    if (!(await commitRotation())) return
     const before = workingRef.current
     setDenoiseState("running")
     await edit.runDenoise()
@@ -120,18 +195,60 @@ export function EditTab({ viewer, image, onCancel }: EditTabProps) {
     setDenoiseState(workingRef.current !== before ? "done" : "failed")
   }
 
-  const handleSave = async () => {
+  const handleFlip = async (axis: FlipAxis) => {
+    if (!(await commitRotation()) || !workingRef.current) return
     try {
-      await commitRotation()
-      await edit.save((finalImage) => {
-        // 지금 앱(CrimeDetailPage handleEditSaved)과 같이 store editImage 만 낙관적으로 바꾼다 — 목록 GET 이 편집본을 보장하지 않아 refetch 하지 않음
-        setCrimeData((prev) => prev.map((item) => (item.aprthngNo === aprthngNo ? { ...item, editImage: finalImage } : item)))
-        toast.success("편집 이미지가 저장되었습니다.")
-      })
+      const flipped = await flipImage(workingRef.current, axis)
+      await edit.applyImage(flipped, { op: "flip", axis })
     } catch {
-      // 실패 안내는 save 안의 알림
+      toast.error("이미지를 뒤집지 못했습니다.")
     }
   }
+
+  /** 「편집 저장」 — 단계마다 이미 저장되므로, 확인 안 한 결과(굽지 않은 회전 · 이진화 미리보기)가 있을 때만 한 단계로 저장 */
+  const handleSave = async () => {
+    if (rotation !== 0) {
+      await commitRotation()
+      return
+    }
+    if (edit.activeTool === "threshold") {
+      await edit.applyThreshold()
+      return
+    }
+    toast("편집은 도구 「확인」마다 한 단계씩 저장되었습니다.")
+  }
+
+  /** 편집 이력 n 번 줄 상태로 되돌린다(0 = 받은 원본 = 작업본) — B5 새 줄 */
+  const revertTo = async (no: number) => {
+    if (!history) return
+    const target = revertTargetOf(history, no)
+    const src = currentRef.current
+    if (!target || target.fileId === null || src === null) {
+      toast("되돌릴 편집이 없습니다.")
+      return
+    }
+    if (target.fileId === src) {
+      toast(no === 0 ? "이미 받은 원본 상태입니다." : "이미 그 단계입니다.")
+      return
+    }
+    setRotation(0)
+    exitEditor()
+    try {
+      const res = await revert.mutateAsync({ srcFileId: src, toEditId: target.toEditId })
+      currentRef.current = res.resultFileId
+      const next = editFileUrl(res.resultFileId)
+      edit.resetTo(next)
+      mirrorToStore(next)
+      if (res.supersededExamId !== null) toast(MSG_SUPERSEDED)
+    } catch (e) {
+      toast.error(errorText(e, "되돌리지 못했습니다. 다시 시도해 주세요."))
+      if (e instanceof ApiError && e.status === 409) syncToServer()
+    }
+  }
+
+  const rows = React.useMemo(() => (history ? toHistoryRows(history, editFileUrl) : []), [history])
+  const undoNo = history ? undoTargetNo(history) : null
+  const busy = revert.isPending || saveStep.isPending
 
   const polygonActive = edit.activeTool === "background" || edit.activeTool === "inpaint"
   const canvasSlot = (
@@ -190,8 +307,9 @@ export function EditTab({ viewer, image, onCancel }: EditTabProps) {
 
   return (
     <ImageEditScreen
-      status="ready"
-      onRetry={() => undefined}
+      status={historyQuery.isError ? "error" : history ? "ready" : "loading"}
+      errorAt={historyQuery.isError ? kstClock(historyQuery.errorUpdatedAt) : undefined}
+      onRetry={() => void historyQuery.refetch()}
       isAdmin={viewer.isAdmin}
       features={viewer.features}
       showPlus={false}
@@ -223,13 +341,11 @@ export function EditTab({ viewer, image, onCancel }: EditTabProps) {
       measureCm={null}
       denoiseState={denoiseState}
       onRunDenoise={() => void handleDenoise()}
-      canUndo={edit.canUndo || rotation !== 0}
-      onUndo={() => (rotation !== 0 ? setRotation(0) : edit.undo())}
-      onRestore={() => {
-        setRotation(0)
-        exitEditor()
-        edit.restoreOriginal()
-      }}
+      canUndo={!busy && (rotation !== 0 || undoNo !== null)}
+      onUndo={() => (rotation !== 0 ? setRotation(0) : undoNo !== null ? void revertTo(undoNo) : undefined)}
+      onUndoTo={(no) => void revertTo(no)}
+      onRestore={() => void revertTo(0)}
+      onFlip={(axis) => void handleFlip(axis)}
       onCancel={onCancel}
       onConfirm={() => void handleConfirm()}
       onSave={() => void handleSave()}
@@ -237,6 +353,10 @@ export function EditTab({ viewer, image, onCancel }: EditTabProps) {
       adjustments={adjustments}
       onAdjustmentsChange={setAdjustments}
       onClose={onCancel}
+      editHistory={rows}
+      beforeAfter={baseSrc ? { original: baseSrc, edited: seedImage ?? baseSrc } : undefined}
+      originalHash={history?.original ? shortHash(history.original.sha256) : undefined}
+      originalMissing={history ? history.original === null : undefined}
     />
   )
 }

@@ -58,6 +58,14 @@ export interface ImageEditHistoryEntry {
   label: string
   /** 한 시각 「시:분:초」(KST) */
   at: string
+  /** 그 단계 결과 파일 번호(서버 편집 이력 B3 — 진열은 없음) */
+  fileId?: number
+  /** 그 단계 결과 파일 SHA-256 */
+  sha256?: string
+  /** 되돌림 줄이면 되돌아간 편집 번호(0 = 받은 원본) */
+  revertOf?: number
+  /** 그 단계 모습 그림 주소(서버 단계 그림). 없으면 받은 원본에 `stepLook` 근사 모습(진열) */
+  src?: string
 }
 
 /** B 보기용 뷰어 옆에 나란히 띄우는 발견(검색 결과) 이미지 — 시안 핀 6 */
@@ -173,6 +181,10 @@ export interface ImageEditScreenProps {
   editHistory?: readonly ImageEditHistoryEntry[]
   /** 받은 원본의 SHA-256 해시(줄여 보이는 글자, 예 「9f3a 71c0 … 4be2 c21e」) */
   originalHash?: string
+  /** 받은 원본 파일이 보관돼 있지 않다(옛 자료 — 서버 B3 `original: null`). 편집 이력 칸 아래에 「원본 없음」 */
+  originalMissing?: boolean
+  /** SCAS 「좌우반전」 · 「상하반전」 — 주면 아래 버튼 줄의 두 단추가 켜진다(없으면 「준비 중」) */
+  onFlip?: (axis: "horizontal" | "vertical") => void
   /** B 왼쪽 창 머리 글자(예 「유류 이미지 · _2」) */
   viewerLabel?: string
   /** B 오른쪽 창 — 발견 이미지 */
